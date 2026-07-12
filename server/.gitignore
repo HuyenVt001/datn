@@ -7,7 +7,8 @@
 
 # Secrets — TUYET DOI khong commit
 .env
-.env.local
+.env.*
+!.env.example
 firebase-service-account.json
 *-firebase-adminsdk-*.json
 
@@ -17,5 +18,11 @@ npm-debug.log*
 
 # IDE / OS
 .DS_Store
+Thumbs.db
 .idea
+.vscode/
 *.tsbuildinfo
+.eslintcache
+
+# Index cua CodeGraph (chi dung local)
+.codegraph/

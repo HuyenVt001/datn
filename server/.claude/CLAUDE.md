@@ -201,7 +201,7 @@ Mọi response bọc envelope thống nhất qua **global `ResponseInterceptor`*
 
 - Toàn bộ config qua `@nestjs/config`, đọc `.env`, **validate lúc khởi động** (`env.validation.ts`) — thiếu biến thì fail sớm.
 - **Firebase Admin credential:** dùng service account key. Mặc định đọc từ đường dẫn trong env `GOOGLE_APPLICATION_CREDENTIALS` hoặc `FIREBASE_SERVICE_ACCOUNT` (JSON/base64).
-- 🔒 **Không commit:** `.env`, `firebase-service-account.json`. Luôn cập nhật `.env.example` (không có giá trị thật) và `.gitignore`.
+- 🔒 **Không commit:** `.env`, `firebase-service-account.json`. Luôn cập nhật `.gitignore`.
 - Service account của server **khác** `google-services.json` của app — đây là **Admin** credential.
 
 Biến môi trường tối thiểu:
