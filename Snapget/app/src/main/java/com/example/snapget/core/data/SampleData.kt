@@ -271,12 +271,6 @@ object SampleData {
             description = "Step-by-step widget setup guide",
         ),
         Setting(
-            type = SettingType.GENERAL,
-            title = "Restore Purchases",
-            description = "Restore previous premium features",
-        ),
-
-        Setting(
             type = SettingType.PRIVACY_SAFETY,
             title = "Blocked Accounts",
             description = "View and manage blocked users",

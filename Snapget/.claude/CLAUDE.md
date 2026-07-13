@@ -15,6 +15,7 @@
 3. Snapget là **monorepo DATN**: `Snapget/` (app) ↔ `server/` (NestJS) ↔ `admin/` (React). Đổi contract API → ghi GUIDE + báo tôi để đồng bộ 3 nơi.
 4. **Domain chuẩn** = 3 tài liệu: `Snapget - Tổng quát.pdf`, `Phân tích thiết kế app.pdf`, `thiết kế các lớp thực thể trong database.pdf`. Khi mô hình dữ liệu/nghiệp vụ mơ hồ → theo các file này (và khớp `server` — xem mục 9).
 5. **UI chuẩn = ảnh demo `Sources/assets/` + `.claude/DESIGN.md`.** Đụng bất kỳ UI nào → đọc DESIGN.md trước, bám đúng màu/bo góc/component đã có. Tính năng UI **chưa có sẵn trong code** (danh sách ở DESIGN.md mục 8) → **HỎI USER THẬT CHI TIẾT** (bố cục, entry point, hành vi) trước khi code.
+6. **Sau khi hoàn thành MỖI yêu cầu của user có sửa code trong `Snapget/`** → chạy `codegraph init` cho thư mục này (`cd Snapget && codegraph init`) để cập nhật index CodeGraph.
 
 ---
 
@@ -122,7 +123,7 @@ Composable Screen ──state/event──► ViewModel ──► Repository ─�
 | Solo Streak | ngày liên tiếp mở app + upload ≥1 moment → thưởng khung. Mỗi user **1 streak cá nhân** |
 | Friend Streak | mỗi cặp bạn **1 streak chung**; +1 khi có **tương tác qua lại trong 24h** (A đăng moment cho B thấy, hoặc reply). **>24h không tương tác → reset 0** |
 | Co-op Capture | 1 người chụp nửa ảnh + gửi yêu cầu → bạn chấp nhận chụp nửa còn lại → **server ghép** thành 1 moment cho cả 2 |
-| Daily Quest | **mỗi ngày 3 quest chung**; chụp ảnh nộp → **AI xác minh** → hoàn thành → thưởng khung. AI làm **cuối cùng** |
+| Daily Quest | **(CHỐT 2026-07-13, KHÔNG AI — thay thiết kế cũ)** 2 quest cố định/ngày: đăng nhập + đăng 1 ảnh/video — server **tự hoàn thành**, app chỉ hiển thị qua `GET /quests/today`. Thưởng: 2/2 quest → khung ngẫu nhiên; mốc streak cá nhân 3/7/14/30 → khung mốc. Entry: **nút trên top bar PostScreen** |
 
 > Đặt các giới hạn thành **hằng số có tên** trong `constants/` (vd `MAX_FRIENDS = 20`, `MAX_GROUP_SIZE = 20`, `MAX_VIDEO_SECONDS = 5`, `STREAK_WINDOW_HOURS = 24`, `DAILY_QUESTS_PER_DAY = 3`), không hardcode rải rác. **Ràng buộc thật do server enforce** — client chỉ chặn UX. Tên field/enum khớp thiết kế thực thể ở `server/.claude/CLAUDE.md` mục 6 (User, Friendship, Moment, Reaction, Message, Frame, Daily_Quest...).
 
@@ -134,7 +135,7 @@ Composable Screen ──state/event──► ViewModel ──► Repository ─�
 1. **Đăng bài / upload ảnh**: `SubmitPhotoScreen` → upload qua server + tạo post qua API (kèm khung/filter).
 2. **Gửi tin nhắn 1-1**: hiện `FirestoreRepository` chỉ đọc, chưa có hàm gửi.
 
-Rồi theo ưu tiên PDF: **Bạn bè (limit 20)** → **Reaction/Photo Reply** → **Chat nhóm** → Co-op Capture → Solo/Friend Streak → Doodle → Daily Quest → **AI auto-gen quest (làm cuối cùng)**.
+Lộ trình hiện hành theo **`../TODO.md` (root)** — 5 phase chốt 2026-07-13: Admin web ✅ → Daily Quest (server ✅, app 🔄) → Camera (video/khung/filter/doodle) → Co-op Capture → phần dở dang nhỏ (deep link, sửa hồ sơ, chat nhóm/voice/sticker, mark-seen).
 
 Màn `relationship`, `detail` mới là `PlaceholderScreen` — cần làm thật. `test_camera` là màn test → bỏ khi release.
 

@@ -3,6 +3,7 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
+import { QuestsService } from '../quests/quests.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { CreateMomentDto } from './dto/create-moment.dto';
@@ -16,6 +17,7 @@ describe('MomentsService', () => {
   let usersRepo: jest.Mocked<UsersRepository>;
   let friendshipsService: jest.Mocked<FriendshipsService>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
+  let questsService: jest.Mocked<QuestsService>;
   let firebase: jest.Mocked<FirebaseService>;
 
   const me: AuthUser = { uid: 'me' };
@@ -25,6 +27,7 @@ describe('MomentsService', () => {
       create: jest.fn(),
       findById: jest.fn(),
       listByUserIds: jest.fn(),
+      listByCoopUserIds: jest.fn().mockResolvedValue([]),
       markSeen: jest.fn(),
       addReaction: jest.fn(),
       listReactions: jest.fn(),
@@ -42,6 +45,9 @@ describe('MomentsService', () => {
       listAccepted: jest.fn().mockResolvedValue([]),
       findPair: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<FriendshipsRepository>;
+    questsService = {
+      registerMomentPosted: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<QuestsService>;
     firebase = {
       messaging: jest.fn(),
     } as unknown as jest.Mocked<FirebaseService>;
@@ -52,6 +58,7 @@ describe('MomentsService', () => {
       usersRepo,
       friendshipsService,
       friendshipsRepo,
+      questsService,
       firebase,
     );
   });
@@ -71,7 +78,16 @@ describe('MomentsService', () => {
         expect.objectContaining({ userId: 'me', contentType: 'PHOTO' }),
       );
       expect(usersService.registerActivityForStreak).toHaveBeenCalledWith('me');
+      // Dang bai -> hoan thanh quest POST_MOMENT voi streak vua tinh
+      expect(questsService.registerMomentPosted).toHaveBeenCalledWith('me', 1);
       expect(result.momentId).toBe('m1');
+    });
+
+    it('van dang bai thanh cong khi quest service loi', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1' } as never);
+      questsService.registerMomentPosted.mockRejectedValue(new Error('quest down'));
+
+      await expect(service.create(me, dto)).resolves.toBeDefined();
     });
 
     it('van dang bai thanh cong khi FCM loi', async () => {

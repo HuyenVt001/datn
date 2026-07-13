@@ -40,15 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -64,11 +60,9 @@ import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheetD
 import com.example.snapget.core.designsystem.component.sheet.generalCaptions
 import com.example.snapget.core.designsystem.component.sheet.rememberCurrentTime
 import com.example.snapget.core.model.Post
-import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
-import com.example.snapget.core.util.trimCaption
 import com.example.snapget.navigation.Screen
 import java.io.File
 import kotlinx.coroutines.launch
@@ -81,11 +75,19 @@ val submitButtonSize = 80.dp
 fun SubmitPhotoScreen(
     navController: NavController,
     photoPath: String? = null,
+    // true = file la video (<=5s) — tu man EditMedia chuyen sang
+    isVideo: Boolean = false,
+    // Khung da chon o man EditMedia (gui kem moment, hien overlay khi xem)
+    frameId: String? = null,
+    // URL anh khung — EditMedia truyen thang qua route, khong tai lai catalog /frames
+    frameUrl: String? = null,
     mainViewModel: MainViewModel = hiltViewModel(),
     postViewModel: PostViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val submitStatus by postViewModel.submitStatus.collectAsState()
+
+    val frameImageUrl = frameUrl
 
     // Xu ly ket qua dang bai: thanh cong -> ve feed; loi -> bao message tu server
     LaunchedEffect(submitStatus) {
@@ -141,16 +143,6 @@ fun SubmitPhotoScreen(
     val currentUser by mainViewModel.currentUser.collectAsState()
     val data = mapToUser(currentUser)
 
-    val userPosts by mainViewModel.userPosts.collectAsState()
-
-    // Trigger the data fetch when screen loads
-    LaunchedEffect(data?.id) {
-        data?.id?.let { userId ->
-            mainViewModel.getPostsOfUser(userId)
-        }
-    }
-
-    val post: Post? = userPosts.firstOrNull()
     val maxCaptionLength = 30
 
     Scaffold(
@@ -192,7 +184,6 @@ fun SubmitPhotoScreen(
             // Show camera view or post image based on the localCameraMode state
 
             Log.d("SubmitPhotoScreen", "Current user: ${data.username}, ID: ${data.id}")
-            Log.d("SubmitPhotoScreen", "Post: ${post?.id}, Type: ${post?.postType}, Caption: ${post?.caption}")
 
             // Anh VUA CHUP tu camera (luong dang bai that) — uu tien hien thi
             if (photoPath != null) {
@@ -201,14 +192,51 @@ fun SubmitPhotoScreen(
                         .fillMaxWidth()
                         .aspectRatio(1f),
                 ) {
-                    AsyncImage(
-                        model = File(photoPath),
-                        contentDescription = "Anh vua chup",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
+                    if (isVideo) {
+                        // Video <=5s: placeholder toi + icon play (video phat that o feed)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Video",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(36.dp),
+                                )
+                            }
+                        }
+                    } else {
+                        AsyncImage(
+                            model = File(photoPath),
+                            contentDescription = "Anh vua chup",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(20.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+
+                    // Khung da chon o man Edit — overlay phu kin preview
+                    if (frameImageUrl != null) {
+                        AsyncImage(
+                            model = frameImageUrl,
+                            contentDescription = "Khung anh",
+                            contentScale = ContentScale.FillBounds,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(20.dp)),
+                        )
+                    }
 
                     // Caption dang nhap — pill trang mo chu den (DESIGN.md 7.7)
                     caption?.let { current ->
@@ -236,74 +264,6 @@ fun SubmitPhotoScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             CircularProgressIndicator(color = Color.White)
-                        }
-                    }
-                }
-            } else if (post?.thumbnailUrl != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                ) {
-                    AsyncImage(
-                        model = post.thumbnailUrl,
-                        contentDescription = "Post image",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
-
-                    // Video indicator for video posts
-                    if (post.postType == PostType.VIDEO) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .size(72.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.6f),
-                                    shape = CircleShape,
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play video",
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp),
-                            )
-                        }
-                    }
-
-                    // Caption
-                    post.caption?.let { caption ->
-                        // Get haptic feedback instance
-                        val haptic = LocalHapticFeedback.current
-
-                        // Trigger haptic feedback when caption exceeds max length
-                        LaunchedEffect(caption) {
-                            if (caption.length > maxCaptionLength) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 24.dp) // Add padding to move it up from bottom
-                                .background(
-                                    Color.Black.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(24.dp),
-                                )
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                text = trimCaption(caption, maxCaptionLength),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White,
-                                lineHeight = 20.sp,
-                                textAlign = TextAlign.Center,
-                            )
                         }
                     }
                 }
@@ -351,7 +311,9 @@ fun SubmitPhotoScreen(
                                 submitStatus is LoadStatus.Loading -> Unit // dang gui, bo qua
                                 else -> postViewModel.submitPhoto(
                                     File(photoPath),
+                                    isVideo = isVideo,
                                     caption = caption?.trim()?.takeIf { it.isNotEmpty() },
+                                    frameId = frameId,
                                 )
                             }
                         }

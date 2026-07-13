@@ -2,7 +2,9 @@ package com.example.snapget.core.network.api
 
 import com.example.snapget.core.network.ApiResponse
 import com.example.snapget.core.network.PaginatedData
+import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.ConversationSummaryDto
+import com.example.snapget.core.network.dto.CreateGroupRequest
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.network.dto.SendMessageRequest
 import retrofit2.http.Body
@@ -34,4 +36,20 @@ interface MessageApi {
     /** Danh dau da xem (chi nguoi nhan goi duoc). */
     @PATCH("messages/{id}/seen")
     suspend fun markSeen(@Path("id") messageId: String): ApiResponse<Map<String, String>>
+
+    /** Tao nhom chat (<=20 thanh vien, nguoi tao tu vao nhom). */
+    @POST("messages/groups")
+    suspend fun createGroup(@Body body: CreateGroupRequest): ApiResponse<ChatGroupDto>
+
+    /** Danh sach nhom chat cua minh. */
+    @GET("messages/groups")
+    suspend fun listGroups(): ApiResponse<List<ChatGroupDto>>
+
+    /** Thread nhom (member-only): page 1 = doan MOI nhat, items cu -> moi. */
+    @GET("messages/groups/{groupId}")
+    suspend fun getGroupThread(
+        @Path("groupId") groupId: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 50,
+    ): ApiResponse<PaginatedData<MessageDto>>
 }

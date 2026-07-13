@@ -1,4 +1,5 @@
 import { FirebaseService } from '../firebase/firebase.service';
+import { QuestsService } from '../quests/quests.service';
 import { AdminRepository } from './admin.repository';
 import { AdminService } from './admin.service';
 
@@ -6,6 +7,7 @@ describe('AdminService', () => {
   let service: AdminService;
   let firebase: { auth: jest.Mock };
   let adminRepo: jest.Mocked<AdminRepository>;
+  let questsService: jest.Mocked<QuestsService>;
 
   const authUsers = [
     {
@@ -36,8 +38,21 @@ describe('AdminService', () => {
       getStats: jest.fn(),
       getFullNames: jest.fn().mockResolvedValue(new Map([['u1', 'Nguyen Van An']])),
     } as unknown as jest.Mocked<AdminRepository>;
+    questsService = {
+      countCompletionsToday: jest.fn().mockResolvedValue(0),
+    } as unknown as jest.Mocked<QuestsService>;
 
-    service = new AdminService(firebase as unknown as FirebaseService, adminRepo);
+    service = new AdminService(firebase as unknown as FirebaseService, adminRepo, questsService);
+  });
+
+  it('getStats: gop thong ke chung + so luot hoan thanh quest hom nay', async () => {
+    adminRepo.getStats.mockResolvedValue({ users: 2, moments: 5 } as never);
+    questsService.countCompletionsToday.mockResolvedValue(3);
+
+    const result = await service.getStats();
+
+    expect(result.users).toBe(2);
+    expect(result.questCompletionsToday).toBe(3);
   });
 
   it('listUsers: tim theo email + enrich fullName tu Firestore', async () => {

@@ -7,11 +7,16 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Ghi am khi quay video ngan (<=5s) + tin nhan thoai -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
+    <!-- usesCleartextTraffic chi bat o build DEBUG (src/debug/AndroidManifest.xml) —
+         server dev chay HTTP (10.0.2.2 / IP LAN). Ban release KHONG cho cleartext
+         de token khong bao gio di qua HTTP tran. -->
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
@@ -35,6 +40,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep link moi ket ban: https://snapget.app/invite/<code> (xu ly o MainActivity.onNewIntent) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="snapget.app" android:pathPrefix="/invite/" />
             </intent-filter>
         </activity>
 

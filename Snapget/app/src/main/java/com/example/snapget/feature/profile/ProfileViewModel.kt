@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.network.dto.MomentDto
+import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.profile.data.ProfileRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +46,10 @@ class ProfileViewModel @Inject constructor(
     private val _status = MutableStateFlow<LoadStatus>(LoadStatus.Init())
     val status: StateFlow<LoadStatus> = _status.asStateFlow()
 
+    /** Trang thai luu ho so (dialog sua ten/avatar). */
+    private val _updateStatus = MutableStateFlow<LoadStatus>(LoadStatus.Init())
+    val updateStatus: StateFlow<LoadStatus> = _updateStatus.asStateFlow()
+
     /** Tai ho so + moment. [userId] null hoac = uid cua minh -> profile cua minh. */
     fun load(userId: String?) {
         val myUid = auth.currentUser?.uid
@@ -71,8 +77,37 @@ class ProfileViewModel @Inject constructor(
                 }
                 _status.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _status.value = LoadStatus.Error(e.message ?: "Khong tai duoc ho so.")
+                _status.value = LoadStatus.Error(e.serverMessage("Khong tai duoc ho so."))
             }
         }
+    }
+
+    /**
+     * Sua ho so cua minh: upload avatar moi (neu co) roi PATCH ten/avatar.
+     * Thanh cong -> cap nhat profile tai cho (khong can reload ca man).
+     */
+    fun updateProfile(newName: String, avatarFile: File?) {
+        if (_updateStatus.value is LoadStatus.Loading) return
+        viewModelScope.launch {
+            _updateStatus.value = LoadStatus.Loading()
+            try {
+                val avatarUrl = avatarFile?.let { profileRepository.uploadAvatar(it) }
+                val dto = profileRepository.updateProfile(
+                    fullName = newName.trim().takeIf { it.isNotEmpty() },
+                    avatarUrl = avatarUrl,
+                )
+                _profile.value = _profile.value?.copy(
+                    name = dto.fullName ?: newName,
+                    avatar = dto.avatar.orEmpty(),
+                )
+                _updateStatus.value = LoadStatus.Success()
+            } catch (e: Exception) {
+                _updateStatus.value = LoadStatus.Error(e.serverMessage("Cap nhat ho so that bai."))
+            }
+        }
+    }
+
+    fun resetUpdateStatus() {
+        _updateStatus.value = LoadStatus.Init()
     }
 }

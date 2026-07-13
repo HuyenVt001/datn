@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -6,6 +6,7 @@ import { AdminJwtGuard } from '../common/guards/admin-jwt.guard';
 import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateFrameDto } from './dto/create-frame.dto';
+import { UpdateFrameDto } from './dto/update-frame.dto';
 import { FramesService } from './frames.service';
 
 @ApiTags('frames')
@@ -25,6 +26,15 @@ export class FramesController {
 
   // ==== Luong ADMIN (JWT server) ====
 
+  @Get('admin')
+  @ApiBearerAuth('admin')
+  @UseGuards(AdminJwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: '[Admin] Danh sach toan bo khung anh (khong can isUnlocked)' })
+  listAsAdmin() {
+    return this.framesService.listAll();
+  }
+
   @Post()
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
@@ -33,6 +43,16 @@ export class FramesController {
   async create(@Body() dto: CreateFrameDto) {
     const frame = await this.framesService.create(dto);
     return { message: 'Da them khung anh.', data: frame };
+  }
+
+  @Patch(':id')
+  @ApiBearerAuth('admin')
+  @UseGuards(AdminJwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: '[Admin] Sua khung anh (ten / anh)' })
+  async update(@Param('id') frameId: string, @Body() dto: UpdateFrameDto) {
+    const frame = await this.framesService.update(frameId, dto);
+    return { message: 'Da cap nhat khung anh.', data: frame };
   }
 
   @Delete(':id')

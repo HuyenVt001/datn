@@ -4,11 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.model.FriendUi
+import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.friends.data.FriendsRepository
 import com.example.snapget.feature.message.data.MessageRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +63,14 @@ class MessageViewModel @Inject constructor(
     private val _sendError = MutableStateFlow<String?>(null)
     val sendError: StateFlow<String?> = _sendError.asStateFlow()
 
+    /** Nhom chat cua minh (section "Nhom" tren man Messages). */
+    private val _groups = MutableStateFlow<List<ChatGroupDto>>(emptyList())
+    val groups: StateFlow<List<ChatGroupDto>> = _groups.asStateFlow()
+
+    /** Dang upload media (anh/voice) — UI hien spinner tren thanh nhap. */
+    private val _sendingMedia = MutableStateFlow(false)
+    val sendingMedia: StateFlow<Boolean> = _sendingMedia.asStateFlow()
+
     /** Tai danh sach hoi thoai + ban be (goi khi mo man Messages). */
     fun loadConversations() {
         viewModelScope.launch {
@@ -92,7 +103,7 @@ class MessageViewModel @Inject constructor(
                 }
                 _conversationsStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _conversationsStatus.value = LoadStatus.Error(e.message ?: "Khong tai duoc hoi thoai.")
+                _conversationsStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc hoi thoai."))
             }
         }
     }
@@ -106,16 +117,34 @@ class MessageViewModel @Inject constructor(
             if (showLoading) _threadStatus.value = LoadStatus.Loading()
             try {
                 val messages = messageRepository.getThread(friendUid)
-                _thread.value = messages
+                _thread.value = mergeThread(messages)
                 if (showLoading) _threadStatus.value = LoadStatus.Success()
                 markUnseenAsSeen(messages)
             } catch (e: Exception) {
                 if (showLoading) {
-                    _threadStatus.value = LoadStatus.Error(e.message ?: "Khong tai duoc tin nhan.")
+                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc tin nhan."))
                 }
                 // Polling loi (mat mang thoang qua) -> giu thread cu, khong bao
             }
         }
+    }
+
+    /**
+     * Gop ket qua poll voi thread hien tai: GIU LAI tin local chua co trong response
+     * (tin vua gui xong nhung snapshot cua poll chup TRUOC do — thieu buoc nay thi
+     * tin vua gui "bien mat" ~5s roi hien lai, user tuong gui loi va gui lai).
+     *
+     * CHI giu tin local MOI HON tin moi nhat cua server: thread >50 tin thi tin cu
+     * rot khoi trang 1 cua server — khong loc theo sendTime thi tin CU nhat bi
+     * append nguoc xuong CUOI thread (sai thu tu + auto-scroll nhay ve tin cu).
+     */
+    private fun mergeThread(server: List<MessageDto>): List<MessageDto> {
+        val serverIds = server.mapTo(mutableSetOf()) { it.messageId }
+        val newestServerTime = server.lastOrNull()?.sendTime ?: "" // server tra cu -> moi
+        val localOnly = _thread.value.filter {
+            it.messageId !in serverIds && it.sendTime > newestServerTime
+        }
+        return server + localOnly
     }
 
     /** Gui TEXT/EMOJI; thanh cong -> append ngay vao thread (polling se dong bo lai). */
@@ -127,7 +156,89 @@ class MessageViewModel @Inject constructor(
                 val sent = messageRepository.send(friendUid, trimmed, messageType)
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
-                _sendError.value = e.message ?: "Gui tin that bai."
+                _sendError.value = e.serverMessage("Gui tin that bai.")
+            }
+        }
+    }
+
+    /** Tai danh sach nhom cua minh (im lang khi loi — section tu an). */
+    fun loadGroups() {
+        viewModelScope.launch {
+            try {
+                _groups.value = messageRepository.listGroups()
+            } catch (_: Exception) {
+                // Giu danh sach cu
+            }
+        }
+    }
+
+    /** Tao nhom chat roi refresh danh sach (loi hien qua sendError). */
+    fun createGroup(groupName: String, memberIds: List<String>) {
+        viewModelScope.launch {
+            try {
+                messageRepository.createGroup(groupName, memberIds)
+                loadGroups()
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Tao nhom that bai.")
+            }
+        }
+    }
+
+    /** Tai/lam moi thread NHOM (dung chung state thread voi chat 1-1). */
+    fun refreshGroupThread(groupId: String, showLoading: Boolean = false) {
+        viewModelScope.launch {
+            if (showLoading) _threadStatus.value = LoadStatus.Loading()
+            try {
+                _thread.value = mergeThread(messageRepository.getGroupThread(groupId))
+                if (showLoading) _threadStatus.value = LoadStatus.Success()
+            } catch (e: Exception) {
+                if (showLoading) {
+                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc tin nhan."))
+                }
+            }
+        }
+    }
+
+    /** Gui TEXT/EMOJI/STICKER vao nhom. */
+    fun sendGroupMessage(groupId: String, content: String, messageType: String = "TEXT") {
+        val trimmed = content.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val sent = messageRepository.sendToGroup(groupId, trimmed, messageType)
+                _thread.value = _thread.value + sent
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Gui tin that bai.")
+            }
+        }
+    }
+
+    /**
+     * Gui tin media (PHOTO/VOICE): upload file -> gui URL lam content.
+     * Dich la 1-1 (receiverId) HOAC nhom (groupId) — truyen dung 1 trong 2.
+     */
+    fun sendMedia(
+        receiverId: String?,
+        groupId: String?,
+        file: File,
+        mimeType: String,
+        messageType: String,
+    ) {
+        if (_sendingMedia.value) return
+        viewModelScope.launch {
+            _sendingMedia.value = true
+            try {
+                val url = messageRepository.uploadMedia(file, mimeType)
+                val sent = when {
+                    groupId != null -> messageRepository.sendToGroup(groupId, url, messageType)
+                    receiverId != null -> messageRepository.send(receiverId, url, messageType)
+                    else -> return@launch
+                }
+                _thread.value = _thread.value + sent
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Gui tin that bai.")
+            } finally {
+                _sendingMedia.value = false
             }
         }
     }
@@ -142,20 +253,46 @@ class MessageViewModel @Inject constructor(
         _threadStatus.value = LoadStatus.Init()
     }
 
+    /** Cac messageId da gui markSeen trong phien — tranh PATCH lap lai moi lan poll 5s. */
+    private val seenSent = mutableSetOf<String>()
+
     /** Danh dau da xem cac tin gui den minh (fire-and-forget, loi bo qua). */
     private fun markUnseenAsSeen(messages: List<MessageDto>) {
         val uid = myUid ?: return
         messages
-            .filter { it.receiverId == uid && !it.isSeen }
+            .filter { it.receiverId == uid && !it.isSeen && seenSent.add(it.messageId) }
             .forEach { message ->
                 viewModelScope.launch {
                     try {
                         messageRepository.markSeen(message.messageId)
                     } catch (_: Exception) {
-                        // Khong anh huong UX
+                        seenSent.remove(message.messageId) // loi thi cho poll sau thu lai
                     }
                 }
             }
+    }
+
+    /**
+     * Chi tai danh sach ban be (ten/avatar) neu CHUA co — cho ChatScreen/GroupChatScreen.
+     * Truoc day 2 man nay goi loadConversations() moi lan mo chi de lay ten nguoi chat,
+     * keo theo ca GET /messages/conversations (nang) hoan toan thua.
+     */
+    fun loadFriendsIfNeeded() {
+        if (_friendsById.value.isNotEmpty()) return
+        viewModelScope.launch {
+            try {
+                _friendsById.value = friendsRepository.listFriends().associate { dto ->
+                    dto.uid to FriendUi(
+                        id = dto.uid,
+                        name = dto.fullName ?: "Snapget user",
+                        avatar = dto.avatar.orEmpty(),
+                        streak = dto.friendStreak ?: 0,
+                    )
+                }
+            } catch (_: Exception) {
+                // Ten fallback "Snapget user" — khong chan man chat
+            }
+        }
     }
 
     private fun previewOf(message: MessageDto): String = when (message.messageType) {

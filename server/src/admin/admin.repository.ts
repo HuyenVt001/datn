@@ -10,6 +10,8 @@ export interface AdminStats {
   messages: number;
   friendships: number;
   chatGroups: number;
+  /** So luot hoan thanh quest hom nay (them boi AdminService, khong dem o day). */
+  questCompletionsToday?: number;
 }
 
 /** NOI DUY NHAT cham Firestore cho module admin (dem aggregate cross-domain). */

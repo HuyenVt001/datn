@@ -25,6 +25,7 @@ fun MomentDto.toPost(currentUser: User?, friends: List<User>): Post {
         postType = if (contentType == "VIDEO") PostType.VIDEO else PostType.IMAGE,
         caption = caption,
         thumbnailUrl = mediaUrl,
+        frameId = frameId,
         createdAt = postTime,
     )
 }

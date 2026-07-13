@@ -2,9 +2,13 @@ package com.example.snapget.feature.profile
 
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,17 +24,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,11 +55,14 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.constants.Month
 import com.example.snapget.core.designsystem.component.circle.Circle
@@ -63,12 +76,14 @@ import com.example.snapget.core.designsystem.theme.GraySurface
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.calculateDaysOfMonthInYear
+import com.example.snapget.core.util.copyUriToCacheFile
 import com.example.snapget.core.util.groupPostsByDay
 import com.example.snapget.core.util.groupPostsByMonthYear
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.feature.post.PostDetailScreen
 import com.example.snapget.feature.post.toPost
 import com.example.snapget.navigation.Screen
+import java.io.File
 import java.time.LocalDate
 
 data class MonthPosts(
@@ -99,9 +114,29 @@ fun UserProfile(
     val profile by profileViewModel.profile.collectAsState()
     val moments by profileViewModel.moments.collectAsState()
     val profileStatus by profileViewModel.status.collectAsState()
+    val updateStatus by profileViewModel.updateStatus.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(userId) {
         profileViewModel.load(userId)
+    }
+
+    // Dialog sua ho so (chi profile cua minh)
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(updateStatus) {
+        when (val status = updateStatus) {
+            is LoadStatus.Success -> {
+                Toast.makeText(context, "Da cap nhat ho so!", Toast.LENGTH_SHORT).show()
+                showEditDialog = false
+                profileViewModel.resetUpdateStatus()
+            }
+            is LoadStatus.Error -> {
+                Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
+                profileViewModel.resetUpdateStatus()
+            }
+            else -> Unit
+        }
     }
 
     // Map MomentDto -> Post cho calendar + detail (tac gia = chu profile)
@@ -202,6 +237,12 @@ fun UserProfile(
                                 name = profileData.name,
                                 email = profileData.email,
                                 avatar = profileData.avatar,
+                                // Chi ho so cua MINH moi sua duoc
+                                onEditClick = if (profileData.isSelf) {
+                                    { showEditDialog = true }
+                                } else {
+                                    null
+                                },
                                 modifier = Modifier.padding(16.dp),
                             )
                         }
@@ -270,6 +311,19 @@ fun UserProfile(
                     }
                 }
             }
+
+            // Dialog sua ho so: doi ten + chon avatar tu thu vien
+            if (showEditDialog) {
+                EditProfileDialog(
+                    currentName = profileData.name,
+                    currentAvatar = profileData.avatar,
+                    isSaving = updateStatus is LoadStatus.Loading,
+                    onSave = { newName, avatarFile ->
+                        profileViewModel.updateProfile(newName, avatarFile)
+                    },
+                    onDismiss = { showEditDialog = false },
+                )
+            }
         }
     }
 }
@@ -279,6 +333,7 @@ private fun ProfileHeader(
     name: String,
     email: String?,
     avatar: String,
+    onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -291,13 +346,25 @@ private fun ProfileHeader(
             verticalArrangement = Arrangement.spacedBy(5.dp),
             modifier = Modifier.weight(1f), // Take available space
         ) {
-            // Username
-            Text(
-                text = name,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            // Username + nut sua (chi ho so cua minh)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                if (onEditClick != null) {
+                    IconButton(onClick = onEditClick) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Sua ho so",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
 
             // Email chi co khi xem profile cua MINH (server giau email nguoi khac)
             if (email != null) {
@@ -326,13 +393,111 @@ private fun ProfileHeader(
             gap = 5.dp,
             backgroundColor = Color(0xFF404137),
             borderColor = Color(0xFFFFD700),
-            onClick = {},
+            onClick = { onEditClick?.invoke() },
             imageSetting = ImageSetting(
                 imageUrl = avatar,
                 contentDescription = "Profile picture",
             ),
         )
     }
+}
+
+/**
+ * Dialog sua ho so: doi ten hien thi (<=30 ky tu) + chon avatar tu thu vien.
+ * Avatar chon xong duoc copy vao cache roi upload khi bam Luu.
+ */
+@Composable
+private fun EditProfileDialog(
+    currentName: String,
+    currentAvatar: String,
+    isSaving: Boolean,
+    onSave: (String, File?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    var name by remember { mutableStateOf(currentName) }
+    var avatarFile by remember { mutableStateOf<File?>(null) }
+
+    val pickImage = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let { avatarFile = copyUriToCacheFile(context, it, "avatar") }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() },
+        containerColor = GraySurface,
+        title = {
+            Text(text = "Sua ho so", color = Color.White, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Avatar: cham de chon anh moi tu thu vien
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF404137))
+                        .clickable(enabled = !isSaving) { pickImage.launch("image/*") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val model: Any? = avatarFile ?: currentAvatar.takeIf { it.isNotEmpty() }
+                    if (model != null) {
+                        AsyncImage(
+                            model = model,
+                            contentDescription = "Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Chon avatar",
+                            tint = Color.White,
+                        )
+                    }
+                }
+                Text(
+                    text = "Cham anh de doi avatar",
+                    color = Color(0xFFB0B0B0),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it.take(30) },
+                    label = { Text("Ten hien thi") },
+                    singleLine = true,
+                    enabled = !isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(name, avatarFile) },
+                enabled = !isSaving && name.isNotBlank(),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.Yellow,
+                    )
+                } else {
+                    Text(text = "Luu", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) {
+                Text(text = "Huy", color = Color.White)
+            }
+        },
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

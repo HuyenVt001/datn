@@ -1,14 +1,18 @@
 package com.example.snapget.feature.post
 
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,7 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,6 +44,7 @@ import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.feature.auth.AuthViewModel
+import com.example.snapget.feature.coop.CoopViewModel
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.feature.post.PostDetailScreen
 import com.example.snapget.navigation.Screen
@@ -50,18 +57,18 @@ fun PostScreen(
     mainViewModel: MainViewModel = hiltViewModel(),
 ) {
     val authState by authViewModel.authState.collectAsState()
-    val posts by mainViewModel.posts.collectAsState()
-    val userPosts by mainViewModel.userPosts.collectAsState() // For specific user posts
-    val friends by mainViewModel.friends.collectAsState()
 
-    // Use ViewModel loading states instead of local loading state
-    val postsLoading by mainViewModel.postsLoading.collectAsState()
-    val userPostsLoading by mainViewModel.userPostsLoading.collectAsState()
-
-    // Feed tu API server (nguon chinh cho tab Everyone)
+    // Feed tu API server — tab Everyone doc feed, tab You/ban be doc userMoments
     val postViewModel: PostViewModel = hiltViewModel()
     val apiFeed by postViewModel.feed.collectAsState()
     val feedStatus by postViewModel.feedStatus.collectAsState()
+    val userMoments by postViewModel.userMoments.collectAsState()
+    val userMomentsStatus by postViewModel.userMomentsStatus.collectAsState()
+    val frames by postViewModel.frames.collectAsState()
+
+    // Loi moi chup chung dang cho (banner tren feed)
+    val coopViewModel: CoopViewModel = hiltViewModel()
+    val pendingInvites by coopViewModel.pendingInvites.collectAsState()
 
     // Sheet ban be (QR ket ban) — data tu API /friendships
     val friendsViewModel: FriendsViewModel = hiltViewModel()
@@ -69,6 +76,12 @@ fun PostScreen(
     val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
     val inviteLink by friendsViewModel.inviteLink.collectAsState()
     var showFriendSheet by remember { mutableStateOf(false) }
+
+    // Ban be tu API — dung cho dropdown top bar + resolve tac gia moment
+    // (remember de khong re-map moi lan recompose)
+    val friendUsers = remember(apiFriends) {
+        apiFriends.map { User(id = it.id, username = it.name, email = "", avatar = it.avatar) }
+    }
 
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var showNotifications by remember { mutableStateOf(false) }
@@ -94,16 +107,20 @@ fun PostScreen(
         when (authState) {
             is AuthState.Authenticated -> {
                 Log.d("UserDebug", "Auth State: Authenticated")
-                val user = (authState as AuthState.Authenticated).user
-                mainViewModel.getAllPostsOfUserAndFriends(user)
-                mainViewModel.fetchFriendsOfUser(user)
                 mainViewModel.fetchCurrentUser()
                 postViewModel.loadFeed() // feed tu server NestJS
+                postViewModel.loadFrames() // catalog khung (overlay len o anh trong feed)
+                coopViewModel.loadPending() // loi moi chup chung dang cho
+                friendsViewModel.loadFriends() // dropdown top bar + resolve tac gia
             }
 
             else -> Log.d("PostScreen", "User is not authenticated, skipping post fetch")
         }
     }
+
+    // Business rule "feed da xem": mark-seen chuyen xuong PostGrid.onPostVisible —
+    // chi danh dau moment THUC SU hien len man hinh khi luot (dung spec "luot qua"),
+    // khong con mark ca feed ngay khi load nhu truoc (ghi view cho bai chua ai xem).
 
     when {
         selectedPost != null -> {
@@ -111,21 +128,25 @@ fun PostScreen(
                 post = selectedPost!!,
                 onBack = { selectedPost = null },
                 navController = navController,
-                friends = friends,
+                friends = friendUsers,
             )
         }
 
         else -> {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Determine which posts to show and handle loading state
-                // Tab Everyone doc tu API server; tab "you"/ban be van tu
-                // Firestore cu — TODO(migrate): chuyen not sang API
-                val everyonePosts = apiFeed.map { it.toPost(data, friends) }
-                val (displayPosts, isCurrentlyLoading) = when (selectedUser?.id) {
-                    "everyone" -> everyonePosts to (feedStatus is LoadStatus.Loading)
-                    "you" -> userPosts to userPostsLoading
-                    null -> everyonePosts to (feedStatus is LoadStatus.Loading)
-                    else -> userPosts to userPostsLoading // Show friend's posts from userPosts StateFlow
+                // Tat ca tab deu doc tu API server (bo Firestore truc tiep 2026-07-13):
+                // Everyone = /moments/feed, You = /moments/mine, ban = /moments/user/:uid
+                val everyonePosts = remember(apiFeed, data, friendUsers) {
+                    apiFeed.map { it.toPost(data, friendUsers) }
+                }
+                val tabPosts = remember(userMoments, data, friendUsers) {
+                    userMoments.map { it.toPost(data, friendUsers) }
+                }
+                val isEveryoneTab = selectedUser == null || selectedUser?.id == "everyone"
+                val (displayPosts, isCurrentlyLoading) = if (isEveryoneTab) {
+                    everyonePosts to (feedStatus is LoadStatus.Loading)
+                } else {
+                    tabPosts to (userMomentsStatus is LoadStatus.Loading)
                 }
 
                 var topbarHeight by remember { mutableIntStateOf(0) }
@@ -141,9 +162,13 @@ fun PostScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = when (selectedUser?.id) {
-                                    "everyone" -> "No posts to show"
-                                    "you" -> "You haven't posted anything yet"
+                                text = when {
+                                    // Tab Everyone KHONG duoc hien loi dinh lai tu tab khac
+                                    isEveryoneTab -> "No posts to show"
+                                    // Loi tai tab (vd 403 cua server) -> hien message truc tiep
+                                    userMomentsStatus is LoadStatus.Error ->
+                                        (userMomentsStatus as LoadStatus.Error).error
+                                    selectedUser?.id == "you" -> "You haven't posted anything yet"
                                     else -> "${selectedUser?.username ?: "This user"} hasn't posted anything yet"
                                 },
                                 style = MaterialTheme.typography.bodyLarge,
@@ -162,10 +187,26 @@ fun PostScreen(
                         }
                     }
                     else -> {
+                        val frameUrls = remember(frames) {
+                            frames
+                                .mapNotNull { f -> f.imageUrl?.let { url -> f.frameId to url } }
+                                .toMap()
+                        }
                         PostGrid(
                             posts = displayPosts,
                             onPostClick = { post -> selectedPost = post },
                             modifier = Modifier.padding(top = (50 + 80).dp),
+                            frameUrls = frameUrls,
+                            // Mark-seen khi o anh hien len (khong mark bai cua CHINH MINH).
+                            // Chi mark khi DA biet minh la ai — mapToUser(null) tra ve
+                            // id "unknown" luc currentUser chua load, so sanh luc do se
+                            // mark nham ca bai cua minh (seenOnce ghi nho, khong sua lai duoc).
+                            onPostVisible = { post ->
+                                val myId = data?.id
+                                if (myId != null && myId != "unknown" && post.user.id != myId) {
+                                    postViewModel.markSeen(post.id)
+                                }
+                            },
                         )
                     }
                 }
@@ -173,7 +214,7 @@ fun PostScreen(
                 MainTopBar(
                     navController = navController,
                     user = data,
-                    friends = friends,
+                    friends = friendUsers,
                     onMessageClick = { navController.navigate(Screen.Message.route) },
                     onProfileClick = {
                         data?.id?.let { userId ->
@@ -183,28 +224,12 @@ fun PostScreen(
                     onNotificationClick = { showNotifications = true },
                     onUserSelected = { user ->
                         selectedUser = user
-                        // Null safety: only proceed if user is not null
-                        user?.let { nonNullUser ->
-                            // Fetch posts for selected user if it's not "everyone"
-                            if (nonNullUser.id != "everyone" && nonNullUser.id != "you" && authState is AuthState.Authenticated) {
-                                val currentUserId = (authState as AuthState.Authenticated).user.id
-                                mainViewModel.getPostsForUser(nonNullUser.id, currentUserId)
-                            } else if (nonNullUser.id == "you") {
-                                // Fetch current user's posts
-                                currentUser?.id?.let { userId ->
-                                    mainViewModel.getPostsOfUser(userId)
-                                }
-                            } else if (authState is AuthState.Authenticated) {
-                                // Fetch all posts
-                                val authUser = (authState as AuthState.Authenticated).user
-                                mainViewModel.getAllPostsOfUserAndFriends(authUser)
-                            }
-                        } ?: run {
-                            // Handle case where user is null - default to showing all posts
-                            if (authState is AuthState.Authenticated) {
-                                val authUser = (authState as AuthState.Authenticated).user
-                                mainViewModel.getAllPostsOfUserAndFriends(authUser)
-                            }
+                        // Doi tab -> tai tu API: You = /moments/mine,
+                        // ban be = /moments/user/:uid, Everyone = refresh feed
+                        when (user?.id) {
+                            null, "everyone" -> postViewModel.loadFeed()
+                            "you" -> postViewModel.loadUserMoments(null)
+                            else -> postViewModel.loadUserMoments(user.id)
                         }
                     },
                     // Hang "Add friends" cuoi dropdown -> mo sheet ban be
@@ -213,11 +238,48 @@ fun PostScreen(
                         friendsViewModel.loadInviteLink()
                         showFriendSheet = true
                     },
+                    // Nut cup 🏆 -> man Daily Quest (entry chot 2026-07-13)
+                    onQuestClick = { navController.navigate(Screen.DailyQuest.route) },
                     modifier = Modifier.align(Alignment.TopCenter).onGloballyPositioned { coordinates ->
                         // Get the width of the title in pixels
                         topbarHeight = coordinates.size.height
                     },
                 )
+
+                // Banner loi moi CHUP CHUNG dang cho — cham de mo man chap nhan
+                pendingInvites.firstOrNull()?.let { invite ->
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Yellow,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 140.dp, start = 16.dp, end = 16.dp)
+                            .clickable {
+                                navController.navigate(
+                                    Screen.CoopAccept.route +
+                                        "?inviteId=" + invite.inviteId +
+                                        "&mediaUrl=" + Uri.encode(invite.inviterMediaUrl) +
+                                        "&name=" + Uri.encode(invite.inviterName ?: "friend"),
+                                )
+                            },
+                    ) {
+                        Text(
+                            text = buildString {
+                                append("📸 ")
+                                append(invite.inviterName ?: "Ban be")
+                                append(" moi ban chup chung!")
+                                if (pendingInvites.size > 1) {
+                                    append(" (+${pendingInvites.size - 1})")
+                                }
+                            },
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        )
+                    }
+                }
 
                 MainBottomBar(
                     navController = navController,

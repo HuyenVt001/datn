@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,11 +42,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
@@ -124,25 +133,80 @@ fun PostDetailScreen(
             ) {
                 // Show camera view or post image based on the localCameraMode state
 
-                // Post image (full width)
+                // Post image / video (full width)
                 post.thumbnailUrl?.let { imageUrl ->
+                    val context = LocalContext.current
+                    var isPlayingVideo by remember { mutableStateOf(false) }
+
+                    // Khung anh cua moment (neu co) — resolve URL tu catalog frames
+                    val frames by postViewModel.frames.collectAsState()
+                    LaunchedEffect(post.frameId) {
+                        if (post.frameId != null) postViewModel.loadFrames()
+                    }
+                    val frameImageUrl = frames.find { it.frameId == post.frameId }?.imageUrl
+
                     Box(
                         modifier = Modifier
                             .height(400.dp)
                             .fillMaxWidth()
                             .aspectRatio(1f),
                     ) {
-                        AsyncImage(
-                            model = imageUrl,
-                            contentDescription = "Post image",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(20.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
+                        if (isPlayingVideo && post.postType == PostType.VIDEO) {
+                            // Phat video <=5s bang ExoPlayer, lap lai; cham de dung
+                            val exoPlayer = remember {
+                                ExoPlayer.Builder(context).build().apply {
+                                    setMediaItem(MediaItem.fromUri(imageUrl))
+                                    repeatMode = Player.REPEAT_MODE_ONE
+                                    prepare()
+                                    playWhenReady = true
+                                }
+                            }
+                            DisposableEffect(Unit) {
+                                onDispose { exoPlayer.release() }
+                            }
+                            AndroidView(
+                                factory = { ctx ->
+                                    PlayerView(ctx).apply {
+                                        player = exoPlayer
+                                        useController = false
+                                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .clickable { isPlayingVideo = false },
+                            )
+                        } else {
+                            AsyncImage(
+                                // Video tren Cloudinary: doi duoi sang .jpg de lay poster frame
+                                model = if (post.postType == PostType.VIDEO) {
+                                    imageUrl.substringBeforeLast('.') + ".jpg"
+                                } else {
+                                    imageUrl
+                                },
+                                contentDescription = "Post image",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(20.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
 
-                        // Video indicator for video posts
-                        if (post.postType == PostType.VIDEO) {
+                        // Khung overlay phu kin anh/video
+                        if (frameImageUrl != null) {
+                            AsyncImage(
+                                model = frameImageUrl,
+                                contentDescription = "Khung anh",
+                                contentScale = ContentScale.FillBounds,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(20.dp)),
+                            )
+                        }
+
+                        // Nut play video (an khi dang phat)
+                        if (post.postType == PostType.VIDEO && !isPlayingVideo) {
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.Center)
@@ -150,7 +214,8 @@ fun PostDetailScreen(
                                     .background(
                                         color = Color.Black.copy(alpha = 0.6f),
                                         shape = CircleShape,
-                                    ),
+                                    )
+                                    .clickable { isPlayingVideo = true },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(

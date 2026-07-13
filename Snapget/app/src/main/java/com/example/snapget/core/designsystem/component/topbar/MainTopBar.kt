@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.PersonAdd
@@ -91,6 +92,8 @@ fun MainTopBar(
     onUserSelected: (User?) -> Unit = {},
     // Truyen callback nay de hien hang "Add friends" cuoi dropdown (mo sheet ban be)
     onAddFriendsClick: (() -> Unit)? = null,
+    // Truyen callback nay de hien nut cup 🏆 (mo man Daily Quest)
+    onQuestClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var titleWidth by remember { mutableIntStateOf(0) }
@@ -390,6 +393,27 @@ fun MainTopBar(
             )
         },
         actions = {
+            // Nut cup mo man Daily Quest — icon vang gamification (DESIGN.md muc 2)
+            if (onQuestClick != null) {
+                Button(
+                    onClick = onQuestClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF404137),
+                    ),
+                    modifier = Modifier.size(avatarWidth),
+                    contentPadding = PaddingValues(0.dp),
+                    shape = CircleShape,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.EmojiEvents,
+                        contentDescription = "Daily Quest",
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
             val isLargeText = unreadMessages > 9
 
             val badgeSize = if (isLargeText) {

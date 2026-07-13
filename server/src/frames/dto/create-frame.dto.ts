@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { STREAK_MILESTONES } from '../../common/constants';
 
 /** Admin them khung anh moi vao catalog. */
 export class CreateFrameDto {
@@ -13,4 +14,13 @@ export class CreateFrameDto {
   @IsOptional()
   @IsUrl()
   imageUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Moc streak (3/7/14/30) ma khung nay la phan thuong; bo trong = khung thuong quest',
+    enum: STREAK_MILESTONES,
+  })
+  @IsOptional()
+  @IsIn(STREAK_MILESTONES)
+  milestone?: number;
 }

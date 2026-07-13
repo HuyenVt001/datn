@@ -17,32 +17,39 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.snapget.core.designsystem.preview.PlaceholderScreen
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.auth.LoginScreen
 import com.example.snapget.feature.camera.CameraScreen
+import com.example.snapget.feature.coop.CoopAcceptScreen
+import com.example.snapget.feature.coop.CoopSendScreen
 import com.example.snapget.feature.friends.QrScanScreen
 import com.example.snapget.feature.message.ChatScreen
+import com.example.snapget.feature.message.GroupChatScreen
 import com.example.snapget.feature.message.MessageScreen
+import com.example.snapget.feature.post.EditMediaScreen
 import com.example.snapget.feature.post.PostScreen
 import com.example.snapget.feature.post.SubmitPhotoScreen
 import com.example.snapget.feature.profile.UserProfile
+import com.example.snapget.feature.quest.DailyQuestScreen
 import com.example.snapget.feature.settings.SettingScreen
 
 sealed class Screen(val route: String) { // enum
     object Login : Screen("login")
     object Message : Screen("message")
     object Chat : Screen("chat/{recipientId}")
+    object GroupChat : Screen("group_chat/{groupId}?name={name}")
     object Post : Screen("post")
     object SubmitPhoto : Screen("submit_photo")
-    object PostDetail : Screen("post_detail/{postId}")
     object Profile : Screen("profile")
     object QrScan : Screen("qr_scan")
     object Setting : Screen("setting")
-    object Detail : Screen("detail")
     object Camera : Screen("camera")
+    object DailyQuest : Screen("daily_quest")
+    object EditMedia : Screen("edit_media")
+    object CoopSend : Screen("coop_send")
+    object CoopAccept : Screen("coop_accept")
 }
 
 // https://developer.android.com/topic/architecture
@@ -66,7 +73,11 @@ fun Navigation(
         Screen.Setting.route,
         Screen.Login.route,
         Screen.Chat.route,
+        Screen.GroupChat.route,
         Screen.QrScan.route,
+        Screen.DailyQuest.route,
+        Screen.CoopSend.route,
+        Screen.CoopAccept.route,
     )
 
     // Track current route as state that updates with navigation changes
@@ -122,6 +133,24 @@ fun Navigation(
                 )
             }
 
+            // Chat nhom (<=20 thanh vien) — mo tu section "Nhom chat" man Messages
+            composable(
+                route = Screen.GroupChat.route,
+                arguments = listOf(
+                    navArgument("groupId") { type = NavType.StringType },
+                    navArgument("name") {
+                        type = NavType.StringType
+                        defaultValue = "Nhom chat"
+                    },
+                ),
+            ) { backStackEntry ->
+                GroupChatScreen(
+                    navController = navController,
+                    groupId = backStackEntry.arguments?.getString("groupId") ?: "",
+                    groupName = backStackEntry.arguments?.getString("name") ?: "Nhom chat",
+                )
+            }
+
             composable(Screen.Post.route) {
                 PostScreen(navController)
             }
@@ -147,10 +176,43 @@ fun Navigation(
                 CameraScreen(navController = navController)
             }
 
+            // Man chinh sua sau khi chup/quay: chon khung + filter + ve tay -> Tiep -> SubmitPhoto
             composable(
-                route = Screen.SubmitPhoto.route + "?photoPath={photoPath}",
+                route = Screen.EditMedia.route + "?mediaPath={mediaPath}&isVideo={isVideo}",
+                arguments = listOf(
+                    navArgument("mediaPath") { type = NavType.StringType },
+                    navArgument("isVideo") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
+            ) { backStackEntry ->
+                EditMediaScreen(
+                    navController = navController,
+                    mediaPath = backStackEntry.arguments?.getString("mediaPath") ?: "",
+                    isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
+                )
+            }
+
+            composable(
+                route = Screen.SubmitPhoto.route +
+                    "?photoPath={photoPath}&isVideo={isVideo}&frameId={frameId}&frameUrl={frameUrl}",
                 arguments = listOf(
                     navArgument("photoPath") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("isVideo") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                    navArgument("frameId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("frameUrl") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
@@ -160,11 +222,46 @@ fun Navigation(
                 SubmitPhotoScreen(
                     navController = navController,
                     photoPath = backStackEntry.arguments?.getString("photoPath"),
+                    isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
+                    frameId = backStackEntry.arguments?.getString("frameId"),
+                    frameUrl = backStackEntry.arguments?.getString("frameUrl"),
                 )
             }
 
-            composable(Screen.Detail.route) {
-                PlaceholderScreen(title = "Detail", navController = navController)
+            // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
+            composable(Screen.DailyQuest.route) {
+                DailyQuestScreen(navController = navController)
+            }
+
+            // Chup chung: gui loi moi (sau khi chup nua anh cua minh o che do Co-op)
+            composable(
+                route = Screen.CoopSend.route + "?photoPath={photoPath}",
+                arguments = listOf(navArgument("photoPath") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                CoopSendScreen(
+                    navController = navController,
+                    photoPath = backStackEntry.arguments?.getString("photoPath") ?: "",
+                )
+            }
+
+            // Chup chung: chap nhan loi moi + chup nua con lai
+            composable(
+                route = Screen.CoopAccept.route + "?inviteId={inviteId}&mediaUrl={mediaUrl}&name={name}",
+                arguments = listOf(
+                    navArgument("inviteId") { type = NavType.StringType },
+                    navArgument("mediaUrl") { type = NavType.StringType },
+                    navArgument("name") {
+                        type = NavType.StringType
+                        defaultValue = "friend"
+                    },
+                ),
+            ) { backStackEntry ->
+                CoopAcceptScreen(
+                    navController = navController,
+                    inviteId = backStackEntry.arguments?.getString("inviteId") ?: "",
+                    inviterMediaUrl = backStackEntry.arguments?.getString("mediaUrl") ?: "",
+                    inviterName = backStackEntry.arguments?.getString("name") ?: "friend",
+                )
             }
         }
     }

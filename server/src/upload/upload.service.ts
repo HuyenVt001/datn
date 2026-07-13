@@ -40,26 +40,39 @@ export class UploadService implements OnModuleInit {
   }
 
   /**
-   * Upload buffer len Cloudinary (folder snapget/). resource_type auto: nhan ca anh & video.
+   * Upload buffer len Cloudinary (folder snapget/). resource_type auto: nhan anh, video, ghi am.
    * Video dai qua MAX_VIDEO_SECONDS -> xoa asset vua len + bao loi.
    */
   async upload(file: Express.Multer.File): Promise<UploadResult> {
+    return this.uploadBuffer(file.buffer, 'snapget');
+  }
+
+  /** Upload buffer bat ky (vd: anh chup chung da ghep bang sharp) len Cloudinary. */
+  async uploadBuffer(buffer: Buffer, folder = 'snapget'): Promise<UploadResult> {
     if (!this.configured) {
       throw new BadRequestException('Server chua cau hinh Cloudinary.');
     }
 
     const res = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: 'snapget', resource_type: 'auto' },
+        { folder, resource_type: 'auto' },
         (err, result) => (err || !result ? reject(err) : resolve(result)),
       );
-      stream.end(file.buffer);
+      stream.end(buffer);
     });
 
     const resourceType = res.resource_type === 'video' ? 'video' : 'image';
 
+    // Ghi am (VOICE) bi Cloudinary xep vao resource_type 'video' nhung khong bi
+    // gioi han 5s. QUAN TRONG: doc is_audio tu KET QUA Cloudinary (phan loai theo
+    // bytes that) — KHONG tin mimetype client gui len, vi user co the gia
+    // Content-Type audio/* de lach luat video <= 5s.
+    const isAudio = Boolean((res as UploadApiResponse & { is_audio?: boolean }).is_audio);
+
     // Enforce rule nghiep vu: video ngan toi da 5 giay.
-    if (resourceType === 'video' && (res.duration ?? 0) > MAX_VIDEO_SECONDS) {
+    // +0.5s dung sai: app tu dong dung o moc 5s nhung timer + finalize lam clip
+    // dai ~5.1-5.3s — khong co dung sai thi video quay du 5s KHONG dang duoc.
+    if (!isAudio && resourceType === 'video' && (res.duration ?? 0) > MAX_VIDEO_SECONDS + 0.5) {
       await cloudinary.uploader
         .destroy(res.public_id, { resource_type: 'video' })
         .catch(() => this.logger.warn(`Khong xoa duoc asset qua dai: ${res.public_id}`));

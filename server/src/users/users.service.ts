@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { dateKey } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PublicUser, User } from './entities/user.entity';
@@ -93,18 +94,14 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('Khong tim thay nguoi dung.');
     }
-    const today = this.dateKey(new Date());
+    // dateKey CHUNG voi daily quest (common/constants) — 2 he thong phai khop ngay
+    const today = dateKey();
     if (user.lastStreakDate === today) {
       return user.personalStreak;
     }
-    const yesterday = this.dateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const yesterday = dateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const nextStreak = user.lastStreakDate === yesterday ? user.personalStreak + 1 : 1;
     await this.usersRepo.update(uid, { personalStreak: nextStreak, lastStreakDate: today });
     return nextStreak;
-  }
-
-  /** YYYY-MM-DD theo UTC. */
-  private dateKey(d: Date): string {
-    return d.toISOString().slice(0, 10);
   }
 }

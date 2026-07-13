@@ -4,6 +4,7 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
+import { QuestsService } from '../quests/quests.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { CreateMomentDto } from './dto/create-moment.dto';
@@ -20,6 +21,7 @@ export class MomentsService {
     private readonly usersRepo: UsersRepository,
     private readonly friendshipsService: FriendshipsService,
     private readonly friendshipsRepo: FriendshipsRepository,
+    private readonly questsService: QuestsService,
     private readonly firebase: FirebaseService,
   ) {}
 
@@ -27,19 +29,28 @@ export class MomentsService {
    * Dang moment: tao doc -> tang personal streak -> bao ban be qua FCM.
    * mediaUrl da qua POST /upload (Cloudinary da enforce video <= 5s).
    */
-  async create(authUser: AuthUser, dto: CreateMomentDto): Promise<Moment> {
+  async create(authUser: AuthUser, dto: CreateMomentDto, coopUserId?: string): Promise<Moment> {
     const moment = await this.repo.create({
       userId: authUser.uid,
       contentType: dto.contentType,
       mediaUrl: dto.mediaUrl,
       frameId: dto.frameId,
       caption: dto.caption,
+      coopUserId, // co-op capture: moment chung cua 2 nguoi
       postTime: new Date().toISOString(),
     });
 
     // Business rule: mo app + upload >= 1 moment/ngay -> tang personal streak.
-    await this.usersService.registerActivityForStreak(authUser.uid).catch((e) => {
-      this.logger.warn(`Khong cap nhat duoc personal streak: ${e.message}`);
+    let personalStreak = 0;
+    try {
+      personalStreak = await this.usersService.registerActivityForStreak(authUser.uid);
+    } catch (e) {
+      this.logger.warn(`Khong cap nhat duoc personal streak: ${(e as Error).message}`);
+    }
+
+    // Quest: dang bai = hoan thanh POST_MOMENT; dong thoi xet thuong khung theo moc streak.
+    await this.questsService.registerMomentPosted(authUser.uid, personalStreak).catch((e) => {
+      this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
     });
 
     // Gui push cho danh sach ban be (khong chan luong dang bai neu loi).
@@ -50,21 +61,33 @@ export class MomentsService {
     return moment;
   }
 
-  /** Feed = moment cua minh + ban be, sort postTime desc, paginate trong bo nho. */
+  /**
+   * Feed = moment cua minh + ban be, sort postTime desc, paginate trong bo nho.
+   * Gom ca moment CHUP CHUNG ma minh/ban be la NGUOI NHAN (coopUserId) —
+   * moment co-op luu userId = nguoi moi nen thieu buoc nay la "moment cua ca 2"
+   * chi hien voi 1 nguoi.
+   */
   async getFeed(uid: string, pagination: PaginationDto): Promise<PaginatedResult<Moment>> {
     const friendships = await this.friendshipsRepo.listAccepted(uid);
     const friendIds = friendships.map((f) => f.userIds.find((id) => id !== uid) ?? '');
-    const moments = await this.repo.listByUserIds([uid, ...friendIds]);
-    return this.paginate(moments, pagination);
+    const ids = [uid, ...friendIds];
+    const [own, coop] = await Promise.all([
+      this.repo.listByUserIds(ids),
+      this.repo.listByCoopUserIds(ids),
+    ]);
+    return this.paginate(this.mergeMoments(own, coop), pagination);
   }
 
-  /** Moment cua chinh minh (profile: calendar + dem tong so bai). */
+  /** Moment cua chinh minh (profile: calendar + dem tong so bai) — gom ca moment chup chung. */
   async listMine(uid: string, pagination: PaginationDto): Promise<PaginatedResult<Moment>> {
-    const moments = await this.repo.listByUserIds([uid]);
-    return this.paginate(moments, pagination);
+    const [own, coop] = await Promise.all([
+      this.repo.listByUserIds([uid]),
+      this.repo.listByCoopUserIds([uid]),
+    ]);
+    return this.paginate(this.mergeMoments(own, coop), pagination);
   }
 
-  /** Moment cua 1 user khac — CHI ban be (hoac chinh minh) xem duoc. */
+  /** Moment cua 1 user khac — CHI ban be (hoac chinh minh) xem duoc; gom ca moment chup chung. */
   async listOfUser(
     currentUid: string,
     targetUid: string,
@@ -76,8 +99,18 @@ export class MomentsService {
         throw new ForbiddenException('Chi xem duoc moment cua ban be.');
       }
     }
-    const moments = await this.repo.listByUserIds([targetUid]);
-    return this.paginate(moments, pagination);
+    const [own, coop] = await Promise.all([
+      this.repo.listByUserIds([targetUid]),
+      this.repo.listByCoopUserIds([targetUid]),
+    ]);
+    return this.paginate(this.mergeMoments(own, coop), pagination);
+  }
+
+  /** Gop 2 danh sach moment, khu trung theo momentId, sort postTime desc. */
+  private mergeMoments(own: Moment[], coop: Moment[]): Moment[] {
+    const seen = new Set(own.map((m) => m.momentId));
+    const merged = [...own, ...coop.filter((m) => !seen.has(m.momentId))];
+    return merged.sort((a, b) => b.postTime.localeCompare(a.postTime));
   }
 
   /** Phan trang trong bo nho (list da sort postTime desc tu repository). */

@@ -106,7 +106,7 @@ fun UserDetailBottomSheet(
                 isLoading = sheetData.isLoading,
             )
 
-            ShareYourLinkComponent()
+            ShareYourLinkComponent(inviteLink = sheetData.inviteLink)
         }
 
         if (showQrDialog) {

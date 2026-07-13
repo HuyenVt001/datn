@@ -117,12 +117,20 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.coil.compose)
 
+    // Phat video moment trong feed/post detail (Media3 ExoPlayer)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+
     implementation(libs.coil.network.okhttp)
 
     // QR Code Scanning
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
+    // Quay video ngan <=5s (VideoCapture use case)
+    implementation(libs.androidx.camera.video)
+    // Doc EXIF de xoay anh dung chieu khi bake filter/doodle
+    implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.camera.view.v131)
     implementation(libs.barcode.scanning)
     // Sinh anh QR tu ma moi ket ban (zxing chi dung de GENERATE, quet dung ML Kit)

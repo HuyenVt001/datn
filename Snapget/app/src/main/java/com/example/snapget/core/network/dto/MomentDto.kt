@@ -9,6 +9,8 @@ data class MomentDto(
     val frameId: String?,
     val caption: String?,
     val postTime: String,
+    /** Chup chung (co-op): uid NGUOI NHAN loi moi — moment "cua ca 2" (userId = nguoi moi). */
+    val coopUserId: String? = null,
 )
 
 /** Body POST /moments. mediaUrl lay tu ket qua POST /upload. */

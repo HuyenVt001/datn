@@ -12,6 +12,8 @@ data class Post(
     val postType: PostType,
     val caption: String?,
     val thumbnailUrl: String = "https://picsum.photos/400/300?random=${(0..1000).random()}",
+    // Khung anh phan thuong ap len moment (null = khong khung)
+    val frameId: String? = null,
     val isArchived: Boolean = false,
     val createdAt: String = LocalDateTime.now().toString(),
     // "PUBLIC", "FRIEND", "PRIVATE"

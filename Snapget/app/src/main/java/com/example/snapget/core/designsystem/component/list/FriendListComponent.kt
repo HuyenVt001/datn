@@ -1,5 +1,6 @@
 package com.example.snapget.core.designsystem.component.list
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -494,9 +496,21 @@ fun HorizontalShowMoreComponent() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
+/** Section chia se link moi ket ban — moi hang mo share chooser cua he thong. */
 @Composable
-fun ShareYourLinkComponent() {
+fun ShareYourLinkComponent(inviteLink: String? = null) {
+    val context = LocalContext.current
+
+    // Mo share sheet he thong voi link moi (nguoi nhan bam link -> deep link ket ban)
+    fun shareLink() {
+        val link = inviteLink ?: return
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "Ket ban voi minh tren Snapget nhe! $link")
+        }
+        context.startActivity(Intent.createChooser(sendIntent, "Chia se link moi"))
+    }
+
     Column(
         modifier = Modifier.padding(start = 16.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -532,13 +546,14 @@ fun ShareYourLinkComponent() {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { shareLink() },
             ) {
                 Circle(
                     outerSize = 56.dp,
                     gap = 5.dp,
                     backgroundColor = Color(0xFF404137),
                     borderColor = Color.Gray,
-                    onClick = {},
+                    onClick = { shareLink() },
                     imageSetting = ImageSetting(
                         imageUrl = item.imageUrl,
                         contentDescription = "Example Image",

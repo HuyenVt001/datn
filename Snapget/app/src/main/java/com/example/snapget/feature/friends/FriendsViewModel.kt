@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.InviteLinkDto
+import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.friends.data.FriendsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -52,7 +53,7 @@ class FriendsViewModel @Inject constructor(
                 }
                 _friendsStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _friendsStatus.value = LoadStatus.Error(e.message ?: "Khong tai duoc danh sach ban be.")
+                _friendsStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc danh sach ban be."))
             }
         }
     }
@@ -82,7 +83,7 @@ class FriendsViewModel @Inject constructor(
                 _connectStatus.value = LoadStatus.Success()
                 loadFriends()
             } catch (e: Exception) {
-                _connectStatus.value = LoadStatus.Error(e.message ?: "Ket ban that bai.")
+                _connectStatus.value = LoadStatus.Error(e.serverMessage("Ket ban that bai."))
             }
         }
     }
@@ -94,7 +95,7 @@ class FriendsViewModel @Inject constructor(
                 friendsRepository.removeFriend(friendUid)
                 _friends.value = _friends.value.filterNot { it.id == friendUid }
             } catch (e: Exception) {
-                _friendsStatus.value = LoadStatus.Error(e.message ?: "Xoa ban that bai.")
+                _friendsStatus.value = LoadStatus.Error(e.serverMessage("Xoa ban that bai."))
             }
         }
     }

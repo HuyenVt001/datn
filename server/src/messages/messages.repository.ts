@@ -34,19 +34,20 @@ export class MessagesRepository {
     return this.toMessage(snap.id, snap.data() ?? {});
   }
 
-  /** Thread 1-1 giua a va b: (sender=a & receiver=b) + (sender=b & receiver=a). */
+  /**
+   * Thread 1-1 giua a va b: (sender=a & receiver=b) + (sender=b & receiver=a).
+   * 2 filter equality tren query — Firestore merge duoc single-field index,
+   * KHONG can composite index. Truoc day chi filter senderId roi loc receiver
+   * trong bo nho -> moi lan poll (5s/lan) doc TOAN BO outbox cua ca 2 user.
+   */
   async listBetween(a: string, b: string): Promise<Message[]> {
     const [sentSnap, receivedSnap] = await Promise.all([
-      this.messages.where('senderId', '==', a).get(),
-      this.messages.where('senderId', '==', b).get(),
+      this.messages.where('senderId', '==', a).where('receiverId', '==', b).get(),
+      this.messages.where('senderId', '==', b).where('receiverId', '==', a).get(),
     ]);
-    const sent = sentSnap.docs
+    return [...sentSnap.docs, ...receivedSnap.docs]
       .map((d) => this.toMessage(d.id, d.data()))
-      .filter((m) => m.receiverId === b);
-    const received = receivedSnap.docs
-      .map((d) => this.toMessage(d.id, d.data()))
-      .filter((m) => m.receiverId === a);
-    return [...sent, ...received].sort((x, y) => x.sendTime.localeCompare(y.sendTime));
+      .sort((x, y) => x.sendTime.localeCompare(y.sendTime));
   }
 
   /** Moi tin nhan 1-1 lien quan toi uid (gui + nhan) — phuc vu danh sach hoi thoai. */
@@ -109,6 +110,9 @@ export class MessagesRepository {
     return {
       messageId,
       senderId: data.senderId ?? '',
+      // Fallback recipientId CHI cho doc prototype cu; LUU Y: listBetween/listInvolving
+      // query theo field receiverId nen doc cu KHONG hien trong thread/hoi thoai
+      // (chap nhan — data prototype, xoa collection messages cu khi test that)
       receiverId: data.receiverId ?? data.recipientId,
       groupId: data.groupId,
       messageType: data.messageType ?? 'TEXT',

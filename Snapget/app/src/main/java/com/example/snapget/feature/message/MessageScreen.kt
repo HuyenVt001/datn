@@ -1,8 +1,11 @@
 package com.example.snapget.feature.message
 
+import android.net.Uri
 import android.os.Build
-import android.util.Log
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,22 +25,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +63,8 @@ import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.model.FriendUi
+import com.example.snapget.core.network.dto.ChatGroupDto
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -65,10 +82,26 @@ fun MessageScreen(
 ) {
     val conversations by messageViewModel.conversations.collectAsState()
     val status by messageViewModel.conversationsStatus.collectAsState()
+    val groups by messageViewModel.groups.collectAsState()
+    val friendsById by messageViewModel.friendsById.collectAsState()
+    val sendError by messageViewModel.sendError.collectAsState()
+    val context = LocalContext.current
+
+    // Dialog tao nhom chat (chon ban + dat ten)
+    var showCreateGroupDialog by remember { mutableStateOf(false) }
 
     // Refresh moi lan mo man (khong realtime — REST thuan)
     LaunchedEffect(Unit) {
         messageViewModel.loadConversations()
+        messageViewModel.loadGroups()
+    }
+
+    // Loi tao nhom / gui tin -> Toast message cua server
+    LaunchedEffect(sendError) {
+        sendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messageViewModel.clearSendError()
+        }
     }
 
     Scaffold(
@@ -79,15 +112,25 @@ fun MessageScreen(
                 titleColor = Color.White,
                 startIcon = Icons.AutoMirrored.Filled.ArrowBack,
                 onStartIconClick = { navController.popBackStack() },
-                endIcon = Icons.Default.Search,
-                onEndIconClick = {
-                    Log.d("MessageScreen", "Search icon clicked")
-                },
+                // Nut tao nhom chat (<=20 thanh vien)
+                endIcon = Icons.Default.GroupAdd,
+                onEndIconClick = { showCreateGroupDialog = true },
             )
         },
     ) { paddingValues ->
+        if (showCreateGroupDialog) {
+            CreateGroupDialog(
+                friends = friendsById.values.toList(),
+                onCreate = { name, memberIds ->
+                    messageViewModel.createGroup(name, memberIds)
+                    showCreateGroupDialog = false
+                },
+                onDismiss = { showCreateGroupDialog = false },
+            )
+        }
+
         when {
-            status is LoadStatus.Loading && conversations.isEmpty() -> {
+            status is LoadStatus.Loading && conversations.isEmpty() && groups.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -98,7 +141,7 @@ fun MessageScreen(
                 }
             }
 
-            conversations.isEmpty() -> {
+            conversations.isEmpty() && groups.isEmpty() -> {
                 // Empty state when no conversations are available
                 Column(
                     modifier = Modifier
@@ -139,7 +182,7 @@ fun MessageScreen(
             }
 
             else -> {
-                // Show list of conversations
+                // Nhom chat truoc, roi den hoi thoai 1-1
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -147,6 +190,36 @@ fun MessageScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (groups.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Nhom chat",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                        items(groups) { group ->
+                            GroupItem(
+                                group = group,
+                                onClick = {
+                                    navController.navigate(
+                                        "group_chat/${group.groupId}?name=" +
+                                            Uri.encode(group.groupName),
+                                    )
+                                },
+                            )
+                        }
+                        item {
+                            Text(
+                                text = "Tin nhan",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                    }
+
                     items(conversations) { conversation ->
                         ConversationItem(
                             conversation = conversation,
@@ -163,6 +236,150 @@ fun MessageScreen(
             }
         }
     }
+}
+
+/** 1 dong nhom chat: icon nhom + ten + so thanh vien. */
+@Composable
+private fun GroupItem(
+    group: ChatGroupDto,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .clip(RoundedCornerShape(25.dp))
+                .background(Color(0xFF404137)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Groups,
+                contentDescription = "Nhom",
+                tint = Color.Yellow,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = group.groupName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "${group.memberIds.size} thanh vien",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+            contentDescription = "Mo nhom",
+            tint = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
+/**
+ * Dialog tao nhom chat: dat ten + tick chon ban be (<=20 thanh vien
+ * — server enforce, nguoi tao tu vao nhom).
+ */
+@Composable
+private fun CreateGroupDialog(
+    friends: List<FriendUi>,
+    onCreate: (String, List<String>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var groupName by remember { mutableStateOf("") }
+    val selected = remember { mutableStateListOf<String>() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF2C2C2C),
+        title = {
+            Text(text = "Tao nhom chat", color = Color.White, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = groupName,
+                    onValueChange = { groupName = it.take(100) },
+                    label = { Text("Ten nhom") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Chon thanh vien (${selected.size})",
+                    color = Color(0xFFB0B0B0),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                if (friends.isEmpty()) {
+                    Text(
+                        text = "Chua co ban be — ket ban truoc da!",
+                        color = Color(0xFFB0B0B0),
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+                LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
+                    items(friends) { friend ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (selected.contains(friend.id)) {
+                                        selected.remove(friend.id)
+                                    } else {
+                                        selected.add(friend.id)
+                                    }
+                                }
+                                .padding(vertical = 4.dp),
+                        ) {
+                            Checkbox(
+                                checked = selected.contains(friend.id),
+                                onCheckedChange = { checked ->
+                                    if (checked) selected.add(friend.id) else selected.remove(friend.id)
+                                },
+                            )
+                            Text(
+                                text = friend.name,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(groupName.trim(), selected.toList()) },
+                enabled = groupName.isNotBlank() && selected.isNotEmpty(),
+            ) {
+                Text(text = "Tao nhom", color = Color.Yellow, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "Huy", color = Color.White)
+            }
+        },
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

@@ -6,7 +6,12 @@ export const MAX_FRIENDS = 20; // Gioi han ban be moi user
 export const MAX_GROUP_SIZE = 20; // Thanh vien toi da 1 nhom chat
 export const MAX_VIDEO_SECONDS = 5; // Do dai video ngan toi da
 export const STREAK_WINDOW_HOURS = 24; // Qua 24h khong tuong tac -> reset friend streak
-export const DAILY_QUESTS_PER_DAY = 3; // So daily quest he thong tao moi ngay
+export const DAILY_QUESTS_PER_DAY = 2; // 2 quest co dinh/ngay: LOGIN + POST_MOMENT (chot 2026-07-13, khong AI)
+export const STREAK_MILESTONES = [3, 7, 14, 30]; // Moc streak ca nhan duoc thuong khung
+export const COOP_INVITE_TTL_HOURS = 24; // Loi moi chup chung qua 24h chua tra loi -> het han
+
+/** Key ngay (YYYY-MM-DD, UTC) — dung CHUNG cho personal streak va daily quest de 2 he thong khop ngay. */
+export const dateKey = (date: Date = new Date()): string => date.toISOString().slice(0, 10);
 
 /** Ten cac collection Firestore (canonical). */
 export const Collections = {
@@ -18,6 +23,7 @@ export const Collections = {
   FRAMES: 'frames',
   DAILY_QUESTS: 'dailyQuests',
   USER_QUESTS: 'userQuests',
+  COOP_INVITES: 'coopInvites',
   NOTIFICATIONS: 'notifications',
 } as const;
 

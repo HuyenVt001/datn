@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PaginatedResult } from '../common/dto/pagination.dto';
 import { FirebaseService } from '../firebase/firebase.service';
+import { QuestsService } from '../quests/quests.service';
 import { AdminRepository, AdminStats } from './admin.repository';
 import { ListUsersDto } from './dto/list-users.dto';
 
@@ -18,6 +19,7 @@ export class AdminService {
   constructor(
     private readonly firebase: FirebaseService,
     private readonly adminRepo: AdminRepository,
+    private readonly questsService: QuestsService,
   ) {}
 
   /**
@@ -54,9 +56,13 @@ export class AdminService {
     return { items, page, limit, total: users.length };
   }
 
-  /** Thong ke tong quan cho dashboard. */
+  /** Thong ke tong quan cho dashboard (kem so luot hoan thanh quest hom nay). */
   async getStats(): Promise<AdminStats> {
-    return this.adminRepo.getStats();
+    const [stats, questCompletionsToday] = await Promise.all([
+      this.adminRepo.getStats(),
+      this.questsService.countCompletionsToday(),
+    ]);
+    return { ...stats, questCompletionsToday };
   }
 
   /** Khoa / mo khoa tai khoan nguoi dung (Firebase Auth). */

@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
@@ -28,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,10 @@ fun PostGrid(
     modifier: Modifier = Modifier,
     posts: List<Post> = emptyList(),
     onPostClick: (Post) -> Unit = {},
+    // Map frameId -> imageUrl de overlay khung len o anh (rong = khong overlay)
+    frameUrls: Map<String, String> = emptyMap(),
+    // Goi khi o anh THUC SU hien len man hinh (lazy compose) — dung cho mark-seen
+    onPostVisible: ((Post) -> Unit)? = null,
 ) {
     val postsWithImages = posts.filter { true }
 
@@ -60,10 +67,12 @@ fun PostGrid(
         verticalArrangement = Arrangement.spacedBy(3.dp),
         modifier = modifier.fillMaxSize(),
     ) {
-        items(postsWithImages) { post ->
+        items(postsWithImages, key = { it.id }) { post ->
             PostGridItem(
                 post = post,
                 onClick = { onPostClick(post) },
+                frameUrl = post.frameId?.let { frameUrls[it] },
+                onVisible = onPostVisible?.let { callback -> { callback(post) } },
             )
         }
     }
@@ -73,42 +82,70 @@ fun PostGrid(
 fun PostGridItem(
     post: Post,
     onClick: () -> Unit,
+    frameUrl: String? = null,
+    onVisible: (() -> Unit)? = null,
 ) {
+    // Item cua LazyGrid chi compose khi vao/gan viewport -> compose lan dau ≈ user
+    // "luot qua" moment (business rule mark-seen). Truoc day PostScreen mark-seen
+    // CA feed ngay khi load — sai spec va ghi view cho bai chua ai nhin thay.
+    if (onVisible != null) {
+        LaunchedEffect(post.id) { onVisible() }
+    }
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .clickable { onClick() },
     ) {
-        AsyncImage(
-            model = post.thumbnailUrl,
-            contentDescription = "Post image",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(20.dp)),
-            contentScale = ContentScale.Crop,
-        )
+        // Video: URL la file .mp4, AsyncImage khong decode duoc -> nen den + icon play
+        if (post.postType == PostType.VIDEO) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.Black),
+            )
+        } else {
+            AsyncImage(
+                model = post.thumbnailUrl,
+                contentDescription = "Post image",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp)),
+                contentScale = ContentScale.Crop,
+            )
+        }
 
-        // Video indicator
-//        if (post.postType == PostType.VIDEO) {
-//            Box(
-//                modifier = Modifier
-//                    .align(Alignment.TopEnd)
-//                    .padding(8.dp)
-//                    .size(24.dp)
-//                    .background(
-//                        color = Color.Black.copy(alpha = 0.7f),
-//                        shape = CircleShape
-//                    ),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.PlayArrow,
-//                    contentDescription = "Video",
-//                    tint = Color.White,
-//                    modifier = Modifier.size(16.dp)
-//                )
-//            }
-//        }
+        // Khung phan thuong ap len anh (business rule: dang bai hien thi kem khung)
+        if (frameUrl != null) {
+            AsyncImage(
+                model = frameUrl,
+                contentDescription = "Khung anh",
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(20.dp)),
+            )
+        }
+
+        if (post.postType == PostType.VIDEO) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(40.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Video",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
     }
 }
 

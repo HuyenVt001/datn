@@ -30,3 +30,18 @@ data class SendMessageRequest(
     val messageType: String = "TEXT",
     val content: String,
 )
+
+/** Nhom chat (memberIds <= 20, nguoi tao tu vao nhom). */
+data class ChatGroupDto(
+    val groupId: String,
+    val groupName: String,
+    val memberIds: List<String> = emptyList(),
+    val createdBy: String? = null,
+    val createdAt: String? = null,
+)
+
+/** Body POST /messages/groups — tao nhom (khong can gom nguoi tao). */
+data class CreateGroupRequest(
+    val groupName: String,
+    val memberIds: List<String>,
+)

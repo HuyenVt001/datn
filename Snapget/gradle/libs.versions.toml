@@ -19,6 +19,7 @@ coreKtx = "1.13.1"
 junit = "4.13.2"
 junitExt = "1.1.5"
 espressoCore = "3.5.1"
+exifinterface = "1.3.7"
 kotlinxCoroutinesPlayServices = "1.9.0"
 lifecycleRuntimeKtx = "2.8.0"
 activityCompose = "1.9.0"
@@ -37,6 +38,7 @@ composeIcons = "1.1.1"
 jackson = "2.15.3"
 workRuntimeKtx = "2.10.2"
 material3 = "1.3.2"
+media3 = "1.4.1"
 zxing = "3.5.3"
 
 # Firebase
@@ -63,9 +65,11 @@ androidx-animation = { module = "androidx.compose.animation:animation", version.
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraView" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraView" }
+androidx-camera-video = { module = "androidx.camera:camera-video", version.ref = "cameraView" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraView" }
 androidx-camera-view-v131 = { module = "androidx.camera:camera-view", version.ref = "cameraViewVersion" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
@@ -81,6 +85,8 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-material3 = { module = "androidx.compose.material3:material3" , version.ref = "material3" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 
 barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }

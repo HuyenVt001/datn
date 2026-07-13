@@ -16,7 +16,9 @@ export class MomentsRepository {
   }
 
   async create(moment: Omit<Moment, 'momentId'>): Promise<Moment> {
-    const ref = await this.col.add(moment);
+    // Firestore khong nhan gia tri undefined -> loc truoc khi ghi
+    const data = Object.fromEntries(Object.entries(moment).filter(([, v]) => v !== undefined));
+    const ref = await this.col.add(data);
     return { momentId: ref.id, ...moment };
   }
 
@@ -45,6 +47,25 @@ export class MomentsRepository {
     );
     const moments = snaps.flatMap((s) => s.docs.map((d) => this.toEntity(d.id, d.data())));
     return moments.sort((a, b) => b.postTime.localeCompare(a.postTime));
+  }
+
+  /**
+   * Lay moment CHUP CHUNG ma cac user nay la NGUOI NHAN (coopUserId).
+   * Can thiet vi moment co-op luu userId = nguoi moi — thieu query nay thi
+   * moment chung khong bao gio hien voi nguoi nhan (feed/profile).
+   */
+  async listByCoopUserIds(userIds: string[]): Promise<Moment[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    const chunks: string[][] = [];
+    for (let i = 0; i < userIds.length; i += 10) {
+      chunks.push(userIds.slice(i, i + 10));
+    }
+    const snaps = await Promise.all(
+      chunks.map((chunk) => this.col.where('coopUserId', 'in', chunk).get()),
+    );
+    return snaps.flatMap((s) => s.docs.map((d) => this.toEntity(d.id, d.data())));
   }
 
   /** Danh dau da xem: posts/{id}/views/{viewerId}. */
@@ -83,6 +104,7 @@ export class MomentsRepository {
       mediaUrl: data.mediaUrl ?? data.thumbnailUrl ?? '',
       frameId: data.frameId,
       caption: data.caption,
+      coopUserId: data.coopUserId,
       postTime: data.postTime ?? data.createdAt ?? '',
     };
   }

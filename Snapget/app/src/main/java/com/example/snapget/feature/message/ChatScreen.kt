@@ -2,9 +2,12 @@ package com.example.snapget.feature.message
 
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,12 +24,16 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +68,7 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.util.copyUriToCacheFile
 import com.example.snapget.core.util.takeFirstNameOfUser
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
@@ -90,10 +98,25 @@ fun ChatScreen(
 
     val listState = rememberLazyListState()
     var messageText by remember { mutableStateOf("") }
+    val sendingMedia by messageViewModel.sendingMedia.collectAsState()
 
-    // Lan dau: tai ban be (ten/avatar) + thread; sau do polling 5s/lan
+    // Chon anh tu thu vien -> upload -> gui tin PHOTO
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let { copyUriToCacheFile(context, it, "chat") }?.let { file ->
+            messageViewModel.sendMedia(recipientId, null, file, "image/jpeg", "PHOTO")
+        }
+    }
+
+    // Ghi am -> upload -> gui tin VOICE
+    val voiceRecorder = rememberVoiceRecorder { file ->
+        messageViewModel.sendMedia(recipientId, null, file, "audio/mp4", "VOICE")
+    }
+
+    // Lan dau: tai ban be (ten/avatar — chi khi chua co) + thread; sau do polling 5s/lan
     LaunchedEffect(recipientId) {
-        messageViewModel.loadConversations()
+        messageViewModel.loadFriendsIfNeeded()
         messageViewModel.refreshThread(recipientId, showLoading = true)
         while (true) {
             delay(5000)
@@ -142,6 +165,12 @@ fun ChatScreen(
                     messageViewModel.sendMessage(recipientId, emoji, messageType = "EMOJI")
                 },
                 modifier = Modifier.padding(bottom = 15.dp),
+                onPhotoClick = { photoPicker.launch("image/*") },
+                onStickerSend = { url ->
+                    messageViewModel.sendMessage(recipientId, url, messageType = "STICKER")
+                },
+                voiceRecorder = voiceRecorder,
+                isSendingMedia = sendingMedia,
             )
         },
     ) { paddingValues ->
@@ -237,7 +266,7 @@ fun ChatScreen(
 }
 
 // Helper function to determine if avatar should be shown
-private fun shouldShowAvatar(
+internal fun shouldShowAvatar(
     currentMessage: MessageDto,
     nextMessage: MessageDto?,
     isFromCurrentUser: Boolean,
@@ -253,7 +282,7 @@ private fun shouldShowAvatar(
 }
 
 // Helper function to determine if this message starts a new sender group
-private fun isNewSenderGroup(
+internal fun isNewSenderGroup(
     currentMessage: MessageDto,
     previousMessage: MessageDto?,
 ): Boolean {
@@ -342,7 +371,8 @@ fun ChatTopBar(
 
 /**
  * Thanh nhap tin theo style MessagePill (bo 24dp, nen surfaceVariant — DESIGN 7.9):
- * o go text + 3 emoji gui nhanh (tin EMOJI) + nut Send khi co text.
+ * o go text + emoji gui nhanh (tin EMOJI) + nut Send khi co text.
+ * Truyen them callback de bat nut anh 📷 / sticker 😊 / mic 🎤 (media qua /upload).
  */
 @Composable
 fun ChatInputPill(
@@ -351,65 +381,160 @@ fun ChatInputPill(
     onSend: () -> Unit,
     onEmojiSend: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onPhotoClick: (() -> Unit)? = null,
+    onStickerSend: ((String) -> Unit)? = null,
+    voiceRecorder: VoiceRecorderState? = null,
+    isSendingMedia: Boolean = false,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(15.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(24.dp),
-            )
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BasicTextField(
-            value = messageText,
-            onValueChange = onTextChange,
-            singleLine = true,
-            textStyle = TextStyle(
-                color = Color.White,
-                fontSize = 16.sp,
-            ),
+    var showStickers by remember { mutableStateOf(false) }
+    val hasMediaButtons = onPhotoClick != null || onStickerSend != null || voiceRecorder != null
+
+    Column(modifier = modifier) {
+        // Khay sticker (bam icon 😊 de mo/dong) — bam sticker la gui luon
+        if (showStickers && onStickerSend != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 15.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(20.dp),
+                    )
+                    .padding(12.dp)
+                    .horizontalScroll(rememberScrollState()),
+            ) {
+                stickerCatalog.forEach { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = "Sticker",
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onStickerSend(url)
+                                showStickers = false
+                            },
+                    )
+                }
+            }
+        }
+
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .padding(vertical = 6.dp),
-            decorationBox = { innerTextField ->
-                Box {
-                    if (messageText.isEmpty()) {
+                .fillMaxWidth()
+                .padding(15.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicTextField(
+                value = messageText,
+                onValueChange = onTextChange,
+                singleLine = true,
+                textStyle = TextStyle(
+                    color = Color.White,
+                    fontSize = 16.sp,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 6.dp),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (messageText.isEmpty()) {
+                            Text(
+                                text = if (voiceRecorder?.isRecording == true) {
+                                    "Dang ghi am... cham mic de gui"
+                                } else {
+                                    "Send message..."
+                                },
+                                color = if (voiceRecorder?.isRecording == true) {
+                                    Color.Red
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                fontSize = 16.sp,
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+
+            if (messageText.isBlank()) {
+                if (isSendingMedia) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                    )
+                } else {
+                    // Emoji gui nhanh — bam la gui 1 tin EMOJI luon
+                    // (rut gon con 2 khi co them nut media cho khoi chat hang)
+                    val quickEmojis = if (hasMediaButtons) {
+                        quickReactionEmojis.take(2)
+                    } else {
+                        quickReactionEmojis
+                    }
+                    quickEmojis.forEach { emoji ->
                         Text(
-                            text = "Send message...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 16.sp,
+                            text = emoji,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { onEmojiSend(emoji) }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                         )
                     }
-                    innerTextField()
-                }
-            },
-        )
 
-        if (messageText.isBlank()) {
-            // Emoji gui nhanh — bam la gui 1 tin EMOJI luon
-            quickReactionEmojis.forEach { emoji ->
-                Text(
-                    text = emoji,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable { onEmojiSend(emoji) }
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                )
-            }
-        } else {
-            IconButton(
-                onClick = onSend,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send message",
-                    tint = Color.White,
-                )
+                    if (onPhotoClick != null) {
+                        IconButton(onClick = onPhotoClick, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = "Gui anh",
+                                tint = Color.White,
+                            )
+                        }
+                    }
+                    if (onStickerSend != null) {
+                        IconButton(
+                            onClick = { showStickers = !showStickers },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EmojiEmotions,
+                                contentDescription = "Sticker",
+                                tint = if (showStickers) Color.Yellow else Color.White,
+                            )
+                        }
+                    }
+                    if (voiceRecorder != null) {
+                        IconButton(
+                            onClick = voiceRecorder.toggle,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Ghi am",
+                                tint = if (voiceRecorder.isRecording) Color.Red else Color.White,
+                            )
+                        }
+                    }
+                }
+            } else {
+                IconButton(
+                    onClick = onSend,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send message",
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
@@ -502,16 +627,43 @@ fun MessageBubble(
                 )
             }
 
-            // Tin EMOJI: hien to, KHONG bubble (kieu Messenger)
-            if (message.messageType == "EMOJI") {
-                Text(
+            // Kieu hien thi theo messageType (content cua PHOTO/STICKER/VOICE la URL)
+            when (message.messageType) {
+                // EMOJI: hien to, KHONG bubble (kieu Messenger)
+                "EMOJI" -> Text(
                     text = message.content,
                     fontSize = 36.sp,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
-            } else {
-                // Message content with improved styling
-                Box(
+
+                // STICKER: anh nho, KHONG bubble
+                "STICKER" -> AsyncImage(
+                    model = message.content,
+                    contentDescription = "Sticker",
+                    modifier = Modifier
+                        .size(96.dp)
+                        .padding(4.dp),
+                )
+
+                // PHOTO: anh trong bubble bo goc
+                "PHOTO" -> AsyncImage(
+                    model = message.content,
+                    contentDescription = "Anh",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(bubbleShape),
+                )
+
+                // VOICE: cham de phat/dung
+                "VOICE" -> VoiceBubble(
+                    url = message.content,
+                    bubbleColor = bubbleColor,
+                    textColor = textColor,
+                    shape = bubbleShape,
+                )
+
+                else -> Box(
                     modifier = Modifier
                         .widthIn(max = 280.dp)
                         .clip(bubbleShape)

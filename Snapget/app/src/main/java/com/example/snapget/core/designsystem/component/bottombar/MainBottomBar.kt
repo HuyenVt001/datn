@@ -378,14 +378,3 @@ fun MainBottomBar3Preview() {
         )
     }
 }
-
-@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
-@Composable
-fun MainBottomBarAutoItemsPreview() {
-    MaterialTheme {
-        MainBottomBar(
-            navController = rememberNavController(),
-            items = TODO(),
-        )
-    }
-}

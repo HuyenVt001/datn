@@ -12,6 +12,8 @@ export interface Moment {
   /** Khung anh ap len moment (frameId) — null neu khong dung. */
   frameId?: string;
   caption?: string;
+  /** uid nguoi chup chung (co-op capture) — moment "cua ca 2". */
+  coopUserId?: string;
   postTime: string; // ISO string
 }
 

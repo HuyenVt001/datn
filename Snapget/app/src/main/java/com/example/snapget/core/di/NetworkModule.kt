@@ -1,9 +1,12 @@
 package com.example.snapget.core.di
 
 import com.example.snapget.BuildConfig
+import com.example.snapget.core.network.api.CoopApi
+import com.example.snapget.core.network.api.FrameApi
 import com.example.snapget.core.network.api.FriendshipApi
 import com.example.snapget.core.network.api.MessageApi
 import com.example.snapget.core.network.api.MomentApi
+import com.example.snapget.core.network.api.QuestApi
 import com.example.snapget.core.network.api.UploadApi
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.interceptor.AuthInterceptor
@@ -84,4 +87,16 @@ class NetworkModule {
     @Provides
     @Singleton
     fun provideMessageApi(retrofit: Retrofit): MessageApi = retrofit.create(MessageApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideQuestApi(retrofit: Retrofit): QuestApi = retrofit.create(QuestApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFrameApi(retrofit: Retrofit): FrameApi = retrofit.create(FrameApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCoopApi(retrofit: Retrofit): CoopApi = retrofit.create(CoopApi::class.java)
 }

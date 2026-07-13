@@ -22,3 +22,9 @@ val GrayError = Color(0xFFCF6679) // Keep same red-pink error
 val GrayOnError = Color(0xFFFFFFFF) // White text on error
 
 val BackgroundPreview = Color(0xFF424242).copy(alpha = 0.5f) // Darker gray for previews
+
+/**
+ * Vang accent DUY NHAT cua app (selection/capture/gamification — DESIGN.md muc 2).
+ * Doi brand thi sua 1 cho nay; KHONG hardcode Color.Yellow trong screen nua.
+ */
+val SnapYellow = Color.Yellow

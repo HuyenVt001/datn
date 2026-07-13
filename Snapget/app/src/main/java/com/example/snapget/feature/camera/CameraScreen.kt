@@ -2,24 +2,20 @@ package com.example.snapget.feature.camera
 
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,6 +51,7 @@ fun CameraScreen(
     mainViewModel: MainViewModel = hiltViewModel(),
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
 
     var selectedUser by remember {
         mutableStateOf<User?>(
@@ -69,6 +67,9 @@ fun CameraScreen(
     // Get current user from auth state
     val currentUser by mainViewModel.currentUser.collectAsState()
     val data = mapToUser(currentUser)
+
+    // Che do CHUP CHUNG (co-op): chup nua anh -> chon ban gui loi moi (thay vi dang solo)
+    var coopMode by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -107,10 +108,32 @@ fun CameraScreen(
                     lifecycleOwner = lifecycleOwner,
                     height = 400.dp,
                     onPhotoTaken = { photoPath ->
-                        // Chup xong -> sang man gui bai, kem duong dan anh vua luu
-                        navController.navigate(
-                            Screen.SubmitPhoto.route + "?photoPath=" + Uri.encode(photoPath),
-                        )
+                        if (coopMode) {
+                            // Che do chup chung -> chon ban de gui loi moi (nua anh cua minh)
+                            navController.navigate(
+                                Screen.CoopSend.route + "?photoPath=" + Uri.encode(photoPath),
+                            )
+                        } else {
+                            // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
+                            navController.navigate(
+                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
+                            )
+                        }
+                    },
+                    // Giu nut chup de quay video <=5s -> cung sang man chinh sua (chi chon khung)
+                    onVideoTaken = { videoPath ->
+                        if (coopMode) {
+                            // Server chi ghep ANH — video khong dung cho chup chung
+                            Toast.makeText(
+                                context,
+                                "Chup chung chi ho tro anh — cham de chup nhe!",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        } else {
+                            navController.navigate(
+                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(videoPath) + "&isVideo=true",
+                            )
+                        }
                     },
                     showControls = true,
                     modifier = Modifier
@@ -119,47 +142,26 @@ fun CameraScreen(
                 )
             }
 
+            // Toggle che do CHUP CHUNG (co-op): bat -> chup xong chon ban gui loi moi
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = if (coopMode) Color.Yellow else Color.Black.copy(alpha = 0.6f),
+                modifier = Modifier.clickable { coopMode = !coopMode },
+            ) {
+                Text(
+                    text = if (coopMode) "👥 Chup chung: BAT" else "👥 Chup chung",
+                    color = if (coopMode) Color.Black else Color.White,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+
             MainBottomBar(
                 navController,
                 items = takePhotoBar,
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Open Camera",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-
-                Text(
-                    text = "History",
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-
-            IconButton(
-                onClick = { },
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = "Open Camera",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp),
-                )
-            }
+            // (Hang "History" + nut mui ten cu da XOA 2026-07-13 — UI chet, bam khong lam gi)
         }
     }
 }

@@ -32,6 +32,14 @@ export class FramesRepository {
     return { frameId: ref.id, ...frame };
   }
 
+  async update(frameId: string, patch: Partial<Omit<Frame, 'frameId'>>): Promise<void> {
+    const data = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    if (Object.keys(data).length === 0) {
+      return; // Firestore update({}) se nem loi — khong co gi de sua thi thoi
+    }
+    await this.col.doc(frameId).update(data);
+  }
+
   async delete(frameId: string): Promise<void> {
     await this.col.doc(frameId).delete();
   }
@@ -41,6 +49,7 @@ export class FramesRepository {
       frameId,
       frameName: data.frameName ?? '',
       imageUrl: data.imageUrl,
+      milestone: data.milestone,
       createdAt: data.createdAt ?? '',
     };
   }

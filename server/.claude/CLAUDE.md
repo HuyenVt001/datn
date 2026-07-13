@@ -15,6 +15,7 @@
    - **Tiến độ** từng module (%, hoặc trạng thái).
    Sửa code mà không cập nhật GUIDE = **chưa xong việc**.
 3. Server là **một phần của monorepo DATN**; contract API phải khớp app Android (`Snapget/`) và admin (`admin/`). Khi đổi contract → ghi chú vào GUIDE và nhắc user cập nhật app.
+4. **Sau khi hoàn thành MỖI yêu cầu của user có sửa code trong `server/`** → chạy `codegraph init` cho thư mục này (`cd server && codegraph init`) để cập nhật index CodeGraph.
 
 ---
 
@@ -157,8 +158,8 @@ server/
 | **Reaction** | `posts/{id}/reactions/{id}` | `reactorId`, `emojiType`, `createdAt` | Junction → **subcollection** |
 | **Chat_Group** | `chatGroups/{id}` | `groupName`, `memberIds[]` (≤20) | Group_Member gộp vào `memberIds[]` |
 | **Message** | `messages/{id}` | `senderId`, `receiverId?`, `groupId?`, `messageType` (TEXT/VOICE/EMOJI/STICKER/PHOTO), `content`, `sendTime`, `isSeen` | 1-1 → có `receiverId`; nhóm → có `groupId` (một trong hai null) |
-| **Daily_Quest** | `dailyQuests/{id}` | `content`, `releaseDate` | **Mỗi ngày hệ thống tạo 3 quest chung**. AI làm cuối |
-| **User_Quest** | `userQuests/{id}` | `questId`, `userId`, `proofUrl`, `status` (PENDING/COMPLETED) | Ảnh nộp để AI xác minh |
+| **Daily_Quest** | `dailyQuests/{date}_{type}` | `type` (LOGIN/POST_MOMENT), `content`, `releaseDate` | **2 quest cố định/ngày, KHÔNG AI** (chốt 2026-07-13); id cố định để lazy-create idempotent |
+| **User_Quest** | `userQuests/{date}_{uid}_{type}` | `questId`, `userId`, `type`, `releaseDate`, `status` (COMPLETED), `completedAt` | Hoàn thành TỰ ĐỘNG, không nộp ảnh. Doc `{date}_{uid}_DAILY_REWARD` đánh dấu đã thưởng khung ngày đó |
 
 > ⚠️ **Prototype hiện tại lệch với thiết kế**: code app cũ đang có collection `posts` với field `postType/caption/thumbnailUrl/visibility/tags`, và có `notifications`, `settings`. Khi migrate: **theo thiết kế thực thể ở trên là chuẩn**; field cũ nào không có trong thiết kế thì giữ lại nếu app còn dùng, hoặc dọn dần (ghi rõ trong GUIDE). `notifications` giữ cho FCM; `settings` là cấu hình UI của app, không thuộc thiết kế CSDL lõi.
 
@@ -297,7 +298,7 @@ Client chỉ chặn UX; **server mới là nơi validate ràng buộc thật**. 
 | Moment view | hệ thống tự đánh dấu `isSeen` khi bạn bè lướt qua feed | `moments` |
 | Message seen | cập nhật `isSeen` khi người nhận mở xem | `messages` |
 | Co-op capture | 1 user chụp nửa ảnh + gửi yêu cầu → bạn chấp nhận chụp nửa còn lại → **server ghép 2 ảnh** thành 1 moment đăng cho cả 2 | `moments` (giai đoạn sau) |
-| Daily quest | **mỗi ngày tạo 3 quest chung**; user nộp `proofUrl` → **AI xác minh** → `COMPLETED` → thưởng frame. AI làm **cuối cùng**. | `quests` + AI |
+| Daily quest | **(CHỐT 2026-07-13 — thay thiết kế cũ, KHÔNG AI)** 2 quest cố định/ngày: **LOGIN** (tự xong khi gọi `GET /quests/today`) + **POST_MOMENT** (tự xong khi đăng bài). Sinh **lazy** theo ngày. Thưởng: 2/2 quest/ngày → mở ngẫu nhiên 1 khung thường; mốc streak cá nhân **3/7/14/30** → mở khung có `milestone` tương ứng. | `quests` |
 | Reward frame | user sở hữu nhiều frame, áp lên nhiều moment | `frames`/`users.unlockedFrames` |
 
 ### Phân quyền (actor → chức năng)
@@ -305,7 +306,7 @@ Client chỉ chặn UX; **server mới là nơi validate ràng buộc thật**. 
 - **Admin** (route riêng, `AdminJwtGuard` + `@Roles('admin')`): **quản lý user** (xem danh sách, tìm kiếm, **khóa/mở khóa** — dùng `admin.auth().updateUser({disabled})`), **xem thống kê**, **quản lý frame** (thêm/xóa), **tạo tài khoản admin mới**.
 - **AI**: tạo daily quest + xác minh ảnh quest (module `quests`, tích hợp cuối).
 
-> Đặt các hằng số giới hạn thành constant có tên trong `common/` (vd `MAX_FRIENDS = 20`, `MAX_GROUP_SIZE = 20`, `MAX_VIDEO_SECONDS = 5`, `STREAK_WINDOW_HOURS = 24`, `DAILY_QUESTS_PER_DAY = 3`) — không hardcode rải rác.
+> Đặt các hằng số giới hạn thành constant có tên trong `common/` (vd `MAX_FRIENDS = 20`, `MAX_GROUP_SIZE = 20`, `MAX_VIDEO_SECONDS = 5`, `STREAK_WINDOW_HOURS = 24`, `DAILY_QUESTS_PER_DAY = 2`, `STREAK_MILESTONES = [3,7,14,30]`) — không hardcode rải rác.
 
 ---
 

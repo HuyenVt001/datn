@@ -3,7 +3,9 @@ package com.example.snapget.feature.post
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.core.network.dto.MomentDto
+import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.post.data.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
@@ -33,6 +35,29 @@ class PostViewModel @Inject constructor(
     private val _feedStatus = MutableStateFlow<LoadStatus>(LoadStatus.Init())
     val feedStatus: StateFlow<LoadStatus> = _feedStatus.asStateFlow()
 
+    /** Moment cua tab dang chon ("You" / 1 nguoi ban) — khac voi tab Everyone (feed). */
+    private val _userMoments = MutableStateFlow<List<MomentDto>>(emptyList())
+    val userMoments: StateFlow<List<MomentDto>> = _userMoments.asStateFlow()
+
+    private val _userMomentsStatus = MutableStateFlow<LoadStatus>(LoadStatus.Init())
+    val userMomentsStatus: StateFlow<LoadStatus> = _userMomentsStatus.asStateFlow()
+
+    /** Catalog khung — cho picker khi chinh sua + overlay khung tren feed. */
+    private val _frames = MutableStateFlow<List<FrameDto>>(emptyList())
+    val frames: StateFlow<List<FrameDto>> = _frames.asStateFlow()
+
+    /** Tai catalog khung (goi 1 lan khi can — co cache tai VM). */
+    fun loadFrames() {
+        if (_frames.value.isNotEmpty()) return
+        viewModelScope.launch {
+            try {
+                _frames.value = postRepository.getFrames()
+            } catch (_: Exception) {
+                // Khong co khung thi picker/overlay tu an — khong chan UI
+            }
+        }
+    }
+
     /**
      * Dang 1 moment: upload file -> tao moment voi URL tra ve.
      * Server tu tang personal streak + bao ban be qua FCM.
@@ -56,7 +81,7 @@ class PostViewModel @Inject constructor(
                 _submitStatus.value = LoadStatus.Success()
                 loadFeed() // lam moi feed de thay bai vua dang
             } catch (e: Exception) {
-                _submitStatus.value = LoadStatus.Error(e.message ?: "Dang bai that bai.")
+                _submitStatus.value = LoadStatus.Error(e.serverMessage("Dang bai that bai."))
             }
         }
     }
@@ -69,18 +94,43 @@ class PostViewModel @Inject constructor(
                 _feed.value = postRepository.getFeed().items
                 _feedStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _feedStatus.value = LoadStatus.Error(e.message ?: "Khong tai duoc feed.")
+                _feedStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc feed."))
             }
         }
     }
 
-    /** Danh dau da xem — goi khi moment hien tren man hinh (fire-and-forget). */
+    /**
+     * Tai moment cho tab dang chon: [uid] null = cua minh ("You"),
+     * khac null = cua 1 nguoi ban (loi 403 cua server hien truc tiep).
+     */
+    fun loadUserMoments(uid: String?) {
+        viewModelScope.launch {
+            _userMomentsStatus.value = LoadStatus.Loading()
+            try {
+                _userMoments.value = if (uid == null) {
+                    postRepository.getMyMoments()
+                } else {
+                    postRepository.getUserMoments(uid)
+                }
+                _userMomentsStatus.value = LoadStatus.Success()
+            } catch (e: Exception) {
+                _userMoments.value = emptyList()
+                _userMomentsStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc bai dang."))
+            }
+        }
+    }
+
+    /** Cac moment da mark seen trong phien nay — tranh goi lap khi feed reload. */
+    private val seenOnce = mutableSetOf<String>()
+
+    /** Danh dau da xem — goi khi moment hien tren man hinh (fire-and-forget, idempotent). */
     fun markSeen(momentId: String) {
+        if (!seenOnce.add(momentId)) return
         viewModelScope.launch {
             try {
                 postRepository.markSeen(momentId)
             } catch (_: Exception) {
-                // Khong anh huong UX — bo qua loi mark seen
+                seenOnce.remove(momentId) // loi thi cho thu lai lan sau
             }
         }
     }

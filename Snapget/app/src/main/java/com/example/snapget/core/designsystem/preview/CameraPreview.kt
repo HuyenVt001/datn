@@ -1,6 +1,7 @@
 package com.example.snapget.core.designsystem.preview
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.util.Log
 import android.util.Size
@@ -15,6 +16,13 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.Recording
+import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -82,6 +90,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
 import java.io.File
 import kotlin.math.sqrt
 import kotlinx.coroutines.delay
@@ -94,6 +103,8 @@ fun CameraPreviewWithZoom(
     modifier: Modifier = Modifier,
     height: Dp = 300.dp,
     onPhotoTaken: ((String) -> Unit)? = null,
+    // Giu nut chup de quay video (<=5s). null = tat quay video
+    onVideoTaken: ((String) -> Unit)? = null,
     showControls: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -132,8 +143,26 @@ fun CameraPreviewWithZoom(
         var cameraControl: CameraControl? by remember { mutableStateOf(null) }
         var cameraInfo: CameraInfo? by remember { mutableStateOf(null) }
         var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
+        var videoCapture: VideoCapture<Recorder>? by remember { mutableStateOf(null) }
+        var activeRecording: Recording? by remember { mutableStateOf(null) }
+        var isRecording by remember { mutableStateOf(false) }
+        var recordElapsedMs by remember { mutableLongStateOf(0L) }
         var isWideMode by remember { mutableStateOf(false) }
         var isFrontCamera by remember { mutableStateOf(false) }
+
+        // Dem thoi gian quay + TU DONG DUNG khi cham 5s (server cung enforce)
+        LaunchedEffect(isRecording) {
+            if (isRecording) {
+                recordElapsedMs = 0L
+                while (isRecording && recordElapsedMs < MAX_VIDEO_SECONDS * 1000L) {
+                    delay(100)
+                    recordElapsedMs += 100
+                }
+                if (isRecording) {
+                    activeRecording?.stop() // Finalize callback se tra file ve onVideoTaken
+                }
+            }
+        }
 
         // Enhanced UX states
         var isLoading by remember { mutableStateOf(true) }
@@ -222,12 +251,42 @@ fun CameraPreviewWithZoom(
                             }
 
                             cameraProvider.unbindAll()
-                            val camera = cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview,
-                                imageCaptureUseCase,
-                            )
+                            // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
+                            // stream -> fallback bind khong co video, chi chup anh.
+                            val camera = if (onVideoTaken != null) {
+                                val recorder = Recorder.Builder()
+                                    .setQualitySelector(QualitySelector.from(Quality.HD))
+                                    .build()
+                                val videoCaptureUseCase = VideoCapture.withOutput(recorder)
+                                try {
+                                    val cam = cameraProvider.bindToLifecycle(
+                                        lifecycleOwner,
+                                        cameraSelector,
+                                        preview,
+                                        imageCaptureUseCase,
+                                        videoCaptureUseCase,
+                                    )
+                                    videoCapture = videoCaptureUseCase
+                                    cam
+                                } catch (e: Exception) {
+                                    Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
+                                    videoCapture = null
+                                    cameraProvider.unbindAll()
+                                    cameraProvider.bindToLifecycle(
+                                        lifecycleOwner,
+                                        cameraSelector,
+                                        preview,
+                                        imageCaptureUseCase,
+                                    )
+                                }
+                            } else {
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    imageCaptureUseCase,
+                                )
+                            }
                             cameraControl = camera.cameraControl
                             cameraInfo = camera.cameraInfo
 
@@ -307,49 +366,152 @@ fun CameraPreviewWithZoom(
 //                }
 //            }
 
-            // Nut chup — chi hien khi man hinh cha muon nhan anh (onPhotoTaken != null).
-            // Anh luu vao cacheDir roi tra duong dan qua callback.
+            // Nut chup — CHAM = chup anh, GIU = quay video <=5s (tha tay / het gio thi dung).
+            // File luu vao cacheDir roi tra duong dan qua callback tuong ung.
             if (onPhotoTaken != null) {
-                Surface(
+                // Xin quyen ghi am 1 lan de video co tieng (tu choi van quay duoc, khong tieng)
+                val audioLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) { }
+                LaunchedEffect(onVideoTaken != null) {
+                    if (onVideoTaken != null &&
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO,
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        audioLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }
+
+                fun takePhoto() {
+                    val capture = imageCapture ?: return
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    val photoFile = File(
+                        context.cacheDir,
+                        "snapget_${System.currentTimeMillis()}.jpg",
+                    )
+                    val output = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                    capture.takePicture(
+                        output,
+                        ContextCompat.getMainExecutor(context),
+                        object : ImageCapture.OnImageSavedCallback {
+                            override fun onImageSaved(result: ImageCapture.OutputFileResults) {
+                                onPhotoTaken(photoFile.absolutePath)
+                            }
+
+                            override fun onError(exception: ImageCaptureException) {
+                                Log.e("CameraPreview", "Chup anh that bai: ${exception.message}")
+                            }
+                        },
+                    )
+                }
+
+                @SuppressLint("MissingPermission")
+                fun startRecording() {
+                    if (onVideoTaken == null || isRecording) return
+                    val capture = videoCapture ?: return
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    val videoFile = File(
+                        context.cacheDir,
+                        "snapget_${System.currentTimeMillis()}.mp4",
+                    )
+                    val pending = capture.output.prepareRecording(
+                        context,
+                        FileOutputOptions.Builder(videoFile).build(),
+                    )
+                    val hasAudio = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO,
+                    ) == PackageManager.PERMISSION_GRANTED
+                    val ready = if (hasAudio) pending.withAudioEnabled() else pending
+                    activeRecording = ready.start(ContextCompat.getMainExecutor(context)) { event ->
+                        if (event is VideoRecordEvent.Finalize) {
+                            isRecording = false
+                            activeRecording = null
+                            if (!event.hasError()) {
+                                onVideoTaken(videoFile.absolutePath)
+                            } else {
+                                Log.e("CameraPreview", "Quay video loi: ${event.error}")
+                            }
+                        }
+                    }
+                    isRecording = true
+                }
+
+                // Dong ho dem giay khi dang quay
+                if (isRecording) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Black.copy(alpha = 0.6f),
+                    ) {
+                        Text(
+                            text = "● ${recordElapsedMs / 1000}s / ${MAX_VIDEO_SECONDS}s",
+                            color = Color.Red,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+
+                Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 20.dp)
-                        .size(72.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.9f),
-                    shadowElevation = 6.dp,
+                        .padding(bottom = 20.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    IconButton(
-                        onClick = {
-                            val capture = imageCapture ?: return@IconButton
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val photoFile = File(
-                                context.cacheDir,
-                                "snapget_${System.currentTimeMillis()}.jpg",
-                            )
-                            val output = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-                            capture.takePicture(
-                                output,
-                                ContextCompat.getMainExecutor(context),
-                                object : ImageCapture.OnImageSavedCallback {
-                                    override fun onImageSaved(result: ImageCapture.OutputFileResults) {
-                                        onPhotoTaken(photoFile.absolutePath)
-                                    }
-
-                                    override fun onError(exception: ImageCaptureException) {
-                                        Log.e("CameraPreview", "Chup anh that bai: ${exception.message}")
-                                    }
-                                },
-                            )
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Camera,
-                            contentDescription = "Chup anh",
-                            tint = Color.Black,
-                            modifier = Modifier.size(36.dp),
+                    // Vong tien do do quanh nut khi dang quay
+                    if (isRecording) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            progress = {
+                                (recordElapsedMs.toFloat() / (MAX_VIDEO_SECONDS * 1000f))
+                                    .coerceIn(0f, 1f)
+                            },
+                            modifier = Modifier.size(88.dp),
+                            color = Color.Red,
+                            strokeWidth = 4.dp,
+                            trackColor = Color.White.copy(alpha = 0.3f),
                         )
+                    }
+                    Surface(
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        color = if (isRecording) {
+                            Color.Red.copy(alpha = 0.9f)
+                        } else {
+                            Color.White.copy(alpha = 0.9f)
+                        },
+                        shadowElevation = 6.dp,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(videoCapture, imageCapture) {
+                                    detectTapGestures(
+                                        onTap = { takePhoto() },
+                                        onLongPress = { startRecording() },
+                                        onPress = {
+                                            tryAwaitRelease()
+                                            // Tha tay khi dang quay -> dung (Finalize se tra file)
+                                            if (isRecording) {
+                                                activeRecording?.stop()
+                                            }
+                                        },
+                                    )
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Camera,
+                                contentDescription = "Cham de chup, giu de quay video",
+                                tint = if (isRecording) Color.White else Color.Black,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
                     }
                 }
             }

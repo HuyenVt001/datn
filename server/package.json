@@ -16,7 +16,9 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "seed:admin": "ts-node scripts/seed-admin.ts",
+    "seed:frames": "ts-node scripts/seed-frames.ts",
+    "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json"
@@ -34,7 +36,8 @@
     "firebase-admin": "^13.0.2",
     "joi": "^17.13.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",

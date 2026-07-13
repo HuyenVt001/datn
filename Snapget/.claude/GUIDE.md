@@ -2,7 +2,7 @@
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**.
 > Đọc file này trước, rồi mở đúng file cần sửa theo bảng bên dưới.
-> Cập nhật lần cuối: 2026-07-12.
+> Cập nhật lần cuối: 2026-07-13.
 
 ---
 
@@ -67,8 +67,22 @@ d:\DATN\                    # ⬅️ monorepo THẬT nằm ở đây (3 thư m�
 | **Profile data thật** 👤: `ProfileViewModel` + `ProfileRepository` — streak thật từ `/users/me`//`:uid` (bỏ mock `streakDays=5`), calendar + đếm từ `/moments/mine`//`user/:uid` (server MỚI thêm 2 endpoint, chỉ bạn bè xem được), đổi "Lockets"→"Moments", profile người khác CHỈ hiện streak + ẩn email | ✅ 2026-07-12 |
 | **Migrate `feature/message` sang API** 💬: MessageScreen đọc `/messages/conversations` (viền vàng avatar khi chưa đọc), ChatScreen đọc thread + **polling 5s** + gửi TEXT/EMOJI qua `ChatInputPill` (thanh nhập hoạt động thật — pill cũ chỉ là mock), tự mark seen khi mở thread. Chat nhóm + PHOTO/VOICE để đợt sau | ✅ 2026-07-12 — **cần test 2 máy** |
 | Tách `MainViewModel` + `FirestoreRepository` (god objects) theo feature | 🔄 (post đã có VM riêng) |
+| **Màn Daily Quest** 🏆 (`feature/quest/`): 2 quest cố định/ngày từ `GET /quests/today` (server tự hoàn thành — vào màn = xong quest LOGIN), banner streak cá nhân, banner khung vừa thưởng, **bộ sưu tập khung** (`GET /frames`, khóa = mờ + 🔒, mốc streak = nhãn 🔥). Entry: nút cúp 🏆 vàng trên top bar PostScreen (`MainTopBar.onQuestClick`). Route `daily_quest` (ẩn bottom bar) | ✅ 2026-07-13 — build OK, **cần test emulator + server** |
+| **Co-op Capture** 👥 (`feature/coop/`): toggle "Chup chung" trên CameraScreen → chụp nửa ảnh → `CoopSendScreen` (chọn 1 bạn, gửi lời mời qua `POST /moments/coop`) → bạn thấy **banner vàng trên feed** (PostScreen poll `GET /moments/coop/pending` khi đăng nhập) → `CoopAcceptScreen` (trái = nửa ảnh người mời, phải = camera chụp nửa mình, ✓ = accept → server ghép sharp thành 1 moment chung, ✕ = decline). Chỉ hỗ trợ ẢNH (server ghép ảnh, không video) | ✅ 2026-07-13 — build OK, **cần test 2 máy + server** |
+| **Feed hiển thị khung + video**: `PostGrid` overlay khung (map frameId→imageUrl từ `GET /frames`) + ô video nền đen icon ▶ (URL .mp4 không decode được bằng Coil); `PostDetailScreen` đã phát video ExoPlayer + overlay khung từ trước | ✅ 2026-07-13 |
+| **Deep link mời kết bạn** 🔗: intent-filter `https://snapget.app/invite/{code}` → `MainActivity.handleInviteDeepLink` (cả cold start ở `onCreate` lẫn `onNewIntent` vì `singleTask`) → `POST /friendships/connect` + Toast kết quả; chưa đăng nhập → Toast nhắc đăng nhập. Nút share: `ShareYourLinkComponent(inviteLink)` trong sheet bạn bè mở share chooser hệ thống. ⚠️ **Lưu ý demo**: domain `snapget.app` không có thật → không verify App Links được (không có `assetlinks.json`), Android sẽ hiện **hộp thoại chọn app** khi bấm link thay vì mở thẳng — chọn Snapget là vào luồng kết bạn bình thường | ✅ 2026-07-13 |
+| **Sửa hồ sơ** ✏️: nút Edit cạnh tên (chỉ profile mình) → `EditProfileDialog` (đổi tên ≤30 ký tự + chọn avatar từ thư viện `GetContent` → copy cache → upload `/upload` → `PATCH /users/me`). `ProfileViewModel.updateProfile` + `updateStatus` | ✅ 2026-07-13 |
+| **Chat nhóm + media** 💬: section "Nhóm chat" trên MessageScreen (`GET /messages/groups`), nút GroupAdd top bar → `CreateGroupDialog` (tên + tick bạn bè, ≤20 server enforce) → `GroupChatScreen` (route `group_chat/{groupId}?name=`, polling 5s, dùng chung `MessageBubble`/`ChatInputPill`). Gửi **ảnh** 📷 (GetContent→upload→PHOTO), **sticker** 😊 (khay Twemoji CDN, content=URL), **voice** 🎤 (`rememberVoiceRecorder` MediaRecorder m4a→upload→VOICE, bubble phát bằng MediaPlayer) cho cả 1-1 lẫn nhóm — tiện ích ở `feature/message/ChatMedia.kt` | ✅ 2026-07-13 — build OK, **cần test 2 máy + server** |
+| **Xóa Locket Gold** 💸: bỏ nút "Get Locket Gold" (UserProfileTopBar) + setting "Restore Purchases" (SampleData) — **toàn bộ tính năng miễn phí, không có thanh toán** (quyết định 2026-07-13) | ✅ 2026-07-13 |
+| **Migrate feed tab You/bạn bè sang API** 🧹: PostScreen giờ đọc HẾT qua server — Everyone = `/moments/feed`, You = `/moments/mine`, bạn = `/moments/user/:uid` (`PostViewModel.loadUserMoments`); dropdown top bar + resolve tác giả dùng bạn bè từ `/friendships` (FriendsViewModel). **Dọn god-object**: `MainViewModel` chỉ còn currentUser + settings, `FirestoreRepository` chỉ còn getCurrentUser + settings (xóa ~500 dòng đọc posts/friends/messages/notifications Firestore trực tiếp); SubmitPhotoScreen bỏ fallback hiển thị bài Firestore cũ | ✅ 2026-07-13 |
+| **Dọn route legacy**: xóa `detail` (PlaceholderScreen) + `post_detail/{postId}` (không màn nào điều hướng tới — PostDetailScreen hiển thị inline qua state); xóa nhánh deep link `auth/success|failure` chết trong MainActivity (manifest không đăng ký host `auth`; quên mật khẩu đi qua email Firebase — luồng này ĐÃ có UI đầy đủ trong LoginScreen: nút "Forgot Password?" → gửi mail → snackbar) | ✅ 2026-07-13 |
+| README.md viết lại đúng thực tế (bỏ Appwrite) + xóa preview hỏng `MainBottomBarAutoItemsPreview` (items = TODO()) | ✅ 2026-07-13 |
+| **Doodle chọn độ dày nét**: 3 mức (8/12/20px) trên toolbar vẽ tay của EditMediaScreen (spec TODO.md Phase 3 yêu cầu "bảng màu + độ dày nét + undo/xóa" — undo/xóa/màu đã có sẵn) | ✅ 2026-07-13 |
+| **Đợt dò lỗi 3 vòng trước tổng test** (8 finder + 2 verifier agent): fix ~25 lỗi. Nổi bật phía app: toast lỗi hiện message tiếng Việt của server thay vì "HTTP 400" (`core/network/ErrorMessages.kt` — `serverMessage()`, áp cho MỌI catch hiện lỗi); **mark-seen theo item thực sự hiển thị** (PostGrid.onPostVisible, bỏ mark cả feed + bỏ mark bài mình + guard lúc currentUser chưa load); poll chat không nuốt tin vừa gửi (mergeThread theo messageId + sendTime); decline co-op không bị hủy bởi popBackStack (NonCancellable); cleartext HTTP chuyển sang debug-manifest; EditMediaScreen decode ảnh ở IO + inSampleSize 2048; dedup: `uploadFile()` (4 repo), `copyUriToCacheFile()` (core/util), `SnapYellow` (theme), MAX_VIDEO_SECONDS (constants); dọn UI chết CameraScreen; SubmitPhoto nhận `frameUrl` qua route (bỏ tải lại catalog); loadFriendsIfNeeded cho 2 màn chat; MomentDto thêm `coopUserId` | ✅ 2026-07-13 |
 
 > ⚠️ Test app cần server đang chạy: `cd d:\DATN\server && npm run start:dev`. Emulator gọi `http://10.0.2.2:3000/api/` (đổi qua `server.base.url` trong `local.properties` nếu chạy máy thật).
+>
+> ⚠️ **Cleartext HTTP chỉ bật ở build DEBUG** (`app/src/debug/AndroidManifest.xml`) — mọi test/demo dùng `installDebug`. Bản **release** sẽ CHẶN toàn bộ HTTP (Android 9+): muốn build release chạy được phải deploy server có **HTTPS** và đổi `server.base.url`. Đây là chủ đích bảo mật (token không đi qua HTTP trần), không phải bug.
 
 ### Bên trong `app/src/main/java/com/example/snapget/` (⚡ ĐÃ ĐẠI TU feature-based 2026-07-12)
 
@@ -81,7 +95,7 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   common/                   #   LoadStatus, AppException
   config/                   #   StatusBar
   constants/                #   FirestoreConfig, AuthConstants, ScreenTitle, UserRole, ...
-  data/                     #   FirestoreRepository (⚠️ god-repo, sẽ tách theo feature khi migrate API),
+  data/                     #   FirestoreRepository (ĐÃ DỌN 2026-07-13 — chỉ còn currentUser + settings),
   │                         #   MainLog/MainLogImpl (log), Store/StoreImpl2, SampleData
   designsystem/
     component/              #   UI tái sử dụng theo loại: bottombar/ button/ circle/ common/
@@ -92,16 +106,18 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   fcm/                      #   SnapgetMessagingService (khai báo trong AndroidManifest: .core.fcm.*)
   model/                    #   User, Post, Message, Friendship, Notification, Setting (+ auth/AuthState, AuthUser)
   network/                  #   🔜 (MỚI khi migrate) Retrofit api/ + dto/ + interceptor/
-  ui/                       #   MainViewModel (⚠️ god-VM, sẽ tách theo feature khi migrate API)
+  ui/                       #   MainViewModel (ĐÃ DỌN 2026-07-13 — chỉ còn currentUser + settings)
   util/                     #   DatetimeUtils, MainUtils, EdgeToEdge, PaddingValues
 
 feature/                    # Mỗi tính năng 1 package: screen + viewmodel + data riêng
   auth/                     #   LoginScreen, AuthViewModel, data/AuthRepository
-  camera/                   #   CameraScreen (CameraX)
+  camera/                   #   CameraScreen (CameraX, toggle chế độ Chụp chung)
+  coop/                     #   CoopSendScreen, CoopAcceptScreen, CoopViewModel, data/CoopRepository (API /moments/coop)
   friends/                  #   FriendsViewModel, QrScanScreen (quét QR kết bạn), data/FriendsRepository (API /friendships)
-  post/                     #   PostScreen, PostDetailScreen, SubmitPhotoScreen
-  message/                  #   MessageScreen, ChatScreen, MessageViewModel, data/MessageRepository (API /messages, polling 5s)
+  post/                     #   PostScreen, PostDetailScreen, SubmitPhotoScreen, EditMediaScreen, MomentMapper
+  message/                  #   MessageScreen, ChatScreen, GroupChatScreen, ChatMedia (sticker/voice/photo), MessageViewModel, data/MessageRepository (API /messages, polling 5s)
   profile/                  #   UserProfileScreen, ProfileViewModel, data/ProfileRepository (API /users + /moments/mine)
+  quest/                    #   DailyQuestScreen, QuestViewModel, data/QuestRepository (API /quests/today + /frames + /users/me)
   settings/                 #   SettingScreen
 ```
 
@@ -172,13 +188,19 @@ Route khai báo trong `Navigation.kt` (sealed class `Screen`). Bảng "muốn s�
 | `submit_photo` | `feature/post/SubmitPhotoScreen.kt` | **Chưa upload ảnh** — sẽ nối `/upload` + `/moments` |
 | `camera` | `feature/camera/CameraScreen.kt` | CameraX |
 | `message` | `feature/message/MessageScreen.kt` | Danh sách hội thoại |
-| `chat/{recipientId}` | `feature/message/ChatScreen.kt` | Chat 1-1 |
+| `chat/{recipientId}` | `feature/message/ChatScreen.kt` | Chat 1-1 (TEXT/EMOJI/PHOTO/STICKER/VOICE) |
+| `group_chat/{groupId}?name=` | `feature/message/GroupChatScreen.kt` | Chat nhóm ≤20; entry = section "Nhóm chat" màn Messages; ẩn bottom bar |
 | `profile?userId={userId}` | `feature/profile/UserProfileScreen.kt` | `userId` nullable (không có = profile của mình) |
 | `qr_scan` | `feature/friends/QrScanScreen.kt` | Quét QR kết bạn (CameraX + ML Kit → POST /friendships/connect) |
 | `setting` | `feature/settings/SettingScreen.kt` | |
-| `detail` | *(PlaceholderScreen)* | ⚠️ **chưa làm** |
+| `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Quest hôm nay + bộ sưu tập khung; ẩn bottom bar; entry = nút 🏆 top bar feed |
+| `coop_send?photoPath=` | `feature/coop/CoopSendScreen.kt` | Gửi lời mời chụp chung (sau khi chụp ở chế độ Co-op); ẩn bottom bar |
+| `coop_accept?inviteId=&mediaUrl=&name=` | `feature/coop/CoopAcceptScreen.kt` | Chấp nhận lời mời: chụp nửa còn lại → server ghép; entry = banner vàng trên feed; ẩn bottom bar |
+| `edit_media?mediaPath=&isVideo=` | `feature/post/EditMediaScreen.kt` | Chỉnh sửa sau chụp/quay (khung/filter/vẽ tay) → SubmitPhoto |
 
-Bottom bar bị ẩn ở: `message`, `profile`, `setting`, `login`, `chat`, `qr_scan` (xem `hideBottomBarRoutes` trong `navigation/Navigation.kt`). Route `test_camera` và `relationship` **đã xóa** (2026-07-12 — bạn bè dùng bottom sheet, không cần màn riêng).
+Route `detail` và `post_detail/{postId}` **đã xóa** (2026-07-13 — legacy, không màn nào điều hướng tới; PostDetailScreen hiển thị inline qua state trong PostScreen/UserProfile).
+
+Bottom bar bị ẩn ở: `message`, `profile`, `setting`, `login`, `chat`, `qr_scan`, `daily_quest`, `coop_send`, `coop_accept` (xem `hideBottomBarRoutes` trong `navigation/Navigation.kt`). Route `test_camera` và `relationship` **đã xóa** (2026-07-12 — bạn bè dùng bottom sheet, không cần màn riêng).
 
 ---
 
@@ -189,7 +211,7 @@ Tất cả module ở `di/`, đều `@InstallIn(SingletonComponent::class)`:
 | Module | Cung cấp |
 |---|---|
 | `FirebaseModule` | `FirebaseAuth`, `FirebaseFirestore` (singleton) |
-| `NetworkModule` | `OkHttpClient` (AuthInterceptor gắn **Firebase ID token**, redact log) + `Retrofit` (baseUrl = `BuildConfig.SERVER_BASE_URL`) + provide `UserApi`/`UploadApi`/`MomentApi` |
+| `NetworkModule` | `OkHttpClient` (AuthInterceptor gắn **Firebase ID token**, redact log) + `Retrofit` (baseUrl = `BuildConfig.SERVER_BASE_URL`) + provide `UserApi`/`UploadApi`/`MomentApi`/`FriendshipApi`/`MessageApi`/`QuestApi`/`FrameApi`/`CoopApi` |
 | `RepositoriesModule` | bind `MainLogImpl → MainLog`, `StoreImpl2 → Store` |
 | `AppModule` | (các provide chung khác) |
 
@@ -239,18 +261,18 @@ Tất cả module ở `di/`, đều `@InstallIn(SingletonComponent::class)`:
 - ~~Package `org.com.hcmurs.*` sót từ project khác~~ (AppException, UserRole) → đã chuẩn hóa về `com.example.snapget.core.*`.
 
 **Bug/lỗi tiềm ẩn (còn lại):**
-1. `MainActivity.onNewIntent` — xử lý deep link `auth/success|failure` còn để **TODO** (login qua deep link chưa hoàn thiện).
-2. ~~`getAllMessagesOfUserAndFriends()`~~ — màn message ĐÃ migrate sang API (2026-07-12); các hàm message trong `MainViewModel`/`FirestoreRepository` giờ là code chết, dọn khi tách god-VM.
+1. ~~`MainActivity.onNewIntent` deep link `auth/success|failure` TODO~~ → **đã xóa** (2026-07-13 — nhánh chết, manifest không đăng ký host `auth`; quên mật khẩu đi qua email Firebase, UI đã đủ trong LoginScreen).
+2. ~~Code chết message/post trong god-VM~~ → **đã dọn** (2026-07-13 — MainViewModel/FirestoreRepository chỉ còn currentUser + settings).
 
 **Tính năng UI còn thiếu (cần bổ sung):**
 - ~~Đăng bài / upload ảnh~~ → ✅ đã nối `/upload` + `/moments` (2026-07-12).
-- ~~Màn `relationship`~~ → ✅ thay bằng sheet bạn bè + QR (2026-07-12). Màn `detail` vẫn là `PlaceholderScreen`.
-- Luồng quên mật khẩu (`PasswordResetSent`) chưa có UI.
+- ~~Màn `relationship`/`detail`~~ → ✅ đã xóa (sheet bạn bè + QR thay thế; `detail` legacy).
+- ~~Luồng quên mật khẩu~~ → ✅ đã có sẵn trong LoginScreen (Forgot Password? → gửi mail → snackbar).
 
 **File rác còn lại nên dọn:**
 - `package-lock.json` (root Snapget) — rỗng, không thuộc app Android → xóa.
 - `Sources/assets/messages_screen_old.png` — ảnh cũ `_old`.
-- README.md — cập nhật Appwrite → Firebase.
+- ~~README.md Appwrite~~ → ✅ đã viết lại (2026-07-13).
 
 > 📌 `package.json` KHÔNG cần cho app Android. Nó chỉ xuất hiện khi tạo `server/` (NestJS) và `admin/` (React).
 
