@@ -1,4 +1,6 @@
-//Trước khi mở app, gọi https://datn-8810.onrender.com/api/health để đánh thức server; hoặc
+# Đánh thức server (gói free ngủ sau 15 phút — luôn chạy trước khi demo)
+curl https://datn-8810.onrender.com/api/health
+
 
 
 # GUIDE.md — Bản đồ **Snapget Admin** (React web)
