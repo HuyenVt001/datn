@@ -66,6 +66,7 @@ import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.theme.BackgroundPreview
 import com.example.snapget.core.model.User
+import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.trimUsername
 import com.example.snapget.navigation.Screen
 
@@ -205,21 +206,7 @@ fun MainTopBar(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    if (friend.avatar.isNotEmpty()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(avatarWidth)
-                                                .clip(CircleShape)
-                                                .background(Color.LightGray),
-                                        ) {
-                                            AsyncImage(
-                                                model = friend.avatar,
-                                                contentDescription = "Friend Avatar",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.size(avatarWidth),
-                                            )
-                                        }
-                                    } else if (friend.id == "everyone") {
+                                    if (friend.id == "everyone") {
                                         Circle(
                                             outerSize = avatarWidth,
                                             gap = 10.dp,
@@ -231,52 +218,25 @@ fun MainTopBar(
                                                 contentDescription = "Everyone",
                                             ),
                                         )
-                                    } else if (friend.id == "you") {
-                                        // "You" item - show user avatar or fallback icon
-                                        if (user?.avatar?.isNotEmpty() == true) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(avatarWidth)
-                                                    .clip(CircleShape)
-                                                    .background(Color.LightGray),
-                                            ) {
-                                                AsyncImage(
-                                                    model = user.avatar,
-                                                    contentDescription = "Your Avatar",
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier.size(avatarWidth),
-                                                )
-                                            }
-                                        } else {
-                                            Button(
-                                                onClick = { },
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = Color(0xFF6AAF4B),
-                                                ),
-                                                modifier = Modifier.size(avatarWidth),
-                                                contentPadding = PaddingValues(0.dp),
-                                            ) {
-                                                Text(
-                                                    text = "You",
-                                                    color = Color.White,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                )
-                                            }
-                                        }
                                     } else {
-                                        // Fallback for friends with empty avatars
-                                        Button(
-                                            onClick = { },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = BackgroundPreview,
-                                            ),
-                                            modifier = Modifier.size(avatarWidth),
-                                            contentPadding = PaddingValues(0.dp),
+                                        // Avatar that; khong co -> initials theo TEN THAT
+                                        // (item "you" seed theo ten user de trung voi cac man khac)
+                                        val seedName = if (friend.id == "you") {
+                                            user?.username ?: "You"
+                                        } else {
+                                            friend.username
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(avatarWidth)
+                                                .clip(CircleShape)
+                                                .background(Color.LightGray),
                                         ) {
-                                            Text(
-                                                text = friend.username.take(1)?.uppercase() ?: "?",
-                                                color = Color.White,
-                                                style = MaterialTheme.typography.titleMedium,
+                                            AsyncImage(
+                                                model = avatarOrDefault(friend.avatar, seedName),
+                                                contentDescription = "Friend Avatar",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.size(avatarWidth),
                                             )
                                         }
                                     }

@@ -103,7 +103,7 @@ class MessageViewModel @Inject constructor(
                 }
                 _conversationsStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _conversationsStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc hoi thoai."))
+                _conversationsStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load conversations."))
             }
         }
     }
@@ -122,7 +122,7 @@ class MessageViewModel @Inject constructor(
                 markUnseenAsSeen(messages)
             } catch (e: Exception) {
                 if (showLoading) {
-                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc tin nhan."))
+                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load messages."))
                 }
                 // Polling loi (mat mang thoang qua) -> giu thread cu, khong bao
             }
@@ -156,7 +156,7 @@ class MessageViewModel @Inject constructor(
                 val sent = messageRepository.send(friendUid, trimmed, messageType)
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
-                _sendError.value = e.serverMessage("Gui tin that bai.")
+                _sendError.value = e.serverMessage("Failed to send message.")
             }
         }
     }
@@ -179,7 +179,7 @@ class MessageViewModel @Inject constructor(
                 messageRepository.createGroup(groupName, memberIds)
                 loadGroups()
             } catch (e: Exception) {
-                _sendError.value = e.serverMessage("Tao nhom that bai.")
+                _sendError.value = e.serverMessage("Failed to create group.")
             }
         }
     }
@@ -193,7 +193,7 @@ class MessageViewModel @Inject constructor(
                 if (showLoading) _threadStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
                 if (showLoading) {
-                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc tin nhan."))
+                    _threadStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load messages."))
                 }
             }
         }
@@ -208,7 +208,7 @@ class MessageViewModel @Inject constructor(
                 val sent = messageRepository.sendToGroup(groupId, trimmed, messageType)
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
-                _sendError.value = e.serverMessage("Gui tin that bai.")
+                _sendError.value = e.serverMessage("Failed to send message.")
             }
         }
     }
@@ -236,7 +236,7 @@ class MessageViewModel @Inject constructor(
                 }
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
-                _sendError.value = e.serverMessage("Gui tin that bai.")
+                _sendError.value = e.serverMessage("Failed to send message.")
             } finally {
                 _sendingMedia.value = false
             }
@@ -297,8 +297,8 @@ class MessageViewModel @Inject constructor(
 
     private fun previewOf(message: MessageDto): String = when (message.messageType) {
         "TEXT", "EMOJI" -> message.content
-        "PHOTO" -> "📷 Ảnh"
-        "VOICE" -> "🎤 Tin nhắn thoại"
+        "PHOTO" -> "📷 Photo"
+        "VOICE" -> "🎤 Voice message"
         "STICKER" -> "Sticker"
         else -> message.content
     }

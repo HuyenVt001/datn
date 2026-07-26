@@ -161,7 +161,7 @@ fun GroupChatScreen(
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            text = "Chua co tin nhan nao",
+                            text = "No messages yet",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -171,7 +171,7 @@ fun GroupChatScreen(
                             text = if (threadStatus is LoadStatus.Error) {
                                 (threadStatus as LoadStatus.Error).error
                             } else {
-                                "Gui tin nhan dau tien cho ca nhom nhe!"
+                                "Send the first message to the group!"
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -242,7 +242,7 @@ private fun GroupChatTopBar(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "Nhom chat",
+                    text = "Group chat",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )

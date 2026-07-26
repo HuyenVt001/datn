@@ -9,14 +9,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.component.grid.CameraButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.grid.PostGridItem
 import com.example.snapget.core.designsystem.theme.AppTheme
-import com.example.snapget.feature.camera.CameraScreen
-import com.example.snapget.feature.post.PostDetailScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(name = "Post Grid", showBackground = true)
@@ -60,29 +57,10 @@ fun CameraButtonPreview() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(name = "Post Detail Screen", showBackground = true)
-@Composable
-fun PostDetailScreenPreview() {
-    AppTheme {
-        PostDetailScreen(
-            post = SampleData.samplePosts.first { true },
-            onBack = {},
-            navController = rememberNavController(),
-        )
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(name = "Camera Screen", showBackground = true)
-@Composable
-fun CameraScreenPreview() {
-    AppTheme {
-        CameraScreen(
-            rememberNavController(),
-        )
-    }
-}
+// LUU Y: da bo PostDetailScreenPreview + CameraScreenPreview (2026-07-16) —
+// ca 2 screen deu tu tao hiltViewModel (PostDetailScreen) / can CameraX runtime
+// (CameraScreen) nen preview luon fail "Failed to instantiate a ViewModel".
+// Muon preview lai -> tach bien the Content stateless truoc (CLAUDE.md muc 8).
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(name = "Post Grid Without Camera", showBackground = true)

@@ -13,6 +13,8 @@ export interface User {
   lastStreakDate?: string;
   /** Ma moi ket ban (dung sinh invite link). */
   inviteCode?: string;
+  /** Han cua ma moi (ISO) — qua han thi ma vo hieu, lay link se tu sinh ma moi. */
+  inviteCodeExpiresAt?: string;
   unlockedFrames: string[]; // danh sach frameId (User_Frame)
   fcmTokens: string[];
 }

@@ -4,17 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -25,27 +36,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.list.ExternalAppComponent
 import com.example.snapget.core.designsystem.component.list.ShareYourLinkComponent
 import com.example.snapget.core.designsystem.component.list.TotalFriendComponent
 import com.example.snapget.core.designsystem.component.list.YourFriendAppComponent
 import com.example.snapget.core.designsystem.theme.GrayError
+import com.example.snapget.core.designsystem.theme.GrayOnSurfaceVariant
 import com.example.snapget.core.designsystem.theme.GraySurface
 import com.example.snapget.core.model.FriendUi
+import com.example.snapget.core.util.avatarOrDefault
 
 /**
- * Data + callback cua sheet ban be. inviteCode/inviteLink de sinh QR moi ket ban;
- * onScanQrClick mo man quet QR (navigation do man hinh cha quyet dinh).
+ * Data + callback cua sheet ban be. inviteCode/inviteLink de sinh QR moi ket ban
+ * (inviteExpiresAt = han 30 ngay cua link); requests = loi moi ket ban dang cho
+ * MINH (chu link) accept/decline; onScanQrClick mo man quet QR
+ * (navigation do man hinh cha quyet dinh).
  */
 data class UserDetailBottomSheetData(
     val friends: List<FriendUi> = emptyList(),
     val isLoading: Boolean = false,
     val inviteCode: String? = null,
     val inviteLink: String? = null,
+    val inviteExpiresAt: String? = null,
+    val requests: List<FriendUi> = emptyList(),
+    val onAcceptRequest: (FriendUi) -> Unit = {},
+    val onDeclineRequest: (FriendUi) -> Unit = {},
     val onScanQrClick: () -> Unit = {},
     val onRemoveFriend: (FriendUi) -> Unit = {},
 )
@@ -98,6 +122,15 @@ fun UserDetailBottomSheet(
                 modifier = Modifier.padding(top = 0.dp),
             )
 
+            // Loi moi ket ban dang cho MINH xac nhan (thiet ke 2 buoc — chu link accept/decline)
+            if (sheetData.requests.isNotEmpty()) {
+                FriendRequestsSection(
+                    requests = sheetData.requests,
+                    onAccept = sheetData.onAcceptRequest,
+                    onDecline = sheetData.onDeclineRequest,
+                )
+            }
+
             ExternalAppComponent()
 
             YourFriendAppComponent(
@@ -113,6 +146,7 @@ fun UserDetailBottomSheet(
             AddFriendQrDialog(
                 inviteCode = sheetData.inviteCode,
                 inviteLink = sheetData.inviteLink,
+                expiresAt = sheetData.inviteExpiresAt,
                 onScanClick = {
                     showQrDialog = false
                     sheetData.onScanQrClick()
@@ -128,15 +162,15 @@ fun UserDetailBottomSheet(
                 containerColor = GraySurface,
                 title = {
                     Text(
-                        text = "Xóa bạn bè?",
+                        text = "Remove friend?",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                     )
                 },
                 text = {
                     Text(
-                        text = "Xóa ${friend.name} khỏi danh sách bạn bè? " +
-                            "Streak chung sẽ mất và phải quét QR để kết bạn lại.",
+                        text = "Remove ${friend.name} from your friends? " +
+                            "Your shared streak will be lost and you'll need to scan QR to reconnect.",
                         color = Color.White.copy(alpha = 0.8f),
                     )
                 },
@@ -147,15 +181,105 @@ fun UserDetailBottomSheet(
                             friendPendingRemove = null
                         },
                     ) {
-                        Text(text = "Xóa", color = GrayError, fontWeight = FontWeight.Bold)
+                        Text(text = "Remove", color = GrayError, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { friendPendingRemove = null }) {
-                        Text(text = "Hủy", color = Color.White)
+                        Text(text = "Cancel", color = Color.White)
                     }
                 },
             )
+        }
+    }
+}
+
+/**
+ * Section "Lời mời kết bạn": moi loi moi 1 hang avatar + ten + nut ✓ chap nhan
+ * (trang) / ✕ tu choi (do GrayError). Chi hien khi co loi moi dang cho.
+ */
+@Composable
+private fun FriendRequestsSection(
+    requests: List<FriendUi>,
+    onAccept: (FriendUi) -> Unit,
+    onDecline: (FriendUi) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = "💌 Friend requests",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = GraySurface,
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                requests.forEach { request ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AsyncImage(
+                            model = avatarOrDefault(request.avatar, request.name),
+                            contentDescription = "Avatar ${request.name}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = request.name,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "wants to be your friend",
+                                color = GrayOnSurfaceVariant,
+                                fontSize = 12.sp,
+                            )
+                        }
+                        // ✓ chap nhan — nut tron trang (hanh dong chinh)
+                        Surface(shape = CircleShape, color = Color.White) {
+                            IconButton(
+                                onClick = { onAccept(request) },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Accept ${request.name}",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // ✕ tu choi — vien do, xoa im lang
+                        IconButton(
+                            onClick = { onDecline(request) },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Decline ${request.name}",
+                                tint = GrayError,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -175,7 +299,8 @@ private fun DemoScreen() {
                 ),
                 isLoading = false,
                 inviteCode = "ABC123",
-                inviteLink = "https://snapget.app/invite/ABC123",
+                inviteLink = "https://snapget-d8693.web.app/invite/ABC123",
+                inviteExpiresAt = "2026-08-18T00:00:00.000Z",
             )
         }) {
             Text("Show User Detail Bottom Sheet")

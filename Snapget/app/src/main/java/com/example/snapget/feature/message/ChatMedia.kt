@@ -178,12 +178,12 @@ fun VoiceBubble(
     ) {
         Icon(
             imageVector = if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-            contentDescription = if (playing) "Dung" else "Phat",
+            contentDescription = if (playing) "Stop" else "Play",
             tint = textColor,
             modifier = Modifier.size(24.dp),
         )
         Text(
-            text = if (playing) "Dang phat..." else "Tin nhan thoai",
+            text = if (playing) "Playing..." else "Voice message",
             color = textColor,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(start = 6.dp),

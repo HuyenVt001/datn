@@ -59,12 +59,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
-import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDto
+import com.example.snapget.core.util.avatarOrDefault
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -193,7 +193,7 @@ fun MessageScreen(
                     if (groups.isNotEmpty()) {
                         item {
                             Text(
-                                text = "Nhom chat",
+                                text = "Group chats",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp),
@@ -212,7 +212,7 @@ fun MessageScreen(
                         }
                         item {
                             Text(
-                                text = "Tin nhan",
+                                text = "Messages",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp),
@@ -261,7 +261,7 @@ private fun GroupItem(
         ) {
             Icon(
                 imageVector = Icons.Default.Groups,
-                contentDescription = "Nhom",
+                contentDescription = "Group",
                 tint = Color.Yellow,
                 modifier = Modifier.size(28.dp),
             )
@@ -279,7 +279,7 @@ private fun GroupItem(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "${group.memberIds.size} thanh vien",
+                text = "${group.memberIds.size} members",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -287,7 +287,7 @@ private fun GroupItem(
 
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-            contentDescription = "Mo nhom",
+            contentDescription = "Open group",
             tint = MaterialTheme.colorScheme.onBackground,
         )
     }
@@ -310,26 +310,26 @@ private fun CreateGroupDialog(
         onDismissRequest = onDismiss,
         containerColor = Color(0xFF2C2C2C),
         title = {
-            Text(text = "Tao nhom chat", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Create group chat", color = Color.White, fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
                 OutlinedTextField(
                     value = groupName,
                     onValueChange = { groupName = it.take(100) },
-                    label = { Text("Ten nhom") },
+                    label = { Text("Group name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Chon thanh vien (${selected.size})",
+                    text = "Pick members (${selected.size})",
                     color = Color(0xFFB0B0B0),
                     style = MaterialTheme.typography.labelMedium,
                 )
                 if (friends.isEmpty()) {
                     Text(
-                        text = "Chua co ban be — ket ban truoc da!",
+                        text = "No friends yet — add a friend first!",
                         color = Color(0xFFB0B0B0),
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
@@ -371,12 +371,12 @@ private fun CreateGroupDialog(
                 onClick = { onCreate(groupName.trim(), selected.toList()) },
                 enabled = groupName.isNotBlank() && selected.isNotEmpty(),
             ) {
-                Text(text = "Tao nhom", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                Text(text = "Create", color = Color.Yellow, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Huy", color = Color.White)
+                Text(text = "Cancel", color = Color.White)
             }
         },
     )
@@ -405,7 +405,7 @@ fun ConversationItem(
             // Avatar — vien VANG khi co tin chua doc (DESIGN 7.8)
             Circle(
                 imageSetting = ImageSetting(
-                    imageUrl = conversation.avatar.ifEmpty { SampleData.IMAGE_NOT_AVAILABLE },
+                    imageUrl = avatarOrDefault(conversation.avatar, conversation.name),
                     contentDescription = "Profile picture",
                 ),
                 gap = if (conversation.unread) 3.dp else 0.dp,

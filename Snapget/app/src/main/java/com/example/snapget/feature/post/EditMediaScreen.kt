@@ -230,7 +230,7 @@ fun EditMediaScreen(
                         frameParam,
                 )
             } catch (e: Exception) {
-                Toast.makeText(context, "Xu ly anh that bai: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Failed to process image: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
                 isBaking = false
             }
@@ -266,7 +266,7 @@ fun EditMediaScreen(
                 when {
                     bitmap != null -> Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Anh vua chup",
+                        contentDescription = "Captured photo",
                         contentScale = ContentScale.Crop,
                         colorFilter = selectedFilter.matrix?.let { ColorFilter.colorMatrix(it) },
                         modifier = Modifier.fillMaxSize(),
@@ -402,7 +402,7 @@ fun EditMediaScreen(
                         IconButton(onClick = { doodleMode = !doodleMode }) {
                             Icon(
                                 imageVector = Icons.Filled.Edit,
-                                contentDescription = "Ve tay",
+                                contentDescription = "Draw",
                                 tint = if (doodleMode) SnapYellow else Color.White,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -461,7 +461,7 @@ fun EditMediaScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Undo,
-                                contentDescription = "Hoan tac net ve",
+                                contentDescription = "Undo stroke",
                                 tint = if (strokes.isNotEmpty()) Color.White else Color.Gray,
                             )
                         }
@@ -471,7 +471,7 @@ fun EditMediaScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Delete,
-                                contentDescription = "Xoa het net ve",
+                                contentDescription = "Clear drawing",
                                 tint = if (strokes.isNotEmpty()) Color.White else Color.Gray,
                             )
                         }
@@ -566,7 +566,7 @@ fun EditMediaScreen(
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Huy",
+                        contentDescription = "Cancel",
                         tint = Color.White,
                         modifier = Modifier.size(32.dp),
                     )
@@ -582,7 +582,7 @@ fun EditMediaScreen(
                     IconButton(onClick = { goNext() }, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Tiep",
+                            contentDescription = "Next",
                             tint = Color.Black,
                             modifier = Modifier.size(36.dp),
                         )

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.data.FirestoreRepository
 import com.example.snapget.core.model.Setting
 import com.example.snapget.core.model.auth.AuthUser
+import com.example.snapget.core.network.api.UserApi
+import com.example.snapget.core.network.unwrap
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,9 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: FirestoreRepository,
+    // Ho so that (fullName/avatar) nam o server — Firebase Auth photoUrl thuong
+    // RONG voi tai khoan email/password nen khong dung lam nguon avatar duoc
+    private val userApi: UserApi,
 ) : ViewModel() {
 
     private val _settings = MutableStateFlow<List<Setting>>(emptyList())
@@ -36,6 +41,19 @@ class MainViewModel @Inject constructor(
             try {
                 val user = repository.getCurrentUser()
                 _currentUser.value = user
+                // Overlay ten + avatar tu GET /users/me (nguon chuan sau khi
+                // sua ho so) — API loi thi giu ban Firebase, khong chan UI
+                if (user != null) {
+                    try {
+                        val profile = userApi.getMe().unwrap()
+                        _currentUser.value = user.copy(
+                            name = profile.fullName?.takeIf { it.isNotBlank() } ?: user.name,
+                            avatar = profile.avatar?.takeIf { it.isNotBlank() } ?: user.avatar,
+                        )
+                    } catch (e: Exception) {
+                        AndroidLog.d("MainViewModel", "Profile overlay failed: ${e.message}")
+                    }
+                }
             } catch (e: Exception) {
                 AndroidLog.d("MainViewModel", "Error fetching user: ${e.message}")
             }

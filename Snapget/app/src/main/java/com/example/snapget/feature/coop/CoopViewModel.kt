@@ -52,7 +52,7 @@ class CoopViewModel @Inject constructor(
                 repository.sendInvite(friendUid, mediaUrl)
                 _sendStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _sendStatus.value = LoadStatus.Error(e.serverMessage("Gui loi moi that bai."))
+                _sendStatus.value = LoadStatus.Error(e.serverMessage("Failed to send invite."))
             }
         }
     }
@@ -68,7 +68,7 @@ class CoopViewModel @Inject constructor(
                 _acceptStatus.value = LoadStatus.Success()
                 loadPending()
             } catch (e: Exception) {
-                _acceptStatus.value = LoadStatus.Error(e.serverMessage("Ghep anh that bai."))
+                _acceptStatus.value = LoadStatus.Error(e.serverMessage("Failed to merge photos."))
             }
         }
     }

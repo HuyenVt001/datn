@@ -44,6 +44,7 @@ import com.example.snapget.core.util.generateQrBitmap
 fun AddFriendQrDialog(
     inviteCode: String?,
     inviteLink: String?,
+    expiresAt: String? = null,
     onScanClick: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -68,7 +69,7 @@ fun AddFriendQrDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "Đưa mã này cho bạn bè quét để kết bạn",
+                    text = "Let your friend scan this code to connect",
                     color = GrayOnSurfaceVariant,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
@@ -86,7 +87,7 @@ fun AddFriendQrDialog(
                         ) {
                             Image(
                                 bitmap = qrBitmap.asImageBitmap(),
-                                contentDescription = "Mã QR mời kết bạn",
+                                contentDescription = "Friend invite QR code",
                                 modifier = Modifier
                                     .padding(12.dp)
                                     .size(200.dp),
@@ -94,7 +95,7 @@ fun AddFriendQrDialog(
                         }
                     } else {
                         Text(
-                            text = "Không tạo được mã QR",
+                            text = "Couldn't generate QR code",
                             color = GrayOnSurfaceVariant,
                             fontSize = 14.sp,
                         )
@@ -109,11 +110,21 @@ fun AddFriendQrDialog(
                             letterSpacing = 2.sp,
                         )
                     }
+
+                    // Link/ma co han 30 ngay — het han server tu sinh ma moi
+                    formatInviteExpiry(expiresAt)?.let { expiry ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Valid until $expiry",
+                            color = GrayOnSurfaceVariant,
+                            fontSize = 12.sp,
+                        )
+                    }
                 } else {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Đang tải mã mời...",
+                        text = "Loading invite code...",
                         color = GrayOnSurfaceVariant,
                         fontSize = 14.sp,
                     )
@@ -128,7 +139,7 @@ fun AddFriendQrDialog(
                         color = Color.White.copy(alpha = 0.2f),
                     )
                     Text(
-                        text = "hoặc",
+                        text = "or",
                         color = GrayOnSurfaceVariant,
                         fontSize = 13.sp,
                         modifier = Modifier.padding(horizontal = 12.dp),
@@ -159,7 +170,7 @@ fun AddFriendQrDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Quét QR của bạn bè",
+                        text = "Scan a friend's QR",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyLarge,
                     )

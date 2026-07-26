@@ -42,12 +42,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link moi ket ban: https://snapget.app/invite/<code> (xu ly o MainActivity.onNewIntent) -->
+            <!-- App Links moi ket ban: https://snapget-d8693.web.app/invite/<code>
+                 (Firebase Hosting cua project — assetlinks.json trong hosting/ o root repo;
+                 xu ly o MainActivity onCreate + onNewIntent) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="snapget-d8693.web.app" android:pathPrefix="/invite/" />
+            </intent-filter>
+
+            <!-- Scheme du phong: snapget://invite/<code> — nut "Mo app Snapget" tren landing page
+                 dung khi App Links chua verify (vd APK ky bang keystore khac) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="snapget.app" android:pathPrefix="/invite/" />
+                <data android:scheme="snapget" android:host="invite" />
             </intent-filter>
         </activity>
 

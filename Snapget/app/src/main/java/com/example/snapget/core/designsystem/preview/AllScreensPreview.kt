@@ -4,11 +4,13 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,15 +21,20 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.data.SampleData
+import com.example.snapget.core.designsystem.component.grid.PostGrid
+import com.example.snapget.core.designsystem.component.pill.MessageInputPill
+import com.example.snapget.core.designsystem.component.pill.UserListWithArrows
 import com.example.snapget.core.designsystem.theme.AppTheme
-import com.example.snapget.feature.message.MessageScreen
-import com.example.snapget.feature.post.PostScreen
+import com.example.snapget.feature.message.ConversationItem
 import com.example.snapget.feature.settings.SettingScreenContent
 
 class ScreenTypeProvider : PreviewParameterProvider<String> {
     override val values = sequenceOf("Home", "Messages", "Posts", "Settings")
 }
 
+// Preview tong hop cac man hinh. LUU Y: khong goi truc tiep PostScreen/MessageScreen
+// (cac screen do tu tao hiltViewModel -> preview "Failed to instantiate a ViewModel").
+// Thay bang mock stateless dung SampleData, dung chuan CLAUDE.md muc 8.
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(
     name = "All Screens",
@@ -40,13 +47,45 @@ fun AllScreensPreview(
     @PreviewParameter(ScreenTypeProvider::class) screenType: String = "Home",
 ) {
     AppTheme {
-        val navController = rememberNavController()
-
         when (screenType) {
-            "Home" -> PostScreen(navController)
-            "Messages" -> MessageScreen(navController)
-            "Posts" -> PostScreen(navController)
-            "Settings" -> SettingScreenContent(settings = SampleData.settingList, navController = navController)
+            "Home", "Posts" -> HomeFeedMock()
+            "Messages" -> MessageListMock()
+            "Settings" -> SettingScreenContent(
+                settings = SampleData.settingList,
+                navController = rememberNavController(),
+            )
+        }
+    }
+}
+
+/** Mock UI feed (PostScreen) — chi ghep component stateless + SampleData. */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun HomeFeedMock() {
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            UserListWithArrows(users = SampleData.users.take(3), showEveryone = true)
+            PostGrid(
+                posts = SampleData.samplePosts,
+                onPostClick = {},
+                modifier = Modifier.weight(1f),
+            )
+            MessageInputPill()
+        }
+    }
+}
+
+/** Mock UI danh sach hoi thoai (MessageScreen) — dung sampleConversations cung package. */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun MessageListMock() {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        sampleConversations.forEach { conversation ->
+            ConversationItem(conversation = conversation)
         }
     }
 }

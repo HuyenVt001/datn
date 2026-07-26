@@ -73,8 +73,12 @@ import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomShe
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.UserProfileTopBar
 import com.example.snapget.core.designsystem.theme.GraySurface
+import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
+import com.example.snapget.core.network.dto.InviteLinkDto
+import com.example.snapget.core.network.dto.MomentDto
+import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.calculateDaysOfMonthInYear
 import com.example.snapget.core.util.copyUriToCacheFile
 import com.example.snapget.core.util.groupPostsByDay
@@ -115,25 +119,75 @@ fun UserProfile(
     val moments by profileViewModel.moments.collectAsState()
     val profileStatus by profileViewModel.status.collectAsState()
     val updateStatus by profileViewModel.updateStatus.collectAsState()
-    val context = LocalContext.current
 
     LaunchedEffect(userId) {
         profileViewModel.load(userId)
     }
 
-    // Dialog sua ho so (chi profile cua minh)
+    val apiFriends by friendsViewModel.friends.collectAsState()
+    val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
+    val inviteLink by friendsViewModel.inviteLink.collectAsState()
+    val friendRequests by friendsViewModel.requests.collectAsState()
+
+    UserProfileContent(
+        profile = profile,
+        moments = moments,
+        profileStatus = profileStatus,
+        updateStatus = updateStatus,
+        apiFriends = apiFriends,
+        apiFriendsStatus = apiFriendsStatus,
+        inviteLink = inviteLink,
+        friendRequests = friendRequests,
+        navController = navController,
+        onLoadFriends = {
+            friendsViewModel.loadFriends()
+            friendsViewModel.loadInviteLink()
+            friendsViewModel.loadRequests() // loi moi dang cho minh xac nhan
+        },
+        onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
+        onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
+        onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
+        onUpdateProfile = { newName, avatarFile ->
+            profileViewModel.updateProfile(newName, avatarFile)
+        },
+        onResetUpdateStatus = { profileViewModel.resetUpdateStatus() },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun UserProfileContent(
+    profile: ProfileUi?,
+    moments: List<MomentDto>,
+    profileStatus: LoadStatus,
+    updateStatus: LoadStatus,
+    apiFriends: List<FriendUi>,
+    apiFriendsStatus: LoadStatus,
+    inviteLink: InviteLinkDto?,
+    navController: NavController,
+    onLoadFriends: () -> Unit,
+    onRemoveFriend: (FriendUi) -> Unit,
+    // Loi moi ket ban dang cho minh xac nhan (default rong de preview khong can truyen)
+    friendRequests: List<FriendUi> = emptyList(),
+    onAcceptRequest: (FriendUi) -> Unit = {},
+    onDeclineRequest: (FriendUi) -> Unit = {},
+    onUpdateProfile: (String, File?) -> Unit,
+    onResetUpdateStatus: () -> Unit,
+) {
+    val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(updateStatus) {
         when (val status = updateStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Da cap nhat ho so!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Profile updated!", Toast.LENGTH_SHORT).show()
                 showEditDialog = false
-                profileViewModel.resetUpdateStatus()
+                onResetUpdateStatus()
             }
             is LoadStatus.Error -> {
                 Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
-                profileViewModel.resetUpdateStatus()
+                onResetUpdateStatus()
             }
             else -> Unit
         }
@@ -151,9 +205,6 @@ fun UserProfile(
 
     // Sheet ban be — data that tu API /friendships (FriendsViewModel)
     var showFriendSheet by remember { mutableStateOf(false) }
-    val apiFriends by friendsViewModel.friends.collectAsState()
-    val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
-    val inviteLink by friendsViewModel.inviteLink.collectAsState()
 
     // Sheet quan ly ban be: dem ban, QR ket ban, xoa ban (xac nhan trong sheet)
     UserDetailBottomSheet(
@@ -163,11 +214,15 @@ fun UserProfile(
                 isLoading = apiFriendsStatus is LoadStatus.Loading,
                 inviteCode = inviteLink?.inviteCode,
                 inviteLink = inviteLink?.link,
+                inviteExpiresAt = inviteLink?.expiresAt,
+                requests = friendRequests,
+                onAcceptRequest = onAcceptRequest,
+                onDeclineRequest = onDeclineRequest,
                 onScanQrClick = {
                     showFriendSheet = false
                     navController.navigate(Screen.QrScan.route)
                 },
-                onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
+                onRemoveFriend = onRemoveFriend,
             )
         } else {
             null
@@ -212,8 +267,7 @@ fun UserProfile(
                     UserProfileTopBar(
                         navController = navController,
                         onFriendsClick = {
-                            friendsViewModel.loadFriends()
-                            friendsViewModel.loadInviteLink()
+                            onLoadFriends()
                             showFriendSheet = true
                         },
                     )
@@ -318,9 +372,7 @@ fun UserProfile(
                     currentName = profileData.name,
                     currentAvatar = profileData.avatar,
                     isSaving = updateStatus is LoadStatus.Loading,
-                    onSave = { newName, avatarFile ->
-                        profileViewModel.updateProfile(newName, avatarFile)
-                    },
+                    onSave = onUpdateProfile,
                     onDismiss = { showEditDialog = false },
                 )
             }
@@ -358,7 +410,7 @@ private fun ProfileHeader(
                     IconButton(onClick = onEditClick) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Sua ho so",
+                            contentDescription = "Edit profile",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
                         )
@@ -395,7 +447,7 @@ private fun ProfileHeader(
             borderColor = Color(0xFFFFD700),
             onClick = { onEditClick?.invoke() },
             imageSetting = ImageSetting(
-                imageUrl = avatar,
+                imageUrl = avatarOrDefault(avatar, name),
                 contentDescription = "Profile picture",
             ),
         )
@@ -428,7 +480,7 @@ private fun EditProfileDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         containerColor = GraySurface,
         title = {
-            Text(text = "Sua ho so", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Edit profile", color = Color.White, fontWeight = FontWeight.Bold)
         },
         text = {
             Column(
@@ -456,20 +508,20 @@ private fun EditProfileDialog(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Chon avatar",
+                            contentDescription = "Pick avatar",
                             tint = Color.White,
                         )
                     }
                 }
                 Text(
-                    text = "Cham anh de doi avatar",
+                    text = "Tap the photo to change your avatar",
                     color = Color(0xFFB0B0B0),
                     style = MaterialTheme.typography.labelSmall,
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(30) },
-                    label = { Text("Ten hien thi") },
+                    label = { Text("Display name") },
                     singleLine = true,
                     enabled = !isSaving,
                     modifier = Modifier.fillMaxWidth(),
@@ -488,13 +540,13 @@ private fun EditProfileDialog(
                         color = Color.Yellow,
                     )
                 } else {
-                    Text(text = "Luu", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = Color.Yellow, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text(text = "Huy", color = Color.White)
+                Text(text = "Cancel", color = Color.White)
             }
         },
     )

@@ -119,7 +119,7 @@ fun PostGridItem(
         if (frameUrl != null) {
             AsyncImage(
                 model = frameUrl,
-                contentDescription = "Khung anh",
+                contentDescription = "Photo frame",
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()

@@ -80,10 +80,11 @@ fun CoopSendScreen(
     LaunchedEffect(sendStatus) {
         when (val status = sendStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Da gui loi moi chup chung!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Co-op invite sent!", Toast.LENGTH_SHORT).show()
                 coopViewModel.resetSendStatus()
+                // Don man coop khoi stack, giu Camera lam man goc (camera-first)
                 navController.navigate(Screen.Post.route) {
-                    popUpTo(Screen.Post.route) { inclusive = true }
+                    popUpTo(Screen.Camera.route)
                 }
             }
             is LoadStatus.Error -> {
@@ -115,7 +116,7 @@ fun CoopSendScreen(
                 Row(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp))) {
                     AsyncImage(
                         model = File(photoPath),
-                        contentDescription = "Nua anh cua ban",
+                        contentDescription = "Your half of the photo",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .weight(1f)
@@ -157,7 +158,7 @@ fun CoopSendScreen(
 
             if (friends.isEmpty()) {
                 Text(
-                    text = "Chua co ban be — hay ket ban truoc da!",
+                    text = "No friends yet — add a friend first!",
                     color = Color(0xFFB0B0B0),
                     modifier = Modifier.padding(vertical = 12.dp),
                 )
@@ -245,7 +246,7 @@ fun CoopSendScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Gui loi moi",
+                            contentDescription = "Send invite",
                             tint = if (selectedFriend != null) Color.Black else Color.Gray,
                             modifier = Modifier.size(32.dp),
                         )

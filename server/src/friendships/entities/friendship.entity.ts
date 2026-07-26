@@ -12,7 +12,17 @@ export interface Friendship {
   friendStreak: number;
   lastInteractionAt?: string; // ISO — phuc vu reset streak khi >24h
   status: FriendshipStatus;
+  /** Nguoi GUI loi moi (bam link cua nguoi kia). Chu link accept/decline. */
+  requesterUid?: string;
   createdAt: string;
+}
+
+/** 1 loi moi ket ban dang cho minh (chu link) xac nhan. */
+export interface FriendRequestSummary {
+  uid: string; // uid nguoi gui loi moi
+  fullName: string;
+  avatar?: string;
+  requestedAt: string; // ISO
 }
 
 /** Ban be kem thong tin hien thi (tra ve cho danh sach). */

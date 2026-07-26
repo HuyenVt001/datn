@@ -52,6 +52,7 @@ import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.container.BlurredContainer
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.User
+import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.trimUsername
 
 // Generic interface for list items
@@ -89,19 +90,18 @@ fun <T> GenericCircleList(
     val finalItems = remember(items, currentUser, addEveryoneOption, addCurrentUserOption) {
         val result = mutableListOf<T?>()
 
-        // Add "Everyone" option if requested
-        if (addEveryoneOption) {
-            // Create a dummy item for "Everyone"
-            @Suppress("UNCHECKED_CAST")
-            result.add(createEveryoneItem<T>() as T?)
-        }
-
-        // Add main items
+        // Ban be truoc
         result.addAll(items)
 
         // Add current user option if requested
         if (addCurrentUserOption && currentUser != null) {
             result.add(currentUser)
+        }
+
+        // "Everyone" nam CUOI danh sach (yeu cau UX 2026-07-19)
+        if (addEveryoneOption) {
+            @Suppress("UNCHECKED_CAST")
+            result.add(createEveryoneItem<T>() as T?)
         }
 
         result.filterNotNull()
@@ -190,9 +190,7 @@ fun FriendItem(
         onClick = onClick,
         innerContent = {
             AsyncImage(
-                model = user.avatar.ifEmpty {
-                    "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}"
-                },
+                model = avatarOrDefault(user.avatar, user.username),
                 contentDescription = "Avatar",
                 contentScale = ContentScale.Crop,
             )
@@ -506,9 +504,9 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
         val link = inviteLink ?: return
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, "Ket ban voi minh tren Snapget nhe! $link")
+            putExtra(Intent.EXTRA_TEXT, "Add me on Snapget! $link")
         }
-        context.startActivity(Intent.createChooser(sendIntent, "Chia se link moi"))
+        context.startActivity(Intent.createChooser(sendIntent, "Share invite link"))
     }
 
     Column(

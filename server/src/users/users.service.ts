@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { dateKey } from '../common/constants';
+import { dateKey, INVITE_LINK_TTL_DAYS } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PublicUser, User } from './entities/user.entity';
@@ -50,7 +50,12 @@ export class UsersService {
 
   /** Cap nhat ho so (ten hien thi / avatar). */
   async updateProfile(uid: string, dto: UpdateUserDto): Promise<User> {
-    await this.usersRepo.update(uid, dto);
+    // Firestore KHONG nhan class instance (ValidationPipe transform tao ra
+    // UpdateUserDto co prototype) -> chuyen ve plain object, bo field undefined
+    const patch: Partial<User> = {};
+    if (dto.fullName !== undefined) patch.fullName = dto.fullName;
+    if (dto.avatar !== undefined) patch.avatar = dto.avatar;
+    await this.usersRepo.update(uid, patch);
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
       throw new NotFoundException('Khong tim thay nguoi dung.');
@@ -66,18 +71,29 @@ export class UsersService {
     await this.usersRepo.removeFcmToken(uid, token);
   }
 
-  /** Lay (hoac sinh moi) ma ket ban cua user. */
-  async getOrCreateInviteCode(uid: string): Promise<string> {
+  /**
+   * Lay (hoac sinh moi) ma ket ban cua user — moi user 1 ma, hieu luc co dinh
+   * INVITE_LINK_TTL_DAYS ngay (trong han ai co link deu ket ban duoc, khong gioi han luot).
+   * Chua co ma hoac ma da het han -> sinh ma moi + han moi, ma cu vo hieu.
+   */
+  async getOrCreateInviteCode(uid: string): Promise<{ inviteCode: string; expiresAt: string }> {
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
       throw new NotFoundException('Khong tim thay nguoi dung.');
     }
-    if (user.inviteCode) {
-      return user.inviteCode;
+    if (
+      user.inviteCode &&
+      user.inviteCodeExpiresAt &&
+      new Date(user.inviteCodeExpiresAt).getTime() > Date.now()
+    ) {
+      return { inviteCode: user.inviteCode, expiresAt: user.inviteCodeExpiresAt };
     }
     const inviteCode = randomBytes(6).toString('hex');
-    await this.usersRepo.update(uid, { inviteCode });
-    return inviteCode;
+    const expiresAt = new Date(
+      Date.now() + INVITE_LINK_TTL_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    await this.usersRepo.update(uid, { inviteCode, inviteCodeExpiresAt: expiresAt });
+    return { inviteCode, expiresAt };
   }
 
   async findByInviteCode(inviteCode: string): Promise<User | null> {

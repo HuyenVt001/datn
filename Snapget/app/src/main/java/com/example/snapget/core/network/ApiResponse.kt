@@ -26,11 +26,11 @@ data class PaginatedData<T>(
  * AppException voi message tieng Viet tu server de UI hien thi truc tiep.
  */
 fun <T> ApiResponse<T>.unwrap(): T {
-    if (!success) throw AppException.UnexpectedException(message ?: "Da co loi xay ra.")
-    return data ?: throw AppException.UnexpectedException(message ?: "Server khong tra du lieu.")
+    if (!success) throw AppException.UnexpectedException(message ?: "Something went wrong.")
+    return data ?: throw AppException.UnexpectedException(message ?: "Server returned no data.")
 }
 
 /** Nhu [unwrap] nhung cho phep data null (endpoint kieu xac nhan, khong can body). */
 fun <T> ApiResponse<T>.ensureSuccess() {
-    if (!success) throw AppException.UnexpectedException(message ?: "Da co loi xay ra.")
+    if (!success) throw AppException.UnexpectedException(message ?: "Something went wrong.")
 }

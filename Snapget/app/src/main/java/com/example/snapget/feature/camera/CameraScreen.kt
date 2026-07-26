@@ -5,6 +5,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,14 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.takePhotoBar
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
@@ -43,6 +44,9 @@ import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.navigation.Screen
+
+// Vuot len qua nguong nay (tinh tu man camera) thi mo feed
+private val SWIPE_UP_TO_FEED_THRESHOLD = 120.dp
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -71,6 +75,10 @@ fun CameraScreen(
     // Che do CHUP CHUNG (co-op): chup nua anh -> chon ban gui loi moi (thay vi dang solo)
     var coopMode by remember { mutableStateOf(false) }
 
+    // Moi lan bam nut center bottom bar -> tang 1 -> CameraPreviewWithZoom chup 1 tam
+    // (truoc day nut nay navigate submit_photo KHONG co anh -> "No image selected")
+    var captureRequestId by remember { mutableIntStateOf(0) }
+
     Scaffold(
         topBar = {
             MainTopBar(
@@ -93,7 +101,22 @@ fun CameraScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                // BeReal-style: vuot LEN tu man camera -> mo feed xem bai cua ban be
+                .pointerInput(Unit) {
+                    var dragTotal = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { dragTotal = 0f },
+                        onVerticalDrag = { _, dragAmount -> dragTotal += dragAmount },
+                        onDragEnd = {
+                            if (dragTotal < -SWIPE_UP_TO_FEED_THRESHOLD.toPx()) {
+                                navController.navigate(Screen.Post.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
+                    )
+                },
         ) {
             // Show camera view or post image based on the localCameraMode state
 
@@ -126,7 +149,7 @@ fun CameraScreen(
                             // Server chi ghep ANH — video khong dung cho chup chung
                             Toast.makeText(
                                 context,
-                                "Chup chung chi ho tro anh — cham de chup nhe!",
+                                "Co-op only supports photos — tap to take one!",
                                 Toast.LENGTH_SHORT,
                             ).show()
                         } else {
@@ -136,6 +159,7 @@ fun CameraScreen(
                         }
                     },
                     showControls = true,
+                    captureRequestId = captureRequestId,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(50.dp)),
@@ -149,7 +173,7 @@ fun CameraScreen(
                 modifier = Modifier.clickable { coopMode = !coopMode },
             ) {
                 Text(
-                    text = if (coopMode) "👥 Chup chung: BAT" else "👥 Chup chung",
+                    text = if (coopMode) "👥 Co-op: ON" else "👥 Co-op",
                     color = if (coopMode) Color.Black else Color.White,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
@@ -157,20 +181,21 @@ fun CameraScreen(
                 )
             }
 
+            // Nut center "Take a picture" -> chup that (khong navigate submit_photo rong)
             MainBottomBar(
                 navController,
-                items = takePhotoBar,
+                items = takePhotoBar.map { item ->
+                    if (item.isCenter) {
+                        item.copy(onClick = { captureRequestId++ })
+                    } else {
+                        item
+                    }
+                },
             )
             // (Hang "History" + nut mui ten cu da XOA 2026-07-13 — UI chet, bam khong lam gi)
         }
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(showBackground = false, backgroundColor = 0xFF000000)
-@Composable
-fun CameraScreenPreview() {
-    CameraScreen(
-        navController = rememberNavController(),
-    )
-}
+// LUU Y: da bo CameraScreenPreview (2026-07-16) — CameraScreen tu tao hiltViewModel
+// va can CameraX runtime nen preview luon fail "Failed to instantiate a ViewModel".

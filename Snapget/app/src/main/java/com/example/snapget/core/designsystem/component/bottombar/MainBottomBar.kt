@@ -124,7 +124,15 @@ fun MainBottomBar(
                         },
                         borderWidth = 3.dp,
                         onClick = {
-                            if (centerIconNavigation.isNotEmpty()) {
+                            // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
+                            // onItemClick -> nut Send tren SubmitPhotoScreen chet)
+                            onItemClick(item)
+                            // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
+                            // roi moi fallback navigate theo route
+                            val customClick = centerItem.onClick
+                            if (customClick != null) {
+                                customClick()
+                            } else if (centerIconNavigation.isNotEmpty()) {
                                 navController.navigate(centerIconNavigation)
                             }
                         },
@@ -161,7 +169,15 @@ fun MainBottomBar(
                         modifier = Modifier.rotate(-45F),
                         borderWidth = 3.dp,
                         onClick = {
-                            if (centerIconNavigation.isNotEmpty()) {
+                            // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
+                            // onItemClick -> nut Send tren SubmitPhotoScreen chet)
+                            onItemClick(item)
+                            // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
+                            // roi moi fallback navigate theo route
+                            val customClick = centerItem.onClick
+                            if (customClick != null) {
+                                customClick()
+                            } else if (centerIconNavigation.isNotEmpty()) {
                                 navController.navigate(centerIconNavigation)
                             }
                         },
@@ -311,7 +327,9 @@ val takePhotoBar = listOf(
         title = "Take a picture",
         selectedIcon = null,
         unselectedIcon = null,
-        route = "submit_photo",
+        // KHONG navigate submit_photo o day (mo man submit khong co anh ->
+        // "No image selected") — CameraScreen override onClick de chup that
+        route = "",
         customSizeCenter = 80.dp,
         isCenter = true,
     ),

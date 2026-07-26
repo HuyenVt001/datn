@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.model.User
+import com.example.snapget.core.util.avatarOrDefault
 
 enum class TextAlign {
     LEFT,
@@ -67,12 +68,12 @@ fun UserPill(
             .fillMaxWidth()
             .padding(vertical = 4.dp, horizontal = 8.dp),
     ) {
-        // Avatar
+        // Avatar — khong avatar that thi dung initials theo ten (dong bo moi man)
         AsyncImage(
             model = if (isEveryoneOption) {
-                "https://www.shutterstock.com/image-vector/everyone-welcome-here-hand-lettering-600w-2255939479.jpg"
+                avatarOrDefault(null, "Everyone")
             } else {
-                user?.avatar
+                avatarOrDefault(user?.avatar, user?.username ?: "?")
             },
             contentDescription = "Profile picture",
             modifier = Modifier

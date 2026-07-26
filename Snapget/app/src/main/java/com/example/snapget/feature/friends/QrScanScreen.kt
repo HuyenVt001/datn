@@ -57,6 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -65,8 +66,9 @@ import com.google.mlkit.vision.common.InputImage
 
 /**
  * Man quet QR ket ban: camera sau + ML Kit doc ma QR chua invite link/ma moi,
- * quet trung -> goi POST /friendships/connect. Khung ngam vien VANG theo
- * ngon ngu thiet ke (accent duy nhat — DESIGN.md muc 1).
+ * quet trung -> dialog XAC NHAN (ten + avatar nguoi moi) -> bam "Ket ban" moi
+ * goi POST /friendships/connect. Khung ngam vien VANG theo ngon ngu thiet ke
+ * (accent duy nhat — DESIGN.md muc 1).
  */
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -77,6 +79,7 @@ fun QrScanScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val connectStatus by friendsViewModel.connectStatus.collectAsState()
+    val inviteConfirm by friendsViewModel.inviteConfirm.collectAsState()
 
     var hasPermission by remember {
         mutableStateOf(
@@ -103,11 +106,12 @@ fun QrScanScreen(
         }
     }
 
-    // Phan hoi ket qua connect: thanh cong -> Toast + quay lai; loi -> Toast + cho quet tiep
+    // Phan hoi ket qua gui loi moi: thanh cong -> Toast + quay lai; loi -> Toast + cho quet tiep
     LaunchedEffect(connectStatus) {
         when (val status = connectStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Kết bạn thành công! 🎉", Toast.LENGTH_SHORT).show()
+                // "Da gui loi moi — cho X xac nhan" (PENDING) / "Ket ban thanh cong" (mutual)
+                Toast.makeText(context, friendsViewModel.lastConnectMessage, Toast.LENGTH_LONG).show()
                 navController.popBackStack()
             }
 
@@ -161,7 +165,7 @@ fun QrScanScreen(
                                 if (raw != lastRaw || now - lastAt > 3000) {
                                     lastRaw = raw
                                     lastAt = now
-                                    friendsViewModel.connectFromQr(raw)
+                                    friendsViewModel.startInviteConfirm(raw)
                                 }
                             }
                         }
@@ -195,7 +199,7 @@ fun QrScanScreen(
                     color = Color.Black.copy(alpha = 0.6f),
                 ) {
                     Text(
-                        text = "Đưa mã QR của bạn bè vào khung",
+                        text = "Point at your friend's QR code",
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -211,7 +215,7 @@ fun QrScanScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Cần quyền camera để quét mã QR",
+                    text = "Camera permission is required to scan QR codes",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge,
@@ -226,7 +230,7 @@ fun QrScanScreen(
                         contentColor = Color.Black,
                     ),
                 ) {
-                    Text(text = "Cấp quyền", fontWeight = FontWeight.Bold)
+                    Text(text = "Grant permission", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -246,14 +250,14 @@ fun QrScanScreen(
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Đóng",
+                        contentDescription = "Close",
                         tint = Color.White,
                     )
                 }
             }
             Spacer(modifier = Modifier.size(12.dp))
             Text(
-                text = "Quét mã QR",
+                text = "Scan QR code",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge,
@@ -271,6 +275,16 @@ fun QrScanScreen(
                 CircularProgressIndicator(color = Color.Yellow)
             }
         }
+    }
+
+    // Quet trung ma -> dialog xac nhan (ten + avatar nguoi moi); bam "Ket ban" moi connect
+    inviteConfirm?.let { confirm ->
+        InviteConfirmDialog(
+            info = confirm.info,
+            error = confirm.error,
+            onConfirm = { friendsViewModel.confirmInvite() },
+            onDismiss = { friendsViewModel.dismissInviteConfirm() },
+        )
     }
 }
 

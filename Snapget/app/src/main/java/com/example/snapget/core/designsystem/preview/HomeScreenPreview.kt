@@ -15,30 +15,30 @@ import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.pill.UserListWithArrows
 import com.example.snapget.core.designsystem.component.topbar.SettingScreenTopBar
-import com.example.snapget.feature.post.PostScreen
+import com.example.snapget.core.designsystem.theme.AppTheme
 
+// Preview man Home ghep tu component stateless + SampleData.
+// KHONG goi PostScreen truc tiep (screen do tu tao 5 hiltViewModel ->
+// preview "Failed to instantiate a ViewModel").
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
-fun HomeScreenSamplePreview() {
-    PostScreen(rememberNavController())
-}
-
-@Preview(showBackground = true)
-@Composable
 fun HomeScreenPreview() {
-    Scaffold(
-        topBar = {
-            SettingScreenTopBar(rememberNavController())
-        },
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize()) {
-            UserListWithArrows(users = SampleData.users.take(3), showEveryone = true)
-            PostGrid(
-                modifier = Modifier.padding(paddingValues),
-            )
-            MessageInputPill()
-//            MainBottomBar()
+    AppTheme {
+        Scaffold(
+            topBar = {
+                SettingScreenTopBar(rememberNavController())
+            },
+        ) { paddingValues ->
+            Column(modifier = Modifier.fillMaxSize()) {
+                UserListWithArrows(users = SampleData.users.take(3), showEveryone = true)
+                PostGrid(
+                    posts = SampleData.samplePosts,
+                    onPostClick = {},
+                    modifier = Modifier.padding(paddingValues),
+                )
+                MessageInputPill()
+            }
         }
     }
 }

@@ -52,12 +52,12 @@ server/
 │   │   ├── constants.ts         ✅ MAX_FRIENDS=20, MAX_GROUP_SIZE=20, MAX_VIDEO_SECONDS=5, STREAK_WINDOW_HOURS=24, DAILY_QUESTS_PER_DAY=3, Collections, Roles
 │   │   ├── decorators/          ✅ @Public, @Roles, @CurrentUser (AuthUser)
 │   │   ├── dto/                 ✅ ApiResponseDto (envelope), PaginationDto + PaginatedResult
-│   │   ├── filters/             ✅ AllExceptionsFilter (envelope lỗi)
+│   │   ├── filters/             ✅ AllExceptionsFilter (envelope lỗi; 2026-07-19: log cả exception KHÔNG phải Error — vd Cloudinary SDK reject plain object, trước đây bị nuốt im lặng)
 │   │   ├── interceptors/        ✅ ResponseInterceptor (envelope thành công)
 │   │   └── guards/              ✅ FirebaseAuthGuard, AdminJwtGuard, RolesGuard
 │   ├── auth/                    ✅ POST /api/auth/admin/login (verify Firebase token → phát JWT). Export JwtModule
-│   ├── users/                   ✅ me (GET/PATCH), fcm-tokens (POST/DELETE), GET /:uid, ensureUser (tự tạo doc), streak cá nhân, inviteCode. Có spec
-│   ├── friendships/             ✅ list, invite-link, connect (limit 20 + qua invite code), remove; registerInteraction (friend streak reset 24h). Có spec
+│   ├── users/                   ✅ me (GET/PATCH), fcm-tokens (POST/DELETE), GET /:uid, ensureUser (tự tạo doc), streak cá nhân, inviteCode (TTL 30 ngày — hết hạn tự sinh mã mới). Có spec. (2026-07-19: fix PATCH /users/me crash "not a valid Firestore document" — UpdateUserDto là class instance, phải chuyển plain object trước khi ghi Firestore)
+│   ├── friendships/             ✅ list, invite-link (domain hosting + expiresAt), invite-info/:code, connect = GỬI LỜI MỜI PENDING (transaction chống race limit 20 + từ chối mã hết hạn; mutual → ACCEPTED luôn), requests + accept/decline (chủ link xác nhận, FCM 2 chiều), remove; registerInteraction (friend streak reset 24h). Có spec
 │   ├── upload/                  ✅ POST /api/upload (Firebase) + POST /api/upload/admin (Admin JWT — ảnh khung từ trang admin); multipart ≤25MB → Cloudinary (folder snapget/); enforce video ≤5s từ metadata, quá thì xóa asset + báo lỗi
 │   ├── moments/                 ✅ đăng bài (wire personal streak + FCM cho bạn bè), feed (mình + bạn, chunked 10), mine + user/:uid (profile — chỉ bạn bè xem được), mark seen (subcol views), reactions (subcol, wire friend streak). Có spec
 │   │   └── (coop)               ✅ CO-OP CAPTURE (2026-07-13): coop.controller/service/repository + entities/coop-invite + dto/coop — mời chụp chung (bạn bè ACCEPTED, FCM COOP_INVITE) → accept (tải 2 nửa ảnh, **sharp** ghép side-by-side 1080×1080, upload snapget/coop, tạo 1 moment tác giả = người mời + coopUserId = người nhận, streak/quest/interaction cho CẢ 2, FCM COOP_DONE) / decline. CoopController đứng TRƯỚC MomentsController trong module (tránh nuốt route bởi :id). Có spec (7 test)
@@ -84,8 +84,8 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 
 | Collection | Vai trò |
 |---|---|
-| `users/{uid}` | hồ sơ + game (personalStreak, unlockedFrames[], inviteLink, fcmTokens[]) |
-| `friendships/{pairId}` | quan hệ 2 user, friendStreak, lastInteractionAt, status |
+| `users/{uid}` | hồ sơ + game (personalStreak, unlockedFrames[], inviteCode + inviteCodeExpiresAt (TTL 30 ngày), fcmTokens[]) |
+| `friendships/{pairId}` | quan hệ 2 user, friendStreak, lastInteractionAt, status (PENDING = lời mời chờ chủ link xác nhận), requesterUid (người gửi lời mời) |
 | `posts/{id}` (Moment) | bài đăng; `+ /views/{viewerId}`, `+ /reactions/{id}` (subcollection) |
 | `messages/{id}` | tin nhắn (receiverId? / groupId?), messageType, isSeen |
 | `chatGroups/{id}` | nhóm chat (memberIds[] ≤20) |
@@ -114,7 +114,7 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | Module | Scaffold | CRUD/logic | Business rule | Test | TT |
 |---|---|---|---|---|---|
 | users | ✅ | ✅ (me GET/PATCH, fcm-tokens, /:uid, ensureUser) | personalStreak (hàm sẵn, chờ moments gọi) | ✅ | ✅ |
-| friendships | ✅ | ✅ (list, invite-link, connect, remove) | limit 20 ✅, friend streak reset 24h (hàm sẵn) | ✅ | ✅ |
+| friendships | ✅ | ✅ (list, invite-link, invite-info, connect, requests, accept, decline, remove) | **kết bạn 2 bước** ✅ (connect tạo PENDING → chủ link accept/decline; mutual → ACCEPTED luôn; FCM 2 chiều), limit 20 trong Firestore TRANSACTION ✅ (cả lúc gửi lời mời lẫn lúc accept), mã mời TTL 30 ngày ✅, friend streak reset 24h (hàm sẵn) | ✅ | ✅ |
 | moments | ✅ | ✅ (create, feed, mine, user/:uid, seen, reactions) | video≤5s (ở upload) ✅, isSeen ✅, personal+friend streak wired ✅, FCM bạn bè ✅, moment người khác chỉ bạn bè xem ✅ | ✅ | ✅ |
 | messages | ✅ | ✅ (send 1-1/nhóm, threads, conversations, seen, groups) | group≤20 ✅, isSeen ✅, chỉ-bạn-bè ✅, friend streak wired ✅, FCM ✅ | ✅ | ✅ |
 | frames | ✅ | ✅ (list+isUnlocked, admin thêm/sửa/xóa, grant) | unlock qua service (chờ quests wire) ✅ | ✅ | ✅ |
@@ -139,8 +139,12 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | DELETE | `/api/users/me/fcm-tokens/:token` | Gỡ FCM token | Firebase |
 | GET | `/api/users/:uid` | Xem hồ sơ công khai user khác | Firebase |
 | GET | `/api/friendships` | Danh sách bạn bè (kèm friend streak) | Firebase |
-| GET | `/api/friendships/invite-link` | Lấy link mời kết bạn của mình | Firebase |
-| POST | `/api/friendships/connect` | Kết bạn qua inviteCode (check limit 20 cả 2 phía) | Firebase |
+| GET | `/api/friendships/invite-link` | Lấy link mời của mình (`https://snapget-d8693.web.app/invite/{code}`, hiệu lực 30 ngày, trả kèm `expiresAt`; hết hạn tự sinh mã mới) | Firebase |
+| GET | `/api/friendships/invite-info/:code` | Tên + avatar người mời + hạn link (app hiện dialog xác nhận trước khi connect) | Firebase |
+| POST | `/api/friendships/connect` | GỬI LỜI MỜI kết bạn qua inviteCode → PENDING chờ chủ link xác nhận (mutual → ACCEPTED luôn; từ chối mã hết hạn; limit 20 cả 2 phía trong transaction; FCM báo chủ link) | Firebase |
+| GET | `/api/friendships/requests` | Lời mời kết bạn đang chờ mình (chủ link) xác nhận, kèm profile người gửi | Firebase |
+| POST | `/api/friendships/requests/:requesterUid/accept` | Chấp nhận lời mời → thành bạn (transaction check lại limit 20; FCM báo người gửi) | Firebase |
+| POST | `/api/friendships/requests/:requesterUid/decline` | Từ chối lời mời (xóa im lặng — người gửi có thể mời lại) | Firebase |
 | DELETE | `/api/friendships/:friendUid` | Xóa bạn bè | Firebase |
 | POST | `/api/upload` | Upload ảnh/video (multipart `file`, ≤25MB, video ≤5s) → trả `{url, publicId, resourceType, duration}` | Firebase |
 | POST | `/api/upload/admin` | [Admin] Upload ảnh (khung ảnh...) — cùng format với /upload | Admin JWT |

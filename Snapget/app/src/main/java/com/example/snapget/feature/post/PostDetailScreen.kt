@@ -64,6 +64,7 @@ import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
+import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.navigation.Screen
 import kotlin.random.Random
@@ -197,7 +198,7 @@ fun PostDetailScreen(
                         if (frameImageUrl != null) {
                             AsyncImage(
                                 model = frameImageUrl,
-                                contentDescription = "Khung anh",
+                                contentDescription = "Photo frame",
                                 contentScale = ContentScale.FillBounds,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -263,7 +264,7 @@ fun PostDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp), // Consistent spacing between items
                     ) {
                         AsyncImage(
-                            model = post.user.avatar,
+                            model = avatarOrDefault(post.user.avatar, post.user.username),
                             contentDescription = "Profile picture",
                             modifier = Modifier
                                 .size(40.dp)

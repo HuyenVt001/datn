@@ -55,7 +55,7 @@ class QuestViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    status = LoadStatus.Error(e.serverMessage("Khong tai duoc nhiem vu hom nay.")),
+                    status = LoadStatus.Error(e.serverMessage("Couldn't load today's quests.")),
                 )
             }
         }

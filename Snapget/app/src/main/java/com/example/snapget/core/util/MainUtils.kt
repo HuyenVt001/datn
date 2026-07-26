@@ -19,6 +19,17 @@ inline fun <reified T> mapToResponse(
 }
 
 /**
+ * Avatar hien thi: uu tien URL that (server tra ve); rong -> avatar chu cai dau
+ * sinh tu [seed] (ten user) qua DiceBear — CUNG seed = CUNG anh o MOI man hinh,
+ * thay cho cac fallback pravatar/Unsplash ngau nhien cu (moi cho mot kieu).
+ */
+fun avatarOrDefault(avatar: String?, seed: String): String = if (!avatar.isNullOrBlank()) {
+    avatar
+} else {
+    "https://api.dicebear.com/9.x/initials/png?seed=" + android.net.Uri.encode(seed.ifBlank { "?" })
+}
+
+/**
  * Read a date field as an ISO-8601 local date-time string (the format models/UI
  * expect). Accepts a Firestore [com.google.firebase.Timestamp] (preferred) or a
  * plain String (backward compatible). Empty string if the field is absent.

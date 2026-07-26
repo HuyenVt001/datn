@@ -19,6 +19,7 @@
 | Admin web | React + Vite + TS + Ant Design. **UI tiếng Việt, theme sáng**, accent màu brand. |
 | Admin đầu tiên | Seed custom claim `admin=true` cho **viethoang5301314@gmail.com** (script `npm run seed:admin -- <email>` trong server). |
 | Entry màn Daily Quest | **Nút trên top bar của PostScreen** (màn feed chính). |
+| Link mời kết bạn *(chốt 2026-07-19)* | Domain thật **`https://snapget-d8693.web.app/invite/{code}`** (Firebase Hosting, App Links verify) + scheme dự phòng `snapget://invite/{code}`. **Mỗi user 1 link, hiệu lực cố định 30 ngày** — trong hạn ai có link đều gửi lời mời được (không giới hạn lượt); hết hạn server tự sinh mã mới, link cũ vô hiệu. **Kết bạn 2 BƯỚC**: người bấm link thấy dialog (tên + avatar chủ link) → bấm "Gửi lời mời" tạo PENDING → **CHỦ LINK chấp nhận hoặc từ chối** (section 💌 trong sheet bạn bè, có FCM báo) thì mới thành bạn. Ngoại lệ: 2 bên cùng mời nhau → thành bạn luôn. Từ chối = xóa im lặng, người gửi có thể mời lại. |
 
 ---
 
@@ -74,7 +75,7 @@
 
 ## Phase 5 — Các phần dở dang nhỏ — ✅ XONG 2026-07-13 (assembleDebug OK)
 
-- ✅ **Deep link mời kết bạn**: intent-filter `https://snapget.app/invite/*`, xử lý cả cold start (`onCreate`) lẫn `onNewIntent` → `POST /friendships/connect` + Toast; nút "Share your link" mở share chooser hệ thống với link thật. ⚠️ Domain không có thật → Android hỏi chọn app khi bấm link (không verify App Links được).
+- ✅ **Deep link mời kết bạn**: intent-filter `https://snapget.app/invite/*`, xử lý cả cold start (`onCreate`) lẫn `onNewIntent` → `POST /friendships/connect` + Toast; nút "Share your link" mở share chooser hệ thống với link thật. ⚠️ Domain không có thật → Android 12+ mở browser thay vì app (không verify App Links được) → **xử lý ở Phase 6**.
 - ✅ **Sửa hồ sơ**: nút ✏️ trên profile của mình → dialog đổi tên (≤30 ký tự) + chọn avatar từ thư viện → upload → `PATCH /users/me`.
 - ✅ **Chat nhóm**: nút tạo nhóm trên màn Messages (tick chọn bạn, ≤20), section "Nhóm chat", `GroupChatScreen` polling 5s.
 - ✅ **Tin nhắn voice/sticker/ảnh**: ghi âm MediaRecorder → gửi VOICE (bubble phát MediaPlayer), khay sticker Twemoji → STICKER, chọn ảnh thư viện → PHOTO — cho cả 1-1 lẫn nhóm.
@@ -84,6 +85,34 @@
 
 - ✅ **Xóa Locket Gold**: bỏ nút "Get Locket Gold" + setting "Restore Purchases" — toàn bộ tính năng miễn phí, không có thanh toán.
 - ✅ **Dọn god-object**: PostScreen đọc 100% qua API (Everyone/You/bạn = feed/mine/user/:uid); `MainViewModel` + `FirestoreRepository` chỉ còn currentUser + settings; xóa route `detail`/`post_detail` legacy + nhánh deep link `auth` chết; README viết lại.
+
+## Phase 6 — Hoàn thiện link mời kết bạn (chốt 2026-07-19)
+
+> Theo quyết định trong bảng đầu file: domain thật + scheme fallback, TTL 30 ngày, dialog xác nhận.
+
+### Server (`friendships` + `users`) — ✅ XONG 2026-07-19 (77/77 test pass, build + lint sạch)
+- ✅ **Kết bạn 2 bước (yêu cầu bổ sung 2026-07-19)**: `connect` giờ TẠO LỜI MỜI `status=PENDING` + `requesterUid` (transaction check cặp + limit 20 hai phía; PENDING ngược chiều → tự ACCEPTED); `GET /friendships/requests` (lời mời chờ mình xác nhận, kèm profile người gửi); `POST /friendships/requests/:uid/accept` (transaction check LẠI limit 20) / `.../decline` (xóa im lặng); FCM báo chủ link khi có lời mời + báo người gửi khi được chấp nhận. Guard messages/moments/coop đều check `status === 'ACCEPTED'` nên PENDING không lộ quyền bạn bè.
+- ✅ **TTL 30 ngày**: hằng `INVITE_LINK_TTL_DAYS = 30` + `INVITE_LINK_BASE_URL`; user thêm `inviteCodeExpiresAt`; `getOrCreateInviteCode` tự sinh mã mới khi chưa có/hết hạn (mã cũ chưa có hạn = coi như hết hạn); `GET /friendships/invite-link` trả thêm `expiresAt` + link theo domain mới; connect/invite-info từ chối mã hết hạn ("Link mời đã hết hạn…").
+- ✅ **`GET /friendships/invite-info/:code`** — trả tên + avatar người mời + hạn link (app hiện dialog xác nhận trước khi connect).
+- ✅ **Chống race giới hạn 20 bạn**: `FriendshipsRepository.createIfUnderLimit` chạy trong Firestore transaction (kiểm tra cặp + đếm bạn 2 phía + tạo doc atomic); xóa `assertUnderLimit`/`countAccepted`/`create` cũ.
+- ✅ Cập nhật unit test `friendships` (9 test connect/invite) + `users` (3 test TTL) + lint.
+
+### Hosting (`hosting/` — Firebase Hosting của project snapget-d8693) — ✅ ĐÃ DEPLOY 2026-07-19
+- ✅ Landing page `/invite/*` (nút "Mở app Snapget" qua `intent://`→`snapget://`, hướng dẫn cài app) + `.well-known/assetlinks.json` (package `com.example.snapget`, SHA-256 debug keystore máy này) + `firebase.json`/`.firebaserc`.
+- ✅ **Đã deploy** bằng service account (`GOOGLE_APPLICATION_CREDENTIALS` → `firebase deploy --only hosting`) — https://snapget-d8693.web.app live, assetlinks.json trả 200 application/json. Deploy lại sau này: cùng lệnh trong `hosting/`. Lưu ý: 2 máy test phải cài APK debug build từ máy này (App Links verify theo SHA-256 keystore).
+
+### App — ✅ XONG 2026-07-19 (spotless + assembleDebug OK)
+- ✅ **Kết bạn 2 bước**: dialog đổi thành "Gửi lời mời kết bạn"; toast phân biệt "Đã gửi lời mời — chờ X xác nhận" (PENDING) vs "Kết bạn thành công" (2 bên cùng mời); section **💌 Lời mời kết bạn** trong sheet bạn bè (avatar + tên + nút ✓ chấp nhận / ✕ từ chối, `GET /friendships/requests` tải khi mở sheet).
+- ✅ Manifest: intent-filter `android:autoVerify="true"` cho host `snapget-d8693.web.app` + intent-filter scheme `snapget://invite`; bỏ host giả `snapget.app`.
+- ✅ **pendingInviteCode**: bấm link lúc chưa đăng nhập → `PendingInviteStore` (SharedPreferences) lưu mã → đăng nhập xong tự hiện dialog xác nhận (không bắt bấm lại link).
+- ✅ **Dialog xác nhận kết bạn** `InviteConfirmDialog` (avatar + tên người mời từ `invite-info` + hạn link) dùng chung cho deep link (overlay `SnapgetApp`, VM scope Activity) **và** quét QR; `AddFriendQrDialog` hiện "Có hiệu lực đến dd/MM/yyyy".
+- ✅ Build `assembleDebug` + `spotlessApply`.
+
+### Docs
+- ✅ Cập nhật `server/GUIDE.md` + `Snapget/.claude/GUIDE.md` + `codegraph init` 2 thư mục.
+
+### Còn lại của Phase 6 (user test)
+- ⬜ Test 2 máy: A mở sheet bạn bè → "Share your link" → gửi link qua Zalo/Messenger; B bấm link → dialog "Kết bạn với A?" → **Gửi lời mời** → A nhận FCM + thấy section 💌 trong sheet bạn bè → **Chấp nhận** (hoặc Từ chối) → hai bên thành bạn. Thử thêm: B chưa đăng nhập (mã được lưu, login xong tự hiện dialog), B chưa cài app (link mở landing page), quét QR (cũng ra dialog gửi lời mời), 2 bên cùng mời nhau (thành bạn luôn không cần xác nhận).
 
 ## Còn lại duy nhất: TEST CHẠY THẬT (user tự tổng test)
 

@@ -6,6 +6,7 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.network.serverMessage
+import com.example.snapget.feature.message.data.MessageRepository
 import com.example.snapget.feature.post.data.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
@@ -22,11 +23,21 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val postRepository: PostRepository,
+    // Gui kem anh vao chat 1-1 khi user chon 1 ban o man dang (tuy chon)
+    private val messageRepository: MessageRepository,
 ) : ViewModel() {
 
     /** Trang thai dang bai — UI hien loading/loi tu day. */
     private val _submitStatus = MutableStateFlow<LoadStatus>(LoadStatus.Init())
     val submitStatus: StateFlow<LoadStatus> = _submitStatus.asStateFlow()
+
+    /** Loi gui kem vao chat (dang bai VAN thanh cong) — UI toast roi clear. */
+    private val _chatSendError = MutableStateFlow<String?>(null)
+    val chatSendError: StateFlow<String?> = _chatSendError.asStateFlow()
+
+    fun clearChatSendError() {
+        _chatSendError.value = null
+    }
 
     /** Feed cua minh + ban be. */
     private val _feed = MutableStateFlow<List<MomentDto>>(emptyList())
@@ -67,6 +78,9 @@ class PostViewModel @Inject constructor(
         isVideo: Boolean = false,
         caption: String? = null,
         frameId: String? = null,
+        // Tuy chon: uid cac ban se duoc gui kem anh vao chat 1-1 sau khi dang.
+        // Rong = chi dang len feed (mac dinh); "Everyone" o UI = list moi ban be.
+        sendToUids: List<String> = emptyList(),
     ) {
         viewModelScope.launch {
             _submitStatus.value = LoadStatus.Loading()
@@ -78,10 +92,33 @@ class PostViewModel @Inject constructor(
                     caption = caption,
                     frameId = frameId,
                 )
+                // Gui kem vao chat neu co chon nguoi nhan — loi o buoc nay KHONG lam
+                // fail bai dang (moment da len feed roi), chi bao rieng qua chatSendError
+                if (sendToUids.isNotEmpty() && isVideo) {
+                    // Bubble chat hien chi ho tro PHOTO — video van len feed binh thuong
+                    _chatSendError.value = "Videos post to the feed only — sending videos in chat isn't supported yet."
+                } else if (sendToUids.isNotEmpty()) {
+                    var failed = 0
+                    sendToUids.forEach { uid ->
+                        try {
+                            messageRepository.send(
+                                receiverId = uid,
+                                content = uploaded.url,
+                                messageType = "PHOTO",
+                            )
+                        } catch (_: Exception) {
+                            failed++
+                        }
+                    }
+                    if (failed > 0) {
+                        _chatSendError.value =
+                            "Posted, but failed to send in chat to $failed friend(s)."
+                    }
+                }
                 _submitStatus.value = LoadStatus.Success()
                 loadFeed() // lam moi feed de thay bai vua dang
             } catch (e: Exception) {
-                _submitStatus.value = LoadStatus.Error(e.serverMessage("Dang bai that bai."))
+                _submitStatus.value = LoadStatus.Error(e.serverMessage("Failed to post."))
             }
         }
     }
@@ -94,7 +131,7 @@ class PostViewModel @Inject constructor(
                 _feed.value = postRepository.getFeed().items
                 _feedStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _feedStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc feed."))
+                _feedStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load feed."))
             }
         }
     }
@@ -115,7 +152,7 @@ class PostViewModel @Inject constructor(
                 _userMomentsStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
                 _userMoments.value = emptyList()
-                _userMomentsStatus.value = LoadStatus.Error(e.serverMessage("Khong tai duoc bai dang."))
+                _userMomentsStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load posts."))
             }
         }
     }

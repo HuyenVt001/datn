@@ -77,7 +77,7 @@ class ProfileViewModel @Inject constructor(
                 }
                 _status.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _status.value = LoadStatus.Error(e.serverMessage("Khong tai duoc ho so."))
+                _status.value = LoadStatus.Error(e.serverMessage("Couldn't load profile."))
             }
         }
     }
@@ -102,7 +102,7 @@ class ProfileViewModel @Inject constructor(
                 )
                 _updateStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
-                _updateStatus.value = LoadStatus.Error(e.serverMessage("Cap nhat ho so that bai."))
+                _updateStatus.value = LoadStatus.Error(e.serverMessage("Failed to update profile."))
             }
         }
     }

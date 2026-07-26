@@ -35,6 +35,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof Error) {
       // Loi khong luong truoc — log day du, che giau chi tiet voi client.
       this.logger.error(exception.message, exception.stack);
+    } else {
+      // Thu vien ben thu 3 (vd Cloudinary SDK) reject bang plain object,
+      // khong phai Error — van phai log, khong duoc nuot im lang.
+      this.logger.error(`Loi khong phai Error: ${JSON.stringify(exception)}`);
     }
 
     res.status(statusCode).json({

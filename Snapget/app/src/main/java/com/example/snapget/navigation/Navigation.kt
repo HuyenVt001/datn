@@ -88,9 +88,10 @@ fun Navigation(
     val showBottomBar = currentRoute !in hideBottomBarRoutes
 
     // Determine start destination based on auth state
+    // Da dang nhap -> vao THANG camera (BeReal-style); vuot len tren camera de xem feed
     val startDestination = when (authState) {
         is AuthState.Initial -> Screen.Login.route
-        is AuthState.Authenticated -> Screen.Post.route
+        is AuthState.Authenticated -> Screen.Camera.route
         is AuthState.Unauthenticated -> Screen.Login.route
         is AuthState.Loading -> Screen.Login.route // Show login while loading
         is AuthState.Error -> Screen.Login.route
@@ -109,7 +110,8 @@ fun Navigation(
             composable(Screen.Login.route) {
                 LoginScreen(
                     onLoginSuccess = {
-                        navController.navigate(Screen.Post.route) {
+                        // Dang nhap xong -> vao thang camera (vuot len de xem feed)
+                        navController.navigate(Screen.Camera.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
@@ -140,14 +142,14 @@ fun Navigation(
                     navArgument("groupId") { type = NavType.StringType },
                     navArgument("name") {
                         type = NavType.StringType
-                        defaultValue = "Nhom chat"
+                        defaultValue = "Group chat"
                     },
                 ),
             ) { backStackEntry ->
                 GroupChatScreen(
                     navController = navController,
                     groupId = backStackEntry.arguments?.getString("groupId") ?: "",
-                    groupName = backStackEntry.arguments?.getString("name") ?: "Nhom chat",
+                    groupName = backStackEntry.arguments?.getString("name") ?: "Group chat",
                 )
             }
 

@@ -75,6 +75,7 @@ fun PostScreen(
     val apiFriends by friendsViewModel.friends.collectAsState()
     val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
     val inviteLink by friendsViewModel.inviteLink.collectAsState()
+    val friendRequests by friendsViewModel.requests.collectAsState()
     var showFriendSheet by remember { mutableStateOf(false) }
 
     // Ban be tu API — dung cho dropdown top bar + resolve tac gia moment
@@ -236,6 +237,7 @@ fun PostScreen(
                     onAddFriendsClick = {
                         friendsViewModel.loadFriends()
                         friendsViewModel.loadInviteLink()
+                        friendsViewModel.loadRequests() // loi moi dang cho minh xac nhan
                         showFriendSheet = true
                     },
                     // Nut cup 🏆 -> man Daily Quest (entry chot 2026-07-13)
@@ -267,8 +269,8 @@ fun PostScreen(
                         Text(
                             text = buildString {
                                 append("📸 ")
-                                append(invite.inviterName ?: "Ban be")
-                                append(" moi ban chup chung!")
+                                append(invite.inviterName ?: "A friend")
+                                append(" invited you to a co-op capture!")
                                 if (pendingInvites.size > 1) {
                                     append(" (+${pendingInvites.size - 1})")
                                 }
@@ -295,6 +297,10 @@ fun PostScreen(
                             isLoading = apiFriendsStatus is LoadStatus.Loading,
                             inviteCode = inviteLink?.inviteCode,
                             inviteLink = inviteLink?.link,
+                            inviteExpiresAt = inviteLink?.expiresAt,
+                            requests = friendRequests,
+                            onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
+                            onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
                             onScanQrClick = {
                                 showFriendSheet = false
                                 navController.navigate(Screen.QrScan.route)

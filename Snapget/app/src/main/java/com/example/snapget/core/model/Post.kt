@@ -11,7 +11,9 @@ data class Post(
     val user: User,
     val postType: PostType,
     val caption: String?,
-    val thumbnailUrl: String = "https://picsum.photos/400/300?random=${(0..1000).random()}",
+    // Rong = khong co anh (moment that LUON co mediaUrl tu server) —
+    // truoc day default picsum ngau nhien -> o anh gia tren feed
+    val thumbnailUrl: String = "",
     // Khung anh phan thuong ap len moment (null = khong khung)
     val frameId: String? = null,
     val isArchived: Boolean = false,

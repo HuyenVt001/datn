@@ -71,6 +71,7 @@ export class UsersRepository {
       personalStreak: data.personalStreak ?? 0,
       lastStreakDate: data.lastStreakDate,
       inviteCode: data.inviteCode,
+      inviteCodeExpiresAt: data.inviteCodeExpiresAt,
       unlockedFrames: data.unlockedFrames ?? [],
       fcmTokens: data.fcmTokens ?? [],
     };

@@ -3,6 +3,27 @@ import { Collections } from '../common/constants';
 import { FirebaseService } from '../firebase/firebase.service';
 import { Friendship } from './entities/friendship.entity';
 
+/**
+ * Ket qua tao LOI MOI ket ban trong transaction — repo KHONG nem HttpException,
+ * service map outcome sang message nghiep vu tieng Viet.
+ * MUTUAL_ACCEPTED: nguoi kia da moi minh truoc (PENDING nguoc chieu) -> 2 ben
+ * cung muon ket ban -> chuyen thang ACCEPTED, khong can xac nhan them.
+ */
+export type RequestOutcome =
+  | { outcome: 'REQUESTED'; friendship: Friendship }
+  | { outcome: 'MUTUAL_ACCEPTED'; friendship: Friendship }
+  | { outcome: 'ALREADY_FRIENDS' }
+  | { outcome: 'ALREADY_REQUESTED' }
+  | { outcome: 'LIMIT_REQUESTER' }
+  | { outcome: 'LIMIT_INVITER' };
+
+/** Ket qua chu link ACCEPT loi moi (trong transaction — chong race gioi han 20). */
+export type AcceptOutcome =
+  | { outcome: 'ACCEPTED'; friendship: Friendship }
+  | { outcome: 'NOT_FOUND' }
+  | { outcome: 'LIMIT_CURRENT' }
+  | { outcome: 'LIMIT_REQUESTER' };
+
 /** NOI DUY NHAT cham Firestore cho friendships. */
 @Injectable()
 export class FriendshipsRepository {
@@ -22,14 +43,128 @@ export class FriendshipsRepository {
     return snap.exists ? (snap.data() as Friendship) : null;
   }
 
-  /** Dem so ban ACCEPTED (phuc vu kiem tra gioi han 20). */
-  async countAccepted(uid: string): Promise<number> {
-    const snap = await this.col
+  /** Query dem so ban ACCEPTED cua 1 user (dung trong transaction connect). */
+  private acceptedCountQuery(uid: string) {
+    return this.col
       .where('userIds', 'array-contains', uid)
       .where('status', '==', 'ACCEPTED')
-      .count()
+      .count();
+  }
+
+  /**
+   * Tao LOI MOI ket ban (PENDING) trong MOT transaction: kiem tra cap + dem ban
+   * 2 phia + tao doc atomic. Neu nguoi kia DA moi minh truoc (PENDING nguoc
+   * chieu) -> 2 ben cung muon -> chuyen thang ACCEPTED (MUTUAL_ACCEPTED).
+   */
+  async createPendingRequest(
+    requesterUid: string,
+    inviterUid: string,
+    maxFriends: number,
+  ): Promise<RequestOutcome> {
+    const pairId = FriendshipsRepository.pairId(requesterUid, inviterUid);
+    const pairRef = this.col.doc(pairId);
+    return this.firebase.firestore().runTransaction<RequestOutcome>(async (t) => {
+      const pairSnap = await t.get(pairRef);
+      const existing = pairSnap.exists ? (pairSnap.data() as Friendship) : null;
+      if (existing?.status === 'ACCEPTED') {
+        return { outcome: 'ALREADY_FRIENDS' };
+      }
+      if (existing?.status === 'PENDING' && existing.requesterUid === requesterUid) {
+        return { outcome: 'ALREADY_REQUESTED' };
+      }
+
+      // Gioi han 20 kiem tra ngay tu luc gui loi moi (va kiem tra LAI khi accept)
+      const [countRequester, countInviter] = await Promise.all([
+        t.get(this.acceptedCountQuery(requesterUid)),
+        t.get(this.acceptedCountQuery(inviterUid)),
+      ]);
+      if (countRequester.data().count >= maxFriends) {
+        return { outcome: 'LIMIT_REQUESTER' };
+      }
+      if (countInviter.data().count >= maxFriends) {
+        return { outcome: 'LIMIT_INVITER' };
+      }
+
+      // PENDING nguoc chieu (nguoi kia moi minh truoc) -> mutual, thanh ban luon
+      if (existing?.status === 'PENDING') {
+        const friendship: Friendship = { ...existing, status: 'ACCEPTED' };
+        t.update(pairRef, { status: 'ACCEPTED' });
+        return { outcome: 'MUTUAL_ACCEPTED', friendship };
+      }
+
+      const [user1Id, user2Id] = [requesterUid, inviterUid].sort();
+      const friendship: Friendship = {
+        pairId,
+        userIds: [user1Id, user2Id],
+        user1Id,
+        user2Id,
+        friendStreak: 0,
+        status: 'PENDING',
+        requesterUid,
+        createdAt: new Date().toISOString(),
+      };
+      t.set(pairRef, friendship);
+      return { outcome: 'REQUESTED', friendship };
+    });
+  }
+
+  /**
+   * Chu link CHAP NHAN loi moi — transaction kiem tra lai gioi han 20 ca 2 phia
+   * (so ban co the da day tu luc loi moi duoc gui) roi doi status -> ACCEPTED.
+   */
+  async acceptRequest(
+    accepterUid: string,
+    requesterUid: string,
+    maxFriends: number,
+  ): Promise<AcceptOutcome> {
+    const pairRef = this.col.doc(FriendshipsRepository.pairId(accepterUid, requesterUid));
+    return this.firebase.firestore().runTransaction<AcceptOutcome>(async (t) => {
+      const pairSnap = await t.get(pairRef);
+      const existing = pairSnap.exists ? (pairSnap.data() as Friendship) : null;
+      // Chi accept duoc loi moi PENDING ma NGUOI KIA gui (khong accept loi moi cua chinh minh)
+      if (!existing || existing.status !== 'PENDING' || existing.requesterUid !== requesterUid) {
+        return { outcome: 'NOT_FOUND' };
+      }
+      const [countAccepter, countRequester] = await Promise.all([
+        t.get(this.acceptedCountQuery(accepterUid)),
+        t.get(this.acceptedCountQuery(requesterUid)),
+      ]);
+      if (countAccepter.data().count >= maxFriends) {
+        return { outcome: 'LIMIT_CURRENT' };
+      }
+      if (countRequester.data().count >= maxFriends) {
+        return { outcome: 'LIMIT_REQUESTER' };
+      }
+      t.update(pairRef, { status: 'ACCEPTED' });
+      return { outcome: 'ACCEPTED', friendship: { ...existing, status: 'ACCEPTED' } };
+    });
+  }
+
+  /**
+   * Chu link TU CHOI loi moi -> XOA doc (nguoi gui co the moi lai sau).
+   * Tra ve false neu khong co loi moi PENDING tuong ung.
+   */
+  async declineRequest(accepterUid: string, requesterUid: string): Promise<boolean> {
+    const pairRef = this.col.doc(FriendshipsRepository.pairId(accepterUid, requesterUid));
+    const snap = await pairRef.get();
+    const existing = snap.exists ? (snap.data() as Friendship) : null;
+    if (!existing || existing.status !== 'PENDING' || existing.requesterUid !== requesterUid) {
+      return false;
+    }
+    await pairRef.delete();
+    return true;
+  }
+
+  /** Danh sach loi moi PENDING dang cho uid (chu link) xac nhan, moi nhat truoc. */
+  async listPendingRequests(uid: string): Promise<Friendship[]> {
+    const snap = await this.col
+      .where('userIds', 'array-contains', uid)
+      .where('status', '==', 'PENDING')
       .get();
-    return snap.data().count;
+    return snap.docs
+      .map((d) => d.data() as Friendship)
+      .filter((f) => f.requesterUid && f.requesterUid !== uid)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }
 
   /** Danh sach ban ACCEPTED cua user. */
@@ -39,22 +174,6 @@ export class FriendshipsRepository {
       .where('status', '==', 'ACCEPTED')
       .get();
     return snap.docs.map((d) => d.data() as Friendship);
-  }
-
-  async create(a: string, b: string): Promise<Friendship> {
-    const pairId = FriendshipsRepository.pairId(a, b);
-    const [user1Id, user2Id] = [a, b].sort();
-    const friendship: Friendship = {
-      pairId,
-      userIds: [user1Id, user2Id],
-      user1Id,
-      user2Id,
-      friendStreak: 0,
-      status: 'ACCEPTED',
-      createdAt: new Date().toISOString(),
-    };
-    await this.col.doc(pairId).set(friendship);
-    return friendship;
   }
 
   async delete(a: string, b: string): Promise<void> {

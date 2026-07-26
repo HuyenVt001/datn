@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,7 +51,6 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.submitPhotoBar
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
-import com.example.snapget.core.designsystem.component.indicator.PageIndicator
 import com.example.snapget.core.designsystem.component.input.InputCaptionPill
 import com.example.snapget.core.designsystem.component.list.FriendList
 import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheet
@@ -63,6 +61,7 @@ import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
+import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
 import java.io.File
 import kotlinx.coroutines.launch
@@ -83,9 +82,29 @@ fun SubmitPhotoScreen(
     frameUrl: String? = null,
     mainViewModel: MainViewModel = hiltViewModel(),
     postViewModel: PostViewModel = hiltViewModel(),
+    // Danh sach ban that tu API /friendships — de chon nguoi gui kem vao chat
+    friendsViewModel: FriendsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val submitStatus by postViewModel.submitStatus.collectAsState()
+    val chatSendError by postViewModel.chatSendError.collectAsState()
+    val apiFriends by friendsViewModel.friends.collectAsState()
+
+    // Tai ban be 1 lan khi mo man (de list chon nguoi gui kem co data that)
+    LaunchedEffect(Unit) { friendsViewModel.loadFriends() }
+
+    // Loi gui kem vao chat (bai dang VAN thanh cong) -> toast rieng
+    LaunchedEffect(chatSendError) {
+        chatSendError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            postViewModel.clearChatSendError()
+        }
+    }
+
+    // FriendUi (API) -> User cho FriendList
+    val friendUsers = remember(apiFriends) {
+        apiFriends.map { User(id = it.id, username = it.name, email = "", avatar = it.avatar) }
+    }
 
     val frameImageUrl = frameUrl
 
@@ -93,10 +112,12 @@ fun SubmitPhotoScreen(
     LaunchedEffect(submitStatus) {
         when (val status = submitStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Dang bai thanh cong!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Posted successfully!", Toast.LENGTH_SHORT).show()
                 postViewModel.resetSubmitStatus()
+                // Ve feed xem bai vua dang; don EditMedia/SubmitPhoto khoi stack,
+                // giu Camera lam man goc (back tu feed -> camera)
                 navController.navigate(Screen.Post.route) {
-                    popUpTo(Screen.Post.route) { inclusive = true }
+                    popUpTo(Screen.Camera.route)
                 }
             }
             is LoadStatus.Error -> {
@@ -107,16 +128,9 @@ fun SubmitPhotoScreen(
         }
     }
 
-    var selectedUser by remember {
-        mutableStateOf<User?>(
-            User(
-                id = "everyone",
-                username = "Everyone",
-                avatar = "",
-            ),
-        )
-    }
-    // Use the passed onCameraClick instead of navigating to CameraXScreen
+    // null = KHONG gui kem cho ai (mac dinh — chi dang len feed);
+    // chon 1 ban = gui kem vao chat voi ban do; chon "everyone" = gui cho TAT CA ban be
+    var selectedUser by remember { mutableStateOf<User?>(null) }
 
     // Add bottom sheet state
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -149,11 +163,9 @@ fun SubmitPhotoScreen(
         topBar = {
             CommonTopBar(
                 navController = navController,
-                title = "Send to...",
-                endIcon = Icons.Outlined.Download,
-                onEndIconClick = {
-                    Log.d("SubmitPhotoScreen", "Download icon clicked")
-                },
+                // Mac dinh la DANG THANG len feed; gui cho ban cu the chi la tuy chon
+                // (nut Download cu da XOA 2026-07-19 — UI chet, bam chi ghi log)
+                title = "New Post",
             )
         },
     ) { paddingValues ->
@@ -218,7 +230,7 @@ fun SubmitPhotoScreen(
                     } else {
                         AsyncImage(
                             model = File(photoPath),
-                            contentDescription = "Anh vua chup",
+                            contentDescription = "Captured photo",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(RoundedCornerShape(20.dp)),
@@ -230,7 +242,7 @@ fun SubmitPhotoScreen(
                     if (frameImageUrl != null) {
                         AsyncImage(
                             model = frameImageUrl,
-                            contentDescription = "Khung anh",
+                            contentDescription = "Photo frame",
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -284,13 +296,7 @@ fun SubmitPhotoScreen(
                 }
             }
 
-            PageIndicator(
-                totalPages = 5,
-                currentPage = 2,
-                modifier = Modifier.size(100.dp),
-                inactiveColor = Color.Gray.copy(alpha = 0.3f),
-            )
-
+            // (PageIndicator 5 cham cu da XOA 2026-07-19 — trang tri gia, khong co trang nao)
             MainBottomBar(
                 navController,
                 items = submitPhotoBar,
@@ -305,7 +311,7 @@ fun SubmitPhotoScreen(
                             when {
                                 photoPath == null -> Toast.makeText(
                                     context,
-                                    "Chua co anh — hay chup truoc da.",
+                                    "No photo yet — take one first.",
                                     Toast.LENGTH_SHORT,
                                 ).show()
                                 submitStatus is LoadStatus.Loading -> Unit // dang gui, bo qua
@@ -314,6 +320,13 @@ fun SubmitPhotoScreen(
                                     isVideo = isVideo,
                                     caption = caption?.trim()?.takeIf { it.isNotEmpty() },
                                     frameId = frameId,
+                                    // Khong chon ai (mac dinh) = chi dang len feed;
+                                    // chon 1 ban = gui kem chat 1-1; Everyone = gui MOI ban be
+                                    sendToUids = when (selectedUser?.id) {
+                                        null -> emptyList()
+                                        "everyone" -> friendUsers.map { it.id }
+                                        else -> listOf(selectedUser!!.id)
+                                    },
                                 )
                             }
                         }
@@ -345,13 +358,31 @@ fun SubmitPhotoScreen(
                         }
                         .horizontalScroll(scrollState),
                 ) {
+                    // Khong hien pill "You" (khong gui cho chinh minh);
+                    // Everyone nam CUOI danh sach (GenericCircleList)
                     FriendList(
-                        user = data,
-                        selectedFriendId = selectedUser?.id ?: "everyone",
-                        onFriendSelected = { selectedUser = it },
+                        user = null,
+                        friends = friendUsers,
+                        selectedFriendId = selectedUser?.id ?: "",
+                        // Bam lan 2 vao muc dang chon = BO chon (ve mac dinh: chi dang)
+                        onFriendSelected = { user ->
+                            selectedUser = if (selectedUser?.id == user.id) null else user
+                        },
                     )
                 }
             }
+
+            // Giai thich hanh vi theo lua chon hien tai
+            Text(
+                text = when (selectedUser?.id) {
+                    null -> "Posts to the feed — pick a friend or Everyone to also send it in chat (optional)"
+                    "everyone" -> "Posts to the feed + sends to ALL friends in chat"
+                    else -> "Posts to the feed + sends to ${selectedUser?.username ?: "a friend"} in chat"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
         }
     }
 }

@@ -68,6 +68,7 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.copyUriToCacheFile
 import com.example.snapget.core.util.takeFirstNameOfUser
 import java.time.format.DateTimeFormatter
@@ -318,9 +319,7 @@ fun ChatTopBar(
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                     ) {
                         AsyncImage(
-                            model = recipientAvatar.ifEmpty {
-                                "https://i.pravatar.cc/150?img=${recipientId.hashCode() % 70}"
-                            },
+                            model = avatarOrDefault(recipientAvatar, recipientName),
                             contentDescription = "User avatar",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
@@ -447,7 +446,7 @@ fun ChatInputPill(
                         if (messageText.isEmpty()) {
                             Text(
                                 text = if (voiceRecorder?.isRecording == true) {
-                                    "Dang ghi am... cham mic de gui"
+                                    "Recording... tap the mic to send"
                                 } else {
                                     "Send message..."
                                 },
@@ -494,7 +493,7 @@ fun ChatInputPill(
                         IconButton(onClick = onPhotoClick, modifier = Modifier.size(32.dp)) {
                             Icon(
                                 imageVector = Icons.Default.Image,
-                                contentDescription = "Gui anh",
+                                contentDescription = "Send photo",
                                 tint = Color.White,
                             )
                         }
@@ -518,7 +517,7 @@ fun ChatInputPill(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Mic,
-                                contentDescription = "Ghi am",
+                                contentDescription = "Record voice",
                                 tint = if (voiceRecorder.isRecording) Color.Red else Color.White,
                             )
                         }
@@ -596,9 +595,7 @@ fun MessageBubble(
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 ) {
                     AsyncImage(
-                        model = senderAvatar.ifEmpty {
-                            "https://i.pravatar.cc/150?img=${message.senderId.hashCode() % 70}"
-                        },
+                        model = avatarOrDefault(senderAvatar, senderName),
                         contentDescription = "User avatar",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -648,7 +645,7 @@ fun MessageBubble(
                 // PHOTO: anh trong bubble bo goc
                 "PHOTO" -> AsyncImage(
                     model = message.content,
-                    contentDescription = "Anh",
+                    contentDescription = "Photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(200.dp)

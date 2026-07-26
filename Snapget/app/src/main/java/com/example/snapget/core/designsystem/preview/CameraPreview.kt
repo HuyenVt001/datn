@@ -106,6 +106,9 @@ fun CameraPreviewWithZoom(
     // Giu nut chup de quay video (<=5s). null = tat quay video
     onVideoTaken: ((String) -> Unit)? = null,
     showControls: Boolean = true,
+    // Tang gia tri nay tu ngoai (vd nut center bottom bar) de chup 1 tam anh —
+    // tuong duong cham nut chup trong preview. 0 = chua yeu cau.
+    captureRequestId: Int = 0,
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -407,6 +410,13 @@ fun CameraPreviewWithZoom(
                     )
                 }
 
+                // Yeu cau chup tu ngoai (nut center bottom bar CameraScreen)
+                LaunchedEffect(captureRequestId) {
+                    if (captureRequestId > 0) {
+                        takePhoto()
+                    }
+                }
+
                 @SuppressLint("MissingPermission")
                 fun startRecording() {
                     if (onVideoTaken == null || isRecording) return
@@ -507,7 +517,7 @@ fun CameraPreviewWithZoom(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Camera,
-                                contentDescription = "Cham de chup, giu de quay video",
+                                contentDescription = "Tap to shoot, hold to record",
                                 tint = if (isRecording) Color.White else Color.Black,
                                 modifier = Modifier.size(36.dp),
                             )

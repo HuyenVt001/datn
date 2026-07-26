@@ -80,10 +80,11 @@ fun CoopAcceptScreen(
     LaunchedEffect(acceptStatus) {
         when (val status = acceptStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Da ghep anh — khoanh khac chung da len feed!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Photos merged — your shared moment is on the feed!", Toast.LENGTH_SHORT).show()
                 coopViewModel.resetAcceptStatus()
+                // Don man coop khoi stack, giu Camera lam man goc (camera-first)
                 navController.navigate(Screen.Post.route) {
-                    popUpTo(Screen.Post.route) { inclusive = true }
+                    popUpTo(Screen.Camera.route)
                 }
             }
             is LoadStatus.Error -> {
@@ -118,7 +119,7 @@ fun CoopAcceptScreen(
                 Row(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = inviterMediaUrl,
-                        contentDescription = "Nua anh cua $inviterName",
+                        contentDescription = "$inviterName's half of the photo",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .weight(1f)
@@ -129,7 +130,7 @@ fun CoopAcceptScreen(
                         if (currentPath != null) {
                             AsyncImage(
                                 model = File(currentPath),
-                                contentDescription = "Nua anh cua ban",
+                                contentDescription = "Your half of the photo",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -156,7 +157,7 @@ fun CoopAcceptScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = Color.White)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Dang ghep anh...", color = Color.White)
+                            Text(text = "Merging photos...", color = Color.White)
                         }
                     }
                 }
@@ -166,9 +167,9 @@ fun CoopAcceptScreen(
 
             Text(
                 text = if (myPhotoPath == null) {
-                    "Chup nua con lai cua khoanh khac ✨"
+                    "Capture the other half of the moment ✨"
                 } else {
-                    "Ung y chua? Bam ✓ de ghep va dang!"
+                    "Happy with it? Tap ✓ to merge and post!"
                 },
                 color = Color(0xFFB0B0B0),
                 textAlign = TextAlign.Center,
@@ -186,13 +187,13 @@ fun CoopAcceptScreen(
                 IconButton(
                     onClick = {
                         coopViewModel.declineInvite(inviteId)
-                        Toast.makeText(context, "Da tu choi loi moi.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Invite declined.", Toast.LENGTH_SHORT).show()
                         navController.popBackStack()
                     },
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = "Tu choi",
+                        contentDescription = "Decline",
                         tint = Color.White,
                         modifier = Modifier.size(32.dp),
                     )
@@ -216,7 +217,7 @@ fun CoopAcceptScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Check,
-                            contentDescription = "Ghep va dang",
+                            contentDescription = "Merge and post",
                             tint = if (myPhotoPath != null) Color.Black else Color.Gray,
                             modifier = Modifier.size(36.dp),
                         )
@@ -229,7 +230,7 @@ fun CoopAcceptScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Refresh,
-                        contentDescription = "Chup lai",
+                        contentDescription = "Retake",
                         tint = if (myPhotoPath != null) Color.White else Color.Gray,
                         modifier = Modifier.size(32.dp),
                     )
