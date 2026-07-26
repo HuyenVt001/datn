@@ -79,6 +79,11 @@ fun CameraScreen(
     // (truoc day nut nay navigate submit_photo KHONG co anh -> "No image selected")
     var captureRequestId by remember { mutableIntStateOf(0) }
 
+    // GIU nut center = quay video <=5s, THA = dung (nut chup trong preview da xoa —
+    // hanh vi giu-de-quay chuyen sang nut center nay)
+    var startRecordRequestId by remember { mutableIntStateOf(0) }
+    var stopRecordRequestId by remember { mutableIntStateOf(0) }
+
     Scaffold(
         topBar = {
             MainTopBar(
@@ -160,6 +165,8 @@ fun CameraScreen(
                     },
                     showControls = true,
                     captureRequestId = captureRequestId,
+                    startRecordRequestId = startRecordRequestId,
+                    stopRecordRequestId = stopRecordRequestId,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(50.dp)),
@@ -181,12 +188,18 @@ fun CameraScreen(
                 )
             }
 
-            // Nut center "Take a picture" -> chup that (khong navigate submit_photo rong)
+            // Nut center "Take a picture": BAM = chup, GIU = quay video <=5s, THA = dung
+            // (khong navigate submit_photo rong)
             MainBottomBar(
                 navController,
                 items = takePhotoBar.map { item ->
                     if (item.isCenter) {
-                        item.copy(onClick = { captureRequestId++ })
+                        item.copy(
+                            onClick = { captureRequestId++ },
+                            onLongPress = { startRecordRequestId++ },
+                            // Tha tay o MOI lan bam — preview tu bo qua neu khong dang quay
+                            onPressRelease = { stopRecordRequestId++ },
+                        )
                     } else {
                         item
                     }

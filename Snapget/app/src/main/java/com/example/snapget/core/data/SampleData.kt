@@ -17,7 +17,6 @@ import com.example.snapget.core.model.NotificationType
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.Setting
-import com.example.snapget.core.model.SettingType
 import com.example.snapget.core.model.User
 import java.time.LocalDateTime
 
@@ -222,128 +221,9 @@ object SampleData {
         ),
     )
 
-    // Comprehensive settings list
-    val settingList = listOf<Setting>(
-        Setting(
-            type = SettingType.WIDGET,
-            title = "Widget Settings",
-            description = "Customize your home screen widget",
-        ),
-
-        Setting(
-            type = SettingType.CUSTOMIZE,
-            title = "App Icon",
-            icon = "ICON_APP",
-            description = "Choose from 12 beautiful app icons",
-        ),
-        Setting(
-            type = SettingType.CUSTOMIZE,
-            title = "Theme",
-            icon = "ICON_THEME",
-            description = "Switch between light, dark, or auto mode",
-        ),
-        Setting(
-            type = SettingType.CUSTOMIZE,
-            title = "Streak on widget",
-            icon = "ICON_COLOR",
-            isToggleable = true,
-            isToggled = true,
-        ),
-
-        Setting(
-            type = SettingType.GENERAL,
-            title = "Edit Name",
-            description = "Change your display name",
-        ),
-        Setting(
-            type = SettingType.GENERAL,
-            title = "Edit Birthday",
-            description = "Set or update your birth date",
-        ),
-        Setting(
-            type = SettingType.GENERAL,
-            title = "Change Phone Number",
-            description = "Update your contact number",
-        ),
-        Setting(
-            type = SettingType.GENERAL,
-            title = "How to Add Widget",
-            description = "Step-by-step widget setup guide",
-        ),
-        Setting(
-            type = SettingType.PRIVACY_SAFETY,
-            title = "Blocked Accounts",
-            description = "View and manage blocked users",
-        ),
-        Setting(
-            type = SettingType.PRIVACY_SAFETY,
-            title = "Account Visibility",
-            description = "Control who can find your profile",
-        ),
-        Setting(
-            type = SettingType.PRIVACY_SAFETY,
-            title = "Privacy Choices",
-            description = "Manage data sharing preferences",
-        ),
-
-        Setting(
-            type = SettingType.SUPPORT,
-            title = "Report a Problem",
-            description = "Get help with technical issues",
-        ),
-        Setting(
-            type = SettingType.SUPPORT,
-            title = "Make a Suggestion",
-            description = "Share ideas for new features",
-        ),
-
-        Setting(
-            type = SettingType.ABOUT,
-            title = "TikTok",
-            description = "@snapgetapp - Latest updates & tips",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Instagram",
-            description = "@snapgetapp - Behind the scenes",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Twitter",
-            description = "@snapgetapp - News & announcements",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Share Snapget",
-            description = "Invite friends to join Snapget",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Rate Snapget",
-            description = "Leave a review on your app store",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Terms of Service",
-            description = "Read our terms and conditions",
-        ),
-        Setting(
-            type = SettingType.ABOUT,
-            title = "Privacy Policy",
-            description = "Understand how we protect your data",
-        ),
-
-        Setting(
-            type = SettingType.DANGER_ZONE,
-            title = "Delete Account",
-            description = "Permanently delete your account and all data",
-        ),
-        Setting(
-            type = SettingType.DANGER_ZONE,
-            title = "Sign Out",
-            description = "Sign out from all devices",
-        ),
-    )
+    // Settings hien thi trong app — dung chung nguon TINH voi runtime
+    // (SettingDefaults) de preview khop that, khong lap danh sach.
+    val settingList: List<Setting> = SettingDefaults.defaults
 
     // Sample notifications data
     @RequiresApi(Build.VERSION_CODES.O)

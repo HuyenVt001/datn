@@ -4,6 +4,8 @@ import android.util.Log as AndroidLog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.data.FirestoreRepository
+import com.example.snapget.core.data.SettingDefaults
+import com.example.snapget.core.data.SettingsPreferences
 import com.example.snapget.core.model.Setting
 import com.example.snapget.core.model.auth.AuthUser
 import com.example.snapget.core.network.api.UserApi
@@ -27,6 +29,8 @@ class MainViewModel @Inject constructor(
     // Ho so that (fullName/avatar) nam o server — Firebase Auth photoUrl thuong
     // RONG voi tai khoan email/password nen khong dung lam nguon avatar duoc
     private val userApi: UserApi,
+    // Settings la config UI tinh (xem SettingDefaults); chi luu trang thai toggle
+    private val settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
     private val _settings = MutableStateFlow<List<Setting>>(emptyList())
@@ -60,42 +64,27 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Nap danh sach settings TINH (SettingDefaults) roi phu trang thai toggle da
+     * luu local. Khong con goi Firestore — settings la config UI, khong thuoc
+     * domain server.
+     */
     fun getAllSetting() {
-        viewModelScope.launch {
-            try {
-                val result = repository.getAllSetting()
-                _settings.value = result
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        _settings.value = settingsPreferences.applyOverrides(SettingDefaults.defaults)
     }
 
     /**
-     * Updates the toggle state of a setting in the local state and database.
+     * Cap nhat trang thai toggle cua 1 setting: luu local (SharedPreferences) va
+     * cap nhat state hien thi.
      *
      * @param settingId The ID of the setting to update.
      * @param isToggled The new toggle state for the setting.
      */
     fun updateSettingToggle(settingId: String, isToggled: Boolean) {
-        viewModelScope.launch {
-            try {
-                // Find the setting in the current list
-                val currentSetting = _settings.value.find { it.id == settingId } ?: return@launch
-
-                // Create updated setting with new toggle state
-                val updatedSetting = currentSetting.copy(isToggled = isToggled)
-
-                // Call repository to update in database
-                val result = repository.updateSetting(updatedSetting)
-
-                // Update the local state
-                _settings.value = _settings.value.map {
-                    if (it.id == settingId) result else it
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        // Luu local (SharedPreferences) + cap nhat state ngay lap tuc
+        settingsPreferences.setToggle(settingId, isToggled)
+        _settings.value = _settings.value.map {
+            if (it.id == settingId) it.copy(isToggled = isToggled) else it
         }
     }
 }

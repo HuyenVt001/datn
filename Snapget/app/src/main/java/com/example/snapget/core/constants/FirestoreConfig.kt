@@ -6,7 +6,6 @@ package com.example.snapget.core.constants
  */
 object FirestoreConfig {
     const val USERS = "users"
-    const val SETTINGS = "settings"
     const val NOTIFICATIONS = "notifications"
     const val MESSAGES = "messages"
     const val FRIENDSHIPS = "friendships"
