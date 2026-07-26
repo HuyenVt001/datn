@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Duong dan FileProvider — share anh/video tai ve cacheDir (MediaActions.share) -->
+<paths>
+    <cache-path
+        name="shared"
+        path="." />
+</paths>
