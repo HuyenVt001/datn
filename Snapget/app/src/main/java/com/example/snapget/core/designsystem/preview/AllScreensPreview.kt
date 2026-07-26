@@ -1,0 +1,182 @@
+package com.example.snapget.core.designsystem.preview
+
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
+import com.example.snapget.core.data.SampleData
+import com.example.snapget.core.designsystem.component.grid.PostGrid
+import com.example.snapget.core.designsystem.component.pill.MessageInputPill
+import com.example.snapget.core.designsystem.component.pill.UserListWithArrows
+import com.example.snapget.core.designsystem.theme.AppTheme
+import com.example.snapget.feature.message.ConversationItem
+import com.example.snapget.feature.settings.SettingScreenContent
+
+class ScreenTypeProvider : PreviewParameterProvider<String> {
+    override val values = sequenceOf("Home", "Messages", "Posts", "Settings")
+}
+
+// Preview tong hop cac man hinh. LUU Y: khong goi truc tiep PostScreen/MessageScreen
+// (cac screen do tu tao hiltViewModel -> preview "Failed to instantiate a ViewModel").
+// Thay bang mock stateless dung SampleData, dung chuan CLAUDE.md muc 8.
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview(
+    name = "All Screens",
+    showBackground = true,
+    backgroundColor = 0xFFF5F5F5,
+    showSystemUi = true,
+)
+@Composable
+fun AllScreensPreview(
+    @PreviewParameter(ScreenTypeProvider::class) screenType: String = "Home",
+) {
+    AppTheme {
+        when (screenType) {
+            "Home", "Posts" -> HomeFeedMock()
+            "Messages" -> MessageListMock()
+            "Settings" -> SettingScreenContent(
+                settings = SampleData.settingList,
+                navController = rememberNavController(),
+            )
+        }
+    }
+}
+
+/** Mock UI feed (PostScreen) — chi ghep component stateless + SampleData. */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun HomeFeedMock() {
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            UserListWithArrows(users = SampleData.users.take(3), showEveryone = true)
+            PostGrid(
+                posts = SampleData.samplePosts,
+                onPostClick = {},
+                modifier = Modifier.weight(1f),
+            )
+            MessageInputPill()
+        }
+    }
+}
+
+/** Mock UI danh sach hoi thoai (MessageScreen) — dung sampleConversations cung package. */
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun MessageListMock() {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        sampleConversations.forEach { conversation ->
+            ConversationItem(conversation = conversation)
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview(
+    name = "Screen Components Overview",
+    showBackground = true,
+    heightDp = 800,
+    widthDp = 400,
+)
+@Composable
+fun ScreenComponentsPreview() {
+    AppTheme {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            Text(
+                text = "Snapget App - Screen Components",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "✅ Home Screen - Navigation hub with beautiful cards",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✅ Messages Screen - Chat list with online indicators and unread counts",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✅ Posts Screen - Social feed with like/share features and media support",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "✅ Settings Screen - Organized by categories with modern UI",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Features Implemented:",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val features = listOf(
+                "🎨 Modern Material 3 design",
+                "📱 Responsive layouts",
+                "🖼️ Image loading with Coil",
+                "👤 User avatars with DiceBear API",
+                "💬 Rich message previews",
+                "❤️ Interactive like system",
+                "📊 Engagement metrics",
+                "🌙 Dark/Light theme support",
+                "🔧 Comprehensive settings",
+                "📱 Top app bars with navigation",
+                "🎭 Preview support for all screens",
+            )
+
+            features.forEach { feature ->
+                Text(
+                    text = feature,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 2.dp),
+                )
+            }
+        }
+    }
+}

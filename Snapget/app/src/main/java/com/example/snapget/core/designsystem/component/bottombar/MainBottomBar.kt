@@ -1,0 +1,398 @@
+package com.example.snapget.core.designsystem.component.bottombar
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.Message
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.MotionPhotosAuto
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SmartDisplay
+import androidx.compose.material.icons.filled.ViewCozy
+import androidx.compose.material.icons.outlined.Cached
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material.icons.outlined.MotionPhotosAuto
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.SmartDisplay
+import androidx.compose.material.icons.outlined.ViewCozy
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.example.snapget.core.designsystem.component.circle.Circle
+import com.example.snapget.core.designsystem.component.circle.IconSetting
+import com.example.snapget.navigation.Screen
+
+data class BottomNavItem(
+    val title: String? = null,
+    val selectedIcon: ImageVector? = null,
+    val unselectedIcon: ImageVector? = null,
+    val route: String,
+    // flag để xác định button special (ví dụ camera)
+    val isCenter: Boolean = false,
+    // Kích thước tùy chỉnh cho button center
+    val customSizeCenter: Dp = 60.dp,
+    // Callback khi nhấn vào item
+    val onClick: (() -> Unit)? = null,
+)
+
+private fun normalizeItems(original: List<BottomNavItem>): Pair<List<BottomNavItem>, BottomNavItem?> {
+    val centerItem = original.firstOrNull { it.isCenter }
+    if (centerItem == null) return original to null
+
+    val withoutCenter = original.filter { !it.isCenter }
+    // Chia đều: firstHalf lấy ceil, secondHalf là phần còn lại
+    val splitIndex = (withoutCenter.size + 1) / 2
+    val firstHalf = withoutCenter.take(splitIndex)
+    val secondHalf = withoutCenter.drop(splitIndex)
+    val finalList = firstHalf + listOf(centerItem) + secondHalf
+    return finalList to centerItem
+}
+
+/**
+ * Determines which bottom navigation items to show based on the current route
+ */
+private fun getBottomNavItems(currentRoute: String?): List<BottomNavItem> = when (currentRoute) {
+    Screen.Post.route -> sampleItems2
+    Screen.Profile.route -> sampleItems
+    Screen.Setting.route -> sampleItems3
+    else -> sampleItems2
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainBottomBar(
+    navController: NavController,
+    items: List<BottomNavItem>,
+    modifier: Modifier = Modifier,
+    onItemClick: (BottomNavItem) -> Unit = { },
+) {
+    // Use provided items or determine items based on current route
+    val (orderedItems, centerItem) = normalizeItems(items)
+    val centerIconNavigation = items.find { it.isCenter }?.route ?: Screen.Post.route
+
+    // bottom sheet
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
+    NavigationBar(
+        containerColor = Color.Transparent,
+        modifier = modifier,
+    ) {
+        orderedItems.forEach { item ->
+            if (item == centerItem) {
+                // center special button (vd: camera)
+                if (item.title == "Camera" || item.title == "Take a picture") {
+                    Circle(
+                        outerSize = centerItem.customSizeCenter,
+                        gap = 7.dp,
+                        backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                            Color.Gray
+                        } else {
+                            Color.Transparent
+                        },
+                        borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                            Color.Gray
+                        } else {
+                            Color.Yellow
+                        },
+                        borderWidth = 3.dp,
+                        onClick = {
+                            // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
+                            // onItemClick -> nut Send tren SubmitPhotoScreen chet)
+                            onItemClick(item)
+                            // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
+                            // roi moi fallback navigate theo route
+                            val customClick = centerItem.onClick
+                            if (customClick != null) {
+                                customClick()
+                            } else if (centerIconNavigation.isNotEmpty()) {
+                                navController.navigate(centerIconNavigation)
+                            }
+                        },
+                        iconSetting = when {
+                            centerItem.selectedIcon != null -> IconSetting(
+                                icon = centerItem.selectedIcon!!,
+                                tint = Color.White,
+                                contentDescription = item.title,
+                            )
+
+                            centerItem.unselectedIcon != null -> IconSetting(
+                                icon = centerItem.unselectedIcon!!,
+                                tint = Color.White,
+                                contentDescription = item.title,
+                            )
+
+                            else -> null
+                        },
+                    )
+                } else if (item.title == "Send") {
+                    Circle(
+                        outerSize = centerItem.customSizeCenter,
+                        gap = 20.dp,
+                        backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                            Color.Gray
+                        } else {
+                            Color.Transparent
+                        },
+                        borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                            Color.Gray
+                        } else {
+                            Color.Yellow
+                        },
+                        modifier = Modifier.rotate(-45F),
+                        borderWidth = 3.dp,
+                        onClick = {
+                            // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
+                            // onItemClick -> nut Send tren SubmitPhotoScreen chet)
+                            onItemClick(item)
+                            // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
+                            // roi moi fallback navigate theo route
+                            val customClick = centerItem.onClick
+                            if (customClick != null) {
+                                customClick()
+                            } else if (centerIconNavigation.isNotEmpty()) {
+                                navController.navigate(centerIconNavigation)
+                            }
+                        },
+                        iconSetting = when {
+                            centerItem.selectedIcon != null -> IconSetting(
+                                icon = centerItem.selectedIcon!!,
+                                tint = Color.White,
+                                contentDescription = item.title,
+                            )
+
+                            centerItem.unselectedIcon != null -> IconSetting(
+                                icon = centerItem.unselectedIcon!!,
+                                tint = Color.White,
+                                contentDescription = item.title,
+                            )
+
+                            else -> null
+                        },
+                    )
+                }
+            } else if (item.title != null) {
+                NavigationBarItem(
+                    icon = {
+                        if (item.selectedIcon != null || item.unselectedIcon != null) {
+                            // Determine which icon to use, defaulting to whichever is not null
+                            val iconToUse = when {
+                                item.unselectedIcon != null -> item.unselectedIcon
+                                else -> item.selectedIcon
+                            }
+
+                            // Only show icon if we have a non-null icon to display
+                            iconToUse?.let {
+                                Icon(
+                                    imageVector = it,
+                                    contentDescription = item.title,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp),
+                                )
+                            }
+                        }
+                    },
+                    selected = false,
+                    onClick = {
+                        onItemClick(item)
+                        if (item.route.isNotEmpty()) {
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                )
+            } else {
+                // Empty box placeholder with same size as navigation items
+                Box(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+private val sampleItems = listOf(
+    BottomNavItem(
+        title = "Home",
+        selectedIcon = Icons.Filled.Home,
+        unselectedIcon = Icons.Outlined.Home,
+        route = Screen.Post.route,
+    ),
+    BottomNavItem(
+        title = "Messages",
+        selectedIcon = Icons.AutoMirrored.Filled.Message,
+        unselectedIcon = Icons.AutoMirrored.Outlined.Message,
+        route = Screen.Message.route,
+    ),
+    BottomNavItem(
+        title = "Camera",
+        selectedIcon = Icons.Filled.CameraAlt,
+        unselectedIcon = Icons.Filled.CameraAlt,
+        route = "",
+        isCenter = true,
+    ),
+    BottomNavItem(
+        title = "Profile",
+        selectedIcon = Icons.Filled.Person,
+        unselectedIcon = Icons.Outlined.Person,
+        route = Screen.Profile.route,
+    ),
+    BottomNavItem(
+        title = "Settings",
+        selectedIcon = Icons.Filled.Settings,
+        unselectedIcon = Icons.Outlined.Settings,
+        route = Screen.Setting.route,
+    ),
+)
+
+val sampleItems2 = listOf(
+    BottomNavItem(
+        title = null,
+        selectedIcon = null,
+        unselectedIcon = null,
+        route = Screen.Post.route,
+    ),
+    BottomNavItem(
+        title = "Camera",
+        selectedIcon = null,
+        unselectedIcon = null,
+        route = Screen.Camera.route,
+        isCenter = true,
+    ),
+    BottomNavItem(
+        title = "Share",
+        selectedIcon = Icons.Filled.SmartDisplay,
+        unselectedIcon = Icons.Outlined.SmartDisplay,
+        route = Screen.Setting.route,
+    ),
+)
+
+val sampleItems3 = listOf(
+    BottomNavItem(
+        title = "Home",
+        selectedIcon = Icons.Filled.ViewCozy,
+        unselectedIcon = Icons.Outlined.ViewCozy,
+        route = Screen.Post.route,
+    ),
+    BottomNavItem(
+        title = "Camera",
+        selectedIcon = null,
+        unselectedIcon = null,
+        route = Screen.Camera.route,
+        isCenter = true,
+    ),
+    BottomNavItem(
+        title = "Share",
+        selectedIcon = Icons.Filled.IosShare,
+        unselectedIcon = Icons.Outlined.IosShare,
+        route = Screen.Setting.route,
+    ),
+)
+
+val takePhotoBar = listOf(
+    BottomNavItem(
+        title = "Photo Library",
+        selectedIcon = Icons.Filled.PhotoLibrary,
+        unselectedIcon = Icons.Outlined.PhotoLibrary,
+        route = Screen.Post.route,
+    ),
+    BottomNavItem(
+        title = "Take a picture",
+        selectedIcon = null,
+        unselectedIcon = null,
+        // KHONG navigate submit_photo o day (mo man submit khong co anh ->
+        // "No image selected") — CameraScreen override onClick de chup that
+        route = "",
+        customSizeCenter = 80.dp,
+        isCenter = true,
+    ),
+    BottomNavItem(
+        title = "Change camera",
+        selectedIcon = Icons.Filled.Cached,
+        unselectedIcon = Icons.Outlined.Cached,
+        route = "",
+    ),
+)
+
+val submitPhotoBar = listOf(
+    BottomNavItem(
+        title = "Cancel",
+        selectedIcon = Icons.Filled.Close,
+        unselectedIcon = Icons.Outlined.Close,
+        route = Screen.Post.route,
+    ),
+    BottomNavItem(
+        title = "Send",
+        selectedIcon = Icons.AutoMirrored.Filled.Send,
+        unselectedIcon = Icons.AutoMirrored.Outlined.Send,
+        route = "",
+        customSizeCenter = 80.dp,
+        isCenter = true,
+    ),
+    BottomNavItem(
+        title = "Captions List",
+        selectedIcon = Icons.Filled.MotionPhotosAuto,
+        unselectedIcon = Icons.Outlined.MotionPhotosAuto,
+        route = "",
+    ),
+)
+
+@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
+@Composable
+fun MainBottomBarPreview() {
+    MaterialTheme {
+        MainBottomBar(
+            navController = rememberNavController(),
+            items = sampleItems,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
+@Composable
+fun MainBottomBar2Preview() {
+    MaterialTheme {
+        MainBottomBar(
+            navController = rememberNavController(),
+            items = sampleItems2,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
+@Composable
+fun MainBottomBar3Preview() {
+    MaterialTheme {
+        MainBottomBar(
+            navController = rememberNavController(),
+            items = sampleItems3,
+        )
+    }
+}

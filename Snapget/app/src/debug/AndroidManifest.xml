@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Overlay manifest cho build DEBUG: cho phep HTTP (cleartext) toi server dev
+     (http://10.0.2.2:3000 tren emulator / IP LAN tren may that).
+     Ban release KHONG co attribute nay -> Android chan cleartext mac dinh. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

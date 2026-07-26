@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Ghi am khi quay video ngan (<=5s) + tin nhan thoai -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+    <!-- usesCleartextTraffic chi bat o build DEBUG (src/debug/AndroidManifest.xml) —
+         server dev chay HTTP (10.0.2.2 / IP LAN). Ban release KHONG cho cleartext
+         de token khong bao gio di qua HTTP tran. -->
+    <application
+        android:name=".MainApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MVVM"
+        android:fitsSystemWindows="false"
+
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MVVM"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- App Links moi ket ban: https://snapget-d8693.web.app/invite/<code>
+                 (Firebase Hosting cua project — assetlinks.json trong hosting/ o root repo;
+                 xu ly o MainActivity onCreate + onNewIntent) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="snapget-d8693.web.app" android:pathPrefix="/invite/" />
+            </intent-filter>
+
+            <!-- Scheme du phong: snapget://invite/<code> — nut "Mo app Snapget" tren landing page
+                 dung khi App Links chua verify (vd APK ky bang keystore khac) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="snapget" android:host="invite" />
+            </intent-filter>
+        </activity>
+
+        <!-- Firebase Cloud Messaging -->
+        <service
+            android:name=".core.fcm.SnapgetMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.messaging.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="snapget_default" />
+    </application>
+
+</manifest>

@@ -1,0 +1,38 @@
+[
+  {
+    "file": "quest-golden.png",
+    "frameName": "Khung vàng cổ điển"
+  },
+  {
+    "file": "quest-neon.png",
+    "frameName": "Khung neon"
+  },
+  {
+    "file": "quest-polaroid.png",
+    "frameName": "Khung polaroid"
+  },
+  {
+    "file": "quest-hearts.png",
+    "frameName": "Khung trái tim"
+  },
+  {
+    "file": "milestone-3.png",
+    "frameName": "Khung streak 3 ngày",
+    "milestone": 3
+  },
+  {
+    "file": "milestone-7.png",
+    "frameName": "Khung streak 7 ngày",
+    "milestone": 7
+  },
+  {
+    "file": "milestone-14.png",
+    "frameName": "Khung streak 14 ngày",
+    "milestone": 14
+  },
+  {
+    "file": "milestone-30.png",
+    "frameName": "Khung streak 30 ngày",
+    "milestone": 30
+  }
+]
