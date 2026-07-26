@@ -1,9 +1,13 @@
 package com.example.snapget.feature.post
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -39,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -58,7 +63,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
@@ -232,6 +239,50 @@ fun PostScreen(
         }
     }
 
+    // ==== Download ve thu vien — Android 7-9 (API < 29) can WRITE_EXTERNAL_STORAGE
+    // runtime (fix 2026-07-26: truoc day khong xin -> insert fail -> "Download failed") ====
+    val downloadToGallery: (String, Boolean) -> Unit = { url, video ->
+        scope.launch {
+            val ok = MediaActions.saveToGallery(context, url, video)
+            Toast.makeText(
+                context,
+                if (ok) "Saved to gallery." else "Download failed.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+    var pendingDownload by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        val request = pendingDownload
+        pendingDownload = null
+        if (request != null) {
+            if (granted) {
+                downloadToGallery(request.first, request.second)
+            } else {
+                Toast.makeText(
+                    context,
+                    "Storage permission is required to download.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+    val requestDownload: (String, Boolean) -> Unit = { url, video ->
+        val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) != PackageManager.PERMISSION_GRANTED
+        if (needsPermission) {
+            pendingDownload = url to video
+            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            downloadToGallery(url, video)
+        }
+    }
+
     // Dang o POST MOI NHAT (trang 0) ma keo xuong tiep -> pager khong cuon duoc
     // nua, phan du roi vao onPostScroll -> cong don, qua nguong thi ve camera
     val backThresholdPx = with(LocalDensity.current) { SWIPE_DOWN_TO_CAMERA_THRESHOLD.toPx() }
@@ -253,6 +304,13 @@ fun PostScreen(
                     pullDownTotal = 0f
                 }
                 return Offset.Zero
+            }
+
+            // Het gesture (tha tay/fling) -> reset: khong cong don nhieu cu keo
+            // nhe roi rac thanh 1 lan "vuot ve camera" bat ngo (fix 2026-07-26)
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                pullDownTotal = 0f
+                return Velocity.Zero
             }
         }
     }
@@ -297,7 +355,10 @@ fun PostScreen(
 
             MainBottomBar(
                 navController = navController,
-                items = sampleItems2,
+                // Center = VE camera bang pop (goBackToCamera) — navigate tran se
+                // day chong Camera/Post len back stack moi lan bam (fix 2026-07-26)
+                items = sampleItems2.map { if (it.isCenter) it.copy(onClick = goBackToCamera) else it },
+                iconTint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         } else {
@@ -338,7 +399,9 @@ fun PostScreen(
                             .fillMaxSize()
                             .nestedScroll(backToCameraConnection),
                     ) { page ->
-                        val post = displayPosts[page]
+                        // getOrNull: xoa bai cuoi lam list co lai trong khi pager con
+                        // render page cu -> index truc tiep se IndexOutOfBounds
+                        val post = displayPosts.getOrNull(page) ?: return@VerticalPager
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -363,21 +426,25 @@ fun PostScreen(
                     .navigationBarsPadding(),
             ) {
                 if (currentPost != null) {
-                    MessageInputPill(
-                        selectedEmoji = selectedEmojiByPost[currentPost.id],
-                        onEmojiClick = { emoji ->
-                            selectedEmojiByPost[currentPost.id] = emoji
-                            postViewModel.react(currentPost.id, emoji)
-                            flyingEmojis.add(newFlyingEmoji(emoji))
-                        },
-                        onSendMessage = { text ->
-                            if (currentPost.user.id == myId) {
-                                Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
-                            } else {
-                                postViewModel.sendMessageToAuthor(currentPost.user.id, text)
-                            }
-                        },
-                    )
+                    // key(post.id): text go do trong pill KHONG dinh sang bai khac
+                    // khi luot trang (fix 2026-07-26 — truoc day de gui nham nguoi)
+                    key(currentPost.id) {
+                        MessageInputPill(
+                            selectedEmoji = selectedEmojiByPost[currentPost.id],
+                            onEmojiClick = { emoji ->
+                                selectedEmojiByPost[currentPost.id] = emoji
+                                postViewModel.react(currentPost.id, emoji)
+                                flyingEmojis.add(newFlyingEmoji(emoji))
+                            },
+                            onSendMessage = { text ->
+                                if (currentPost.user.id == myId) {
+                                    Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    postViewModel.sendMessageToAuthor(currentPost.user.id, text)
+                                }
+                            },
+                        )
+                    }
                 }
 
                 // Hang duoi cung (khop mau): luoi | nut chup trang vien vang | ⋯
@@ -392,7 +459,8 @@ fun PostScreen(
                         Icon(
                             imageVector = Icons.Default.GridView,
                             contentDescription = "All posts",
-                            tint = Color.White,
+                            // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(32.dp),
                         )
                     }
@@ -414,7 +482,7 @@ fun PostScreen(
                         Icon(
                             imageVector = Icons.Default.MoreHoriz,
                             contentDescription = "Post options",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(32.dp),
                         )
                     }
@@ -535,14 +603,7 @@ fun PostScreen(
             },
             onDownload = {
                 optionsPost = null
-                scope.launch {
-                    val ok = MediaActions.saveToGallery(context, post.thumbnailUrl, isVideo)
-                    Toast.makeText(
-                        context,
-                        if (ok) "Saved to gallery." else "Download failed.",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
+                requestDownload(post.thumbnailUrl, isVideo)
             },
             onDelete = {
                 optionsPost = null

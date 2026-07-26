@@ -11,6 +11,8 @@ export interface User {
   personalStreak: number;
   /** Ngay gan nhat tinh streak ca nhan (YYYY-MM-DD) — de tang/reset streak. */
   lastStreakDate?: string;
+  /** Ngay sinh (yyyy-MM-dd), user tu khai trong Settings. */
+  birthday?: string;
   /** Ma moi ket ban (dung sinh invite link). */
   inviteCode?: string;
   /** Han cua ma moi (ISO) — qua han thi ma vo hieu, lay link se tu sinh ma moi. */

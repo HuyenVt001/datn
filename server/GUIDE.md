@@ -2,7 +2,10 @@
 
 > Bản đồ **sống** của server: đọc trước khi sửa, **cập nhật sau MỖI lần sửa code** (cây thư mục + task + tiến độ).
 > Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: 2026-07-26 (thêm `DELETE /api/moments/:id` — chỉ chủ bài, xóa kèm subcollection views/reactions; app đã nối qua menu ⋯ trên feed).
+> Cập nhật lần cuối: 2026-07-26 — 2 đợt trong ngày:
+> (1) ĐẠI TU TRANG ADMIN: role admin hoàn thiện (cột admin + revoke-admin + chặn tự khóa/tự thu quyền + guard re-check MỖI request + login trả uid); khung ảnh 6 điều kiện mở khóa `unlockType` wire tự mở vào moments/friendships/coop; `GET /frames/:id/owners`; `GET /admin/stats/daily`.
+> (3) ĐỢT HOÀN THIỆN HỆ THỐNG (107 unit + 7 e2e pass): **kiểm duyệt bài đăng** `GET /admin/moments` + `DELETE /admin/moments/:id`; **audit log** module `audit/` (collection `adminLogs`, ghi best-effort mọi hành động admin: khóa/mở user, cấp/thu quyền, CRUD/grant khung, xóa bài) + `GET /admin/logs`; **sync displayName/photoURL lên Firebase Auth** khi PATCH /users/me (hết lệch tên Auth↔Firestore); **helmet** (CSP off cho Swagger) + **@nestjs/throttler** (120 req/60s toàn cục, login admin siết 10/60s); **UsersService.pushToUids** = helper FCM duy nhất (gộp 4 bản sao ở moments/messages/coop/friendships — các service này bỏ dependency FirebaseService); **e2e smoke** `test/app.e2e-spec.ts` (supertest boot AppModule thật: envelope/validation/guard/404 — không cần emulator; hướng dẫn mở rộng bằng `firebase emulators:exec` trong comment đầu file).
+> (2) ĐỢT VÁ LỖI SAU REVIEW (101 test pass): **ensureUser** không ghi `avatar: undefined` (tài khoản email/password hết 500 ở GET /users/me) + backfill doc STUB/prototype (giữ unlockedFrames, không ghi đè tên cũ); **revokeAdmin** post-check chống race 2 admin thu quyền lẫn nhau (về 0 admin thì tự khôi phục claim); **listUsers** search theo fullName Firestore (tên đang hiển thị) — repo đổi `getFullNames`→`getAllFullNames`; **createGroup** chỉ cho thêm bạn bè; **seen/reaction** chỉ người thấy được bài trên feed (chủ bài/coop partner/bạn của 1 trong 2) — `GET :id/reactions` giờ cần biết người gọi; disabled uid lạ trả 404; coop ghi momentId best-effort; declineRequest chạy transaction; xóa moment chunk batch 450; chặn birthday tương lai; dev-streak.ts theo unlockType + guard catalog rỗng.
 
 ---
 
@@ -55,21 +58,23 @@ server/
 │   │   ├── filters/             ✅ AllExceptionsFilter (envelope lỗi; 2026-07-19: log cả exception KHÔNG phải Error — vd Cloudinary SDK reject plain object, trước đây bị nuốt im lặng)
 │   │   ├── interceptors/        ✅ ResponseInterceptor (envelope thành công)
 │   │   └── guards/              ✅ FirebaseAuthGuard, AdminJwtGuard, RolesGuard
-│   ├── auth/                    ✅ POST /api/auth/admin/login (verify Firebase token → phát JWT). Export JwtModule
-│   ├── users/                   ✅ me (GET/PATCH), fcm-tokens (POST/DELETE), GET /:uid, ensureUser (tự tạo doc), streak cá nhân, inviteCode (TTL 30 ngày — hết hạn tự sinh mã mới). Có spec. (2026-07-19: fix PATCH /users/me crash "not a valid Firestore document" — UpdateUserDto là class instance, phải chuyển plain object trước khi ghi Firestore)
+│   ├── auth/                    ✅ POST /api/auth/admin/login (verify Firebase token → check claim admin HIỆN HÀNH qua getUser + check disabled → phát JWT, trả kèm uid). Export JwtModule. **AdminJwtGuard re-check quyền admin + disabled trên Firebase MỖI request** (2026-07-26) — thu quyền/khóa là mất phiên admin ngay, không đợi JWT hết hạn
+│   ├── users/                   ✅ me (GET/PATCH), fcm-tokens (POST/DELETE), GET /:uid, ensureUser (tự tạo doc), streak cá nhân, inviteCode (TTL 30 ngày — hết hạn tự sinh mã mới). Có spec. (2026-07-19: fix PATCH /users/me crash "not a valid Firestore document" — UpdateUserDto là class instance, phải chuyển plain object trước khi ghi Firestore) (2026-07-26: thêm field `birthday` yyyy-MM-dd — entity + UpdateUserDto @Matches + service patch + repo toEntity; KHÔNG lộ ra PublicUser; app dùng cho mục Edit Birthday trong Settings)
 │   ├── friendships/             ✅ list, invite-link (domain hosting + expiresAt), invite-info/:code, connect = GỬI LỜI MỜI PENDING (transaction chống race limit 20 + từ chối mã hết hạn; mutual → ACCEPTED luôn), requests + accept/decline (chủ link xác nhận, FCM 2 chiều), remove; registerInteraction (friend streak reset 24h). Có spec
 │   ├── upload/                  ✅ POST /api/upload (Firebase) + POST /api/upload/admin (Admin JWT — ảnh khung từ trang admin); multipart ≤25MB → Cloudinary (folder snapget/); enforce video ≤5s từ metadata, quá thì xóa asset + báo lỗi
 │   ├── moments/                 ✅ đăng bài (wire personal streak + FCM cho bạn bè), feed (mình + bạn, chunked 10), mine + user/:uid (profile — chỉ bạn bè xem được), mark seen (subcol views), reactions (subcol, wire friend streak). Có spec
 │   │   └── (coop)               ✅ CO-OP CAPTURE (2026-07-13): coop.controller/service/repository + entities/coop-invite + dto/coop — mời chụp chung (bạn bè ACCEPTED, FCM COOP_INVITE) → accept (tải 2 nửa ảnh, **sharp** ghép side-by-side 1080×1080, upload snapget/coop, tạo 1 moment tác giả = người mời + coopUserId = người nhận, streak/quest/interaction cho CẢ 2, FCM COOP_DONE) / decline. CoopController đứng TRƯỚC MomentsController trong module (tránh nuốt route bởi :id). Có spec (7 test)
 │   ├── messages/                ✅ gửi 1-1 (chỉ bạn bè, wire friend streak, FCM) + nhóm ≤20 (member-only, FCM), thread 1-1/nhóm, conversations, markSeen (chỉ người nhận), tạo/list nhóm. Có spec
-│   ├── frames/                  ✅ catalog + isUnlocked cho user; admin thêm/sửa (PATCH, 2026-07-13)/xóa/grant khung; unlockForUser() sẵn cho quests thưởng. Có spec
+│   ├── frames/                  ✅ catalog + isUnlocked cho user; admin thêm/sửa/xóa/grant khung; **6 điều kiện mở khóa `unlockType`** (2026-07-26): QUEST_RANDOM (pool thưởng quest) · STREAK_MILESTONE (mốc 3/7/14/30, giữ field legacy `milestone` đồng bộ cho app) · POST_COUNT (đủ N bài) · FRIEND_COUNT (đủ N bạn, mở cả 2 phía) · COOP_FIRST (chụp chung lần đầu, mở cả 2) · DEFAULT (mở sẵn — isUnlocked luôn true); doc cũ chỉ có `milestone` được repo suy ngược tương thích; `unlockByThreshold()`/`unlockCoopFrames()` cho hook tự mở; `GET /frames/:id/owners` (admin xem user sở hữu). Có spec
 │   ├── quests/                  ✅ (2026-07-13, KHÔNG AI) 2 quest cố định/ngày (LOGIN + POST_MOMENT), lazy tạo khi có request đầu tiên; GET /quests/today tự hoàn thành LOGIN; MomentsService gọi registerMomentPosted → hoàn thành POST_MOMENT; thưởng 2/2 quest → khung ngẫu nhiên (1 lần/ngày, đánh dấu doc DAILY_REWARD), mốc streak 3/7/14/30 → khung có field `milestone`. Có spec
-│   └── admin/                   ✅ list/search user (Auth + enrich Firestore), stats (count aggregate), khóa/mở user, grant-admin. Có admin.repository.ts + spec
+│   ├── audit/                   ✅ (2026-07-26) audit log: AuditService.log (best-effort) + AuditRepository (collection adminLogs) — AdminModule/FramesModule dùng chung, không vòng lặp DI
+│   └── admin/                   ✅ list/search user (Auth + enrich Firestore, kèm cờ `admin` + `lastSignInAt`), stats (count aggregate) + **stats/daily** (moment + user mới theo ngày cho biểu đồ), khóa/mở user (chặn TỰ khóa; khóa = thu hồi luôn refresh token), grant-admin + **revoke-admin** (chặn tự thu quyền → hệ thống luôn còn ≥1 admin). Có admin.repository.ts + spec (2026-07-26)
 │   └── (spec)               ✅ users, friendships, moments, messages, frames, admin, quests — 47 test pass (2026-07-13)
 ├── assets/frames/           ✅ 8 khung PNG mẫu (4 thưởng quest + 4 mốc streak 3/7/14/30) + manifest.json cho seed:frames
 ├── scripts/
 │   ├── seed-admin.ts        ✅ `npm run seed:admin -- <email>` — set custom claim admin=true cho admin ĐẦU TIÊN (mặc định viethoang5301314@gmail.com; sau khi seed phải đăng nhập lại để token mang claim)
-│   └── seed-frames.ts       ✅ `npm run seed:frames` — upload assets/frames lên Cloudinary + tạo doc `frames` (bỏ qua trùng tên)
+│   ├── seed-frames.ts       ✅ `npm run seed:frames` — upload assets/frames lên Cloudinary + tạo doc `frames` (bỏ qua trùng tên)
+│   └── dev-streak.ts        ✅ `npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]` — DEV TOOL test mở khung: set streak (lastStreakDate=hôm-qua-UTC → đăng 1 bài = +1 streak, chạm mốc là server tự mở khung), mở/khóa toàn bộ khung, không tham số = xem trạng thái (2026-07-26)
 └── test/                    ⬜ chưa có e2e (jest unit config sẵn trong package.json)
 ```
 
@@ -90,7 +95,7 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 | `messages/{id}` | tin nhắn (receiverId? / groupId?), messageType, isSeen |
 | `chatGroups/{id}` | nhóm chat (memberIds[] ≤20) |
 | `coopInvites/{id}` | lời mời chụp chung (inviterId, inviteeId, inviterMediaUrl, status PENDING/COMPLETED/DECLINED, momentId?) |
-| `frames/{id}` | khung ảnh (admin quản lý) |
+| `frames/{id}` | khung ảnh (admin quản lý): `frameName`, `imageUrl`, `unlockType` + `unlockValue` (điều kiện mở khóa, 2026-07-26), `milestone` (legacy = unlockValue khi STREAK_MILESTONE — app đọc nhãn 🔥) |
 | `dailyQuests/{id}` + `userQuests/{id}` | quest + bài nộp (proofUrl, status) |
 
 ---
@@ -117,9 +122,9 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | friendships | ✅ | ✅ (list, invite-link, invite-info, connect, requests, accept, decline, remove) | **kết bạn 2 bước** ✅ (connect tạo PENDING → chủ link accept/decline; mutual → ACCEPTED luôn; FCM 2 chiều), limit 20 trong Firestore TRANSACTION ✅ (cả lúc gửi lời mời lẫn lúc accept), mã mời TTL 30 ngày ✅, friend streak reset 24h (hàm sẵn) | ✅ | ✅ |
 | moments | ✅ | ✅ (create, feed, mine, user/:uid, **delete (chủ bài)**, seen, reactions) | video≤5s (ở upload) ✅, isSeen ✅, personal+friend streak wired ✅, FCM bạn bè ✅, moment người khác chỉ bạn bè xem ✅, xóa chỉ chủ bài ✅ | ✅ | ✅ |
 | messages | ✅ | ✅ (send 1-1/nhóm, threads, conversations, seen, groups) | group≤20 ✅, isSeen ✅, chỉ-bạn-bè ✅, friend streak wired ✅, FCM ✅ | ✅ | ✅ |
-| frames | ✅ | ✅ (list+isUnlocked, admin thêm/sửa/xóa, grant) | unlock qua service (chờ quests wire) ✅ | ✅ | ✅ |
+| frames | ✅ | ✅ (list+isUnlocked, admin thêm/sửa/xóa, grant, owners) | 6 điều kiện `unlockType` ✅ (2026-07-26): POST_COUNT hook ở moments.create, FRIEND_COUNT hook ở friendships accept/mutual (cả 2 phía), COOP_FIRST hook ở coop.accept (cả 2), DEFAULT mở sẵn, pool thưởng quest = CHỈ QUEST_RANDOM | ✅ | ✅ |
 | quests | ✅ | ✅ (today, auto-complete, thưởng) | 2 quest cố định/ngày (KHÔNG AI), lazy, thưởng 2/2 + mốc streak | ✅ | ✅ |
-| admin | ✅ | ✅ (list/search, stats, khóa/mở, grant-admin) | | ✅ | ✅ |
+| admin | ✅ | ✅ (list/search kèm role, stats + stats/daily, khóa/mở, grant/revoke-admin) | chặn tự khóa/tự thu quyền ✅ (luôn còn ≥1 admin), guard re-check quyền mỗi request ✅, khóa = revoke refresh token ✅ (2026-07-26) | ✅ | ✅ |
 | upload (Cloudinary) | ✅ | ✅ (POST /upload + /upload/admin, uploadBuffer cho ảnh ghép) | video≤5s enforce tại upload ✅ | ⬜ | ✅ |
 | coop (chụp chung) | ✅ | ✅ (invite, pending, accept ghép sharp, decline) | chỉ bạn bè ACCEPTED ✅, chỉ invitee trả lời ✅, chỉ PENDING ✅, **hết hạn 24h** ✅ (không hiện trong pending + không trả lời được, `INVITE_TTL_HOURS`), streak/quest cả 2 ✅, FCM ✅ | ✅ (9 test) | ✅ |
 
@@ -134,7 +139,7 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | GET | `/api/health` | Kiểm tra server sống | Public |
 | POST | `/api/auth/admin/login` | Admin đổi Firebase token lấy JWT server | Public |
 | GET | `/api/users/me` | Lấy hồ sơ của mình (tự tạo doc nếu login lần đầu) | Firebase |
-| PATCH | `/api/users/me` | Cập nhật hồ sơ (fullName/avatar) | Firebase |
+| PATCH | `/api/users/me` | Cập nhật hồ sơ (fullName/avatar/birthday `yyyy-MM-dd`) | Firebase |
 | POST | `/api/users/me/fcm-tokens` | Đăng ký FCM token | Firebase |
 | DELETE | `/api/users/me/fcm-tokens/:token` | Gỡ FCM token | Firebase |
 | GET | `/api/users/:uid` | Xem hồ sơ công khai user khác | Firebase |
@@ -157,9 +162,9 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | POST | `/api/moments/coop/:id/accept` | Nộp nửa ảnh còn lại → server ghép sharp → 1 moment chung cho cả 2 | Firebase |
 | POST | `/api/moments/coop/:id/decline` | Từ chối lời mời | Firebase |
 | DELETE | `/api/moments/:id` | Xóa moment — **CHỈ chủ bài** (403 nếu không); xóa cả subcollection views/reactions (mới 2026-07-26, phục vụ menu ⋯ trên app) | Firebase |
-| POST | `/api/moments/:id/seen` | Đánh dấu đã xem | Firebase |
-| POST | `/api/moments/:id/reactions` | Thả emoji (cập nhật friend streak với chủ bài) | Firebase |
-| GET | `/api/moments/:id/reactions` | Danh sách reaction | Firebase |
+| POST | `/api/moments/:id/seen` | Đánh dấu đã xem (chỉ người thấy được bài — 403 với người lạ, 2026-07-26) | Firebase |
+| POST | `/api/moments/:id/reactions` | Thả emoji (chỉ người thấy được bài; cập nhật friend streak với chủ bài) | Firebase |
+| GET | `/api/moments/:id/reactions` | Danh sách reaction (chỉ người thấy được bài) | Firebase |
 | POST | `/api/messages` | Gửi tin 1-1 (`receiverId`, chỉ bạn bè, +streak) hoặc nhóm (`groupId`) | Firebase |
 | GET | `/api/messages/conversations` | Danh sách hội thoại 1-1 (tin mới nhất từng người) | Firebase |
 | GET | `/api/messages/with/:friendUid` | Thread 1-1 (`?page&limit`, page 1 = mới nhất) | Firebase |
@@ -168,16 +173,22 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | GET | `/api/messages/groups` | Danh sách nhóm của mình | Firebase |
 | GET | `/api/messages/groups/:groupId` | Thread nhóm (member-only) | Firebase |
 | GET | `/api/quests/today` | 2 quest hôm nay + trạng thái (lazy tạo; gọi = tự hoàn thành quest LOGIN; `rewardFrameId` nếu vừa được thưởng) | Firebase |
-| GET | `/api/frames` | Catalog khung + `isUnlocked` của mình | Firebase |
+| GET | `/api/frames` | Catalog khung + `isUnlocked` của mình (khung DEFAULT luôn mở; trả kèm `unlockType`/`unlockValue`) | Firebase |
 | GET | `/api/frames/admin` | [Admin] Toàn bộ catalog khung (cho trang quản lý) | Admin JWT |
-| POST | `/api/frames` | [Admin] Thêm khung | Admin JWT |
-| PATCH | `/api/frames/:id` | [Admin] Sửa khung (frameName/imageUrl) | Admin JWT |
+| GET | `/api/frames/:id/owners` | [Admin] Danh sách user đang sở hữu khung (`{frame, owners[]}`) | Admin JWT |
+| POST | `/api/frames` | [Admin] Thêm khung (`frameName/imageUrl/unlockType/unlockValue`) | Admin JWT |
+| PATCH | `/api/frames/:id` | [Admin] Sửa khung (tên/ảnh/điều kiện mở khóa; đổi loại cần gửi kèm ngưỡng mới) | Admin JWT |
 | DELETE | `/api/frames/:id` | [Admin] Xóa khung | Admin JWT |
 | POST | `/api/frames/:id/grant/:uid` | [Admin] Mở khóa khung cho user (demo thưởng) | Admin JWT |
-| GET | `/api/admin/users` | Danh sách user (`?search&page&limit`, tìm email/tên) | Admin JWT |
+| GET | `/api/admin/moments` | [Admin] Danh sách bài đăng mới nhất (kiểm duyệt; kèm tên tác giả) | Admin JWT |
+| DELETE | `/api/admin/moments/:id` | [Admin] Xóa bài vi phạm (kèm subcollection; ghi audit log) | Admin JWT |
+| GET | `/api/admin/logs` | [Admin] Nhật ký hành động admin (audit log, `?page&limit`) | Admin JWT |
+| GET | `/api/admin/users` | Danh sách user (`?search&page&limit`, tìm email/tên; kèm `admin`, `lastSignInAt`) | Admin JWT |
 | GET | `/api/admin/stats` | Thống kê (users/moments/messages/friendships/groups + momentsToday + questCompletionsToday) | Admin JWT |
-| PATCH | `/api/admin/users/:uid/disabled` | Khóa/mở khóa user | Admin JWT |
-| POST | `/api/admin/users/:uid/grant-admin` | Cấp quyền admin | Admin JWT |
+| GET | `/api/admin/stats/daily` | Thống kê theo ngày (`?days=1..30`, mặc định 7): `[{date, moments, newUsers}]` cho biểu đồ | Admin JWT |
+| PATCH | `/api/admin/users/:uid/disabled` | Khóa/mở khóa user (không tự khóa mình; khóa = thu hồi refresh token) | Admin JWT |
+| POST | `/api/admin/users/:uid/grant-admin` | Cấp quyền admin (giữ các claim khác) | Admin JWT |
+| POST | `/api/admin/users/:uid/revoke-admin` | Thu hồi quyền admin (không tự thu mình; hiệu lực NGAY do guard re-check) | Admin JWT |
 
 Swagger: `http://localhost:3000/docs`.
 
@@ -194,6 +205,8 @@ Swagger: `http://localhost:3000/docs`.
 ## 6. Quyết định đã chốt
 
 - ✅ Quyền admin: **Firebase custom claims `{admin:true}`**.
+- ✅ **Role 2 cấp user/admin hoàn thiện (chốt 2026-07-26)**: cấp + THU quyền qua trang admin; chặn tự khóa/tự thu quyền chính mình (⇒ hệ thống luôn còn ≥1 admin — không cần check "admin cuối cùng" riêng); `AdminJwtGuard` gọi `getUser()` MỖI request để re-check claim + disabled (đánh đổi 1 read Auth/request — chấp nhận ở scale DATN); login admin cũng check claim hiện hành qua `getUser()` (không tin claim trong ID token cũ).
+- ✅ **Điều kiện mở khóa khung (chốt 2026-07-26)**: 6 loại `unlockType` — QUEST_RANDOM / STREAK_MILESTONE (3/7/14/30) / POST_COUNT (N≥1) / FRIEND_COUNT (1..20) / COOP_FIRST / DEFAULT. Ngưỡng N nhập tự do ở trang admin. Doc frames cũ (chỉ có `milestone`) được suy ngược tự động, KHÔNG cần migration. ⚠️ App Android: `GET /frames` thêm field mới (Gson bỏ qua field lạ → không hỏng); khung DEFAULT hiện `isUnlocked=true` sẵn — muốn hiện NHÃN loại điều kiện mới trong bộ sưu tập khung thì cập nhật app (hiện app chỉ hiện nhãn 🔥 theo `milestone`).
 - ✅ Admin ĐẦU TIÊN: seed bằng `npm run seed:admin -- <email>` (mặc định **viethoang5301314@gmail.com**) — lối thoát "con gà-quả trứng" vì endpoint grant-admin yêu cầu quyền admin.
 - ✅ Daily Quest (chốt 2026-07-13, xem `../TODO.md`): **KHÔNG AI** — 2 quest cố định/ngày (LOGIN + POST_MOMENT), sinh **lazy** khi có request đầu tiên trong ngày, hoàn thành tự động; thưởng: 2/2 quest/ngày → khung ngẫu nhiên, mốc streak 3/7/14/30 → khung mốc.
 - ✅ Service account key: env `FIREBASE_SERVICE_ACCOUNT` → `./firebase-service-account.json` (đã có).

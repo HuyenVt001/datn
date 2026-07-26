@@ -14,6 +14,7 @@ import com.example.snapget.core.designsystem.component.grid.CameraButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.grid.PostGridItem
 import com.example.snapget.core.designsystem.theme.AppTheme
+import com.example.snapget.core.model.ThemeMode
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Preview(name = "Post Grid", showBackground = true)
@@ -80,7 +81,7 @@ fun PostGridWithoutCameraPreview() {
 @Preview(name = "Post Grid Dark Theme", showBackground = true)
 @Composable
 fun PostGridDarkPreview() {
-    AppTheme(darkTheme = false) {
+    AppTheme(themeMode = ThemeMode.LIGHT) {
         Surface(color = MaterialTheme.colorScheme.background) {
             PostGrid(
                 posts = SampleData.samplePosts,

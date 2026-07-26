@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { INVITE_LINK_BASE_URL, MAX_FRIENDS, STREAK_WINDOW_HOURS } from '../common/constants';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { PublicUser, User } from '../users/entities/user.entity';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
@@ -15,7 +15,7 @@ export class FriendshipsService {
     private readonly repo: FriendshipsRepository,
     private readonly usersService: UsersService,
     private readonly usersRepo: UsersRepository,
-    private readonly firebase: FirebaseService,
+    private readonly framesService: FramesService,
   ) {}
 
   /**
@@ -83,6 +83,7 @@ export class FriendshipsService {
           `${await this.displayName(currentUid)} da chap nhan loi moi ket ban cua ban! 🎉`,
           { type: 'FRIEND_ACCEPTED', friendUid: currentUid },
         );
+        await this.unlockFriendCountFrames(currentUid, inviter.uid);
         return result.friendship;
       case 'ALREADY_FRIENDS':
         throw new BadRequestException('Hai ban da la ban be roi.');
@@ -125,6 +126,7 @@ export class FriendshipsService {
           `${await this.displayName(currentUid)} da chap nhan loi moi ket ban cua ban! 🎉`,
           { type: 'FRIEND_ACCEPTED', friendUid: currentUid },
         );
+        await this.unlockFriendCountFrames(currentUid, requesterUid);
         return result.friendship;
       case 'NOT_FOUND':
         throw new NotFoundException('Khong tim thay loi moi ket ban nay.');
@@ -145,33 +147,35 @@ export class FriendshipsService {
     }
   }
 
+  /**
+   * Khung dieu kien FRIEND_COUNT: dem so ban hien tai cua tung nguoi roi mo cac
+   * khung dat nguong — goi cho CA 2 phia khi ket ban thanh cong (best-effort).
+   */
+  private async unlockFriendCountFrames(...uids: string[]): Promise<void> {
+    for (const uid of uids) {
+      try {
+        const count = (await this.repo.listAccepted(uid)).length;
+        await this.framesService.unlockByThreshold(uid, 'FRIEND_COUNT', count);
+      } catch (e) {
+        this.logger.warn(`Khong mo duoc khung theo so ban be cho ${uid}: ${(e as Error).message}`);
+      }
+    }
+  }
+
   /** Ten hien thi cho noi dung FCM. */
   private async displayName(uid: string): Promise<string> {
     const user = await this.usersRepo.findByUid(uid).catch(() => null);
     return user?.fullName ?? 'Mot nguoi ban';
   }
 
-  /** Gui FCM best-effort (khong bao gio throw — loi chi log warn). */
+  /** Gui FCM best-effort (helper push chung o UsersService — khong bao gio throw). */
   private async notifyUser(
     uid: string,
     title: string,
     body: string,
     data: Record<string, string>,
   ): Promise<void> {
-    try {
-      const user = await this.usersRepo.findByUid(uid);
-      const tokens = user?.fcmTokens ?? [];
-      if (tokens.length === 0) {
-        return;
-      }
-      await this.firebase.messaging().sendEachForMulticast({
-        tokens,
-        notification: { title, body },
-        data,
-      });
-    } catch (e) {
-      this.logger.warn(`Khong gui duoc FCM loi moi ket ban: ${(e as Error).message}`);
-    }
+    await this.usersService.pushToUids([uid], title, body, data);
   }
 
   /** Danh sach ban be (kem ten/avatar + friend streak). */

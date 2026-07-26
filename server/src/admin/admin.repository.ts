@@ -14,6 +14,15 @@ export interface AdminStats {
   questCompletionsToday?: number;
 }
 
+/** 1 diem du lieu cua bieu do thong ke theo ngay tren dashboard. */
+export interface DailyStat {
+  /** Ngay dang UTC YYYY-MM-DD (khop dateKey cua streak/quest). */
+  date: string;
+  moments: number;
+  /** So user dang ky moi trong ngay (AdminService dem tu Firebase Auth). */
+  newUsers: number;
+}
+
 /** NOI DUY NHAT cham Firestore cho module admin (dem aggregate cross-domain). */
 @Injectable()
 export class AdminRepository {
@@ -51,18 +60,47 @@ export class AdminRepository {
     };
   }
 
-  /** Lay fullName tu Firestore cho danh sach uid (enrich list user cua Auth). */
-  async getFullNames(uids: string[]): Promise<Map<string, string>> {
+  /**
+   * Dem moment theo tung ngay trong `days` ngay gan nhat (UTC).
+   * Moi ngay 1 count() voi 2 range filter tren CUNG field postTime — khong can
+   * composite index. `newUsers` de 0, AdminService dien tu Firebase Auth.
+   */
+  async countMomentsByDay(days: number): Promise<DailyStat[]> {
+    const today = new Date();
+    const dayKeys = Array.from({ length: days }, (_, i) => {
+      const d = new Date(today);
+      d.setUTCDate(d.getUTCDate() - (days - 1 - i));
+      return d.toISOString().slice(0, 10);
+    });
+
+    const counts = await Promise.all(
+      dayKeys.map(async (day) => {
+        const next = new Date(`${day}T00:00:00.000Z`);
+        next.setUTCDate(next.getUTCDate() + 1);
+        const snap = await this.col(Collections.POSTS)
+          .where('postTime', '>=', `${day}T00:00:00.000Z`)
+          .where('postTime', '<', `${next.toISOString().slice(0, 10)}T00:00:00.000Z`)
+          .count()
+          .get();
+        return snap.data().count;
+      }),
+    );
+
+    return dayKeys.map((date, i) => ({ date, moments: counts[i], newUsers: 0 }));
+  }
+
+  /**
+   * fullName Firestore cua TOAN BO user (1 query ca collection — quy mo DATN).
+   * Dung de merge vao danh sach Auth TRUOC khi search: ten hien thi tren trang
+   * admin la ten Firestore, search phai chay tren dung ten do (user doi ten
+   * trong app chi ghi Firestore, khong sync displayName len Auth).
+   */
+  async getAllFullNames(): Promise<Map<string, string>> {
+    const snap = await this.col(Collections.USERS).get();
     const result = new Map<string, string>();
-    if (uids.length === 0) {
-      return result;
-    }
-    const snaps = await Promise.all(uids.map((uid) => this.col(Collections.USERS).doc(uid).get()));
-    for (const snap of snaps) {
-      if (snap.exists) {
-        const data = snap.data() ?? {};
-        result.set(snap.id, data.fullName ?? data.name ?? '');
-      }
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      result.set(doc.id, data.fullName ?? data.name ?? '');
     }
     return result;
   }

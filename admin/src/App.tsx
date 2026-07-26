@@ -1,16 +1,38 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Button, Result } from 'antd';
+import { createBrowserRouter, RouterProvider, useRouteError } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { AdminLayout } from './layouts/AdminLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { FramesPage } from './pages/FramesPage';
 import { LoginPage } from './pages/LoginPage';
+import { LogsPage } from './pages/LogsPage';
+import { MomentsPage } from './pages/MomentsPage';
 import { UsersPage } from './pages/UsersPage';
+
+/** Man hinh loi chung — tranh "trang trang" khi 1 trang render loi (errorElement). */
+function RouteErrorPage() {
+  const error = useRouteError();
+  const message = error instanceof Error ? error.message : 'Đã có lỗi không mong muốn.';
+  return (
+    <Result
+      status="error"
+      title="Trang gặp lỗi khi hiển thị"
+      subTitle={message}
+      extra={
+        <Button type="primary" onClick={() => window.location.assign('/')}>
+          Về trang Tổng quan
+        </Button>
+      }
+    />
+  );
+}
 
 /** Router: /login public; các trang còn lại nằm sau RequireAuth + AdminLayout. */
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <RouteErrorPage /> },
   {
     element: <RequireAuth />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         path: '/',
@@ -18,7 +40,9 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'users', element: <UsersPage /> },
+          { path: 'moments', element: <MomentsPage /> },
           { path: 'frames', element: <FramesPage /> },
+          { path: 'logs', element: <LogsPage /> },
         ],
       },
     ],

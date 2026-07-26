@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { MAX_FRIENDS, STREAK_MILESTONES } from '../common/constants';
 import { UsersRepository } from '../users/users.repository';
 import { CreateFrameDto } from './dto/create-frame.dto';
 import { UpdateFrameDto } from './dto/update-frame.dto';
-import { Frame, FrameWithUnlock } from './entities/frame.entity';
+import { Frame, FrameOwner, FrameWithUnlock, UnlockType } from './entities/frame.entity';
 import { FramesRepository } from './frames.repository';
 
 @Injectable()
@@ -12,11 +13,14 @@ export class FramesService {
     private readonly usersRepo: UsersRepository,
   ) {}
 
-  /** Catalog khung anh + trang thai da mo khoa cua user hien tai. */
+  /** Catalog khung anh + trang thai da mo khoa cua user hien tai (DEFAULT = mo san). */
   async listForUser(uid: string): Promise<FrameWithUnlock[]> {
     const [frames, user] = await Promise.all([this.repo.list(), this.usersRepo.findByUid(uid)]);
     const unlocked = new Set(user?.unlockedFrames ?? []);
-    return frames.map((f) => ({ ...f, isUnlocked: unlocked.has(f.frameId) }));
+    return frames.map((f) => ({
+      ...f,
+      isUnlocked: f.unlockType === 'DEFAULT' || unlocked.has(f.frameId),
+    }));
   }
 
   /** Admin xem toan bo catalog khung (khong can trang thai unlock). */
@@ -24,33 +28,72 @@ export class FramesService {
     return this.repo.list();
   }
 
+  /** Admin xem danh sach user dang so huu 1 khung (khong ap dung cho DEFAULT — moi user deu co). */
+  async listOwners(frameId: string): Promise<{ frame: Frame; owners: FrameOwner[] }> {
+    const frame = await this.repo.findById(frameId);
+    if (!frame) {
+      throw new NotFoundException('Khong tim thay khung anh.');
+    }
+    const users = await this.usersRepo.listByUnlockedFrame(frameId);
+    const owners = users.map((u) => ({
+      uid: u.uid,
+      email: u.email || undefined,
+      fullName: u.fullName,
+      avatar: u.avatar,
+    }));
+    return { frame, owners };
+  }
+
   /** Admin them khung moi. */
   async create(dto: CreateFrameDto): Promise<Frame> {
+    const unlockType = dto.unlockType ?? 'QUEST_RANDOM';
+    const unlockValue = this.assertUnlockRule(unlockType, dto.unlockValue);
     return this.repo.create({
       frameName: dto.frameName,
       imageUrl: dto.imageUrl,
-      milestone: dto.milestone,
+      unlockType,
+      unlockValue,
+      // giu field legacy dong bo cho app cu (nhan "moc streak")
+      milestone: unlockType === 'STREAK_MILESTONE' ? unlockValue : null,
       createdAt: new Date().toISOString(),
     });
   }
 
-  /** Admin sua khung (ten / anh / moc streak — milestone null = XOA moc). */
+  /**
+   * Admin sua khung (ten / anh / dieu kien mo khoa).
+   * Doi unlockType -> nguong lay tu dto (KHONG mang nguong loai cu sang loai moi);
+   * giu nguyen loai -> khong gui unlockValue thi giu nguong cu.
+   */
   async update(frameId: string, dto: UpdateFrameDto): Promise<Frame> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
       throw new NotFoundException('Khong tim thay khung anh.');
     }
-    await this.repo.update(frameId, {
+
+    const unlockType = dto.unlockType ?? frame.unlockType;
+    const valueInput =
+      dto.unlockValue !== undefined
+        ? dto.unlockValue
+        : unlockType === frame.unlockType
+          ? (frame.unlockValue ?? undefined)
+          : undefined;
+    const unlockValue = this.assertUnlockRule(unlockType, valueInput);
+
+    const patch = {
       frameName: dto.frameName,
       imageUrl: dto.imageUrl,
-      // undefined = giu nguyen (repo loc undefined); null = ghi null de XOA moc
-      milestone: dto.milestone,
-    });
+      unlockType,
+      unlockValue,
+      milestone: unlockType === 'STREAK_MILESTONE' ? unlockValue : null,
+    };
+    await this.repo.update(frameId, patch);
     return {
       ...frame,
       frameName: dto.frameName ?? frame.frameName,
       imageUrl: dto.imageUrl ?? frame.imageUrl,
-      milestone: dto.milestone === undefined ? frame.milestone : dto.milestone,
+      unlockType,
+      unlockValue,
+      milestone: patch.milestone,
     };
   }
 
@@ -73,5 +116,63 @@ export class FramesService {
       throw new NotFoundException('Khong tim thay khung anh.');
     }
     await this.usersRepo.unlockFrame(uid, frameId);
+  }
+
+  /**
+   * Tu dong mo cac khung dieu kien NGUONG (POST_COUNT / FRIEND_COUNT) ma user
+   * vua dat duoc. Goi tu MomentsService (sau khi dang bai) va FriendshipsService
+   * (sau khi ket ban thanh cong). Idempotent — khung da so huu thi bo qua.
+   */
+  async unlockByThreshold(
+    uid: string,
+    type: Extract<UnlockType, 'POST_COUNT' | 'FRIEND_COUNT'>,
+    count: number,
+  ): Promise<string[]> {
+    return this.unlockMatching(uid, (f) => f.unlockType === type && (f.unlockValue ?? 0) <= count);
+  }
+
+  /** Tu dong mo cac khung COOP_FIRST — goi cho CA 2 nguoi khi hoan tat chup chung. */
+  async unlockCoopFrames(uid: string): Promise<string[]> {
+    return this.unlockMatching(uid, (f) => f.unlockType === 'COOP_FIRST');
+  }
+
+  /** Mo moi khung thoa dieu kien ma user CHUA so huu; tra ve danh sach frameId vua mo. */
+  private async unlockMatching(
+    uid: string,
+    predicate: (frame: Frame) => boolean,
+  ): Promise<string[]> {
+    const [frames, user] = await Promise.all([this.repo.list(), this.usersRepo.findByUid(uid)]);
+    const owned = new Set(user?.unlockedFrames ?? []);
+    const eligible = frames.filter((f) => predicate(f) && !owned.has(f.frameId));
+    await Promise.all(eligible.map((f) => this.usersRepo.unlockFrame(uid, f.frameId)));
+    return eligible.map((f) => f.frameId);
+  }
+
+  /** Kiem tra nguong N hop le theo tung loai dieu kien; tra ve nguong da chuan hoa (null neu khong can). */
+  private assertUnlockRule(type: UnlockType, value: number | undefined): number | null {
+    switch (type) {
+      case 'STREAK_MILESTONE':
+        if (!value || !STREAK_MILESTONES.includes(value)) {
+          throw new BadRequestException(
+            `Moc streak phai la mot trong: ${STREAK_MILESTONES.join(', ')}.`,
+          );
+        }
+        return value;
+      case 'POST_COUNT':
+        if (!value || value < 1) {
+          throw new BadRequestException('Dieu kien so bai dang can nguong N >= 1.');
+        }
+        return value;
+      case 'FRIEND_COUNT':
+        if (!value || value < 1 || value > MAX_FRIENDS) {
+          throw new BadRequestException(
+            `Dieu kien so ban be can nguong N tu 1 den ${MAX_FRIENDS}.`,
+          );
+        }
+        return value;
+      default:
+        // QUEST_RANDOM / COOP_FIRST / DEFAULT khong co nguong
+        return null;
+    }
   }
 }

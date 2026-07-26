@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nen pill cho badge streak tren widget (shape drawable vi Glance cornerRadius
+     modifier chi ho tro tu API 31; drawable thi bo goc duoc tren moi API). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#99000000" />
+    <corners android:radius="16dp" />
+</shape>

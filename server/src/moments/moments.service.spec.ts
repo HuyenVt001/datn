@@ -1,6 +1,6 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { QuestsService } from '../quests/quests.service';
@@ -18,7 +18,7 @@ describe('MomentsService', () => {
   let friendshipsService: jest.Mocked<FriendshipsService>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
   let questsService: jest.Mocked<QuestsService>;
-  let firebase: jest.Mocked<FirebaseService>;
+  let framesService: jest.Mocked<FramesService>;
 
   const me: AuthUser = { uid: 'me' };
 
@@ -26,6 +26,7 @@ describe('MomentsService', () => {
     repo = {
       create: jest.fn(),
       findById: jest.fn(),
+      countByUserId: jest.fn().mockResolvedValue(1),
       listByUserIds: jest.fn(),
       listByCoopUserIds: jest.fn().mockResolvedValue([]),
       markSeen: jest.fn(),
@@ -34,6 +35,7 @@ describe('MomentsService', () => {
     } as unknown as jest.Mocked<MomentsRepository>;
     usersService = {
       registerActivityForStreak: jest.fn().mockResolvedValue(1),
+      pushToUids: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<UsersService>;
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue(null),
@@ -48,9 +50,9 @@ describe('MomentsService', () => {
     questsService = {
       registerMomentPosted: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<QuestsService>;
-    firebase = {
-      messaging: jest.fn(),
-    } as unknown as jest.Mocked<FirebaseService>;
+    framesService = {
+      unlockByThreshold: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<FramesService>;
 
     service = new MomentsService(
       repo,
@@ -59,7 +61,7 @@ describe('MomentsService', () => {
       friendshipsService,
       friendshipsRepo,
       questsService,
-      firebase,
+      framesService,
     );
   });
 
@@ -104,14 +106,38 @@ describe('MomentsService', () => {
       await expect(service.react('bad', 'me', '❤️')).rejects.toThrow(NotFoundException);
     });
 
-    it('tha reaction + cap nhat friend streak voi chu bai', async () => {
+    it('tha reaction (la ban be voi chu bai) + cap nhat friend streak', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'owner' } as never);
+      friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.addReaction.mockResolvedValue({ reactionId: 'r1', emojiType: '❤️' } as never);
 
       await service.react('m1', 'me', '❤️');
 
       expect(repo.addReaction).toHaveBeenCalledWith('m1', 'me', '❤️');
       expect(friendshipsService.registerInteraction).toHaveBeenCalledWith('me', 'owner');
+    });
+
+    it('NGUOI LA (khong phai ban be) tha reaction -> 403, khong ghi gi', async () => {
+      repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'owner' } as never);
+      friendshipsRepo.findPair.mockResolvedValue(null);
+
+      await expect(service.react('m1', 'stranger', '❤️')).rejects.toThrow(ForbiddenException);
+      expect(repo.addReaction).not.toHaveBeenCalled();
+    });
+
+    it('ban cua NGUOI CHUP CHUNG (khong phai ban tac gia) van tuong tac duoc', async () => {
+      repo.findById.mockResolvedValue({
+        momentId: 'm1',
+        userId: 'author',
+        coopUserId: 'partner',
+      } as never);
+      // khong phai ban cua tac gia, nhung la ban cua nguoi chup chung
+      friendshipsRepo.findPair
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ status: 'ACCEPTED' } as never);
+      repo.addReaction.mockResolvedValue({ reactionId: 'r1' } as never);
+
+      await expect(service.react('m1', 'partner-friend', '❤️')).resolves.toBeDefined();
     });
 
     it('khong tinh streak khi tu tha emoji bai cua minh', async () => {

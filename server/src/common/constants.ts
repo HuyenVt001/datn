@@ -27,6 +27,7 @@ export const Collections = {
   USER_QUESTS: 'userQuests',
   COOP_INVITES: 'coopInvites',
   NOTIFICATIONS: 'notifications',
+  ADMIN_LOGS: 'adminLogs', // nhat ky hanh dong cua admin (audit log, 2026-07-26)
 } as const;
 
 /** Subcollection cua posts. */

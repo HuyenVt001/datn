@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { INVITE_LINK_BASE_URL, MAX_FRIENDS } from '../common/constants';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { FriendshipsRepository } from './friendships.repository';
@@ -11,6 +11,7 @@ describe('FriendshipsService', () => {
   let repo: jest.Mocked<FriendshipsRepository>;
   let users: jest.Mocked<UsersService>;
   let usersRepo: jest.Mocked<UsersRepository>;
+  let framesService: jest.Mocked<FramesService>;
 
   /** Nguoi moi hop le: ma con han (het han sau 10 ngay nua). */
   const validInviter = () => ({
@@ -34,19 +35,21 @@ describe('FriendshipsService', () => {
       findByInviteCode: jest.fn(),
       getOrCreateInviteCode: jest.fn(),
       getPublicProfile: jest.fn(),
+      pushToUids: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<UsersService>;
 
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<UsersRepository>;
 
-    const firebase = {
-      messaging: jest.fn().mockReturnValue({
-        sendEachForMulticast: jest.fn().mockResolvedValue({}),
-      }),
-    } as unknown as FirebaseService;
+    framesService = {
+      unlockByThreshold: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<FramesService>;
 
-    service = new FriendshipsService(repo, users, usersRepo, firebase);
+    // hook FRIEND_COUNT goi listAccepted sau khi ket ban — mac dinh khong co ban
+    repo.listAccepted.mockResolvedValue([]);
+
+    service = new FriendshipsService(repo, users, usersRepo, framesService);
   });
 
   describe('getInviteLink', () => {

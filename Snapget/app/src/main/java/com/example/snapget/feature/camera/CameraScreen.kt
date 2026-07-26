@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -72,6 +73,13 @@ fun CameraScreen(
     val currentUser by mainViewModel.currentUser.collectAsState()
     val data = mapToUser(currentUser)
 
+    // Camera la man DAU TIEN sau login (startDestination) — phai tu tai profile
+    // (ten + avatar tu Firebase/GET /users/me), khong dua vao PostScreen goi ho
+    // (moi man co MainViewModel scope rieng theo nav entry)
+    LaunchedEffect(Unit) {
+        mainViewModel.fetchCurrentUser()
+    }
+
     // Che do CHUP CHUNG (co-op): chup nua anh -> chon ban gui loi moi (thay vi dang solo)
     var coopMode by remember { mutableStateOf(false) }
 
@@ -84,18 +92,20 @@ fun CameraScreen(
     var startRecordRequestId by remember { mutableIntStateOf(0) }
     var stopRecordRequestId by remember { mutableIntStateOf(0) }
 
+    // Nut 🔄 "Change camera" -> doi camera truoc/sau (truoc 2026-07-26 nut nay chet)
+    var flipRequestId by remember { mutableIntStateOf(0) }
+
     Scaffold(
         topBar = {
             MainTopBar(
                 navController = navController,
                 user = data, // Using user 14 as the current user
                 onMessageClick = { navController.navigate(Screen.Message.route) },
+                // (Bug cu: lambda long lambda — bam avatar khong lam gi. Da sua 2026-07-26)
                 onProfileClick = {
-                    {
-                        data?.id?.let { userId ->
-                            navController.navigate("profile?userId=$userId")
-                        } ?: navController.navigate("profile")
-                    }
+                    data?.id?.let { userId ->
+                        navController.navigate("profile?userId=$userId")
+                    } ?: navController.navigate("profile")
                 },
                 onUserSelected = { user -> selectedUser = user },
             )
@@ -136,16 +146,20 @@ fun CameraScreen(
                     lifecycleOwner = lifecycleOwner,
                     height = 400.dp,
                     onPhotoTaken = { photoPath ->
-                        if (coopMode) {
-                            // Che do chup chung -> chon ban de gui loi moi (nua anh cua minh)
-                            navController.navigate(
-                                Screen.CoopSend.route + "?photoPath=" + Uri.encode(photoPath),
-                            )
-                        } else {
-                            // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
-                            navController.navigate(
-                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
-                            )
+                        // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
+                        // DA roi man camera -> bo qua, khong chong 2 man EditMedia
+                        if (navController.currentDestination?.route == Screen.Camera.route) {
+                            if (coopMode) {
+                                // Che do chup chung -> chon ban de gui loi moi (nua anh cua minh)
+                                navController.navigate(
+                                    Screen.CoopSend.route + "?photoPath=" + Uri.encode(photoPath),
+                                )
+                            } else {
+                                // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
+                                navController.navigate(
+                                    Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
+                                )
+                            }
                         }
                     },
                     // Giu nut chup de quay video <=5s -> cung sang man chinh sua (chi chon khung)
@@ -157,7 +171,7 @@ fun CameraScreen(
                                 "Co-op only supports photos — tap to take one!",
                                 Toast.LENGTH_SHORT,
                             ).show()
-                        } else {
+                        } else if (navController.currentDestination?.route == Screen.Camera.route) {
                             navController.navigate(
                                 Screen.EditMedia.route + "?mediaPath=" + Uri.encode(videoPath) + "&isVideo=true",
                             )
@@ -167,6 +181,7 @@ fun CameraScreen(
                     captureRequestId = captureRequestId,
                     startRecordRequestId = startRecordRequestId,
                     stopRecordRequestId = stopRecordRequestId,
+                    flipRequestId = flipRequestId,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(50.dp)),
@@ -193,15 +208,16 @@ fun CameraScreen(
             MainBottomBar(
                 navController,
                 items = takePhotoBar.map { item ->
-                    if (item.isCenter) {
-                        item.copy(
+                    when {
+                        item.isCenter -> item.copy(
                             onClick = { captureRequestId++ },
                             onLongPress = { startRecordRequestId++ },
                             // Tha tay o MOI lan bam — preview tu bo qua neu khong dang quay
                             onPressRelease = { stopRecordRequestId++ },
                         )
-                    } else {
-                        item
+                        // Nut 🔄: lat camera truoc/sau
+                        item.title == "Change camera" -> item.copy(onClick = { flipRequestId++ })
+                        else -> item
                     }
                 },
             )

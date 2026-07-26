@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { QuestsService } from '../quests/quests.service';
@@ -19,8 +19,8 @@ describe('CoopService', () => {
   let usersRepo: jest.Mocked<UsersRepository>;
   let usersService: jest.Mocked<UsersService>;
   let questsService: jest.Mocked<QuestsService>;
+  let framesService: jest.Mocked<FramesService>;
   let uploadService: jest.Mocked<UploadService>;
-  let firebase: { messaging: jest.Mock };
 
   // createdAt dong (vua tao) de khong dinh logic het han 24h theo ngay chay test
   const pendingInvite = {
@@ -62,18 +62,17 @@ describe('CoopService', () => {
     } as unknown as jest.Mocked<UsersRepository>;
     usersService = {
       registerActivityForStreak: jest.fn().mockResolvedValue(1),
+      pushToUids: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<UsersService>;
     questsService = {
       registerMomentPosted: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<QuestsService>;
+    framesService = {
+      unlockCoopFrames: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<FramesService>;
     uploadService = {
       uploadBuffer: jest.fn().mockResolvedValue({ url: 'https://cdn/merged.jpg' }),
     } as unknown as jest.Mocked<UploadService>;
-    firebase = {
-      messaging: jest.fn().mockReturnValue({
-        sendEachForMulticast: jest.fn().mockResolvedValue({}),
-      }),
-    };
 
     service = new CoopService(
       repo,
@@ -83,8 +82,8 @@ describe('CoopService', () => {
       usersRepo,
       usersService,
       questsService,
+      framesService,
       uploadService,
-      firebase as unknown as FirebaseService,
     );
   });
 

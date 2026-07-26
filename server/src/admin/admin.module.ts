@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { MomentsModule } from '../moments/moments.module';
 import { QuestsModule } from '../quests/quests.module';
 import { AdminController } from './admin.controller';
 import { AdminRepository } from './admin.repository';
 import { AdminService } from './admin.service';
 
 // AuthModule (JwtModule): AdminJwtGuard verify JWT admin. QuestsModule: thong ke quest hom nay.
+// MomentsModule: kiem duyet bai dang (list/xoa). AuditModule: nhat ky hanh dong admin.
 @Module({
-  imports: [AuthModule, QuestsModule],
+  imports: [AuthModule, QuestsModule, MomentsModule, AuditModule],
   controllers: [AdminController],
   providers: [AdminService, AdminRepository],
 })

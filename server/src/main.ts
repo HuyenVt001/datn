@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -9,6 +10,10 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+
+  // Security headers (2026-07-26). CSP tat vi Swagger UI /docs can inline script;
+  // cac header con lai (noSniff, frameguard, HSTS...) van bat.
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   // Prefix chung cho toan bo API
   app.setGlobalPrefix('api');

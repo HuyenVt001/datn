@@ -90,6 +90,10 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.androidx.work.runtime.ktx)
 
+    // Widget man hinh chinh (Jetpack Glance)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
     ksp(libs.hilt.android.compiler)
     ksp(libs.androidx.room.compiler)
 

@@ -40,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -128,9 +129,13 @@ fun MainTopBar(
         )
     }
 
-    // Notify parent component when user selection changes
-    if (selectedFriend != null) {
-        onUserSelected(selectedFriend)
+    // Bao parent khi doi lua chon — PHAI la LaunchedEffect (fix 2026-07-26):
+    // goi truc tiep trong body composable la side-effect chay o MOI lan recompose
+    // (titleWidth/onGloballyPositioned, mo dropdown...) -> spam load lai feed.
+    LaunchedEffect(selectedFriend) {
+        if (selectedFriend != null) {
+            onUserSelected(selectedFriend)
+        }
     }
 
     CenterAlignedTopAppBar(
@@ -339,10 +344,11 @@ fun MainTopBar(
             }
         },
         navigationIcon = {
-            // Avatar
+            // Avatar — fallback DiceBear initials theo ten khi chua co avatar that
+            // (truoc day de raw user?.avatar: rong -> o tron trong tren man camera)
             Circle(
                 imageSetting = ImageSetting(
-                    imageUrl = user?.avatar,
+                    imageUrl = avatarOrDefault(user?.avatar, user?.username ?: "?"),
                     contentDescription = "Profile picture",
                 ),
                 gap = 0.dp,

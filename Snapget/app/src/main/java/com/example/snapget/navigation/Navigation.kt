@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -33,7 +34,10 @@ import com.example.snapget.feature.post.PostScreen
 import com.example.snapget.feature.post.SubmitPhotoScreen
 import com.example.snapget.feature.profile.UserProfile
 import com.example.snapget.feature.quest.DailyQuestScreen
+import com.example.snapget.feature.settings.LegalDocScreen
 import com.example.snapget.feature.settings.SettingScreen
+import com.example.snapget.feature.widget.HowToAddWidgetScreen
+import com.example.snapget.feature.widget.WidgetSettingsScreen
 
 sealed class Screen(val route: String) { // enum
     object Login : Screen("login")
@@ -50,6 +54,13 @@ sealed class Screen(val route: String) { // enum
     object EditMedia : Screen("edit_media")
     object CoopSend : Screen("coop_send")
     object CoopAccept : Screen("coop_accept")
+    object WidgetSettings : Screen("widget_settings")
+    object HowToAddWidget : Screen("how_to_add_widget")
+
+    // Man van ban phap ly tinh: docType = "terms" | "privacy"
+    object LegalDoc : Screen("legal/{docType}") {
+        fun route(docType: String) = "legal/$docType"
+    }
 }
 
 // https://developer.android.com/topic/architecture
@@ -78,7 +89,33 @@ fun Navigation(
         Screen.DailyQuest.route,
         Screen.CoopSend.route,
         Screen.CoopAccept.route,
+        Screen.WidgetSettings.route,
+        Screen.HowToAddWidget.route,
+        Screen.LegalDoc.route,
     )
+
+    // Dang xuat (hoac mat phien) o bat ky man nao -> ve Login, xoa sach back stack.
+    // NavHost KHONG tu doi startDestination sau khi da compose nen phai navigate tay.
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Unauthenticated &&
+            navController.currentDestination?.route != Screen.Login.route
+        ) {
+            navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
+        }
+    }
+
+    // Mo app tu widget: observe PendingRouteStore (fix 2026-07-26 — tap widget khi
+    // app DANG chay cung dieu huong duoc, khong chi luc cold start / doi authState).
+    // Chua dang nhap thi route nam cho, dang nhap xong se duoc consume.
+    val pendingWidgetRoute by PendingRouteStore.pending.collectAsState()
+    LaunchedEffect(authState, pendingWidgetRoute) {
+        if (authState is AuthState.Authenticated && pendingWidgetRoute != null) {
+            PendingRouteStore.consume()?.let { route ->
+                val target = if (route == "camera") Screen.Camera.route else Screen.Post.route
+                navController.navigate(target)
+            }
+        }
+    }
 
     // Track current route as state that updates with navigation changes
     val navBackStackEntry = navController.currentBackStackEntryAsState()
@@ -171,7 +208,9 @@ fun Navigation(
             }
 
             composable(Screen.Setting.route) {
-                SettingScreen(navController, mainViewModel, authViewModel)
+                // PHAI truyen authViewModel scope Navigation de logout doi dung
+                // authState ma LaunchedEffect o tren dang quan sat
+                SettingScreen(navController = navController, authViewModel = authViewModel)
             }
 
             composable(Screen.Camera.route) {
@@ -233,6 +272,27 @@ fun Navigation(
             // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
             composable(Screen.DailyQuest.route) {
                 DailyQuestScreen(navController = navController)
+            }
+
+            // Van ban phap ly tinh (Terms / Privacy) — mo tu Settings
+            composable(
+                route = Screen.LegalDoc.route,
+                arguments = listOf(navArgument("docType") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                LegalDocScreen(
+                    navController = navController,
+                    docType = backStackEntry.arguments?.getString("docType") ?: "terms",
+                )
+            }
+
+            // Widget: man cai dat (preview + toggle streak + refresh + pin)
+            composable(Screen.WidgetSettings.route) {
+                WidgetSettingsScreen(navController = navController)
+            }
+
+            // Widget: huong dan them widget vao man hinh chinh
+            composable(Screen.HowToAddWidget.route) {
+                HowToAddWidgetScreen(navController = navController)
             }
 
             // Chup chung: gui loi moi (sau khi chup nua anh cua minh o che do Co-op)

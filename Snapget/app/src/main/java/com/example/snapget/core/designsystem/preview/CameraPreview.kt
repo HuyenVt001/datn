@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.util.Log
 import android.util.Size
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraControl
@@ -113,6 +114,8 @@ fun CameraPreviewWithZoom(
     // Tang tu ngoai de BAT DAU quay video (giu nut center) / DUNG quay (tha tay).
     startRecordRequestId: Int = 0,
     stopRecordRequestId: Int = 0,
+    // Tang tu ngoai (nut 🔄 bottom bar) de doi camera truoc/sau (2026-07-26).
+    flipRequestId: Int = 0,
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -156,6 +159,14 @@ fun CameraPreviewWithZoom(
         var recordElapsedMs by remember { mutableLongStateOf(0L) }
         var isWideMode by remember { mutableStateOf(false) }
         var isFrontCamera by remember { mutableStateOf(false) }
+
+        // Doi camera truoc/sau: lat co -> key(isFrontCamera) ben duoi tao lai
+        // AndroidView -> factory chay lai va bind voi cameraSelector moi (2026-07-26)
+        LaunchedEffect(flipRequestId) {
+            if (flipRequestId > 0) {
+                isFrontCamera = !isFrontCamera
+            }
+        }
 
         // Dem thoi gian quay + TU DONG DUNG khi cham 5s (server cung enforce)
         LaunchedEffect(isRecording) {
@@ -203,105 +214,116 @@ fun CameraPreviewWithZoom(
         Box(modifier = sizeModifier) {
             var previewView: PreviewView? by remember { mutableStateOf(null) }
 
-            AndroidView(
-                modifier = Modifier
-                    .matchParentSize()
-                    // Pinch-zoom 2 NGON: chi tieu thu event khi >=2 ngon dang cham —
-                    // vuot 1 ngon van loi ra ngoai cho gesture "vuot len mo feed"
-                    // cua CameraScreen (dung detectTransformGestures se nuot ca pan 1 ngon)
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
-                            do {
-                                val event = awaitPointerEvent()
-                                if (event.changes.count { it.pressed } >= 2) {
-                                    val zoomChange = event.calculateZoom()
-                                    if (zoomChange != 1f) {
-                                        val newZoom = (zoomRatio * zoomChange)
-                                            .coerceIn(minZoom, maxZoom)
-                                        cameraControl?.setZoomRatio(newZoom)
-                                        showZoomControls = true
-                                        showZoomValue = true
-                                        lastInteractionTime = System.currentTimeMillis()
+            // key(isFrontCamera): doi camera -> dung AndroidView cu, tao cai moi
+            // (factory chi chay 1 lan cho moi instance nen phai re-key de rebind)
+            androidx.compose.runtime.key(isFrontCamera) {
+                AndroidView(
+                    modifier = Modifier
+                        .matchParentSize()
+                        // Pinch-zoom 2 NGON: chi tieu thu event khi >=2 ngon dang cham —
+                        // vuot 1 ngon van loi ra ngoai cho gesture "vuot len mo feed"
+                        // cua CameraScreen (dung detectTransformGestures se nuot ca pan 1 ngon)
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                do {
+                                    val event = awaitPointerEvent()
+                                    if (event.changes.count { it.pressed } >= 2) {
+                                        val zoomChange = event.calculateZoom()
+                                        if (zoomChange != 1f) {
+                                            val newZoom = (zoomRatio * zoomChange)
+                                                .coerceIn(minZoom, maxZoom)
+                                            cameraControl?.setZoomRatio(newZoom)
+                                            showZoomControls = true
+                                            showZoomValue = true
+                                            lastInteractionTime = System.currentTimeMillis()
+                                        }
+                                        event.changes.forEach { it.consume() }
                                     }
-                                    event.changes.forEach { it.consume() }
-                                }
-                            } while (event.changes.any { it.pressed })
-                        }
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                // Enhanced tap-to-focus with visual feedback
-                                focusPoint = Pair(offset.x, offset.y)
-                                showFocusIndicator = true
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                // Handle tap-to-focus
-                                cameraControl?.let { control ->
-                                    currentPreviewView?.meteringPointFactory?.let { factory ->
-                                        val point = factory.createPoint(offset.x, offset.y)
-                                        val action = FocusMeteringAction.Builder(point).build()
-                                        control.startFocusAndMetering(action)
-                                    }
-                                }
-                            },
-                        )
-                    },
-                factory = { ctx ->
-                    val localPreviewView = PreviewView(ctx).apply {
-                        scaleType = PreviewView.ScaleType.FILL_CENTER
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-
-                    previewView = localPreviewView
-                    currentPreviewView = localPreviewView
-
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        try {
-                            val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder()
-                                .setTargetResolution(Size(1280, 720))
-                                .build()
-
-                            preview.surfaceProvider = localPreviewView.surfaceProvider
-
-                            val imageCaptureUseCase = ImageCapture.Builder()
-                                .setTargetResolution(Size(1280, 720))
-                                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                                .build()
-
-                            imageCapture = imageCaptureUseCase
-
-                            val cameraSelector = if (isFrontCamera) {
-                                CameraSelector.DEFAULT_FRONT_CAMERA
-                            } else {
-                                CameraSelector.DEFAULT_BACK_CAMERA
+                                } while (event.changes.any { it.pressed })
                             }
+                        }
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    // Enhanced tap-to-focus with visual feedback
+                                    focusPoint = Pair(offset.x, offset.y)
+                                    showFocusIndicator = true
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
 
-                            cameraProvider.unbindAll()
-                            // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
-                            // stream -> fallback bind khong co video, chi chup anh.
-                            val camera = if (onVideoTaken != null) {
-                                val recorder = Recorder.Builder()
-                                    .setQualitySelector(QualitySelector.from(Quality.HD))
+                                    // Handle tap-to-focus
+                                    cameraControl?.let { control ->
+                                        currentPreviewView?.meteringPointFactory?.let { factory ->
+                                            val point = factory.createPoint(offset.x, offset.y)
+                                            val action = FocusMeteringAction.Builder(point).build()
+                                            control.startFocusAndMetering(action)
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                    factory = { ctx ->
+                        val localPreviewView = PreviewView(ctx).apply {
+                            scaleType = PreviewView.ScaleType.FILL_CENTER
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        }
+
+                        previewView = localPreviewView
+                        currentPreviewView = localPreviewView
+
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                        cameraProviderFuture.addListener({
+                            try {
+                                val cameraProvider = cameraProviderFuture.get()
+                                val preview = Preview.Builder()
+                                    .setTargetResolution(Size(1280, 720))
                                     .build()
-                                val videoCaptureUseCase = VideoCapture.withOutput(recorder)
-                                try {
-                                    val cam = cameraProvider.bindToLifecycle(
-                                        lifecycleOwner,
-                                        cameraSelector,
-                                        preview,
-                                        imageCaptureUseCase,
-                                        videoCaptureUseCase,
-                                    )
-                                    videoCapture = videoCaptureUseCase
-                                    cam
-                                } catch (e: Exception) {
-                                    Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
-                                    videoCapture = null
-                                    cameraProvider.unbindAll()
+
+                                preview.surfaceProvider = localPreviewView.surfaceProvider
+
+                                val imageCaptureUseCase = ImageCapture.Builder()
+                                    .setTargetResolution(Size(1280, 720))
+                                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                    .build()
+
+                                imageCapture = imageCaptureUseCase
+
+                                val cameraSelector = if (isFrontCamera) {
+                                    CameraSelector.DEFAULT_FRONT_CAMERA
+                                } else {
+                                    CameraSelector.DEFAULT_BACK_CAMERA
+                                }
+
+                                cameraProvider.unbindAll()
+                                // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
+                                // stream -> fallback bind khong co video, chi chup anh.
+                                val camera = if (onVideoTaken != null) {
+                                    val recorder = Recorder.Builder()
+                                        .setQualitySelector(QualitySelector.from(Quality.HD))
+                                        .build()
+                                    val videoCaptureUseCase = VideoCapture.withOutput(recorder)
+                                    try {
+                                        val cam = cameraProvider.bindToLifecycle(
+                                            lifecycleOwner,
+                                            cameraSelector,
+                                            preview,
+                                            imageCaptureUseCase,
+                                            videoCaptureUseCase,
+                                        )
+                                        videoCapture = videoCaptureUseCase
+                                        cam
+                                    } catch (e: Exception) {
+                                        Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
+                                        videoCapture = null
+                                        cameraProvider.unbindAll()
+                                        cameraProvider.bindToLifecycle(
+                                            lifecycleOwner,
+                                            cameraSelector,
+                                            preview,
+                                            imageCaptureUseCase,
+                                        )
+                                    }
+                                } else {
                                     cameraProvider.bindToLifecycle(
                                         lifecycleOwner,
                                         cameraSelector,
@@ -309,38 +331,31 @@ fun CameraPreviewWithZoom(
                                         imageCaptureUseCase,
                                     )
                                 }
-                            } else {
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    imageCaptureUseCase,
-                                )
+                                cameraControl = camera.cameraControl
+                                cameraInfo = camera.cameraInfo
+
+                                // Observe zoom state with enhanced feedback
+                                cameraInfo?.zoomState?.observe(lifecycleOwner) { zoomState ->
+                                    zoomRatio = zoomState.zoomRatio
+                                    minZoom = zoomState.minZoomRatio
+                                    maxZoom = zoomState.maxZoomRatio
+                                }
+
+                                // (Pinch-zoom cu bang setOnTouchListener DA XOA 2026-07-26 —
+                                // tra ve false nen mat ca gesture, khong zoom duoc. Thay bang
+                                // pointerInput 2 ngon tren AndroidView ben duoi.)
+
+                                isLoading = false
+                            } catch (exc: Exception) {
+                                Log.e("CameraPreview", "Use case binding failed", exc)
+                                isLoading = false
                             }
-                            cameraControl = camera.cameraControl
-                            cameraInfo = camera.cameraInfo
+                        }, ContextCompat.getMainExecutor(ctx))
 
-                            // Observe zoom state with enhanced feedback
-                            cameraInfo?.zoomState?.observe(lifecycleOwner) { zoomState ->
-                                zoomRatio = zoomState.zoomRatio
-                                minZoom = zoomState.minZoomRatio
-                                maxZoom = zoomState.maxZoomRatio
-                            }
-
-                            // (Pinch-zoom cu bang setOnTouchListener DA XOA 2026-07-26 —
-                            // tra ve false nen mat ca gesture, khong zoom duoc. Thay bang
-                            // pointerInput 2 ngon tren AndroidView ben duoi.)
-
-                            isLoading = false
-                        } catch (exc: Exception) {
-                            Log.e("CameraPreview", "Use case binding failed", exc)
-                            isLoading = false
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-
-                    localPreviewView
-                },
-            )
+                        localPreviewView
+                    },
+                )
+            }
 
             // Loading indicator
 //            AnimatedVisibility(
@@ -417,7 +432,16 @@ fun CameraPreviewWithZoom(
                 @SuppressLint("MissingPermission")
                 fun startRecording() {
                     if (onVideoTaken == null || isRecording) return
-                    val capture = videoCapture ?: return
+                    val capture = videoCapture ?: run {
+                        // May khong bind duoc VideoCapture (hardware LIMITED) — bao ro
+                        // thay vi im lang de user tuong app do (fix 2026-07-26)
+                        Toast.makeText(
+                            context,
+                            "Video recording isn't supported on this device.",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        return
+                    }
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     val videoFile = File(
                         context.cacheDir,

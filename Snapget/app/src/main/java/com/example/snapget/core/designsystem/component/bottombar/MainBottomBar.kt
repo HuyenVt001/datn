@@ -95,6 +95,9 @@ fun MainBottomBar(
     items: List<BottomNavItem>,
     modifier: Modifier = Modifier,
     onItemClick: (BottomNavItem) -> Unit = { },
+    // Mau icon 2 ben: man overlay len camera giu trang; man nen theme (feed grid)
+    // truyen mau theo theme de khong "trang tren trang" o Light mode (2026-07-26)
+    iconTint: Color = Color.White,
 ) {
     // Use provided items or determine items based on current route
     val (orderedItems, centerItem) = normalizeItems(items)
@@ -219,7 +222,7 @@ fun MainBottomBar(
                                 Icon(
                                     imageVector = it,
                                     contentDescription = item.title,
-                                    tint = Color.White,
+                                    tint = iconTint,
                                     modifier = Modifier.size(40.dp),
                                 )
                             }
@@ -228,6 +231,8 @@ fun MainBottomBar(
                     selected = false,
                     onClick = {
                         onItemClick(item)
+                        // Item co callback rieng (vd nut 🔄 doi camera) — uu tien nhu nhanh center
+                        item.onClick?.invoke()
                         if (item.route.isNotEmpty()) {
                             navController.navigate(item.route) {
                                 popUpTo(navController.graph.startDestinationId)

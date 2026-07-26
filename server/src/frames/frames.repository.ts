@@ -44,12 +44,25 @@ export class FramesRepository {
     await this.col.doc(frameId).delete();
   }
 
+  /**
+   * Map doc -> entity. Doc CU (truoc 2026-07-26) chi co `milestone`:
+   * co milestone -> STREAK_MILESTONE, khong -> QUEST_RANDOM (dung logic thuong cu).
+   * `milestone` xuat ra luon dong bo voi unlockType de app cu doc khong sai.
+   */
   private toEntity(frameId: string, data: FirebaseFirestore.DocumentData): Frame {
+    const legacyMilestone = typeof data.milestone === 'number' ? data.milestone : undefined;
+    const unlockType =
+      (data.unlockType as Frame['unlockType']) ??
+      (legacyMilestone ? 'STREAK_MILESTONE' : 'QUEST_RANDOM');
+    const unlockValue =
+      typeof data.unlockValue === 'number' ? data.unlockValue : (legacyMilestone ?? null);
     return {
       frameId,
       frameName: data.frameName ?? '',
       imageUrl: data.imageUrl,
-      milestone: data.milestone,
+      unlockType,
+      unlockValue,
+      milestone: unlockType === 'STREAK_MILESTONE' ? unlockValue : null,
       createdAt: data.createdAt ?? '',
     };
   }

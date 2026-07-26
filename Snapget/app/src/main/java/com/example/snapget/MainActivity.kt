@@ -36,7 +36,9 @@ import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.feature.friends.data.FriendsRepository
 import com.example.snapget.feature.friends.data.PendingInviteStore
+import com.example.snapget.feature.widget.SnapgetWidget
 import com.example.snapget.navigation.Navigation
+import com.example.snapget.navigation.PendingRouteStore
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
 
         // App mo bang deep link khi CHUA chay (cold start) -> intent nam o onCreate
         handleInviteDeepLink(intent)
+        handleWidgetRoute(intent)
 
         // Android 13+ needs runtime permission to show FCM notifications
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -93,6 +96,14 @@ class MainActivity : ComponentActivity() {
         // (Nhanh deep link `auth/success|failure` cu da XOA — manifest khong dang ky
         // intent-filter nao cho host `auth`; quen mat khau di qua email cua Firebase.)
         handleInviteDeepLink(intent)
+        handleWidgetRoute(intent)
+    }
+
+    /** Tap widget -> luu route cho Navigation dieu huong sau khi da Authenticated. */
+    private fun handleWidgetRoute(intent: Intent?) {
+        intent?.getStringExtra(SnapgetWidget.EXTRA_WIDGET_ROUTE)?.let { route ->
+            PendingRouteStore.set(route)
+        }
     }
 
     /**
@@ -128,6 +139,7 @@ fun SnapgetApp(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val currentUser by mainViewModel.currentUser.collectAsState()
+    val themeMode by mainViewModel.themeMode.collectAsState()
     val inviteConfirm by friendsViewModel.inviteConfirm.collectAsState()
     val inviteConnectStatus by friendsViewModel.connectStatus.collectAsState()
     val context = LocalContext.current
@@ -176,7 +188,7 @@ fun SnapgetApp(
         }
     }
 
-    AppTheme {
+    AppTheme(themeMode = themeMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,

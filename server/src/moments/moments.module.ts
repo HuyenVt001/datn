@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FramesModule } from '../frames/frames.module';
 import { FriendshipsModule } from '../friendships/friendships.module';
 import { QuestsModule } from '../quests/quests.module';
 import { UploadModule } from '../upload/upload.module';
@@ -11,10 +12,11 @@ import { MomentsRepository } from './moments.repository';
 import { MomentsService } from './moments.service';
 
 // Users + Friendships: streak ca nhan/ban be + FCM. Quests: quest POST_MOMENT khi dang bai.
+// Frames: mo khung dieu kien POST_COUNT (dang bai) + COOP_FIRST (chup chung).
 // Upload: uploadBuffer cho anh chup chung da ghep (sharp).
 // LUU Y: CoopController dat TRUOC MomentsController de route 'moments/coop' khong bi nuot boi ':id'.
 @Module({
-  imports: [UsersModule, FriendshipsModule, QuestsModule, UploadModule],
+  imports: [UsersModule, FriendshipsModule, QuestsModule, FramesModule, UploadModule],
   controllers: [CoopController, MomentsController],
   providers: [MomentsService, MomentsRepository, CoopService, CoopRepository],
   exports: [MomentsService, MomentsRepository],

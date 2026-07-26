@@ -34,14 +34,19 @@ export class UsersRepository {
     return this.toEntity(doc.id, doc.data());
   }
 
-  /** Tao doc user (dung khi dang nhap lan dau). */
+  /** Tao doc user (dung khi dang nhap lan dau). Loc undefined — Firestore tu choi. */
   async create(user: User): Promise<void> {
     const { uid, ...data } = user;
-    await this.col.doc(uid).set(data);
+    await this.col.doc(uid).set(this.stripUndefined(data));
   }
 
   async update(uid: string, patch: Partial<User>): Promise<void> {
-    await this.col.doc(uid).set(patch, { merge: true });
+    await this.col.doc(uid).set(this.stripUndefined(patch), { merge: true });
+  }
+
+  /** firebase-admin mac dinh THROW khi gap value undefined -> loc truoc khi ghi. */
+  private stripUndefined<T extends object>(obj: T): T {
+    return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
   }
 
   /** Them FCM token (khong trung lap). */
@@ -61,6 +66,12 @@ export class UsersRepository {
       .set({ unlockedFrames: FieldValue.arrayUnion(frameId) }, { merge: true });
   }
 
+  /** Danh sach user dang so huu 1 khung (array-contains — dung 1 filter, khong can index). */
+  async listByUnlockedFrame(frameId: string): Promise<User[]> {
+    const snap = await this.col.where('unlockedFrames', 'array-contains', frameId).get();
+    return snap.docs.map((d) => this.toEntity(d.id, d.data()));
+  }
+
   private toEntity(uid: string, data: FirebaseFirestore.DocumentData): User {
     return {
       uid,
@@ -70,6 +81,7 @@ export class UsersRepository {
       joinDate: data.joinDate ?? '',
       personalStreak: data.personalStreak ?? 0,
       lastStreakDate: data.lastStreakDate,
+      birthday: data.birthday,
       inviteCode: data.inviteCode,
       inviteCodeExpiresAt: data.inviteCodeExpiresAt,
       unlockedFrames: data.unlockedFrames ?? [],

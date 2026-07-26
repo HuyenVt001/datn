@@ -102,14 +102,16 @@ export class QuestsService {
     }
   }
 
-  /** Ung vien thuong ngau nhien: khung KHONG gan moc streak va user CHUA so huu. */
+  /** Ung vien thuong ngau nhien: CHI khung loai QUEST_RANDOM ma user CHUA so huu. */
   private async pickRandomLockedFrame(uid: string): Promise<Frame | null> {
     const [frames, user] = await Promise.all([
       this.framesRepo.list(),
       this.usersRepo.findByUid(uid),
     ]);
     const unlocked = new Set(user?.unlockedFrames ?? []);
-    const candidates = frames.filter((f) => !f.milestone && !unlocked.has(f.frameId));
+    const candidates = frames.filter(
+      (f) => f.unlockType === 'QUEST_RANDOM' && !unlocked.has(f.frameId),
+    );
     if (candidates.length === 0) {
       return null;
     }
@@ -122,7 +124,9 @@ export class QuestsService {
       return;
     }
     const frames = await this.framesRepo.list();
-    const frame = frames.find((f) => f.milestone === streak);
+    const frame = frames.find(
+      (f) => f.unlockType === 'STREAK_MILESTONE' && f.unlockValue === streak,
+    );
     if (!frame) {
       return; // admin chua tao khung cho moc nay
     }

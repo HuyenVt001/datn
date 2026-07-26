@@ -64,8 +64,8 @@ export class MomentsController {
   }
 
   @Get(':id/reactions')
-  @ApiOperation({ summary: 'Danh sach reaction cua moment' })
-  listReactions(@Param('id') momentId: string) {
-    return this.momentsService.listReactions(momentId);
+  @ApiOperation({ summary: 'Danh sach reaction cua moment (chi nguoi thay duoc bai)' })
+  listReactions(@CurrentUser() user: AuthUser, @Param('id') momentId: string) {
+    return this.momentsService.listReactions(momentId, user.uid);
   }
 }

@@ -8,10 +8,10 @@ import {
 import { MAX_GROUP_SIZE } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
-import { FirebaseService } from '../firebase/firebase.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { UsersRepository } from '../users/users.repository';
+import { UsersService } from '../users/users.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { ChatGroup, ConversationSummary, Message } from './entities/message.entity';
@@ -24,9 +24,9 @@ export class MessagesService {
   constructor(
     private readonly repo: MessagesRepository,
     private readonly usersRepo: UsersRepository,
+    private readonly usersService: UsersService,
     private readonly friendshipsService: FriendshipsService,
     private readonly friendshipsRepo: FriendshipsRepository,
-    private readonly firebase: FirebaseService,
   ) {}
 
   /**
@@ -165,12 +165,25 @@ export class MessagesService {
     await this.repo.markSeen(messageId);
   }
 
-  /** Tao nhom chat: nguoi tao tu dong vao nhom; tong thanh vien <= 20. */
+  /**
+   * Tao nhom chat: nguoi tao tu dong vao nhom; tong thanh vien <= 20.
+   * Fix 2026-07-26: moi thanh vien PHAI la ban be cua nguoi tao — khong co check
+   * nay thi biet uid nguoi la la tao duoc nhom 2 nguoi, lach luat "chi nhan tin
+   * voi ban be" cua tin 1-1.
+   */
   async createGroup(uid: string, dto: CreateGroupDto): Promise<ChatGroup> {
     const memberIds = [...new Set([uid, ...dto.memberIds])];
     if (memberIds.length > MAX_GROUP_SIZE) {
       throw new BadRequestException(`Nhom chat toi da ${MAX_GROUP_SIZE} thanh vien.`);
     }
+
+    const friendships = await this.friendshipsRepo.listAccepted(uid);
+    const friendIds = new Set(friendships.map((f) => f.userIds.find((id) => id !== uid) ?? ''));
+    const strangers = memberIds.filter((id) => id !== uid && !friendIds.has(id));
+    if (strangers.length > 0) {
+      throw new ForbiddenException('Chi them duoc ban be vao nhom chat.');
+    }
+
     return this.repo.createGroup({
       groupName: dto.groupName,
       memberIds,
@@ -195,26 +208,14 @@ export class MessagesService {
     };
   }
 
-  /** Gui FCM toi danh sach uid (gom moi token cua ho). */
+  /** Bao tin nhan moi cho danh sach uid (helper push chung o UsersService). */
   private async pushTo(uids: string[], senderUid: string, dto: SendMessageDto): Promise<void> {
     if (uids.length === 0) {
       return;
     }
-    const users = await Promise.all(uids.map((id) => this.usersRepo.findByUid(id)));
-    const tokens = users.flatMap((u) => u?.fcmTokens ?? []);
-    if (tokens.length === 0) {
-      return;
-    }
     const sender = await this.usersRepo.findByUid(senderUid);
     const preview = dto.messageType === 'TEXT' ? dto.content.slice(0, 80) : this.previewOf(dto);
-    const res = await this.firebase.messaging().sendEachForMulticast({
-      tokens,
-      notification: {
-        title: sender?.fullName ?? 'Tin nhan moi',
-        body: preview,
-      },
-    });
-    this.logger.log(`FCM tin nhan: gui ${res.successCount}/${tokens.length} thiet bi.`);
+    await this.usersService.pushToUids(uids, sender?.fullName ?? 'Tin nhan moi', preview);
   }
 
   private previewOf(dto: SendMessageDto): string {

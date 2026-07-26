@@ -89,9 +89,17 @@ describe('QuestsService', () => {
         ]),
       );
       framesRepo.list.mockResolvedValue([
-        { frameId: 'f1', frameName: 'Thuong', createdAt: '' },
-        { frameId: 'f2', frameName: 'Moc 7', milestone: 7, createdAt: '' }, // khong duoc chon
-        { frameId: 'f3', frameName: 'Da co', createdAt: '' },
+        { frameId: 'f1', frameName: 'Thuong', unlockType: 'QUEST_RANDOM', createdAt: '' },
+        // khong duoc chon — khung moc streak
+        {
+          frameId: 'f2',
+          frameName: 'Moc 7',
+          unlockType: 'STREAK_MILESTONE',
+          unlockValue: 7,
+          milestone: 7,
+          createdAt: '',
+        },
+        { frameId: 'f3', frameName: 'Da co', unlockType: 'QUEST_RANDOM', createdAt: '' },
       ]);
       usersRepo.findByUid.mockResolvedValue({ uid: 'me', unlockedFrames: ['f3'] } as never);
 
@@ -143,7 +151,14 @@ describe('QuestsService', () => {
 
     it('dat moc streak 7 -> mo khung cua moc 7', async () => {
       framesRepo.list.mockResolvedValue([
-        { frameId: 'f7', frameName: 'Moc 7', milestone: 7, createdAt: '' },
+        {
+          frameId: 'f7',
+          frameName: 'Moc 7',
+          unlockType: 'STREAK_MILESTONE',
+          unlockValue: 7,
+          milestone: 7,
+          createdAt: '',
+        },
       ]);
 
       await service.registerMomentPosted('me', 7);
@@ -153,7 +168,14 @@ describe('QuestsService', () => {
 
     it('streak khong phai moc (5) -> khong mo khung moc', async () => {
       framesRepo.list.mockResolvedValue([
-        { frameId: 'f7', frameName: 'Moc 7', milestone: 7, createdAt: '' },
+        {
+          frameId: 'f7',
+          frameName: 'Moc 7',
+          unlockType: 'STREAK_MILESTONE',
+          unlockValue: 7,
+          milestone: 7,
+          createdAt: '',
+        },
       ]);
       repo.completeUserQuest.mockResolvedValue(false); // khong xet thuong 2/2
 

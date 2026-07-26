@@ -1,8 +1,11 @@
 package com.example.snapget.core.designsystem.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.example.snapget.core.model.ThemeMode
 
 // Brown Dark Color Scheme
 private val BrownDarkColorScheme = darkColorScheme(
@@ -33,19 +36,48 @@ private val BrownDarkColorScheme = darkColorScheme(
     onError = GrayOnError,
 )
 
+// Light scheme doi xung (muc Theme trong Settings — DARK van la mac dinh)
+private val GrayLightColorScheme = lightColorScheme(
+    primary = LightPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = LightPrimaryContainer,
+    onPrimaryContainer = LightOnBackground,
+
+    secondary = LightSecondary,
+    onSecondary = LightOnSecondary,
+    secondaryContainer = LightPrimaryContainer,
+    onSecondaryContainer = LightOnBackground,
+
+    tertiary = LightTertiary,
+    onTertiary = LightOnPrimary,
+    tertiaryContainer = LightPrimaryContainer,
+    onTertiaryContainer = LightOnBackground,
+
+    background = LightBackground,
+    onBackground = LightOnBackground,
+
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+
+    error = LightError,
+    onError = LightOnError,
+)
+
 @Composable
 fun AppTheme(
-    darkTheme: Boolean = true, // Force dark theme
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disable dynamic colors to use our brown theme
+    themeMode: ThemeMode = ThemeMode.DARK, // dark van la mac dinh — preview/caller cu khong doi
     content: @Composable () -> Unit,
 ) {
-    // Always use brown dark theme
-    val colorScheme = BrownDarkColorScheme
-//    val systemUiController = rememberSystemUiController()
+    val darkTheme = when (themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) BrownDarkColorScheme else GrayLightColorScheme,
         typography = Typography,
         content = content,
     )

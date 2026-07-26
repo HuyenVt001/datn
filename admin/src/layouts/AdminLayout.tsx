@@ -1,5 +1,7 @@
 import {
+  CameraOutlined,
   DashboardOutlined,
+  HistoryOutlined,
   LogoutOutlined,
   PictureOutlined,
   TeamOutlined,
@@ -13,7 +15,9 @@ const { Header, Sider, Content } = Layout;
 const MENU_ITEMS = [
   { key: '/', icon: <DashboardOutlined />, label: 'Tổng quan' },
   { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
+  { key: '/moments', icon: <CameraOutlined />, label: 'Bài đăng' },
   { key: '/frames', icon: <PictureOutlined />, label: 'Khung ảnh' },
+  { key: '/logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
 ];
 
 /** Khung chung: sidebar menu + header (email + đăng xuất) + nội dung trang. */

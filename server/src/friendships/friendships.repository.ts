@@ -143,16 +143,21 @@ export class FriendshipsRepository {
   /**
    * Chu link TU CHOI loi moi -> XOA doc (nguoi gui co the moi lai sau).
    * Tra ve false neu khong co loi moi PENDING tuong ung.
+   * Chay trong TRANSACTION (fix 2026-07-26): decline tren thiet bi 2 khong duoc
+   * phep xoa friendship vua duoc accept tren thiet bi 1 (check-then-delete cu
+   * co khe ho giua get va delete).
    */
   async declineRequest(accepterUid: string, requesterUid: string): Promise<boolean> {
     const pairRef = this.col.doc(FriendshipsRepository.pairId(accepterUid, requesterUid));
-    const snap = await pairRef.get();
-    const existing = snap.exists ? (snap.data() as Friendship) : null;
-    if (!existing || existing.status !== 'PENDING' || existing.requesterUid !== requesterUid) {
-      return false;
-    }
-    await pairRef.delete();
-    return true;
+    return this.firebase.firestore().runTransaction(async (txn) => {
+      const snap = await txn.get(pairRef);
+      const existing = snap.exists ? (snap.data() as Friendship) : null;
+      if (!existing || existing.status !== 'PENDING' || existing.requesterUid !== requesterUid) {
+        return false;
+      }
+      txn.delete(pairRef);
+      return true;
+    });
   }
 
   /** Danh sach loi moi PENDING dang cho uid (chu link) xac nhan, moi nhat truoc. */

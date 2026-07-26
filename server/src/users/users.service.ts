@@ -1,37 +1,68 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { dateKey, INVITE_LINK_TTL_DAYS } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { FirebaseService } from '../firebase/firebase.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PublicUser, User } from './entities/user.entity';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepo: UsersRepository) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly usersRepo: UsersRepository,
+    private readonly firebase: FirebaseService,
+  ) {}
 
   /**
-   * Dam bao user doc ton tai (goi khi dang nhap lan dau).
-   * Neu chua co -> tao moi tu thong tin Firebase Auth.
+   * Dam bao user doc ton tai va DAY DU (goi khi dang nhap lan dau).
+   * - Doc day du (da co joinDate) -> tra ve luon.
+   * - Chua co doc, hoac chi co doc STUB (tao boi grant khung / arrayUnion truoc
+   *   khi user dang nhap lan dau) / doc thoi prototype thieu field -> backfill
+   *   phan thieu bang set-merge, KHONG ghi de gia tri nguoi dung da co.
+   * Fix 2026-07-26: khong dua key co gia tri undefined vao Firestore (vd token
+   * email/password khong co claim `picture`) — firebase-admin se throw va
+   * GET /users/me 500 vinh vien voi tai khoan dang ky bang email.
    */
   async ensureUser(authUser: AuthUser): Promise<User> {
     const existing = await this.usersRepo.findByUid(authUser.uid);
-    if (existing) {
+    if (existing?.joinDate) {
       return existing;
     }
-    const now = new Date().toISOString();
-    const user: User = {
+
+    const patch: Partial<User> = {
+      email: existing?.email || authUser.email || '',
+      fullName:
+        existing?.fullName ||
+        (authUser.name as string) ||
+        authUser.email?.split('@')[0] ||
+        'Snapget user',
+      joinDate: new Date().toISOString(),
+      personalStreak: existing?.personalStreak ?? 0,
+    };
+    const avatar = existing?.avatar || (authUser.picture as string | undefined);
+    if (avatar) {
+      patch.avatar = avatar;
+    }
+    if (!existing) {
+      // Doc stub da co unlockedFrames/fcmTokens -> khong dinh vao de khoi ghi de
+      patch.unlockedFrames = [];
+      patch.fcmTokens = [];
+    }
+    await this.usersRepo.update(authUser.uid, patch);
+
+    const base: User = existing ?? {
       uid: authUser.uid,
-      email: authUser.email ?? '',
-      fullName: (authUser.name as string) ?? authUser.email?.split('@')[0] ?? 'Snapget user',
-      avatar: (authUser.picture as string) ?? undefined,
-      joinDate: now,
+      email: '',
+      fullName: '',
+      joinDate: '',
       personalStreak: 0,
       unlockedFrames: [],
       fcmTokens: [],
     };
-    await this.usersRepo.create(user);
-    return user;
+    return { ...base, ...patch, uid: authUser.uid };
   }
 
   /** Lay ho so cua chinh minh (tu tao neu chua co). */
@@ -48,19 +79,74 @@ export class UsersService {
     return this.usersRepo.toPublic(user);
   }
 
-  /** Cap nhat ho so (ten hien thi / avatar). */
+  /** Cap nhat ho so (ten hien thi / avatar / ngay sinh). */
   async updateProfile(uid: string, dto: UpdateUserDto): Promise<User> {
+    // Ngay sinh khong duoc o TUONG LAI (DTO chi validate format yyyy-MM-dd)
+    if (dto.birthday !== undefined && dto.birthday > dateKey()) {
+      throw new BadRequestException('Ngay sinh khong the o tuong lai.');
+    }
     // Firestore KHONG nhan class instance (ValidationPipe transform tao ra
     // UpdateUserDto co prototype) -> chuyen ve plain object, bo field undefined
     const patch: Partial<User> = {};
     if (dto.fullName !== undefined) patch.fullName = dto.fullName;
     if (dto.avatar !== undefined) patch.avatar = dto.avatar;
+    if (dto.birthday !== undefined) patch.birthday = dto.birthday;
     await this.usersRepo.update(uid, patch);
+
+    // Dong bo len Firebase AUTH (best-effort, 2026-07-26): ten hien thi tren
+    // trang admin lay tu Firestore nhung displayName cua Auth cung nen khop
+    // (het lech ten giua 2 he thong tan goc).
+    if (dto.fullName !== undefined || dto.avatar) {
+      const authPatch: { displayName?: string; photoURL?: string } = {};
+      if (dto.fullName !== undefined) authPatch.displayName = dto.fullName;
+      if (dto.avatar) authPatch.photoURL = dto.avatar;
+      await this.firebase
+        .auth()
+        .updateUser(uid, authPatch)
+        .catch((e) =>
+          this.logger.warn(`Khong sync duoc displayName len Auth: ${(e as Error).message}`),
+        );
+    }
+
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
       throw new NotFoundException('Khong tim thay nguoi dung.');
     }
     return user;
+  }
+
+  /**
+   * Gui FCM cho danh sach uid (gom moi token cua ho) — helper DUY NHAT cho push
+   * (gom tu 4 ban sao o moments/messages/coop/friendships, 2026-07-26).
+   * Best-effort: KHONG BAO GIO throw; loi chi log warn.
+   */
+  async pushToUids(
+    uids: string[],
+    title: string,
+    body: string,
+    data?: Record<string, string>,
+  ): Promise<number> {
+    try {
+      const unique = [...new Set(uids)].filter(Boolean);
+      if (unique.length === 0) {
+        return 0;
+      }
+      const users = await Promise.all(unique.map((id) => this.usersRepo.findByUid(id)));
+      const tokens = [...new Set(users.flatMap((u) => u?.fcmTokens ?? []))];
+      if (tokens.length === 0) {
+        return 0;
+      }
+      const res = await this.firebase.messaging().sendEachForMulticast({
+        tokens,
+        notification: { title, body },
+        ...(data ? { data } : {}),
+      });
+      this.logger.log(`FCM: gui ${res.successCount}/${tokens.length} thiet bi.`);
+      return res.successCount;
+    } catch (e) {
+      this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
+      return 0;
+    }
   }
 
   async addFcmToken(uid: string, token: string): Promise<void> {

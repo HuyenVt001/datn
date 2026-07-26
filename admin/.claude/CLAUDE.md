@@ -119,7 +119,7 @@ admin/
 - Mọi response bọc envelope `{ success, statusCode, message, data }` — `api/client.ts` bóc sẵn `data`, lỗi ném `Error(message)`.
 - Phân trang: `data = { items, page, limit, total }` — map thẳng vào AntD `Table` `pagination`.
 - Endpoint hiện có cho admin (chi tiết ở `server/GUIDE.md`):
-  `POST /auth/admin/login` · `GET /admin/users?search=&page=&limit=` · `GET /admin/stats` · `PATCH /admin/users/:uid/disabled` · `POST /admin/users/:uid/grant-admin` · `GET /frames` · `POST /frames` · `PATCH /frames/:id` · `DELETE /frames/:id` · `POST /frames/:id/grant/:uid` · `POST /upload`.
+  `POST /auth/admin/login` (trả `{accessToken, uid, email}`) · `GET /admin/users?search=&page=&limit=` (kèm `admin`, `lastSignInAt`) · `GET /admin/stats` · `GET /admin/stats/daily?days=` · `PATCH /admin/users/:uid/disabled` · `POST /admin/users/:uid/grant-admin` · `POST /admin/users/:uid/revoke-admin` · `GET /frames/admin` · `GET /frames/:id/owners` · `POST /frames` · `PATCH /frames/:id` (body `unlockType`/`unlockValue`) · `DELETE /frames/:id` · `POST /frames/:id/grant/:uid` · `POST /upload/admin`.
 - Đổi/thêm contract → sửa ở server trước (ruler server mục 14), ghi cả 2 GUIDE.
 
 ---

@@ -1,21 +1,31 @@
-import { CrownOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import {
+  CrownOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  UserDeleteOutlined,
+} from '@ant-design/icons';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App as AntApp, Button, Input, Popconfirm, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App as AntApp, Button, Input, Popconfirm, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
-import { grantAdmin, listUsers, setUserDisabled } from '../api/admin.api';
+import { grantAdmin, listUsers, revokeAdmin, setUserDisabled } from '../api/admin.api';
+import { useAuth } from '../auth/AuthContext';
 import type { AdminUser } from '../types';
 
 const PAGE_SIZE = 10;
 
-/** Trang quản lý người dùng: tìm kiếm, phân trang, khóa/mở khóa, cấp quyền admin. */
+/**
+ * Trang quản lý người dùng: tìm kiếm, phân trang, khóa/mở khóa, cấp/THU quyền admin.
+ * Không thao tác được lên chính mình (server cũng chặn) — đảm bảo luôn còn >= 1 admin.
+ */
 export function UsersPage() {
   const { message } = AntApp.useApp();
+  const { uid: myUid } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, error } = useQuery({
     queryKey: ['admin-users', page, search],
     queryFn: () => listUsers({ page, limit: PAGE_SIZE, search: search || undefined }),
     placeholderData: keepPreviousData,
@@ -36,7 +46,16 @@ export function UsersPage() {
   const grantMutation = useMutation({
     mutationFn: (uid: string) => grantAdmin(uid),
     onSuccess: () => {
-      message.success('Đã cấp quyền admin. Người dùng cần đăng nhập lại để có hiệu lực.');
+      message.success('Đã cấp quyền admin. Người dùng cần đăng nhập lại trang quản trị.');
+      void invalidate();
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (uid: string) => revokeAdmin(uid),
+    onSuccess: () => {
+      message.success('Đã thu hồi quyền admin — hiệu lực ngay lập tức.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -46,7 +65,12 @@ export function UsersPage() {
     {
       title: 'Email',
       dataIndex: 'email',
-      render: (email?: string) => email || <Typography.Text type="secondary">—</Typography.Text>,
+      render: (email: string | undefined, user) => (
+        <Space size={4}>
+          {email || <Typography.Text type="secondary">—</Typography.Text>}
+          {user.uid === myUid && <Tag color="blue">Bạn</Tag>}
+        </Space>
+      ),
     },
     {
       title: 'Tên hiển thị',
@@ -54,64 +78,112 @@ export function UsersPage() {
       render: (name: string) => name || <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
+      title: 'Vai trò',
+      dataIndex: 'admin',
+      width: 110,
+      render: (admin: boolean) =>
+        admin ? (
+          <Tag color="gold" icon={<CrownOutlined />}>
+            Admin
+          </Tag>
+        ) : (
+          <Tag>User</Tag>
+        ),
+    },
+    {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
-      width: 180,
+      width: 165,
       render: (value: string) => (value ? new Date(value).toLocaleString('vi-VN') : '—'),
+    },
+    {
+      title: 'Đăng nhập cuối',
+      dataIndex: 'lastSignInAt',
+      width: 165,
+      render: (value?: string) =>
+        value ? (
+          new Date(value).toLocaleString('vi-VN')
+        ) : (
+          <Typography.Text type="secondary">Chưa đăng nhập</Typography.Text>
+        ),
     },
     {
       title: 'Trạng thái',
       dataIndex: 'disabled',
-      width: 120,
+      width: 110,
       render: (disabled: boolean) =>
         disabled ? <Tag color="red">Đã khóa</Tag> : <Tag color="green">Hoạt động</Tag>,
     },
     {
       title: 'Hành động',
       key: 'actions',
-      width: 260,
-      render: (_, user) => (
-        <Space>
-          <Popconfirm
-            title={user.disabled ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản này?'}
-            description={
-              user.disabled
-                ? 'Người dùng sẽ đăng nhập lại được.'
-                : 'Người dùng sẽ không thể đăng nhập nữa.'
-            }
-            okText={user.disabled ? 'Mở khóa' : 'Khóa'}
-            cancelText="Hủy"
-            okButtonProps={{ danger: !user.disabled }}
-            onConfirm={() =>
-              disableMutation.mutate({ uid: user.uid, disabled: !user.disabled })
-            }
-          >
-            <Button
-              size="small"
-              danger={!user.disabled}
-              icon={user.disabled ? <UnlockOutlined /> : <LockOutlined />}
-              loading={disableMutation.isPending && disableMutation.variables?.uid === user.uid}
+      width: 280,
+      render: (_, user) => {
+        // Chinh minh: khong khoa / khong thu quyen duoc (server cung chan)
+        if (user.uid === myUid) {
+          return <Typography.Text type="secondary">Tài khoản của bạn</Typography.Text>;
+        }
+        return (
+          <Space>
+            <Popconfirm
+              title={user.disabled ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản này?'}
+              description={
+                user.disabled
+                  ? 'Người dùng sẽ đăng nhập lại được.'
+                  : 'Người dùng sẽ không thể đăng nhập nữa (phiên hiện tại cũng bị thu hồi).'
+              }
+              okText={user.disabled ? 'Mở khóa' : 'Khóa'}
+              cancelText="Hủy"
+              okButtonProps={{ danger: !user.disabled }}
+              onConfirm={() => disableMutation.mutate({ uid: user.uid, disabled: !user.disabled })}
             >
-              {user.disabled ? 'Mở khóa' : 'Khóa'}
-            </Button>
-          </Popconfirm>
-          <Popconfirm
-            title="Cấp quyền admin cho người dùng này?"
-            description="Họ sẽ đăng nhập được trang quản trị sau khi đăng nhập lại."
-            okText="Cấp quyền"
-            cancelText="Hủy"
-            onConfirm={() => grantMutation.mutate(user.uid)}
-          >
-            <Button
-              size="small"
-              icon={<CrownOutlined />}
-              loading={grantMutation.isPending && grantMutation.variables === user.uid}
-            >
-              Cấp admin
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+              <Button
+                size="small"
+                danger={!user.disabled}
+                icon={user.disabled ? <UnlockOutlined /> : <LockOutlined />}
+                loading={disableMutation.isPending && disableMutation.variables?.uid === user.uid}
+              >
+                {user.disabled ? 'Mở khóa' : 'Khóa'}
+              </Button>
+            </Popconfirm>
+            {user.admin ? (
+              <Popconfirm
+                title="Thu hồi quyền admin của người dùng này?"
+                description="Họ mất quyền truy cập trang quản trị NGAY lập tức."
+                okText="Thu hồi"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => revokeMutation.mutate(user.uid)}
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<UserDeleteOutlined />}
+                  loading={revokeMutation.isPending && revokeMutation.variables === user.uid}
+                >
+                  Thu quyền
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Popconfirm
+                title="Cấp quyền admin cho người dùng này?"
+                description="Họ sẽ đăng nhập được trang quản trị này (đăng nhập lại để có hiệu lực)."
+                okText="Cấp quyền"
+                cancelText="Hủy"
+                onConfirm={() => grantMutation.mutate(user.uid)}
+              >
+                <Button
+                  size="small"
+                  icon={<CrownOutlined />}
+                  loading={grantMutation.isPending && grantMutation.variables === user.uid}
+                >
+                  Cấp admin
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -120,6 +192,19 @@ export function UsersPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Quản lý người dùng
       </Typography.Title>
+      <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
+        Chỉ tài khoản có vai trò <Tag color="gold">Admin</Tag> đăng nhập được trang quản trị này.
+        Người dùng thường phải được một admin cấp quyền mới truy cập được.
+      </Typography.Paragraph>
+      {error && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Không tải được danh sách người dùng."
+          description={(error as Error).message}
+        />
+      )}
       <Input.Search
         placeholder="Tìm theo email hoặc tên..."
         allowClear

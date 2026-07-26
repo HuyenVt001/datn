@@ -75,6 +75,20 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="snapget_default" />
 
+        <!-- Widget man hinh chinh (Glance): anh moment moi nhat + badge streak.
+             exported=false vi APPWIDGET_UPDATE la protected system broadcast. -->
+        <receiver
+            android:name=".feature.widget.SnapgetWidgetReceiver"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/snapget_widget_info" />
+        </receiver>
+
         <!-- Share anh/video cua post: MediaActions.share tai file ve cacheDir roi
              chia se qua FileProvider (khong share URL text) -->
         <provider

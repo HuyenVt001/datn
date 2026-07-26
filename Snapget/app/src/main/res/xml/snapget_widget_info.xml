@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cau hinh widget Glance: 2x2 mac dinh, resize duoc 2 chieu.
+     updatePeriodMillis=0 vi refresh do WorkManager dam nhiem (WidgetRefresher).
+     Cac attr targetCell*/maxResize*/description chi co tu API 31 — duoi do bi bo qua,
+     minWidth/minHeight 110dp dinh co ~2x2 cho launcher cu (minSdk 24). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="330dp"
+    android:maxResizeHeight="330dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:previewImage="@mipmap/ic_launcher"
+    android:description="@string/widget_description"
+    android:widgetCategory="home_screen" />

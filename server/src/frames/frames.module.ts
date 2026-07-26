@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { FramesController } from './frames.controller';
@@ -6,8 +7,9 @@ import { FramesRepository } from './frames.repository';
 import { FramesService } from './frames.service';
 
 // AuthModule: AdminJwtGuard (JwtModule) cho endpoint admin. UsersModule: unlockedFrames.
+// AuditModule: ghi nhat ky hanh dong admin (CRUD/grant khung).
 @Module({
-  imports: [AuthModule, UsersModule],
+  imports: [AuthModule, UsersModule, AuditModule],
   controllers: [FramesController],
   providers: [FramesService, FramesRepository],
   exports: [FramesService, FramesRepository],

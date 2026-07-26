@@ -4,6 +4,7 @@ import type { ApiEnvelope } from '../types';
 /** Key localStorage giu JWT admin — dung chung voi AuthContext. */
 export const TOKEN_KEY = 'snapget_admin_token';
 export const EMAIL_KEY = 'snapget_admin_email';
+export const UID_KEY = 'snapget_admin_uid';
 
 /**
  * Axios instance dung chung: tu gan Bearer JWT, boc envelope, xu ly 401.
@@ -28,6 +29,7 @@ client.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(EMAIL_KEY);
+      localStorage.removeItem(UID_KEY);
       if (!window.location.pathname.startsWith('/login')) {
         window.location.assign('/login');
       }

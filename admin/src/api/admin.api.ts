@@ -1,5 +1,5 @@
-import type { AdminStats, AdminUser, Paginated } from '../types';
-import { get, patch, post } from './client';
+import type { AdminLog, AdminMoment, AdminStats, AdminUser, DailyStat, Paginated } from '../types';
+import { del, get, patch, post } from './client';
 
 /** Danh sach nguoi dung, tim kiem theo email/ten + phan trang. */
 export function listUsers(params: {
@@ -23,4 +23,32 @@ export function setUserDisabled(uid: string, disabled: boolean) {
 /** Cap quyen admin (custom claim) cho user co san — user do phai dang nhap lai moi co hieu luc. */
 export function grantAdmin(uid: string) {
   return post<{ uid: string; admin: boolean }>(`/admin/users/${uid}/grant-admin`);
+}
+
+/** Thu hoi quyen admin — hieu luc NGAY (guard server re-check moi request). */
+export function revokeAdmin(uid: string) {
+  return post<{ uid: string; admin: boolean }>(`/admin/users/${uid}/revoke-admin`);
+}
+
+/** Thong ke theo ngay (moment + user moi) cho bieu do dashboard. */
+export function getDailyStats(days = 7): Promise<DailyStat[]> {
+  return get<DailyStat[]>('/admin/stats/daily', { days });
+}
+
+/** Danh sach bai dang moi nhat (kiem duyet noi dung). */
+export function listMoments(params: {
+  page?: number;
+  limit?: number;
+}): Promise<Paginated<AdminMoment>> {
+  return get<Paginated<AdminMoment>>('/admin/moments', params);
+}
+
+/** Xoa bai dang vi pham (kem views/reactions; server ghi audit log). */
+export function deleteMoment(momentId: string) {
+  return del<{ momentId: string }>(`/admin/moments/${momentId}`);
+}
+
+/** Nhat ky hanh dong admin (moi nhat truoc). */
+export function listLogs(params: { page?: number; limit?: number }): Promise<Paginated<AdminLog>> {
+  return get<Paginated<AdminLog>>('/admin/logs', params);
 }

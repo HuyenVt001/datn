@@ -8,6 +8,7 @@ import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.message.data.MessageRepository
 import com.example.snapget.feature.post.data.PostRepository
+import com.example.snapget.feature.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject
@@ -25,6 +26,7 @@ class PostViewModel @Inject constructor(
     private val postRepository: PostRepository,
     // Gui kem anh vao chat 1-1 khi user chon 1 ban o man dang (tuy chon)
     private val messageRepository: MessageRepository,
+    private val widgetRefresher: WidgetRefresher,
 ) : ViewModel() {
 
     /** Trang thai dang bai — UI hien loading/loi tu day. */
@@ -117,6 +119,7 @@ class PostViewModel @Inject constructor(
                 }
                 _submitStatus.value = LoadStatus.Success()
                 loadFeed() // lam moi feed de thay bai vua dang
+                widgetRefresher.refreshNow() // widget hien bai vua dang
             } catch (e: Exception) {
                 _submitStatus.value = LoadStatus.Error(e.serverMessage("Failed to post."))
             }
@@ -143,6 +146,9 @@ class PostViewModel @Inject constructor(
     fun loadUserMoments(uid: String?) {
         viewModelScope.launch {
             _userMomentsStatus.value = LoadStatus.Loading()
+            // Xoa bai cua tab TRUOC ngay: khong hien tam bai cua ban cu duoi ten
+            // ban moi trong luc cho mang (fix 2026-07-26)
+            _userMoments.value = emptyList()
             try {
                 _userMoments.value = if (uid == null) {
                     postRepository.getMyMoments()

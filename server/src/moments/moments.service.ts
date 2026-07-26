@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { QuestsService } from '../quests/quests.service';
@@ -22,7 +22,7 @@ export class MomentsService {
     private readonly friendshipsService: FriendshipsService,
     private readonly friendshipsRepo: FriendshipsRepository,
     private readonly questsService: QuestsService,
-    private readonly firebase: FirebaseService,
+    private readonly framesService: FramesService,
   ) {}
 
   /**
@@ -51,6 +51,11 @@ export class MomentsService {
     // Quest: dang bai = hoan thanh POST_MOMENT; dong thoi xet thuong khung theo moc streak.
     await this.questsService.registerMomentPosted(authUser.uid, personalStreak).catch((e) => {
       this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
+    });
+
+    // Khung dieu kien POST_COUNT: dem tong bai roi mo cac khung vua dat nguong (best-effort).
+    await this.unlockPostCountFrames(authUser.uid).catch((e) => {
+      this.logger.warn(`Khong mo duoc khung theo so bai dang: ${(e as Error).message}`);
     });
 
     // Gui push cho danh sach ban be (khong chan luong dang bai neu loi).
@@ -106,6 +111,12 @@ export class MomentsService {
     return this.paginate(this.mergeMoments(own, coop), pagination);
   }
 
+  /** Khung dieu kien POST_COUNT: dem tong bai cua user roi mo cac khung dat nguong. */
+  private async unlockPostCountFrames(uid: string): Promise<void> {
+    const count = await this.repo.countByUserId(uid);
+    await this.framesService.unlockByThreshold(uid, 'POST_COUNT', count);
+  }
+
   /** Gop 2 danh sach moment, khu trung theo momentId, sort postTime desc. */
   private mergeMoments(own: Moment[], coop: Moment[]): Moment[] {
     const seen = new Set(own.map((m) => m.momentId));
@@ -138,11 +149,8 @@ export class MomentsService {
 
   /** He thong tu danh dau da xem khi user luot qua moment tren feed. */
   async markSeen(momentId: string, viewerId: string): Promise<void> {
-    const moment = await this.repo.findById(momentId);
-    if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
-    }
-    await this.repo.markSeen(momentId, viewerId);
+    const moment = await this.getMomentForInteraction(momentId, viewerId);
+    await this.repo.markSeen(moment.momentId, viewerId);
   }
 
   /**
@@ -150,10 +158,7 @@ export class MomentsService {
    * giua nguoi tha va chu bai dang.
    */
   async react(momentId: string, reactorId: string, emojiType: string): Promise<Reaction> {
-    const moment = await this.repo.findById(momentId);
-    if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
-    }
+    const moment = await this.getMomentForInteraction(momentId, reactorId);
     const reaction = await this.repo.addReaction(momentId, reactorId, emojiType);
 
     if (moment.userId !== reactorId) {
@@ -164,34 +169,51 @@ export class MomentsService {
     return reaction;
   }
 
-  async listReactions(momentId: string): Promise<Reaction[]> {
+  async listReactions(momentId: string, viewerId: string): Promise<Reaction[]> {
+    await this.getMomentForInteraction(momentId, viewerId);
     return this.repo.listReactions(momentId);
   }
 
-  /** Gom fcmTokens cua tat ca ban be roi gui push "X da dang khoanh khac moi". */
+  /**
+   * Lay moment de TUONG TAC (seen/reaction) — chi nguoi thay duoc moment tren
+   * feed moi duoc tuong tac (fix 2026-07-26: truoc day ai cam momentId cung
+   * seen/react duoc, ke ca nguoi la): chinh chu bai / nguoi chup chung /
+   * ban be cua MOT TRONG HAI nguoi tren anh.
+   */
+  private async getMomentForInteraction(momentId: string, uid: string): Promise<Moment> {
+    const moment = await this.repo.findById(momentId);
+    if (!moment) {
+      throw new NotFoundException('Khong tim thay bai dang.');
+    }
+    if (moment.userId === uid || moment.coopUserId === uid) {
+      return moment;
+    }
+    const authorPair = await this.friendshipsRepo.findPair(uid, moment.userId);
+    if (authorPair?.status === 'ACCEPTED') {
+      return moment;
+    }
+    if (moment.coopUserId) {
+      const coopPair = await this.friendshipsRepo.findPair(uid, moment.coopUserId);
+      if (coopPair?.status === 'ACCEPTED') {
+        return moment;
+      }
+    }
+    throw new ForbiddenException('Chi tuong tac duoc voi bai dang cua ban be.');
+  }
+
+  /** Bao ban be "X da dang khoanh khac moi" (helper push chung o UsersService). */
   private async notifyFriends(authUser: AuthUser): Promise<void> {
     const friendships = await this.friendshipsRepo.listAccepted(authUser.uid);
     const friendIds = friendships.map((f) => f.userIds.find((id) => id !== authUser.uid) ?? '');
     if (friendIds.length === 0) {
       return;
     }
-
-    const friends = await Promise.all(friendIds.map((id) => this.usersRepo.findByUid(id)));
-    const tokens = friends.flatMap((f) => f?.fcmTokens ?? []);
-    if (tokens.length === 0) {
-      return;
-    }
-
     const me = await this.usersRepo.findByUid(authUser.uid);
     const senderName = me?.fullName ?? 'Ban be cua ban';
-
-    const res = await this.firebase.messaging().sendEachForMulticast({
-      tokens,
-      notification: {
-        title: 'Snapget',
-        body: `${senderName} vua dang mot khoanh khac moi!`,
-      },
-    });
-    this.logger.log(`FCM: gui ${res.successCount}/${tokens.length} thiet bi.`);
+    await this.usersService.pushToUids(
+      friendIds,
+      'Snapget',
+      `${senderName} vua dang mot khoanh khac moi!`,
+    );
   }
 }

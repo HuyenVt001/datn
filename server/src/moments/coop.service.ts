@@ -8,7 +8,7 @@ import {
 import sharp from 'sharp';
 import { COOP_INVITE_TTL_HOURS } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { FirebaseService } from '../firebase/firebase.service';
+import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { QuestsService } from '../quests/quests.service';
@@ -41,8 +41,8 @@ export class CoopService {
     private readonly usersRepo: UsersRepository,
     private readonly usersService: UsersService,
     private readonly questsService: QuestsService,
+    private readonly framesService: FramesService,
     private readonly uploadService: UploadService,
-    private readonly firebase: FirebaseService,
   ) {}
 
   /** Gui loi moi chup chung (chi moi duoc ban be). */
@@ -137,7 +137,15 @@ export class CoopService {
       throw e;
     }
 
-    await this.repo.update(inviteId, { momentId: moment.momentId });
+    // Best-effort: moment DA dang thanh cong — loi ghi momentId vao invite khong
+    // duoc phep lam client nhan 500 + bo qua streak/quest/FCM phia sau.
+    await this.repo
+      .update(inviteId, { momentId: moment.momentId })
+      .catch((e) =>
+        this.logger.warn(
+          `Khong ghi duoc momentId vao loi moi ${inviteId}: ${(e as Error).message}`,
+        ),
+      );
 
     // Nguoi nhan cung duoc tinh hoat dong: streak + quest + friend streak voi nguoi moi
     try {
@@ -147,6 +155,12 @@ export class CoopService {
     } catch (e) {
       this.logger.warn(`Khong cap nhat duoc streak/quest cho nguoi nhan: ${(e as Error).message}`);
     }
+
+    // Khung dieu kien COOP_FIRST: hoan thanh chup chung -> mo cho CA 2 nguoi (best-effort).
+    await Promise.all([
+      this.framesService.unlockCoopFrames(invite.inviterId),
+      this.framesService.unlockCoopFrames(invite.inviteeId),
+    ]).catch((e) => this.logger.warn(`Khong mo duoc khung chup chung: ${(e as Error).message}`));
 
     await this.pushToUser(
       invite.inviterId,
@@ -226,22 +240,13 @@ export class CoopService {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  /** Gui FCM cho 1 user (data values phai la string). */
+  /** Gui FCM cho 1 user (helper push chung o UsersService, data values phai la string). */
   private async pushToUser(
     uid: string,
     title: string,
     body: string,
     data: Record<string, string>,
   ): Promise<void> {
-    const user = await this.usersRepo.findByUid(uid);
-    const tokens = user?.fcmTokens ?? [];
-    if (tokens.length === 0) {
-      return;
-    }
-    await this.firebase.messaging().sendEachForMulticast({
-      tokens,
-      notification: { title, body },
-      data,
-    });
+    await this.usersService.pushToUids([uid], title, body, data);
   }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.feature.auth.data.AuthRepository
+import com.example.snapget.feature.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     @ApplicationContext private val context: Context,
+    private val widgetRefresher: WidgetRefresher,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -83,6 +85,8 @@ class AuthViewModel @Inject constructor(
                 val success = authRepository.logout()
                 if (success) {
                     _authState.value = AuthState.Unauthenticated
+                    // Widget chuyen sang trang thai "Sign in" ngay (xoa snapshot + anh)
+                    widgetRefresher.markSignedOut()
                 } else {
                     _authState.value = AuthState.Error("Failed to logout")
                 }

@@ -22,6 +22,22 @@ export class MomentsRepository {
     return { momentId: ref.id, ...moment };
   }
 
+  /** Tong so bai cua 1 user (count() aggregate — phuc vu khung dieu kien POST_COUNT). */
+  async countByUserId(uid: string): Promise<number> {
+    const snap = await this.col.where('userId', '==', uid).count().get();
+    return snap.data().count;
+  }
+
+  /**
+   * Toan bo moment, moi nhat truoc — trang admin KIEM DUYET (2026-07-26).
+   * orderBy 1 field (postTime) dung index tu dong; gioi han 500 bai gan nhat
+   * roi phan trang trong bo nho — du cho quy mo DATN.
+   */
+  async listAll(max = 500): Promise<Moment[]> {
+    const snap = await this.col.orderBy('postTime', 'desc').limit(max).get();
+    return snap.docs.map((d) => this.toEntity(d.id, d.data()));
+  }
+
   async findById(momentId: string): Promise<Moment | null> {
     const snap = await this.col.doc(momentId).get();
     if (!snap.exists) {
@@ -32,7 +48,9 @@ export class MomentsRepository {
 
   /**
    * Xoa moment + subcollection views/reactions (Firestore KHONG tu xoa
-   * subcollection khi xoa doc cha). Batch 500 ops du cho quy mo DATN.
+   * subcollection khi xoa doc cha). Batch gioi han 500 ops -> chia CHUNK 450
+   * (fix 2026-07-26: bai >500 view/reaction lam commit() fail nguyen batch,
+   * khong xoa duoc bai). Doc cha xoa SAU CUNG de fail giua chung con thu lai duoc.
    */
   async delete(momentId: string): Promise<void> {
     const doc = this.col.doc(momentId);
@@ -40,11 +58,15 @@ export class MomentsRepository {
       doc.collection(SubCollections.VIEWS).get(),
       doc.collection(SubCollections.REACTIONS).get(),
     ]);
-    const batch = this.firebase.firestore().batch();
-    views.docs.forEach((d) => batch.delete(d.ref));
-    reactions.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(doc);
-    await batch.commit();
+    const refs = [...views.docs, ...reactions.docs].map((d) => d.ref);
+
+    const CHUNK = 450;
+    for (let i = 0; i < refs.length; i += CHUNK) {
+      const batch = this.firebase.firestore().batch();
+      refs.slice(i, i + CHUNK).forEach((ref) => batch.delete(ref));
+      await batch.commit();
+    }
+    await doc.delete();
   }
 
   /**

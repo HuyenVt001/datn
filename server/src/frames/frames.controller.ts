@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AuditService } from '../audit/audit.service';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { AdminJwtGuard } from '../common/guards/admin-jwt.guard';
@@ -12,7 +13,10 @@ import { FramesService } from './frames.service';
 @ApiTags('frames')
 @Controller('frames')
 export class FramesController {
-  constructor(private readonly framesService: FramesService) {}
+  constructor(
+    private readonly framesService: FramesService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // ==== Luong USER (Firebase token) ====
 
@@ -35,13 +39,26 @@ export class FramesController {
     return this.framesService.listAll();
   }
 
+  @Get(':id/owners')
+  @ApiBearerAuth('admin')
+  @UseGuards(AdminJwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: '[Admin] Danh sach user dang so huu khung nay' })
+  listOwners(@Param('id') frameId: string) {
+    return this.framesService.listOwners(frameId);
+  }
+
   @Post()
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({ summary: '[Admin] Them khung anh moi' })
-  async create(@Body() dto: CreateFrameDto) {
+  async create(@CurrentUser() actor: AuthUser, @Body() dto: CreateFrameDto) {
     const frame = await this.framesService.create(dto);
+    await this.auditService.log(actor, 'FRAME_CREATE', {
+      id: frame.frameId,
+      label: frame.frameName,
+    });
     return { message: 'Da them khung anh.', data: frame };
   }
 
@@ -49,9 +66,14 @@ export class FramesController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Sua khung anh (ten / anh)' })
-  async update(@Param('id') frameId: string, @Body() dto: UpdateFrameDto) {
+  @ApiOperation({ summary: '[Admin] Sua khung anh (ten / anh / dieu kien mo khoa)' })
+  async update(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') frameId: string,
+    @Body() dto: UpdateFrameDto,
+  ) {
     const frame = await this.framesService.update(frameId, dto);
+    await this.auditService.log(actor, 'FRAME_UPDATE', { id: frameId, label: frame.frameName });
     return { message: 'Da cap nhat khung anh.', data: frame };
   }
 
@@ -60,8 +82,9 @@ export class FramesController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({ summary: '[Admin] Xoa khung anh' })
-  async delete(@Param('id') frameId: string) {
+  async delete(@CurrentUser() actor: AuthUser, @Param('id') frameId: string) {
     await this.framesService.delete(frameId);
+    await this.auditService.log(actor, 'FRAME_DELETE', { id: frameId });
     return { message: 'Da xoa khung anh.', data: { frameId } };
   }
 
@@ -70,8 +93,13 @@ export class FramesController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({ summary: '[Admin] Mo khoa khung cho 1 user (demo phan thuong)' })
-  async grant(@Param('id') frameId: string, @Param('uid') uid: string) {
+  async grant(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') frameId: string,
+    @Param('uid') uid: string,
+  ) {
     await this.framesService.unlockForUser(uid, frameId);
+    await this.auditService.log(actor, 'FRAME_GRANT', { id: frameId, label: `cho user ${uid}` });
     return { message: 'Da mo khoa khung cho user.', data: { frameId, uid } };
   }
 }

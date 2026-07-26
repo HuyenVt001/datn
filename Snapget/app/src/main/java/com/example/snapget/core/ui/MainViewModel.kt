@@ -4,12 +4,12 @@ import android.util.Log as AndroidLog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.data.FirestoreRepository
-import com.example.snapget.core.data.SettingDefaults
 import com.example.snapget.core.data.SettingsPreferences
-import com.example.snapget.core.model.Setting
+import com.example.snapget.core.model.ThemeMode
 import com.example.snapget.core.model.auth.AuthUser
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.unwrap
+import com.example.snapget.feature.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,10 +18,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel dung chung: user hien tai + settings (UI cua app).
+ * ViewModel dung chung: user hien tai + theme mode.
  * DA DON GOD-VM (2026-07-13): toan bo phan posts/friends/messages doc Firestore
  * truc tiep da xoa — cac feature doc qua API server (PostViewModel,
  * FriendsViewModel, MessageViewModel...).
+ * Phan danh sach settings da chuyen sang SettingsViewModel (feature/settings, 2026-07-26).
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -29,18 +30,20 @@ class MainViewModel @Inject constructor(
     // Ho so that (fullName/avatar) nam o server — Firebase Auth photoUrl thuong
     // RONG voi tai khoan email/password nen khong dung lam nguon avatar duoc
     private val userApi: UserApi,
-    // Settings la config UI tinh (xem SettingDefaults); chi luu trang thai toggle
-    private val settingsPreferences: SettingsPreferences,
+    settingsPreferences: SettingsPreferences,
+    private val widgetRefresher: WidgetRefresher,
 ) : ViewModel() {
 
-    private val _settings = MutableStateFlow<List<Setting>>(emptyList())
-    val settings: StateFlow<List<Setting>> = _settings
+    /** Che do giao dien hien tai — MainActivity doc de apply AppTheme. */
+    val themeMode: StateFlow<ThemeMode> = settingsPreferences.themeMode
 
     // Current user StateFlow
     private val _currentUser = MutableStateFlow<AuthUser?>(null)
     val currentUser: StateFlow<AuthUser?> = _currentUser.asStateFlow()
 
     fun fetchCurrentUser() {
+        // Mo app / login xong -> widget refresh 1 lan (worker tu no-op neu chua dang nhap)
+        widgetRefresher.refreshNow()
         viewModelScope.launch {
             try {
                 val user = repository.getCurrentUser()
@@ -61,30 +64,6 @@ class MainViewModel @Inject constructor(
             } catch (e: Exception) {
                 AndroidLog.d("MainViewModel", "Error fetching user: ${e.message}")
             }
-        }
-    }
-
-    /**
-     * Nap danh sach settings TINH (SettingDefaults) roi phu trang thai toggle da
-     * luu local. Khong con goi Firestore — settings la config UI, khong thuoc
-     * domain server.
-     */
-    fun getAllSetting() {
-        _settings.value = settingsPreferences.applyOverrides(SettingDefaults.defaults)
-    }
-
-    /**
-     * Cap nhat trang thai toggle cua 1 setting: luu local (SharedPreferences) va
-     * cap nhat state hien thi.
-     *
-     * @param settingId The ID of the setting to update.
-     * @param isToggled The new toggle state for the setting.
-     */
-    fun updateSettingToggle(settingId: String, isToggled: Boolean) {
-        // Luu local (SharedPreferences) + cap nhat state ngay lap tuc
-        settingsPreferences.setToggle(settingId, isToggled)
-        _settings.value = _settings.value.map {
-            if (it.id == settingId) it.copy(isToggled = isToggled) else it
         }
     }
 }

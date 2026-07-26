@@ -1,10 +1,10 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { MAX_GROUP_SIZE } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { FirebaseService } from '../firebase/firebase.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { UsersRepository } from '../users/users.repository';
+import { UsersService } from '../users/users.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MessagesRepository } from './messages.repository';
 import { MessagesService } from './messages.service';
@@ -13,6 +13,7 @@ describe('MessagesService', () => {
   let service: MessagesService;
   let repo: jest.Mocked<MessagesRepository>;
   let usersRepo: jest.Mocked<UsersRepository>;
+  let usersService: jest.Mocked<UsersService>;
   let friendshipsService: jest.Mocked<FriendshipsService>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
 
@@ -38,14 +39,21 @@ describe('MessagesService', () => {
     friendshipsService = {
       registerInteraction: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<FriendshipsService>;
-    friendshipsRepo = { findPair: jest.fn() } as unknown as jest.Mocked<FriendshipsRepository>;
+    friendshipsRepo = {
+      findPair: jest.fn(),
+      listAccepted: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<FriendshipsRepository>;
+
+    usersService = {
+      pushToUids: jest.fn().mockResolvedValue(0),
+    } as unknown as jest.Mocked<UsersService>;
 
     service = new MessagesService(
       repo,
       usersRepo,
+      usersService,
       friendshipsService,
       friendshipsRepo,
-      {} as FirebaseService,
     );
   });
 
@@ -92,12 +100,26 @@ describe('MessagesService', () => {
 
     it('nguoi tao tu dong vao nhom + khu trung lap', async () => {
       repo.createGroup.mockResolvedValue({ groupId: 'g1' } as never);
+      friendshipsRepo.listAccepted.mockResolvedValue([
+        { userIds: ['me', 'a'], status: 'ACCEPTED' },
+      ] as never);
 
       await service.createGroup('me', { groupName: 'g', memberIds: ['a', 'a', 'me'] });
 
       expect(repo.createGroup).toHaveBeenCalledWith(
         expect.objectContaining({ memberIds: ['me', 'a'], createdBy: 'me' }),
       );
+    });
+
+    it('chan them NGUOI LA vao nhom (chi ban be)', async () => {
+      friendshipsRepo.listAccepted.mockResolvedValue([
+        { userIds: ['me', 'a'], status: 'ACCEPTED' },
+      ] as never);
+
+      await expect(
+        service.createGroup('me', { groupName: 'g', memberIds: ['a', 'stranger'] }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(repo.createGroup).not.toHaveBeenCalled();
     });
   });
 
