@@ -1,3 +1,6 @@
+//Trước khi mở app, gọi https://datn-8810.onrender.com/api/health để đánh thức server; hoặc
+
+
 # GUIDE.md — Bản đồ **Snapget Admin** (React web)
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: cây thư mục + ý nghĩa, bảng task + tiến độ.
@@ -8,7 +11,8 @@
 ## 1. Trạng thái tổng quát
 
 **🟢 Code Phase 1 hoàn tất (2026-07-13)** — build + lint sạch, đủ 4 trang (Login/Dashboard/Users/Frames).
-**Chưa test end-to-end** vì máy hiện tại thiếu `server/firebase-service-account.json` (xem mục 5) → chưa seed được admin, chưa đăng nhập thật được.
+**Service account key đã có** trên máy: `server/snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json` (đã được `.gitignore`, `server/.env` đã trỏ đúng qua `FIREBASE_SERVICE_ACCOUNT`).
+**Chưa test end-to-end** — còn cần chạy `npm run seed:admin` và đăng nhập thử (xem mục 5).
 
 ## 2. Chạy dự án
 
@@ -59,17 +63,17 @@ admin/
 | Task | Trạng thái | Ghi chú |
 |---|---|---|
 | Scaffold Vite + React + TS + AntD | ✅ | React 18 + Vite 5 + AntD 5 (locale viVN, colorPrimary #8C6239); thay boilerplate JS cũ |
-| Luồng đăng nhập Firebase → JWT server | ✅ (code) | AuthContext 2 bước; CHƯA test thật — cần service account key + seed admin |
+| Luồng đăng nhập Firebase → JWT server | ✅ (code) | AuthContext 2 bước; CHƯA test thật — key đã có, còn chờ seed admin |
 | AdminLayout + router + guard | ✅ | Sider 3 mục + header đăng xuất; RequireAuth redirect /login; 401 → tự logout |
 | DashboardPage (stats) | ✅ | 6 thẻ Statistic từ GET /admin/stats |
 | UsersPage (search/pagination/lock/grant) | ✅ | Table server-side pagination 10/trang; Popconfirm khóa/mở + cấp admin |
 | FramesPage (CRUD + grant + upload) | ✅ | Card grid; modal thêm/sửa (upload qua /upload/admin); grant qua Select tìm user; server đã có PATCH /frames/:id + GET /frames/admin |
 | Thống kê quest trên Dashboard | ✅ | DashboardPage đã hiện thẻ `questCompletionsToday` từ GET /admin/stats (server quests xong 2026-07-13) |
-| Test end-to-end (đăng nhập → thao tác) | ⬜ | chờ `server/firebase-service-account.json` + `npm run seed:admin` |
+| Test end-to-end (đăng nhập → thao tác) | ⬜ | key đã có; còn chờ `npm run seed:admin` + đăng nhập thử |
 
 ## 5. Việc cần user chuẩn bị để chạy thật
 
-1. **`server/firebase-service-account.json`**: tải từ Firebase Console → Project settings → Service accounts → Generate new private key, lưu vào `server/`. Sửa `server/.env`: `FIREBASE_SERVICE_ACCOUNT=firebase-service-account.json` (hiện đang trỏ nhầm sang **email** service account).
+1. ✅ **Service account key**: đã có — `server/snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json` (tải từ Firebase Console → Project settings → Service accounts → Generate new private key). `server/.env` đã trỏ đúng: `FIREBASE_SERVICE_ACCOUNT=./snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`. File đã được `.gitignore` (pattern `*-firebase-adminsdk-*.json`).
 2. Tài khoản `viethoang5301314@gmail.com` phải đã đăng ký trong app (Firebase Auth) → chạy `cd server && npm run seed:admin` → đăng nhập admin web bằng email/mật khẩu đó.
 3. Nếu đăng nhập web báo lỗi API key (key Android bị giới hạn platform): tạo **Web App** trong Firebase Console và thay 4 biến `VITE_FIREBASE_*` trong `admin/.env` (đang mượn key từ `google-services.json`).
 

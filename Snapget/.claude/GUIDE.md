@@ -86,6 +86,8 @@ d:\DATN\                    # ⬅️ monorepo THẬT nằm ở đây (3 thư m�
 | **UI chuyển TOÀN BỘ sang tiếng Anh (2026-07-19, yêu cầu user)** 🇬🇧: dịch ~134 chuỗi UI/28 file (Text/Toast/label/contentDescription/message fallback trong VM + `ApiResponse`) từ tiếng Việt → tiếng Anh. Giữ nguyên: comment code (vẫn tiếng Việt theo CLAUDE.md), Log, route/key/enum. ⚠️ **Message lỗi từ SERVER vẫn tiếng Việt** (server CLAUDE.md mục 7 quy định vậy) — toast hiện message server sẽ lộ tiếng Việt; muốn đồng bộ phải sửa phía server. Kèm 2 fix nhỏ: FriendList ở SubmitPhoto **bấm lần 2 = bỏ chọn** (quay về Everyone); lỗi "đã có lỗi xảy ra" khi đăng bài = server chạy từ trước khi có `firebase-service-account.json` → đã restart server với key (log "Firebase Admin SDK da khoi tao thanh cong") | ✅ 2026-07-19 |
 | **Đồng bộ avatar + dọn sạch thông tin giả runtime (2026-07-19)** 🧹: thêm `avatarOrDefault(avatar, seed)` (`core/util/MainUtils.kt`) — có avatar thật thì dùng, rỗng → **DiceBear initials PNG seed theo TÊN** (cùng user = cùng ảnh ở mọi màn). Thay hết fallback giả cũ (mỗi chỗ một kiểu → avatar lệch nhau): pravatar random (FriendItem, InviteConfirmDialog, UserDetailBottomSheet request, ChatScreen header + bubble), Unsplash `IMAGE_NOT_AVAILABLE` (ConversationItem), **Shutterstock** (pill Everyone), nút chữ cái (MainTopBar dropdown → initials, riêng Everyone giữ icon Group), ProfileHeader. Model: `User.avatar` default bỏ Unsplash → `""`; `Post.thumbnailUrl` default bỏ **picsum random** → `""`. `@Preview` vẫn được dùng sample. Lưu ý: avatar thật đồng bộ giữa màn phụ thuộc server trả field `avatar` trong friendships/conversations. **Luồng đăng ảnh dọn thêm**: xóa `PageIndicator` 5 chấm giả + nút Download chết (Log-only) khỏi SubmitPhotoScreen; avatar tác giả ở PostDetailScreen thêm fallback `avatarOrDefault` | ✅ 2026-07-19 — build OK |
 | **Avatar mình + UX chọn người nhận màn đăng (2026-07-19)** 👤: (1) fix gốc "avatar mình không hiện" — `MainViewModel.currentUser` lấy avatar từ Firebase Auth `photoUrl` (RỖNG với tài khoản email/password) trong khi avatar thật nằm ở server; giờ `fetchCurrentUser` **overlay fullName+avatar từ `GET /users/me`** (fail thì giữ bản Firebase) → avatar mình đúng ở mọi màn dùng currentUser (top bar, dropdown You...). (2) Màn đăng (SubmitPhoto): **mặc định KHÔNG chọn ai = chỉ đăng feed**; bỏ pill "You"; danh sách = bạn bè trước, **Everyone cuối** (`GenericCircleList` đổi thứ tự); bấm lại mục đang chọn = bỏ chọn; **chọn Everyone = gửi kèm ảnh vào chat cho TẤT CẢ bạn bè** (PostViewModel `sendToUid` → `sendToUids: List`, lỗi từng người không fail bài đăng, toast "failed to send to N friend(s)"); hint text 3 trạng thái | ✅ 2026-07-19 — build OK |
+| **Fix màn Settings trống (2026-07-26)** ⚙️: nguyên nhân — `getAllSetting()` đọc từ Firestore collection `settings` **chưa bao giờ được seed** → list rỗng → màn trắng (danh sách đầy đủ chỉ tồn tại trong `SampleData` cho @Preview). Sửa theo hướng **settings = config UI tĩnh** (đúng định nghĩa CLAUDE.md mục 9): thêm `core/data/SettingDefaults.kt` (23 mục, **id ổn định**) làm nguồn runtime + `core/data/SettingsPreferences.kt` (lưu trạng thái toggle qua SharedPreferences, phủ lên defaults). `MainViewModel.getAllSetting()` nạp từ `SettingDefaults` + overlay toggle đã lưu; `updateSettingToggle` lưu local, **bỏ hết Firestore cho settings**. Dọn: xóa `getAllSetting/updateSetting` + param `firestore` khỏi `FirestoreRepository`, bỏ `FirestoreConfig.SETTINGS`, `SampleData.settingList = SettingDefaults.defaults` (một nguồn sự thật, preview khớp thật) | ✅ 2026-07-26 — build OK |
+| **Đại tu camera + feed kiểu Locket (2026-07-26, theo 2 ảnh mẫu user)** 📸: (1) **Xóa nút chụp thừa** 72dp trong preview (`CameraPreview.kt`) — hành vi **giữ-để-quay-video ≤5s chuyển sang nút center bottom bar** (`Circle`/`BottomNavItem` thêm `onLongPress`/`onPressRelease`; CameraScreen wire `startRecordRequestId`/`stopRecordRequestId` vào `CameraPreviewWithZoom`; khi quay chỉ còn vòng tiến độ đỏ làm feedback). (2) **Fix pinch-zoom** (code cũ `setOnTouchListener` trả `false` → mất cả gesture, không zoom được): thay bằng `pointerInput` chỉ ăn event khi **≥2 ngón** (vuốt 1 ngón vẫn lọt ra cho gesture mở feed). (3) **PostScreen → VerticalPager full-screen** (mặc định khi vuốt lên từ camera): mỗi post 1 trang mới→cũ; **đang ở post mới nhất vuốt xuống → về camera** (NestedScrollConnection cộng dồn phần dư qua ngưỡng 120dp); **icon lưới góc dưới trái → grid tổng hợp** (bấm 1 ô → về pager đúng post); mark-seen theo `settledPage`; top bar + pill + hàng nút cố định không cuộn theo trang; hàng nút = lưới · nút chụp 80dp viền vàng (→ camera) · ⋯. (4) **Menu ⋯** (`PostOptionsSheet` khớp popup mẫu): **Share** (tải file → FileProvider → share sheet; provider mới trong Manifest + `res/xml/file_paths.xml`), **Download** (`MediaActions.saveToGallery` → MediaStore Pictures/Snapget), **Delete đỏ CHỈ bài mình** (AlertDialog xác nhận → `DELETE /moments/:id` **server MỚI thêm 2026-07-26**, chỉ chủ bài 403, xóa kèm subcol views/reactions), Cancel; **Report BỎ** (chốt user). (5) **`MessageInputPill` gõ text gửi DM thật** tới tác giả (`PostViewModel.sendMessageToAuthor` → `MessageRepository.send TEXT`; bài mình → toast); emoji nhanh đổi **💛😂💕** theo mẫu; `actionMessage` StateFlow toast one-shot. (6) `PostDetailScreen.kt` tách **`PostDetailContent`** (media+khung+caption+hàng tác giả, giờ hiện **`relativeTimeShort`** kiểu "1d" — util mới trong DatetimeUtils) + `FlyingEmojiOverlay`/`newFlyingEmoji` dùng chung; màn `PostDetailScreen` độc lập giữ cho UserProfileScreen (calendar) | ✅ 2026-07-26 — build OK, **cần test emulator/máy thật (pinch-zoom, quay video nút center, share/download, xóa bài)** |
 
 > ⚠️ Test app cần server đang chạy: `cd d:\DATN\server && npm run start:dev`. Emulator gọi `http://10.0.2.2:3000/api/` (đổi qua `server.base.url` trong `local.properties` nếu chạy máy thật).
 >
@@ -102,7 +104,8 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   common/                   #   LoadStatus, AppException
   config/                   #   StatusBar
   constants/                #   FirestoreConfig, AuthConstants, ScreenTitle, UserRole, ...
-  data/                     #   FirestoreRepository (ĐÃ DỌN 2026-07-13 — chỉ còn currentUser + settings),
+  data/                     #   FirestoreRepository (ĐÃ DỌN 2026-07-13/07-26 — chỉ còn getCurrentUser),
+  │                         #   SettingDefaults (settings tĩnh) + SettingsPreferences (toggle local),
   │                         #   MainLog/MainLogImpl (log), Store/StoreImpl2, SampleData
   designsystem/
     component/              #   UI tái sử dụng theo loại: bottombar/ button/ circle/ common/
@@ -113,15 +116,18 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   fcm/                      #   SnapgetMessagingService (khai báo trong AndroidManifest: .core.fcm.*)
   model/                    #   User, Post, Message, Friendship, Notification, Setting (+ auth/AuthState, AuthUser)
   network/                  #   🔜 (MỚI khi migrate) Retrofit api/ + dto/ + interceptor/
-  ui/                       #   MainViewModel (ĐÃ DỌN 2026-07-13 — chỉ còn currentUser + settings)
-  util/                     #   DatetimeUtils, MainUtils, EdgeToEdge, PaddingValues
+  ui/                       #   MainViewModel (chỉ còn currentUser + settings; settings nay TĨNH, không còn Firestore — 2026-07-26)
+  util/                     #   DatetimeUtils (+relativeTimeShort "1d"), MainUtils, EdgeToEdge, PaddingValues,
+  │                         #   MediaActions (Share qua FileProvider + Download vào MediaStore)
 
 feature/                    # Mỗi tính năng 1 package: screen + viewmodel + data riêng
   auth/                     #   LoginScreen, AuthViewModel, data/AuthRepository
   camera/                   #   CameraScreen (CameraX, toggle chế độ Chụp chung)
   coop/                     #   CoopSendScreen, CoopAcceptScreen, CoopViewModel, data/CoopRepository (API /moments/coop)
   friends/                  #   FriendsViewModel (kèm luồng xác nhận lời mời), QrScanScreen (quét QR kết bạn), data/FriendsRepository (API /friendships) + data/PendingInviteStore (mã mời chờ login)
-  post/                     #   PostScreen, PostDetailScreen, SubmitPhotoScreen, EditMediaScreen, MomentMapper
+  post/                     #   PostScreen (pager dọc mặc định + grid tổng hợp + menu ⋯ 2026-07-26),
+  │                         #   PostDetailScreen (PostDetailContent dùng chung + màn riêng cho profile),
+  │                         #   SubmitPhotoScreen, EditMediaScreen, MomentMapper
   message/                  #   MessageScreen, ChatScreen, GroupChatScreen, ChatMedia (sticker/voice/photo), MessageViewModel, data/MessageRepository (API /messages, polling 5s)
   profile/                  #   UserProfileScreen, ProfileViewModel, data/ProfileRepository (API /users + /moments/mine)
   quest/                    #   DailyQuestScreen, QuestViewModel, data/QuestRepository (API /quests/today + /frames + /users/me)
@@ -170,7 +176,8 @@ Tên collection nằm ở `constants/FirestoreConfig.kt`. **Tên field lưu tron
 | `messages` | `senderId`, `recipientId`, `previewContent`, `content`, `createdAt` (map vào `timeSent`), `isRead` |
 | `friendships` | `combinedUserIds[]` (để query), `status` (PENDING/ACCEPTED/BLOCKED/DECLINED), `user1Id`, `user2Id`, `requesterId`, `addresseeId`, `createdAt`, `updatedAt` |
 | `notifications` | `userId`, `type`, `title`, `description`, `createdAt`, `isRead` |
-| `settings` | `title`, `description`, `icon`, `type`, `isToggleable`, `isToggled` |
+
+> ⚠️ Collection `settings` **KHÔNG còn dùng** (2026-07-26): settings nay là config UI tĩnh trong app (`SettingDefaults` + `SettingsPreferences`), không đọc/ghi Firestore nữa.
 
 ### ⚠️ Quy ước query quan trọng (gotcha)
 `FirestoreRepository` **cố tình chỉ dùng 1 filter server-side** (equality hoặc `array-contains`), phần sort/lọc còn lại làm **trong bộ nhớ**. Mục đích: **né tạo composite index** khi prototype.
