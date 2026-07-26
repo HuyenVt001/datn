@@ -187,4 +187,43 @@ class PostViewModel @Inject constructor(
     fun resetSubmitStatus() {
         _submitStatus.value = LoadStatus.Init()
     }
+
+    /** Thong bao 1 lan cho cac hanh dong tren post (xoa/gui tin nhan) — UI toast roi clear. */
+    private val _actionMessage = MutableStateFlow<String?>(null)
+    val actionMessage: StateFlow<String?> = _actionMessage.asStateFlow()
+
+    fun clearActionMessage() {
+        _actionMessage.value = null
+    }
+
+    /** Xoa bai cua minh (menu ⋯ tren feed) — xong thi bo khoi state, khong can reload. */
+    fun deleteMoment(momentId: String) {
+        viewModelScope.launch {
+            try {
+                postRepository.deleteMoment(momentId)
+                _feed.value = _feed.value.filterNot { it.momentId == momentId }
+                _userMoments.value = _userMoments.value.filterNot { it.momentId == momentId }
+                _actionMessage.value = "Post deleted."
+            } catch (e: Exception) {
+                _actionMessage.value = e.serverMessage("Failed to delete post.")
+            }
+        }
+    }
+
+    /** Gui tin nhan TEXT toi tac gia bai dang (thanh "Send message..." duoi post). */
+    fun sendMessageToAuthor(authorUid: String, text: String) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            try {
+                messageRepository.send(
+                    receiverId = authorUid,
+                    content = text.trim(),
+                    messageType = "TEXT",
+                )
+                _actionMessage.value = "Message sent."
+            } catch (e: Exception) {
+                _actionMessage.value = e.serverMessage("Failed to send message.")
+            }
+        }
+    }
 }
