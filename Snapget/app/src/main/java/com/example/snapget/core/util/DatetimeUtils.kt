@@ -97,25 +97,6 @@ enum class StartDateStyle {
     SUNDAY,
 }
 
-/**
- * Thoi gian tuong doi NGAN kieu Locket cho hang tac gia duoi post:
- * "Just now" / "5m" / "3h" / "1d". Nhan ISO string tu server (postTime).
- */
-@RequiresApi(Build.VERSION_CODES.O)
-fun relativeTimeShort(iso: String): String = try {
-    val instant = java.time.Instant.parse(iso)
-    val mins = java.time.Duration.between(instant, java.time.Instant.now()).toMinutes()
-    when {
-        mins < 1 -> "Just now"
-        mins < 60 -> "${mins}m"
-        mins < 24 * 60 -> "${mins / 60}h"
-        else -> "${mins / (24 * 60)}d"
-    }
-} catch (e: Exception) {
-    Log.e("DateUtils", "Error parsing relative time: $iso", e)
-    ""
-}
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun getStartDayOffset(style: StartDateStyle = StartDateStyle.MONDAY, month: Month, year: Int): Int {
     val firstDay = LocalDate.of(year, month.ordinal + 1, 1)

@@ -2,7 +2,7 @@
 
 > Bản đồ **sống** của server: đọc trước khi sửa, **cập nhật sau MỖI lần sửa code** (cây thư mục + task + tiến độ).
 > Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: 2026-07-26 (thêm `DELETE /api/moments/:id` — chỉ chủ bài, xóa kèm subcollection views/reactions; app đã nối qua menu ⋯ trên feed).
+> Cập nhật lần cuối: 2026-07-13.
 
 ---
 
@@ -115,7 +115,7 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 |---|---|---|---|---|---|
 | users | ✅ | ✅ (me GET/PATCH, fcm-tokens, /:uid, ensureUser) | personalStreak (hàm sẵn, chờ moments gọi) | ✅ | ✅ |
 | friendships | ✅ | ✅ (list, invite-link, invite-info, connect, requests, accept, decline, remove) | **kết bạn 2 bước** ✅ (connect tạo PENDING → chủ link accept/decline; mutual → ACCEPTED luôn; FCM 2 chiều), limit 20 trong Firestore TRANSACTION ✅ (cả lúc gửi lời mời lẫn lúc accept), mã mời TTL 30 ngày ✅, friend streak reset 24h (hàm sẵn) | ✅ | ✅ |
-| moments | ✅ | ✅ (create, feed, mine, user/:uid, **delete (chủ bài)**, seen, reactions) | video≤5s (ở upload) ✅, isSeen ✅, personal+friend streak wired ✅, FCM bạn bè ✅, moment người khác chỉ bạn bè xem ✅, xóa chỉ chủ bài ✅ | ✅ | ✅ |
+| moments | ✅ | ✅ (create, feed, mine, user/:uid, seen, reactions) | video≤5s (ở upload) ✅, isSeen ✅, personal+friend streak wired ✅, FCM bạn bè ✅, moment người khác chỉ bạn bè xem ✅ | ✅ | ✅ |
 | messages | ✅ | ✅ (send 1-1/nhóm, threads, conversations, seen, groups) | group≤20 ✅, isSeen ✅, chỉ-bạn-bè ✅, friend streak wired ✅, FCM ✅ | ✅ | ✅ |
 | frames | ✅ | ✅ (list+isUnlocked, admin thêm/sửa/xóa, grant) | unlock qua service (chờ quests wire) ✅ | ✅ | ✅ |
 | quests | ✅ | ✅ (today, auto-complete, thưởng) | 2 quest cố định/ngày (KHÔNG AI), lazy, thưởng 2/2 + mốc streak | ✅ | ✅ |
@@ -156,7 +156,6 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | GET | `/api/moments/coop/pending` | Lời mời chụp chung đang chờ mình (kèm tên/avatar người mời) | Firebase |
 | POST | `/api/moments/coop/:id/accept` | Nộp nửa ảnh còn lại → server ghép sharp → 1 moment chung cho cả 2 | Firebase |
 | POST | `/api/moments/coop/:id/decline` | Từ chối lời mời | Firebase |
-| DELETE | `/api/moments/:id` | Xóa moment — **CHỈ chủ bài** (403 nếu không); xóa cả subcollection views/reactions (mới 2026-07-26, phục vụ menu ⋯ trên app) | Firebase |
 | POST | `/api/moments/:id/seen` | Đánh dấu đã xem | Firebase |
 | POST | `/api/moments/:id/reactions` | Thả emoji (cập nhật friend streak với chủ bài) | Firebase |
 | GET | `/api/moments/:id/reactions` | Danh sách reaction | Firebase |

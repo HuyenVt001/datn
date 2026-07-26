@@ -3,7 +3,6 @@ package com.example.snapget.core.designsystem.component.circle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -57,10 +55,6 @@ fun Circle(
     iconSetting: IconSetting? = null,
     imageSetting: ImageSetting? = null,
     innerContent: (@Composable () -> Unit)? = null,
-    // GIU nut (long-press) + THA tay — cho nut chup: giu = quay video, tha = dung.
-    // De null thi nut hoat dong nhu cu (chi click).
-    onLongPress: (() -> Unit)? = null,
-    onPressRelease: (() -> Unit)? = null,
 ) {
     // Assert: only 1 type of content allowed
     val contentCount = listOfNotNull(iconSetting, imageSetting, innerContent).size
@@ -82,25 +76,7 @@ fun Circle(
                 color = borderColor,
                 shape = CircleShape,
             )
-            .then(
-                if (onLongPress != null || onPressRelease != null) {
-                    // Can phan biet tap / giu / tha -> dung detectTapGestures
-                    // (onPressRelease goi o MOI lan tha tay — ben nhan tu kiem tra
-                    // co dang quay hay khong)
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { onClick() },
-                            onLongPress = { onLongPress?.invoke() },
-                            onPress = {
-                                tryAwaitRelease()
-                                onPressRelease?.invoke()
-                            },
-                        )
-                    }
-                } else {
-                    Modifier.clickable { onClick() }
-                },
-            ),
+            .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         when {

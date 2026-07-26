@@ -7,7 +7,6 @@ import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.network.dto.ReactRequest
 import com.example.snapget.core.network.dto.ReactionDto
 import retrofit2.http.Body
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -41,10 +40,6 @@ interface MomentApi {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 100,
     ): ApiResponse<PaginatedData<MomentDto>>
-
-    /** Xoa moment — server chi cho CHU BAI xoa (403 neu khong phai). */
-    @DELETE("moments/{id}")
-    suspend fun delete(@Path("id") momentId: String): ApiResponse<Map<String, String>>
 
     /** Danh dau da xem khi luot qua feed. */
     @POST("moments/{id}/seen")

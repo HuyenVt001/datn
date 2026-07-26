@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.util.Log
 import android.util.Size
+import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraControl
@@ -38,9 +39,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -94,6 +92,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
 import java.io.File
+import kotlin.math.sqrt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -107,12 +106,9 @@ fun CameraPreviewWithZoom(
     // Giu nut chup de quay video (<=5s). null = tat quay video
     onVideoTaken: ((String) -> Unit)? = null,
     showControls: Boolean = true,
-    // Tang gia tri nay tu ngoai (nut center bottom bar) de chup 1 tam anh.
-    // 0 = chua yeu cau. (Nut chup TRONG preview da xoa 2026-07-26 — trung nut.)
+    // Tang gia tri nay tu ngoai (vd nut center bottom bar) de chup 1 tam anh —
+    // tuong duong cham nut chup trong preview. 0 = chua yeu cau.
     captureRequestId: Int = 0,
-    // Tang tu ngoai de BAT DAU quay video (giu nut center) / DUNG quay (tha tay).
-    startRecordRequestId: Int = 0,
-    stopRecordRequestId: Int = 0,
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -206,29 +202,6 @@ fun CameraPreviewWithZoom(
             AndroidView(
                 modifier = Modifier
                     .matchParentSize()
-                    // Pinch-zoom 2 NGON: chi tieu thu event khi >=2 ngon dang cham —
-                    // vuot 1 ngon van loi ra ngoai cho gesture "vuot len mo feed"
-                    // cua CameraScreen (dung detectTransformGestures se nuot ca pan 1 ngon)
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
-                            do {
-                                val event = awaitPointerEvent()
-                                if (event.changes.count { it.pressed } >= 2) {
-                                    val zoomChange = event.calculateZoom()
-                                    if (zoomChange != 1f) {
-                                        val newZoom = (zoomRatio * zoomChange)
-                                            .coerceIn(minZoom, maxZoom)
-                                        cameraControl?.setZoomRatio(newZoom)
-                                        showZoomControls = true
-                                        showZoomValue = true
-                                        lastInteractionTime = System.currentTimeMillis()
-                                    }
-                                    event.changes.forEach { it.consume() }
-                                }
-                            } while (event.changes.any { it.pressed })
-                        }
-                    }
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { offset ->
@@ -327,9 +300,39 @@ fun CameraPreviewWithZoom(
                                 maxZoom = zoomState.maxZoomRatio
                             }
 
-                            // (Pinch-zoom cu bang setOnTouchListener DA XOA 2026-07-26 —
-                            // tra ve false nen mat ca gesture, khong zoom duoc. Thay bang
-                            // pointerInput 2 ngon tren AndroidView ben duoi.)
+                            // Enhanced pinch-to-zoom
+                            var initialFingerSpacing = 0f
+                            var initialZoomRatio = 1.0f
+
+                            localPreviewView.setOnTouchListener { _, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_POINTER_DOWN -> {
+                                        if (event.pointerCount == 2) {
+                                            initialFingerSpacing = getFingerSpacing(event)
+                                            initialZoomRatio = zoomRatio
+                                            showZoomControls = true
+                                            showZoomValue = true
+                                            lastInteractionTime = System.currentTimeMillis()
+                                        }
+                                    }
+
+                                    MotionEvent.ACTION_MOVE -> {
+                                        if (event.pointerCount == 2) {
+                                            val currentSpacing = getFingerSpacing(event)
+                                            if (initialFingerSpacing > 0) {
+                                                val scaleFactor =
+                                                    currentSpacing / initialFingerSpacing
+                                                val newZoom = (initialZoomRatio * scaleFactor)
+                                                    .coerceIn(minZoom, maxZoom)
+                                                cameraControl?.setZoomRatio(newZoom)
+                                                showZoomValue = true
+                                                lastInteractionTime = System.currentTimeMillis()
+                                            }
+                                        }
+                                    }
+                                }
+                                false // Let other touch events be handled
+                            }
 
                             isLoading = false
                         } catch (exc: Exception) {
@@ -446,18 +449,6 @@ fun CameraPreviewWithZoom(
                     isRecording = true
                 }
 
-                // Yeu cau quay video tu ngoai: GIU nut center bottom bar = bat dau, THA = dung
-                LaunchedEffect(startRecordRequestId) {
-                    if (startRecordRequestId > 0) {
-                        startRecording()
-                    }
-                }
-                LaunchedEffect(stopRecordRequestId) {
-                    if (stopRecordRequestId > 0 && isRecording) {
-                        activeRecording?.stop() // Finalize callback tra file ve onVideoTaken
-                    }
-                }
-
                 // Dong ho dem giay khi dang quay
                 if (isRecording) {
                     Surface(
@@ -477,23 +468,61 @@ fun CameraPreviewWithZoom(
                     }
                 }
 
-                // (Nut chup 72dp trong preview DA XOA 2026-07-26 — trung voi nut center
-                // bottom bar. Chup/quay deu dieu khien tu ngoai qua captureRequestId +
-                // start/stopRecordRequestId; khi quay chi con vong tien do lam feedback.)
-                if (isRecording) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        progress = {
-                            (recordElapsedMs.toFloat() / (MAX_VIDEO_SECONDS * 1000f))
-                                .coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 20.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // Vong tien do do quanh nut khi dang quay
+                    if (isRecording) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            progress = {
+                                (recordElapsedMs.toFloat() / (MAX_VIDEO_SECONDS * 1000f))
+                                    .coerceIn(0f, 1f)
+                            },
+                            modifier = Modifier.size(88.dp),
+                            color = Color.Red,
+                            strokeWidth = 4.dp,
+                            trackColor = Color.White.copy(alpha = 0.3f),
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.size(72.dp),
+                        shape = CircleShape,
+                        color = if (isRecording) {
+                            Color.Red.copy(alpha = 0.9f)
+                        } else {
+                            Color.White.copy(alpha = 0.9f)
                         },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 20.dp)
-                            .size(56.dp),
-                        color = Color.Red,
-                        strokeWidth = 4.dp,
-                        trackColor = Color.White.copy(alpha = 0.3f),
-                    )
+                        shadowElevation = 6.dp,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(videoCapture, imageCapture) {
+                                    detectTapGestures(
+                                        onTap = { takePhoto() },
+                                        onLongPress = { startRecording() },
+                                        onPress = {
+                                            tryAwaitRelease()
+                                            // Tha tay khi dang quay -> dung (Finalize se tra file)
+                                            if (isRecording) {
+                                                activeRecording?.stop()
+                                            }
+                                        },
+                                    )
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Camera,
+                                contentDescription = "Tap to shoot, hold to record",
+                                tint = if (isRecording) Color.White else Color.Black,
+                                modifier = Modifier.size(36.dp),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -887,4 +916,10 @@ private fun ZoomButton(
             modifier = Modifier.size(20.dp),
         )
     }
+}
+
+private fun getFingerSpacing(event: MotionEvent): Float {
+    val x = event.getX(0) - event.getX(1)
+    val y = event.getY(0) - event.getY(1)
+    return sqrt(x * x + y * y)
 }

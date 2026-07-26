@@ -31,23 +31,6 @@ export class MomentsRepository {
   }
 
   /**
-   * Xoa moment + subcollection views/reactions (Firestore KHONG tu xoa
-   * subcollection khi xoa doc cha). Batch 500 ops du cho quy mo DATN.
-   */
-  async delete(momentId: string): Promise<void> {
-    const doc = this.col.doc(momentId);
-    const [views, reactions] = await Promise.all([
-      doc.collection(SubCollections.VIEWS).get(),
-      doc.collection(SubCollections.REACTIONS).get(),
-    ]);
-    const batch = this.firebase.firestore().batch();
-    views.docs.forEach((d) => batch.delete(d.ref));
-    reactions.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(doc);
-    await batch.commit();
-  }
-
-  /**
    * Lay moment cua nhieu user (feed). whereIn gioi han 10 -> chunked(10).
    * Sort theo postTime desc lam trong bo nho (ne composite index).
    */

@@ -134,15 +134,11 @@ Giá trị thật trong code:
 ### 7.3 Feed grid — `component/grid/PostGrid.kt`
 Ảnh: `post_screen.png`. `GridCells.Fixed(3)`, ảnh vuông (`aspectRatio 1f`) bo **20dp**, gap **3dp**; video có overlay play + badge bo 12dp; top bar đè lên trên (grid padding top).
 
-### 7.4 Post feed pager + detail — `feature/post/PostScreen.kt` + `PostDetailScreen.kt` (⚡ ĐẠI TU 2026-07-26 theo 2 ảnh mẫu Locket của user)
-- **Feed = VerticalPager full-screen** (mặc định khi vuốt lên từ camera): mỗi post 1 trang mới→cũ; ở post mới nhất vuốt xuống → về camera; icon lưới (dưới trái) → grid tổng hợp, bấm 1 ô → về pager đúng post.
-- **Nội dung 1 post** (`PostDetailContent` — dùng chung pager + màn profile): ảnh lớn `aspectRatio 1f` bo **20dp**; caption đè đáy ảnh (nền `Black 50%` bo 24dp); video = overlay play 72dp nền `Black 60%`; dưới ảnh: avatar 40dp + **tên Bold** + thời gian tương đối NGẮN kiểu **"1d"** (`relativeTimeShort`).
-- Thanh **"Send message…"** = `pill/MessagePill.kt` (bo 24dp, CỐ ĐỊNH không cuộn theo trang): **gõ text = gửi DM thật tới tác giả** (BasicTextField, có text → nút Send thay chỗ emoji); 3 emoji nhanh **💛😂💕** (đổi theo mẫu 2026-07-26) **bấm = thả reaction**, highlight vàng 25% khi đã thả, ⊕ xòe 8 emoji mở rộng, emoji bay 34sp (`FlyingEmojiOverlay`).
-- Hàng nút đáy pager: icon lưới `GridView` · **nút giữa 80dp viền vàng 3dp** (→ camera) · **⋯ `MoreHoriz`** mở `PostOptionsSheet` (bottom sheet chữ căn giữa: Share / Download / **Delete đỏ chỉ bài mình** / Cancel — khớp popup mẫu; KHÔNG có Report).
-⚠️ `Frame.kt` là THANH MESSAGE cũ (bản trùng, không dùng) — đừng nhầm với tính năng "frame" phần thưởng.
+### 7.4 Post detail — `feature/post/PostDetailScreen.kt` (✅ reaction HOẠT ĐỘNG 2026-07-12)
+Ảnh: `post_detail_screen.png`. Ảnh lớn `aspectRatio 1f` bo **20dp**; **caption hiển thị** đè đáy ảnh (nền `Black 50%` bo 24dp, chữ trắng + emoji); video = overlay play 72dp nền `Black 60%`; dưới ảnh: avatar 40dp + **tên Bold** + "Just now" xám; thanh **"Send message…"** = `pill/MessagePill.kt` (bo 24dp): 3 emoji nhanh 😄❤️🔥 **bấm = thả reaction** (POST /moments/:id/reactions, server cộng friend streak), emoji đã thả highlight nền vàng 25%, **⊕ xòe 8 emoji mở rộng** (😂😍👍🎉😮😢👏💯), **emoji bay** 34sp lên ~280dp rồi mờ dần (Animatable 1.4s); bottom bar `postDetailBar`: icon grid · **nút giữa 80dp viền vàng 3dp** · icon share. ⚠️ `Frame.kt` là THANH MESSAGE cũ (bản trùng, không dùng ở PostDetail) — đừng nhầm với tính năng "frame" phần thưởng.
 
-### 7.5 Camera — `feature/camera/CameraScreen.kt` + `preview/CameraPreview.kt` (⚡ 2026-07-26)
-Ảnh: `take_photo_screen.png`. Preview vuông bo lớn; flash pill tròn đen mờ (góc trên trái), zoom "1.0x" + "N" pill đen mờ (góc phải); **pinch 2 ngón trong preview = zoom** (pointerInput chỉ ăn khi ≥2 ngón — vuốt 1 ngón vẫn mở feed); dưới preview: icon gallery · **nút center bottom bar 80dp viền vàng: BẤM = chụp, GIỮ = quay video ≤5s, THẢ = dừng** · icon flip. ⚠️ Nút chụp 72dp TRONG preview đã XÓA (2026-07-26 — trùng nút); khi quay chỉ còn vòng tiến độ đỏ + đồng hồ đếm giây.
+### 7.5 Camera — `feature/camera/CameraScreen.kt` + `preview/CameraPreview.kt`
+Ảnh: `take_photo_screen.png`. Preview vuông bo lớn; flash pill tròn đen mờ (góc trên trái), zoom "1.0x" + "N" pill đen mờ (góc phải); dưới preview: icon gallery · **nút chụp trắng 72dp viền vàng 3dp** · icon flip; dưới nữa: "📷 History" Bold trắng; chevron ⌄ cuối màn.
 
 ### 7.6 Submit photo — `feature/post/SubmitPhotoScreen.kt`
 Ảnh: `submit_photo_screen.png`. Title "Send to…" giữa + icon download phải; ảnh preview bo 20dp (ảnh vừa chụp ưu tiên, overlay loading `Black 50%` khi đang gửi); caption pill; **`PageIndicator`** (chấm 6dp gap, active trắng/inactive xám 30%); bottom bar `submitPhotoBar`: ✕ Cancel · **nút Send 80dp** (icon máy bay xoay -45°, viền vàng khi không icon) · Ⓐ Captions List; cuối: **FriendList ngang** (7.2), chọn = viền `Color.Yellow`.
@@ -201,7 +197,7 @@ Gợi ý mặc định khi đề xuất: tái dùng component mục 7, màu mụ
 2. ~~Profile calendar + streak pill chạy mock~~ → ✅ **đã nối data thật** (2026-07-12): `personalStreak` + moments từ API; chữ "Lockets" đã đổi "Moments". Friend streak hiện ở sheet bạn bè (7.12).
 3. `messages_screen_old.png` là bản CŨ — bỏ qua, chỉ theo `messages_screen.png`.
 4. Code hiện có `DarkBrownTheme.kt` (nâu + Amber) **không khớp assets** — chuẩn là Gray scheme trong `Theme.kt`; đừng dùng DarkBrown cho màn mới. (Dấu vết nâu còn sót: pill `#404137`, Gold pill `#74512D` — chấp nhận, không lan thêm.)
-5. **Nút chụp giữa bottom bar ĐÃ viền vàng** (`MainBottomBar` → `Circle`, 80dp/3dp/`Color.Yellow`). ~~Nút shutter trong `CameraPreview.kt`~~ → **đã XÓA hẳn** (2026-07-26, trùng nút — chụp/quay đều qua nút center bottom bar).
+5. **Nút chụp giữa bottom bar ĐÃ viền vàng** (`MainBottomBar` → `Circle`, 80dp/3dp/`Color.Yellow`). Chỉ **nút shutter mới thêm trong `CameraPreview.kt`** (72dp, đè trên preview) là chưa viền vàng → chỉnh cho khớp.
 6. **Login input/nút bo 12dp trong code** (`cornerShape = 12.dp`) nhưng ảnh trông tròn hơn (~28dp) — ảnh là chuẩn; khi chỉnh LoginScreen cân nhắc tăng, nhưng đừng đổi lắt nhắt một mình nó.
 7. Item settings bo **8dp** trong code, ảnh trông ~16dp — lệch nhỏ, chấp nhận được; nếu làm lại màn settings thì theo ảnh.
 8. Màu nền pill trong ảnh trông `#2C2C2C` nhưng code thật là **`#404137`** (ô liu) — khi thêm pill mới dùng `#404137` cho đồng bộ với pill hiện có.

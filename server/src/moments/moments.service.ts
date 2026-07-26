@@ -124,18 +124,6 @@ export class MomentsService {
     };
   }
 
-  /** Xoa moment — CHI chu bai xoa duoc (nguoi duoc tag co-op cung khong). */
-  async delete(momentId: string, uid: string): Promise<void> {
-    const moment = await this.repo.findById(momentId);
-    if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
-    }
-    if (moment.userId !== uid) {
-      throw new ForbiddenException('Chi chu bai moi xoa duoc bai dang nay.');
-    }
-    await this.repo.delete(momentId);
-  }
-
   /** He thong tu danh dau da xem khi user luot qua moment tren feed. */
   async markSeen(momentId: string, viewerId: string): Promise<void> {
     const moment = await this.repo.findById(momentId);

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -41,13 +41,6 @@ export class MomentsController {
     @Query() pagination: PaginationDto,
   ) {
     return this.momentsService.listOfUser(user.uid, uid, pagination);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Xoa moment — CHI chu bai xoa duoc' })
-  async remove(@CurrentUser() user: AuthUser, @Param('id') momentId: string) {
-    await this.momentsService.delete(momentId, user.uid);
-    return { message: 'Da xoa bai dang.', data: { momentId } };
   }
 
   @Post(':id/seen')

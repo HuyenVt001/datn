@@ -60,9 +60,6 @@ data class BottomNavItem(
     val customSizeCenter: Dp = 60.dp,
     // Callback khi nhấn vào item
     val onClick: (() -> Unit)? = null,
-    // GIU nut center (long-press) + THA tay — CameraScreen dung de quay video <=5s
-    val onLongPress: (() -> Unit)? = null,
-    val onPressRelease: (() -> Unit)? = null,
 )
 
 private fun normalizeItems(original: List<BottomNavItem>): Pair<List<BottomNavItem>, BottomNavItem?> {
@@ -139,9 +136,6 @@ fun MainBottomBar(
                                 navController.navigate(centerIconNavigation)
                             }
                         },
-                        // GIU = quay video / THA = dung (CameraScreen truyen vao)
-                        onLongPress = centerItem.onLongPress,
-                        onPressRelease = centerItem.onPressRelease,
                         iconSetting = when {
                             centerItem.selectedIcon != null -> IconSetting(
                                 icon = centerItem.selectedIcon!!,
