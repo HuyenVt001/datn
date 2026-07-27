@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.copyUriToCacheFile
 import kotlinx.coroutines.delay
 
@@ -75,8 +76,14 @@ fun GroupChatScreen(
     // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
     var viewerMedia by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
-    // Tin nhan dang duoc long-press de tha reaction
-    var reactTargetId by remember { mutableStateOf<String?>(null) }
+    // Tin nhan dang duoc long-press -> menu reaction + Reply
+    var actionTarget by remember { mutableStateOf<MessageDto?>(null) }
+
+    // Tin dang CHON sau khi nhan giu -> icon ↩ hien ben canh bubble (cham tin de bo chon)
+    var selectedMessageId by remember { mutableStateOf<String?>(null) }
+
+    // Tin nhan dang duoc TRICH DAN de reply (thanh "Replying to" tren o nhap)
+    var replyTarget by remember { mutableStateOf<MessageDto?>(null) }
 
     // Chon anh tu thu vien -> upload -> gui tin PHOTO vao nhom
     val photoPicker = rememberLauncherForActivityResult(
@@ -130,11 +137,22 @@ fun GroupChatScreen(
                 messageText = messageText,
                 onTextChange = { messageText = it },
                 onSend = {
-                    messageViewModel.sendGroupMessage(groupId, messageText)
+                    messageViewModel.sendGroupMessage(
+                        groupId,
+                        messageText,
+                        replyToId = replyTarget?.messageId,
+                    )
                     messageText = ""
+                    replyTarget = null
                 },
                 onEmojiSend = { emoji ->
-                    messageViewModel.sendGroupMessage(groupId, emoji, messageType = "EMOJI")
+                    messageViewModel.sendGroupMessage(
+                        groupId,
+                        emoji,
+                        messageType = "EMOJI",
+                        replyToId = replyTarget?.messageId,
+                    )
+                    replyTarget = null
                 },
                 modifier = Modifier.padding(bottom = 15.dp),
                 onPhotoClick = { photoPicker.launch("image/*") },
@@ -143,6 +161,12 @@ fun GroupChatScreen(
                 },
                 voiceRecorder = voiceRecorder,
                 isSendingMedia = sendingMedia,
+                replyingTo = replyTarget,
+                replyingToName = when {
+                    replyTarget?.senderId == myUid -> "yourself"
+                    else -> replyTarget?.let { friendsById[it.senderId]?.name } ?: "Snapget user"
+                },
+                onCancelReply = { replyTarget = null },
             )
         },
     ) { paddingValues ->
@@ -228,7 +252,15 @@ fun GroupChatScreen(
                                     showAvatar = showAvatar,
                                     isFirstInGroup = isNewSenderGroup,
                                     onMediaClick = { url, isVideo -> viewerMedia = url to isVideo },
-                                    onLongPress = { reactTargetId = message.messageId },
+                                    // Nhan giu -> hien hang icon 😊|↩ ben canh tin
+                                    onLongPress = { selectedMessageId = message.messageId },
+                                    isSelected = selectedMessageId == message.messageId,
+                                    onSelect = { selectedMessageId = null },
+                                    onReactClick = { actionTarget = message },
+                                    onReplyClick = {
+                                        replyTarget = message
+                                        selectedMessageId = null
+                                    },
                                 )
                             }
                         }
@@ -243,14 +275,15 @@ fun GroupChatScreen(
         MediaViewerDialog(url = url, isVideo = isVideo, onDismiss = { viewerMedia = null })
     }
 
-    // Long-press tin nhan -> chon emoji tha reaction (tha lai cung emoji = go)
-    reactTargetId?.let { messageId ->
+    // Bam 😊 tren hang icon -> bang emoji tha reaction (tha lai cung emoji = go)
+    actionTarget?.let { message ->
         ReactionPickerDialog(
             onPick = { emoji ->
-                messageViewModel.reactToMessage(messageId, emoji)
-                reactTargetId = null
+                messageViewModel.reactToMessage(message.messageId, emoji)
+                actionTarget = null
+                selectedMessageId = null
             },
-            onDismiss = { reactTargetId = null },
+            onDismiss = { actionTarget = null },
         )
     }
 }

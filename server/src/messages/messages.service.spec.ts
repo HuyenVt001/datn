@@ -89,6 +89,55 @@ describe('MessagesService', () => {
       repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['a', 'b'] } as never);
       await expect(service.send(me, textDto({ groupId: 'g' }))).rejects.toThrow(ForbiddenException);
     });
+
+    it('reply 1-1: snapshot type/content/sender cua tin goc vao tin moi', async () => {
+      friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
+      repo.findById.mockResolvedValue({
+        messageId: 'orig',
+        senderId: 'friend',
+        receiverId: 'me',
+        messageType: 'PHOTO',
+        content: 'https://img.example/a.jpg',
+      } as never);
+
+      await service.send(me, textDto({ receiverId: 'friend', replyToId: 'orig' }));
+
+      expect(repo.createMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          replyToId: 'orig',
+          replyToType: 'PHOTO',
+          replyToContent: 'https://img.example/a.jpg',
+          replyToSenderId: 'friend',
+        }),
+      );
+    });
+
+    it('chan reply tin KHONG nam trong hoi thoai (cua cap khac / cua nhom)', async () => {
+      friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
+      repo.findById.mockResolvedValue({
+        messageId: 'orig',
+        senderId: 'x',
+        receiverId: 'y',
+      } as never);
+
+      await expect(
+        service.send(me, textDto({ receiverId: 'friend', replyToId: 'orig' })),
+      ).rejects.toThrow(BadRequestException);
+      expect(repo.createMessage).not.toHaveBeenCalled();
+    });
+
+    it('reply trong nhom: tin goc phai thuoc CUNG nhom', async () => {
+      repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['me', 'a'] } as never);
+      repo.findById.mockResolvedValue({
+        messageId: 'orig',
+        senderId: 'a',
+        groupId: 'OTHER_GROUP',
+      } as never);
+
+      await expect(service.send(me, textDto({ groupId: 'g', replyToId: 'orig' }))).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('createGroup', () => {

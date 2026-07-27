@@ -369,24 +369,24 @@ fun PostDetailScreen(
                     frameImageUrl = frameImageUrl,
                 )
 
-                // Message Pill — emoji tha reaction + go text nhan tin toi tac gia
-                MessageInputPill(
-                    modifier = Modifier.padding(top = 24.dp),
-                    selectedEmoji = selectedEmoji,
-                    onEmojiClick = { emoji ->
-                        selectedEmoji = emoji
-                        postViewModel.react(post.id, emoji)
-                        flyingEmojis.add(newFlyingEmoji(emoji))
-                    },
-                    onSendMessage = { text ->
-                        if (post.user.id == data?.id) {
-                            Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
-                        } else {
+                // Message Pill — emoji tha reaction + go text nhan tin toi tac gia.
+                // AN voi bai cua CHINH MINH (fix 2026-07-27); luc currentUser CHUA tai
+                // xong (id "unknown") cung an de khong loe pill tren bai cua minh
+                if (data.id != "unknown" && post.user.id != data.id) {
+                    MessageInputPill(
+                        modifier = Modifier.padding(top = 24.dp),
+                        selectedEmoji = selectedEmoji,
+                        onEmojiClick = { emoji ->
+                            selectedEmoji = emoji
+                            postViewModel.react(post.id, emoji)
+                            flyingEmojis.add(newFlyingEmoji(emoji))
+                        },
+                        onSendMessage = { text ->
                             // Reply gui KEM anh/video cua bai (attachment)
                             postViewModel.sendMessageToAuthor(post, text)
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
 

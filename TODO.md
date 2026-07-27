@@ -124,6 +124,13 @@
 - ✅ **Giao diện Sáng**: icon profile top bar + MessageScreen + thanh nhập chat đổi theo theme (hết trắng-trên-nền-trắng); các chỗ trắng còn lại đều nằm trên overlay/nền tối cố định nên giữ.
 - ⬜ User test lại trên máy thật: react/zoom ảnh chat, reply kèm ảnh, coop chụp, selfie mirror, push lời mời kết bạn, light theme.
 
+## Bổ sung 2026-07-28: REPLY tin nhắn trong chat (kiểu Messenger) — ✅ XONG (build OK, server 17 test messages pass)
+
+- ✅ Nhấn giữ tin nhắn (1-1 + nhóm) → hàng icon **😊 | ↩** hiện bên cạnh bubble (khớp ảnh mẫu user): 😊 = thả reaction, ↩ = reply; chạm tin để ẩn.
+- ✅ Thanh "Replying to X" (+ preview, nút ✕ hủy) trên ô nhập; tin gửi đi hiện **khối trích dẫn tin gốc** phía trên bubble (text mờ / thumbnail ảnh-sticker, bubble đè nhẹ lên như Messenger).
+- ✅ Server: `POST /messages` nhận `replyToId`, validate tin gốc **cùng hội thoại/nhóm**, snapshot type/content/sender của tin gốc vào tin mới.
+- ⬜ User test 2 máy: reply text/ảnh/voice trong chat 1-1 và nhóm.
+
 ## Còn lại duy nhất: TEST CHẠY THẬT (user tự tổng test)
 
 - ⬜ Chuẩn bị `server/firebase-service-account.json` + `.env` (xem `admin/GUIDE.md` mục 5) → `npm run seed:admin` + `npm run seed:frames` → chạy server.

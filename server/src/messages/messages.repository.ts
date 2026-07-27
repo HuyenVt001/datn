@@ -130,6 +130,10 @@ export class MessagesRepository {
       attachmentUrl: data.attachmentUrl,
       attachmentType: data.attachmentType,
       reactions: data.reactions ?? {},
+      replyToId: data.replyToId,
+      replyToType: data.replyToType,
+      replyToContent: data.replyToContent,
+      replyToSenderId: data.replyToSenderId,
     };
   }
 }

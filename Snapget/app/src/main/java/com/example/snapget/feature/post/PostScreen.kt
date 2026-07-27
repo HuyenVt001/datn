@@ -432,7 +432,10 @@ fun PostScreen(
                     .imePadding()
                     .navigationBarsPadding(),
             ) {
-                if (currentPost != null) {
+                // AN thanh react + reply voi bai cua CHINH MINH (fix 2026-07-27) —
+                // tu react/tu nhan tin cho minh vo nghia (truoc chi toast bao loi).
+                // myId null (currentUser chua tai) cung an de khong loe pill tren bai minh
+                if (currentPost != null && myId != null && currentPost.user.id != myId) {
                     // key(post.id): text go do trong pill KHONG dinh sang bai khac
                     // khi luot trang (fix 2026-07-26 — truoc day de gui nham nguoi)
                     key(currentPost.id) {
@@ -444,12 +447,8 @@ fun PostScreen(
                                 flyingEmojis.add(newFlyingEmoji(emoji))
                             },
                             onSendMessage = { text ->
-                                if (currentPost.user.id == myId) {
-                                    Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    // Reply gui KEM anh/video cua bai (attachment)
-                                    postViewModel.sendMessageToAuthor(currentPost, text)
-                                }
+                                // Reply gui KEM anh/video cua bai (attachment)
+                                postViewModel.sendMessageToAuthor(currentPost, text)
                             },
                         )
                     }

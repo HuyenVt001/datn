@@ -40,4 +40,13 @@ export class SendMessageDto {
   @IsOptional()
   @IsIn(['PHOTO', 'VIDEO'])
   attachmentType?: AttachmentType;
+
+  @ApiPropertyOptional({
+    description: 'id tin nhan duoc reply (phai nam trong CUNG hoi thoai/nhom)',
+    maxLength: 128,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  replyToId?: string;
 }

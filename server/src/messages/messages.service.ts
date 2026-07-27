@@ -56,6 +56,11 @@ export class MessagesService {
       throw new ForbiddenException('Chi nhan tin duoc voi ban be.');
     }
 
+    const replyFields = await this.resolveReply(dto.replyToId, (original) => {
+      const between = [original.senderId, original.receiverId];
+      return !original.groupId && between.includes(authUser.uid) && between.includes(receiverId);
+    });
+
     const message = await this.repo.createMessage({
       senderId: authUser.uid,
       receiverId,
@@ -65,6 +70,7 @@ export class MessagesService {
       isSeen: false,
       attachmentUrl: dto.attachmentUrl,
       attachmentType: dto.attachmentType,
+      ...replyFields,
     });
 
     // Nhan tin = tuong tac qua lai -> cap nhat friend streak.
@@ -89,6 +95,11 @@ export class MessagesService {
       throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
     }
 
+    const replyFields = await this.resolveReply(
+      dto.replyToId,
+      (original) => original.groupId === groupId,
+    );
+
     const message = await this.repo.createMessage({
       senderId: authUser.uid,
       groupId,
@@ -98,6 +109,7 @@ export class MessagesService {
       isSeen: false,
       attachmentUrl: dto.attachmentUrl,
       attachmentType: dto.attachmentType,
+      ...replyFields,
     });
 
     const others = group.memberIds.filter((id) => id !== authUser.uid);
@@ -155,6 +167,31 @@ export class MessagesService {
     return [...byCounterpart.entries()]
       .map(([counterpartId, lastMessage]) => ({ counterpartId, lastMessage }))
       .sort((a, b) => b.lastMessage.sendTime.localeCompare(a.lastMessage.sendTime));
+  }
+
+  /**
+   * Xu ly reply (kieu Messenger): [replyToId] rong -> khong reply; co -> tin goc
+   * phai ton tai va thoa [belongsToConversation] (cung hoi thoai 1-1 / cung nhom).
+   * Tra ve snapshot type/content/senderId cua tin goc de luu vao tin moi
+   * (app ve khoi trich dan khong can lookup lai).
+   */
+  private async resolveReply(
+    replyToId: string | undefined,
+    belongsToConversation: (original: Message) => boolean,
+  ): Promise<Partial<Message>> {
+    if (!replyToId) {
+      return {};
+    }
+    const original = await this.repo.findById(replyToId);
+    if (!original || !belongsToConversation(original)) {
+      throw new BadRequestException('Tin nhan duoc reply khong nam trong hoi thoai nay.');
+    }
+    return {
+      replyToId,
+      replyToType: original.messageType,
+      replyToContent: original.content,
+      replyToSenderId: original.senderId,
+    };
   }
 
   /**

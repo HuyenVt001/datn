@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,7 +34,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
@@ -45,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -58,12 +62,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -108,8 +115,14 @@ fun ChatScreen(
     // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
     var viewerMedia by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
-    // Tin nhan dang duoc long-press de tha reaction
-    var reactTargetId by remember { mutableStateOf<String?>(null) }
+    // Tin nhan dang duoc long-press -> menu reaction + Reply
+    var actionTarget by remember { mutableStateOf<MessageDto?>(null) }
+
+    // Tin dang CHON sau khi nhan giu -> icon ↩ hien ben canh bubble (cham tin de bo chon)
+    var selectedMessageId by remember { mutableStateOf<String?>(null) }
+
+    // Tin nhan dang duoc TRICH DAN de reply (thanh "Replying to" tren o nhap)
+    var replyTarget by remember { mutableStateOf<MessageDto?>(null) }
 
     // Chon anh tu thu vien -> upload -> gui tin PHOTO
     val photoPicker = rememberLauncherForActivityResult(
@@ -172,11 +185,22 @@ fun ChatScreen(
                 messageText = messageText,
                 onTextChange = { messageText = it },
                 onSend = {
-                    messageViewModel.sendMessage(recipientId, messageText)
+                    messageViewModel.sendMessage(
+                        recipientId,
+                        messageText,
+                        replyToId = replyTarget?.messageId,
+                    )
                     messageText = ""
+                    replyTarget = null
                 },
                 onEmojiSend = { emoji ->
-                    messageViewModel.sendMessage(recipientId, emoji, messageType = "EMOJI")
+                    messageViewModel.sendMessage(
+                        recipientId,
+                        emoji,
+                        messageType = "EMOJI",
+                        replyToId = replyTarget?.messageId,
+                    )
+                    replyTarget = null
                 },
                 modifier = Modifier.padding(bottom = 15.dp),
                 onPhotoClick = { photoPicker.launch("image/*") },
@@ -185,6 +209,13 @@ fun ChatScreen(
                 },
                 voiceRecorder = voiceRecorder,
                 isSendingMedia = sendingMedia,
+                replyingTo = replyTarget,
+                replyingToName = if (replyTarget?.senderId == myUid) {
+                    "yourself"
+                } else {
+                    takeFirstNameOfUser(recipientName)
+                },
+                onCancelReply = { replyTarget = null },
             )
         },
     ) { paddingValues ->
@@ -271,7 +302,15 @@ fun ChatScreen(
                                     showAvatar = showAvatar,
                                     isFirstInGroup = isNewSenderGroup,
                                     onMediaClick = { url, isVideo -> viewerMedia = url to isVideo },
-                                    onLongPress = { reactTargetId = message.messageId },
+                                    // Nhan giu -> hien hang icon 😊|↩ ben canh tin
+                                    onLongPress = { selectedMessageId = message.messageId },
+                                    isSelected = selectedMessageId == message.messageId,
+                                    onSelect = { selectedMessageId = null },
+                                    onReactClick = { actionTarget = message },
+                                    onReplyClick = {
+                                        replyTarget = message
+                                        selectedMessageId = null
+                                    },
                                 )
                             }
                         }
@@ -286,14 +325,15 @@ fun ChatScreen(
         MediaViewerDialog(url = url, isVideo = isVideo, onDismiss = { viewerMedia = null })
     }
 
-    // Long-press tin nhan -> chon emoji tha reaction (tha lai cung emoji = go)
-    reactTargetId?.let { messageId ->
+    // Bam 😊 tren hang icon -> bang emoji tha reaction (tha lai cung emoji = go)
+    actionTarget?.let { message ->
         ReactionPickerDialog(
             onPick = { emoji ->
-                messageViewModel.reactToMessage(messageId, emoji)
-                reactTargetId = null
+                messageViewModel.reactToMessage(message.messageId, emoji)
+                actionTarget = null
+                selectedMessageId = null
             },
-            onDismiss = { reactTargetId = null },
+            onDismiss = { actionTarget = null },
         )
     }
 }
@@ -404,6 +444,8 @@ fun ChatTopBar(
  * Thanh nhap tin theo style MessagePill (bo 24dp, nen surfaceVariant — DESIGN 7.9):
  * o go text + emoji gui nhanh (tin EMOJI) + nut Send khi co text.
  * Truyen them callback de bat nut anh 📷 / sticker 😊 / mic 🎤 (media qua /upload).
+ * [replyingTo] != null -> hien thanh "Replying to X" (preview tin goc + nut ✕ huy)
+ * ngay tren o nhap; tin gui di se mang replyToId (man chat tu xu ly).
  */
 @Composable
 fun ChatInputPill(
@@ -416,11 +458,71 @@ fun ChatInputPill(
     onStickerSend: ((String) -> Unit)? = null,
     voiceRecorder: VoiceRecorderState? = null,
     isSendingMedia: Boolean = false,
+    replyingTo: MessageDto? = null,
+    replyingToName: String = "",
+    onCancelReply: (() -> Unit)? = null,
 ) {
     var showStickers by remember { mutableStateOf(false) }
     val hasMediaButtons = onPhotoClick != null || onStickerSend != null || voiceRecorder != null
 
     Column(modifier = modifier) {
+        // Thanh dang-reply (kieu Messenger): ten nguoi + preview tin goc + nut huy
+        if (replyingTo != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 15.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                if (replyingTo.messageType == "PHOTO" || replyingTo.messageType == "STICKER") {
+                    AsyncImage(
+                        model = replyingTo.content,
+                        contentDescription = "Replied media",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Replying to $replyingToName",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = when (replyingTo.messageType) {
+                            "PHOTO" -> "Photo"
+                            "STICKER" -> "Sticker"
+                            "VOICE" -> "Voice message"
+                            else -> replyingTo.content
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (onCancelReply != null) {
+                    IconButton(onClick = onCancelReply, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel reply",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+        }
         // Khay sticker (bam icon 😊 de mo/dong) — bam sticker la gui luon
         if (showStickers && onStickerSend != null) {
             Row(
@@ -592,8 +694,16 @@ fun MessageBubble(
     isFirstInGroup: Boolean = false,
     // Bam anh/video (bubble PHOTO hoac attachment) -> xem full-screen
     onMediaClick: ((url: String, isVideo: Boolean) -> Unit)? = null,
-    // Long-press tin nhan -> mo picker tha reaction
+    // Long-press tin nhan -> menu reaction + Reply
     onLongPress: (() -> Unit)? = null,
+    // NHAN GIU tin nhan -> isSelected = true -> hang icon 😊|↩ hien BEN CANH bubble
+    // (khop anh mau Messenger cua user); cham tin = bo chon
+    isSelected: Boolean = false,
+    onSelect: (() -> Unit)? = null,
+    // Bam 😊 tren hang icon -> mo bang emoji tha reaction
+    onReactClick: (() -> Unit)? = null,
+    // Bam ↩ tren hang icon -> bat dau reply tin nay
+    onReplyClick: (() -> Unit)? = null,
 ) {
     val bubbleColor = if (isFromCurrentUser) {
         MaterialTheme.colorScheme.primary
@@ -630,6 +740,17 @@ fun MessageBubble(
         horizontalArrangement = if (isFromCurrentUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Bottom,
     ) {
+        // Tin cua MINH: hang icon 😊|↩ nam BEN TRAI bubble (phia ngoai)
+        if (isFromCurrentUser && isSelected) {
+            MessageActionRow(
+                onReactClick = onReactClick,
+                onReplyClick = onReplyClick,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .padding(end = 8.dp),
+            )
+        }
+
         // Avatar space for non-user messages
         if (!isFromCurrentUser) {
             if (showAvatar) {
@@ -668,6 +789,50 @@ fun MessageBubble(
                         bottom = 4.dp,
                     ),
                 )
+            }
+
+            // Khoi TRICH DAN khi tin nay reply 1 tin khac (kieu Messenger):
+            // tin goc mo/nho phia tren, bubble that duoc keo de nhe len duoi
+            if (message.replyToId != null) {
+                val quoteType = message.replyToType ?: "TEXT"
+                when (quoteType) {
+                    // offset y+6: quote truot xuong duoi bubble (ve truoc = nam duoi)
+                    // -> bubble that de nhe len, dung kieu overlap cua Messenger
+                    "PHOTO", "STICKER" -> AsyncImage(
+                        model = message.replyToContent,
+                        contentDescription = "Replied media",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .offset(y = 6.dp)
+                            .size(120.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .alpha(0.75f)
+                            .combinedClickable(
+                                onClick = {
+                                    message.replyToContent?.let { onMediaClick?.invoke(it, false) }
+                                },
+                                onLongClick = onLongPress,
+                            ),
+                    )
+
+                    else -> Text(
+                        text = when (quoteType) {
+                            "VOICE" -> "🎤 Voice message"
+                            else -> message.replyToContent.orEmpty()
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .offset(y = 6.dp)
+                            .widthIn(max = 260.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .padding(bottom = 6.dp),
+                    )
+                }
             }
 
             // Media dinh kem (tin reply bai dang): anh/poster video tren bubble text,
@@ -722,7 +887,10 @@ fun MessageBubble(
                     fontSize = 36.sp,
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
-                        .combinedClickable(onClick = {}, onLongClick = onLongPress),
+                        .combinedClickable(
+                            onClick = { onSelect?.invoke() },
+                            onLongClick = onLongPress,
+                        ),
                 )
 
                 // STICKER: anh nho, KHONG bubble
@@ -732,7 +900,10 @@ fun MessageBubble(
                     modifier = Modifier
                         .size(96.dp)
                         .padding(4.dp)
-                        .combinedClickable(onClick = {}, onLongClick = onLongPress),
+                        .combinedClickable(
+                            onClick = { onSelect?.invoke() },
+                            onLongClick = onLongPress,
+                        ),
                 )
 
                 // PHOTO: anh trong bubble bo goc — BAM de xem day du (khong crop)
@@ -763,7 +934,10 @@ fun MessageBubble(
                         .widthIn(max = 280.dp)
                         .clip(bubbleShape)
                         .background(bubbleColor)
-                        .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                        .combinedClickable(
+                            onClick = { onSelect?.invoke() },
+                            onLongClick = onLongPress,
+                        )
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Text(
@@ -794,7 +968,62 @@ fun MessageBubble(
             }
         }
 
+        // Tin cua NGUOI KHAC: hang icon 😊|↩ nam BEN PHAI bubble (phia ngoai)
+        if (!isFromCurrentUser && isSelected) {
+            MessageActionRow(
+                onReactClick = onReactClick,
+                onReplyClick = onReplyClick,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .padding(start = 8.dp),
+            )
+        }
+
         // (Spacer 40dp ben phai tin cua minh DA XOA 2026-07-27 — gay khoang trong
         // vo nghia giua bubble va mep phai man hinh)
+    }
+}
+
+/**
+ * Hang icon hien ben canh bubble sau khi NHAN GIU tin nhan (khop anh mau
+ * Messenger cua user): 😊 mo bang emoji tha reaction · ↩ bat dau reply.
+ * Pill nen surfaceVariant bo tron nhu Messenger.
+ */
+@Composable
+private fun MessageActionRow(
+    onReactClick: (() -> Unit)?,
+    onReplyClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+        ) {
+            if (onReactClick != null) {
+                IconButton(onClick = onReactClick, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEmotions,
+                        contentDescription = "React to message",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            if (onReplyClick != null) {
+                IconButton(onClick = onReplyClick, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Reply,
+                        contentDescription = "Reply to message",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
     }
 }

@@ -8,6 +8,9 @@ export type AttachmentType = 'PHOTO' | 'VIDEO';
  * content = van ban (TEXT/EMOJI) hoac URL file (VOICE/STICKER/PHOTO — upload qua /upload).
  * attachmentUrl/attachmentType: media dinh kem (tin reply bai dang mang anh/video cua bai).
  * reactions: map uid -> emoji (moi nguoi toi da 1 reaction, bam lai emoji cu = bo).
+ * replyToId + replyTo*: tin nay REPLY 1 tin khac trong cung hoi thoai (kieu Messenger) —
+ * server snapshot type/content/senderId cua tin goc de app ve khoi trich dan
+ * khong can lookup (tin goc co the nam ngoai trang thread dang tai).
  */
 export interface Message {
   messageId: string;
@@ -21,6 +24,10 @@ export interface Message {
   attachmentUrl?: string;
   attachmentType?: AttachmentType;
   reactions?: Record<string, string>;
+  replyToId?: string;
+  replyToType?: MessageType;
+  replyToContent?: string;
+  replyToSenderId?: string;
 }
 
 /** Nhom chat (Chat_Group + Group_Member gop thanh memberIds[]). */

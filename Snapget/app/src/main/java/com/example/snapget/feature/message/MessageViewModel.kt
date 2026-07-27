@@ -147,13 +147,21 @@ class MessageViewModel @Inject constructor(
         return server + localOnly
     }
 
-    /** Gui TEXT/EMOJI; thanh cong -> append ngay vao thread (polling se dong bo lai). */
-    fun sendMessage(friendUid: String, content: String, messageType: String = "TEXT") {
+    /**
+     * Gui TEXT/EMOJI; thanh cong -> append ngay vao thread (polling se dong bo lai).
+     * [replyToId]: id tin duoc reply (kieu Messenger) — null = tin thuong.
+     */
+    fun sendMessage(
+        friendUid: String,
+        content: String,
+        messageType: String = "TEXT",
+        replyToId: String? = null,
+    ) {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             try {
-                val sent = messageRepository.send(friendUid, trimmed, messageType)
+                val sent = messageRepository.send(friendUid, trimmed, messageType, replyToId = replyToId)
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
                 _sendError.value = e.serverMessage("Failed to send message.")
@@ -199,13 +207,18 @@ class MessageViewModel @Inject constructor(
         }
     }
 
-    /** Gui TEXT/EMOJI/STICKER vao nhom. */
-    fun sendGroupMessage(groupId: String, content: String, messageType: String = "TEXT") {
+    /** Gui TEXT/EMOJI/STICKER vao nhom. [replyToId]: id tin duoc reply (null = tin thuong). */
+    fun sendGroupMessage(
+        groupId: String,
+        content: String,
+        messageType: String = "TEXT",
+        replyToId: String? = null,
+    ) {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             try {
-                val sent = messageRepository.sendToGroup(groupId, trimmed, messageType)
+                val sent = messageRepository.sendToGroup(groupId, trimmed, messageType, replyToId)
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
                 _sendError.value = e.serverMessage("Failed to send message.")

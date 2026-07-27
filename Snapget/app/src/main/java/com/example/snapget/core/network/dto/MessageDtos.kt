@@ -20,6 +20,12 @@ data class MessageDto(
     val attachmentType: String? = null, // PHOTO | VIDEO
     // uid -> emoji (moi nguoi 1 reaction, tha lai cung emoji = go)
     val reactions: Map<String, String>? = null,
+    // Tin nay REPLY 1 tin khac trong cung hoi thoai (kieu Messenger) —
+    // server snapshot san type/content/sender cua tin goc de ve khoi trich dan
+    val replyToId: String? = null,
+    val replyToType: String? = null,
+    val replyToContent: String? = null,
+    val replyToSenderId: String? = null,
 )
 
 /** 1 dong trong danh sach hoi thoai: tin moi nhat voi tung nguoi. */
@@ -36,6 +42,8 @@ data class SendMessageRequest(
     val content: String,
     val attachmentUrl: String? = null,
     val attachmentType: String? = null,
+    // id tin duoc reply (server validate cung hoi thoai + tu snapshot tin goc)
+    val replyToId: String? = null,
 )
 
 /** Body POST /messages/{id}/reactions — tha/go reaction (toggle cung emoji). */

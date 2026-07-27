@@ -37,6 +37,8 @@ class MessageRepository @Inject constructor(
         messageType: String = "TEXT",
         attachmentUrl: String? = null,
         attachmentType: String? = null,
+        // id tin duoc reply (kieu Messenger) — server validate + snapshot tin goc
+        replyToId: String? = null,
     ): MessageDto = messageApi.send(
         SendMessageRequest(
             receiverId = receiverId,
@@ -44,6 +46,7 @@ class MessageRepository @Inject constructor(
             content = content,
             attachmentUrl = attachmentUrl,
             attachmentType = attachmentType,
+            replyToId = replyToId,
         ),
     ).unwrap()
 
@@ -51,11 +54,17 @@ class MessageRepository @Inject constructor(
     suspend fun react(messageId: String, emoji: String): MessageDto = messageApi.react(messageId, ReactMessageRequest(emoji)).unwrap()
 
     /** Gui tin vao nhom (server kiem tra thanh vien, FCM cho ca nhom). */
-    suspend fun sendToGroup(groupId: String, content: String, messageType: String = "TEXT"): MessageDto = messageApi.send(
+    suspend fun sendToGroup(
+        groupId: String,
+        content: String,
+        messageType: String = "TEXT",
+        replyToId: String? = null,
+    ): MessageDto = messageApi.send(
         SendMessageRequest(
             groupId = groupId,
             messageType = messageType,
             content = content,
+            replyToId = replyToId,
         ),
     ).unwrap()
 

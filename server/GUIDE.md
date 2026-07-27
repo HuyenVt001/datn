@@ -2,7 +2,10 @@
 
 > Bản đồ **sống** của server: đọc trước khi sửa, **cập nhật sau MỖI lần sửa code** (cây thư mục + task + tiến độ).
 > Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: 2026-07-27 — **Messages: reaction + attachment** (18 test messages pass, build + lint sạch):
+> Cập nhật lần cuối: 2026-07-28 — **Messages: REPLY tin nhắn (kiểu Messenger)** (17 test messages pass, build + lint sạch):
+> `SendMessageDto` thêm `replyToId` — tin mới reply 1 tin cũ **trong cùng hội thoại** (1-1: tin gốc phải giữa đúng 2 người; nhóm: tin gốc phải cùng `groupId` — sai thì 400). Service snapshot `replyToType/replyToContent/replyToSenderId` của tin gốc vào tin mới (app vẽ khối trích dẫn không cần lookup, kể cả khi tin gốc ngoài trang thread đang tải). Entity `Message` + repo map thêm 4 field `replyTo*`.
+>
+> Trước đó 2026-07-27 — **Messages: reaction + attachment** (build + lint sạch):
 > `POST /messages/:id/reactions` (body `{emoji}`) — thả reaction lên tin nhắn, chỉ người TRONG hội thoại (1-1: sender/receiver; nhóm: thành viên), mỗi người 1 reaction lưu map `reactions{uid: emoji}` trên doc, thả lại cùng emoji = gỡ (toggle), trả về message đã cập nhật; `SendMessageDto` thêm `attachmentUrl` + `attachmentType` (PHOTO|VIDEO) — tin **reply bài đăng** từ app gửi kèm ảnh/video của bài (bubble app hiện media + text). Entity `Message` thêm 3 field tương ứng, repo map + `setReaction` (FieldValue.delete khi gỡ).
 >
 > Trước đó 2026-07-26 — 2 đợt trong ngày:
@@ -168,7 +171,7 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | POST | `/api/moments/:id/seen` | Đánh dấu đã xem (chỉ người thấy được bài — 403 với người lạ, 2026-07-26) | Firebase |
 | POST | `/api/moments/:id/reactions` | Thả emoji (chỉ người thấy được bài; cập nhật friend streak với chủ bài) | Firebase |
 | GET | `/api/moments/:id/reactions` | Danh sách reaction (chỉ người thấy được bài) | Firebase |
-| POST | `/api/messages` | Gửi tin 1-1 (`receiverId`, chỉ bạn bè, +streak) hoặc nhóm (`groupId`) | Firebase |
+| POST | `/api/messages` | Gửi tin 1-1 (`receiverId`, chỉ bạn bè, +streak) hoặc nhóm (`groupId`); optional `attachmentUrl/attachmentType` (reply bài đăng) + `replyToId` (reply tin nhắn cùng hội thoại, server snapshot tin gốc) | Firebase |
 | GET | `/api/messages/conversations` | Danh sách hội thoại 1-1 (tin mới nhất từng người) | Firebase |
 | GET | `/api/messages/with/:friendUid` | Thread 1-1 (`?page&limit`, page 1 = mới nhất) | Firebase |
 | PATCH | `/api/messages/:id/seen` | Đánh dấu đã xem (chỉ người nhận) | Firebase |

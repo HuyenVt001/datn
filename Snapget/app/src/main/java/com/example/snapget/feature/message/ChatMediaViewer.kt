@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -137,13 +139,15 @@ fun MediaViewerDialog(
 }
 
 /**
- * Picker emoji khi LONG-PRESS 1 tin nhan — chon emoji de tha reaction
- * (tha lai cung emoji dang co = go reaction, server toggle).
+ * Menu khi LONG-PRESS 1 tin nhan (kieu Messenger): hang emoji tha reaction
+ * (tha lai cung emoji dang co = go, server toggle) + hanh dong "Reply" (neu
+ * truyen [onReply]) de trich dan tin nay khi gui tin moi.
  */
 @Composable
 fun ReactionPickerDialog(
     onPick: (String) -> Unit,
     onDismiss: () -> Unit,
+    onReply: (() -> Unit)? = null,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -167,6 +171,33 @@ fun ReactionPickerDialog(
                                     .padding(8.dp),
                             )
                         }
+                    }
+                }
+
+                if (onReply != null) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onReply() }
+                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Reply,
+                            contentDescription = "Reply",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "Reply",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(start = 10.dp),
+                        )
                     }
                 }
             }
