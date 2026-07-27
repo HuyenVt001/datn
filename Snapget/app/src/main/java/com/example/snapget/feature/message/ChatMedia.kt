@@ -6,8 +6,9 @@ import android.media.MediaPlayer
 import android.media.MediaRecorder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -128,13 +129,18 @@ fun rememberVoiceRecorder(onRecorded: (File) -> Unit): VoiceRecorderState {
     )
 }
 
-/** Bubble tin VOICE: cham de phat/dung (MediaPlayer stream tu URL Cloudinary). */
+/**
+ * Bubble tin VOICE: cham de phat/dung (MediaPlayer stream tu URL Cloudinary).
+ * [onLongPress]: long-press de tha reaction (nhu cac loai tin khac).
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VoiceBubble(
     url: String,
     bubbleColor: Color,
     textColor: Color,
     shape: Shape,
+    onLongPress: (() -> Unit)? = null,
 ) {
     var playing by remember { mutableStateOf(false) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -151,29 +157,32 @@ fun VoiceBubble(
         modifier = Modifier
             .clip(shape)
             .background(bubbleColor)
-            .clickable {
-                if (playing) {
-                    player?.release()
-                    player = null
-                    playing = false
-                } else {
-                    try {
-                        val newPlayer = MediaPlayer()
-                        newPlayer.setDataSource(url)
-                        newPlayer.setOnPreparedListener { it.start() }
-                        newPlayer.setOnCompletionListener {
-                            it.release()
-                            player = null
+            .combinedClickable(
+                onClick = {
+                    if (playing) {
+                        player?.release()
+                        player = null
+                        playing = false
+                    } else {
+                        try {
+                            val newPlayer = MediaPlayer()
+                            newPlayer.setDataSource(url)
+                            newPlayer.setOnPreparedListener { it.start() }
+                            newPlayer.setOnCompletionListener {
+                                it.release()
+                                player = null
+                                playing = false
+                            }
+                            newPlayer.prepareAsync()
+                            player = newPlayer
+                            playing = true
+                        } catch (_: Exception) {
                             playing = false
                         }
-                        newPlayer.prepareAsync()
-                        player = newPlayer
-                        playing = true
-                    } catch (_: Exception) {
-                        playing = false
                     }
-                }
-            }
+                },
+                onLongClick = onLongPress,
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Icon(

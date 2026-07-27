@@ -43,6 +43,9 @@ class AuthViewModel @Inject constructor(
                 _authState.value = AuthState.Loading
                 val user = authRepository.getCurrentUser()
                 _authState.value = if (user != null) {
+                    // Dang ky lai FCM token moi lan mo app (fix 2026-07-27): lan dang ky
+                    // luc login co the fail ma phien van giu -> khong nhan push mai mai
+                    launch { authRepository.ensureFcmTokenRegistered() }
                     AuthState.Authenticated(user)
                 } else {
                     AuthState.Unauthenticated

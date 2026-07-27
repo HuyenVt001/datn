@@ -4,6 +4,7 @@ import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorat
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
 import { CreateGroupDto } from './dto/create-group.dto';
+import { ReactMessageDto } from './dto/react-message.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { MessagesService } from './messages.service';
 
@@ -36,6 +37,18 @@ export class MessagesController {
     @Query() pagination: PaginationDto,
   ) {
     return this.messagesService.getThread(user.uid, friendUid, pagination);
+  }
+
+  @Post(':id/reactions')
+  @ApiOperation({
+    summary: 'Tha reaction len tin nhan (nguoi trong hoi thoai; bam lai cung emoji = go)',
+  })
+  react(
+    @CurrentUser() user: AuthUser,
+    @Param('id') messageId: string,
+    @Body() dto: ReactMessageDto,
+  ) {
+    return this.messagesService.react(user.uid, messageId, dto.emoji);
   }
 
   @Patch(':id/seen')

@@ -3,6 +3,8 @@ package com.example.snapget.feature.post
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.model.Post
+import com.example.snapget.core.model.PostType
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.network.serverMessage
@@ -216,15 +218,23 @@ class PostViewModel @Inject constructor(
         }
     }
 
-    /** Gui tin nhan TEXT toi tac gia bai dang (thanh "Send message..." duoi post). */
-    fun sendMessageToAuthor(authorUid: String, text: String) {
+    /**
+     * Gui tin nhan reply toi tac gia bai dang (thanh "Send message..." duoi post).
+     * Tin gui KEM anh/video cua bai (attachment) de nguoi nhan biet dang reply bai nao.
+     */
+    fun sendMessageToAuthor(post: Post, text: String) {
         if (text.isBlank()) return
         viewModelScope.launch {
             try {
+                val attachmentUrl = post.thumbnailUrl.takeIf { it.isNotBlank() }
                 messageRepository.send(
-                    receiverId = authorUid,
+                    receiverId = post.user.id,
                     content = text.trim(),
                     messageType = "TEXT",
+                    attachmentUrl = attachmentUrl,
+                    attachmentType = attachmentUrl?.let {
+                        if (post.postType == PostType.VIDEO) "VIDEO" else "PHOTO"
+                    },
                 )
                 _actionMessage.value = "Message sent."
             } catch (e: Exception) {

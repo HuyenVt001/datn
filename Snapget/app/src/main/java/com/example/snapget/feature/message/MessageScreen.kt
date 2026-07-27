@@ -109,7 +109,8 @@ fun MessageScreen(
             CommonTopBar(
                 navController = navController,
                 title = "Messages",
-                titleColor = Color.White,
+                // Theo theme: hardcode trang la vo hinh o Light mode
+                titleColor = MaterialTheme.colorScheme.onBackground,
                 startIcon = Icons.AutoMirrored.Filled.ArrowBack,
                 onStartIconClick = { navController.popBackStack() },
                 // Nut tao nhom chat (<=20 thanh vien)
@@ -137,7 +138,7 @@ fun MessageScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(color = Color.White)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
                 }
             }
 
@@ -448,7 +449,11 @@ fun ConversationItem(
                 Text(
                     text = conversation.preview,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (conversation.unread) Color.White else Color.Gray,
+                    color = if (conversation.unread) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     fontWeight = if (conversation.unread) FontWeight.SemiBold else FontWeight.Normal,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

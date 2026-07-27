@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { MessageType } from '../entities/message.entity';
+import { AttachmentType, MessageType } from '../entities/message.entity';
 
 /**
  * Gui tin nhan: dien receiverId (1-1) HOAC groupId (nhom) — dung 1 trong 2.
@@ -26,4 +26,18 @@ export class SendMessageDto {
   @IsNotEmpty()
   @MaxLength(2000)
   content!: string;
+
+  @ApiPropertyOptional({
+    description: 'URL media dinh kem (tin reply bai dang gui kem anh/video cua bai)',
+    maxLength: 2000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  attachmentUrl?: string;
+
+  @ApiPropertyOptional({ enum: ['PHOTO', 'VIDEO'], description: 'Loai media dinh kem' })
+  @IsOptional()
+  @IsIn(['PHOTO', 'VIDEO'])
+  attachmentType?: AttachmentType;
 }

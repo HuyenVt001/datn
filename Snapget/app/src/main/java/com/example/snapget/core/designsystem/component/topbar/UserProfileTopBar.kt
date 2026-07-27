@@ -14,6 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -58,7 +59,8 @@ fun UserProfileTopBar(
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Transparent,
-                            contentColor = Color.White,
+                            // Theo theme (fix 2026-07-27): icon trang tren nen Light = vo hinh
+                            contentColor = MaterialTheme.colorScheme.onBackground,
                         ),
                         modifier = Modifier.size(40.dp),
                         contentPadding = PaddingValues(0.dp),
@@ -66,7 +68,7 @@ fun UserProfileTopBar(
                         Icon(
                             imageVector = icon,
                             contentDescription = description,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(30.dp),
                         )
                     }

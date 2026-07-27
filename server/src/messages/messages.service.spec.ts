@@ -29,6 +29,7 @@ describe('MessagesService', () => {
       listInvolving: jest.fn(),
       listByGroup: jest.fn(),
       markSeen: jest.fn(),
+      setReaction: jest.fn().mockResolvedValue(undefined),
       createGroup: jest.fn(),
       findGroup: jest.fn(),
       listGroupsByMember: jest.fn(),
@@ -133,6 +134,47 @@ describe('MessagesService', () => {
       repo.findById.mockResolvedValue({ messageId: 'm', receiverId: 'me' } as never);
       await service.markSeen('me', 'm');
       expect(repo.markSeen).toHaveBeenCalledWith('m');
+    });
+  });
+
+  describe('react', () => {
+    it('chan nguoi ngoai hoi thoai 1-1 tha reaction', async () => {
+      repo.findById.mockResolvedValue({ messageId: 'm', senderId: 'a', receiverId: 'b' } as never);
+      await expect(service.react('me', 'm', '💛')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('nguoi trong hoi thoai tha reaction thanh cong', async () => {
+      repo.findById.mockResolvedValue({
+        messageId: 'm',
+        senderId: 'friend',
+        receiverId: 'me',
+        reactions: {},
+      } as never);
+
+      const result = await service.react('me', 'm', '💛');
+
+      expect(repo.setReaction).toHaveBeenCalledWith('m', 'me', '💛');
+      expect(result.reactions).toEqual({ me: '💛' });
+    });
+
+    it('bam lai cung emoji = go reaction (toggle)', async () => {
+      repo.findById.mockResolvedValue({
+        messageId: 'm',
+        senderId: 'friend',
+        receiverId: 'me',
+        reactions: { me: '💛' },
+      } as never);
+
+      const result = await service.react('me', 'm', '💛');
+
+      expect(repo.setReaction).toHaveBeenCalledWith('m', 'me', null);
+      expect(result.reactions).toEqual({});
+    });
+
+    it('tin nhom: chi thanh vien nhom moi tha duoc', async () => {
+      repo.findById.mockResolvedValue({ messageId: 'm', senderId: 'a', groupId: 'g' } as never);
+      repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['a', 'b'] } as never);
+      await expect(service.react('me', 'm', '💛')).rejects.toThrow(ForbiddenException);
     });
   });
 

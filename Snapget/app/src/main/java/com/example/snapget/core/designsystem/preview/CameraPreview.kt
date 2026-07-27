@@ -3,6 +3,9 @@ package com.example.snapget.core.designsystem.preview
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.util.Log
 import android.util.Size
 import android.widget.Toast
@@ -38,7 +41,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
@@ -75,6 +77,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,8 +98,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -119,6 +124,7 @@ fun CameraPreviewWithZoom(
 ) {
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     // Calculate the actual modifier to use
     val sizeModifier = modifier
@@ -157,7 +163,6 @@ fun CameraPreviewWithZoom(
         var activeRecording: Recording? by remember { mutableStateOf(null) }
         var isRecording by remember { mutableStateOf(false) }
         var recordElapsedMs by remember { mutableLongStateOf(0L) }
-        var isWideMode by remember { mutableStateOf(false) }
         var isFrontCamera by remember { mutableStateOf(false) }
 
         // Doi camera truoc/sau: lat co -> key(isFrontCamera) ben duoi tao lai
@@ -407,12 +412,26 @@ fun CameraPreviewWithZoom(
                         "snapget_${System.currentTimeMillis()}.jpg",
                     )
                     val output = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+                    val fromFrontCamera = isFrontCamera
                     capture.takePicture(
                         output,
                         ContextCompat.getMainExecutor(context),
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onImageSaved(result: ImageCapture.OutputFileResults) {
-                                onPhotoTaken(photoFile.absolutePath)
+                                if (fromFrontCamera) {
+                                    // Camera truoc: LAT NGANG anh cho khop voi preview
+                                    // (CameraX luu anh khong mirror -> chu/nguoi bi nguoc).
+                                    // Lat pixel that (khong dung EXIF flip) de moi noi
+                                    // (Coil/Cloudinary/sharp ghep coop) deu thay anh dung.
+                                    scope.launch(Dispatchers.IO) {
+                                        mirrorPhotoFile(photoFile)
+                                        withContext(Dispatchers.Main) {
+                                            onPhotoTaken(photoFile.absolutePath)
+                                        }
+                                    }
+                                } else {
+                                    onPhotoTaken(photoFile.absolutePath)
+                                }
                             }
 
                             override fun onError(exception: ImageCaptureException) {
@@ -597,50 +616,9 @@ fun CameraPreviewWithZoom(
                         }
                     }
 
-                    // Wide mode toggle (only show if controls enabled)
+                    // (Toggle wide-mode "W/N" DA XOA 2026-07-27 theo yeu cau user —
+                    // icon chu N gay kho hieu; zoom van chinh duoc bang pinch/nut +/-)
                     if (showControls) {
-                        Box(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .align(Alignment.TopEnd)
-                                .offset(y = 60.dp),
-                        ) {
-                            Surface(
-                                modifier = Modifier.clickable {
-                                    isWideMode = !isWideMode
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    cameraControl?.let { control ->
-                                        val targetZoom = if (isWideMode) 0.5f else 1.0f
-                                        control.setLinearZoom(if (isWideMode) 0f else 0.5f)
-                                    }
-                                    showZoomValue = true
-                                },
-                                shape = CircleShape,
-                                color = if (isWideMode) {
-                                    Color.Blue.copy(alpha = 0.8f)
-                                } else {
-                                    Color.Black.copy(
-                                        alpha = 0.6f,
-                                    )
-                                },
-                                shadowElevation = 2.dp,
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(8.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = if (isWideMode) "W" else "N",
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
-                        }
-
                         // Enhanced zoom controls (only show if controls enabled)
                         if (showControls) {
                             AnimatedVisibility(
@@ -878,6 +856,46 @@ fun CameraPreviewWithZoom(
                 }
             }
         }
+    }
+}
+
+/**
+ * Lat ngang (mirror) anh vua chup tu camera TRUOC cho khop voi preview.
+ * Doc EXIF rotation truoc roi bake ca xoay + lat vao pixel (re-encode se mat EXIF
+ * nen khong the chi dua flag) — nho anh 1280x720 nen chi mat vai chuc ms tren IO.
+ */
+private fun mirrorPhotoFile(file: File) {
+    try {
+        val original = BitmapFactory.decodeFile(file.absolutePath) ?: return
+
+        @Suppress("DEPRECATION")
+        val exif = android.media.ExifInterface(file.absolutePath)
+        val rotation = when (
+            exif.getAttributeInt(
+                android.media.ExifInterface.TAG_ORIENTATION,
+                android.media.ExifInterface.ORIENTATION_NORMAL,
+            )
+        ) {
+            android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+
+        // Xoay ve dung chieu truoc, roi lat ngang trong khong gian da dung chieu
+        val matrix = Matrix().apply {
+            if (rotation != 0f) postRotate(rotation)
+            postScale(-1f, 1f)
+        }
+        val mirrored = Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
+        file.outputStream().use { out ->
+            mirrored.compress(Bitmap.CompressFormat.JPEG, 92, out)
+        }
+        if (mirrored !== original) original.recycle()
+        mirrored.recycle()
+    } catch (e: Exception) {
+        // Lat that bai -> giu anh goc (chua mirror), khong chan luong chup
+        Log.w("CameraPreview", "Khong lat duoc anh camera truoc: ${e.message}")
     }
 }
 

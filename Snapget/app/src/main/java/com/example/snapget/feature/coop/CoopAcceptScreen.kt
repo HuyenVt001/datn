@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,6 +78,10 @@ fun CoopAcceptScreen(
 
     // Nua anh cua minh sau khi chup (null = dang o che do camera)
     var myPhotoPath by remember { mutableStateOf<String?>(null) }
+
+    // Nut chup TRONG preview da xoa (2026-07-26) -> man nay phai tu phat lenh chup
+    // qua captureRequestId (fix 2026-07-27: truoc do nguoi duoc moi KHONG chup duoc)
+    var captureRequestId by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(acceptStatus) {
         when (val status = acceptStatus) {
@@ -141,6 +147,7 @@ fun CoopAcceptScreen(
                                 height = 400.dp,
                                 onPhotoTaken = { path -> myPhotoPath = path },
                                 showControls = false,
+                                captureRequestId = captureRequestId,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
@@ -199,9 +206,12 @@ fun CoopAcceptScreen(
                     )
                 }
 
+                // Nut center 80dp: CHUA co anh = nut CHUP (fix 2026-07-27 — nut chup
+                // trong preview da xoa nen truoc do khong co cach nao chup);
+                // DA co anh = nut ✓ gui (merge)
                 Surface(
                     shape = CircleShape,
-                    color = if (myPhotoPath != null) Color.White.copy(alpha = 0.9f) else Color(0xFF333333),
+                    color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier
                         .size(80.dp)
                         .padding(0.dp),
@@ -209,16 +219,28 @@ fun CoopAcceptScreen(
                 ) {
                     IconButton(
                         onClick = {
-                            val path = myPhotoPath ?: return@IconButton
-                            coopViewModel.acceptInvite(inviteId, File(path))
+                            val path = myPhotoPath
+                            if (path == null) {
+                                captureRequestId++
+                            } else {
+                                coopViewModel.acceptInvite(inviteId, File(path))
+                            }
                         },
-                        enabled = myPhotoPath != null && acceptStatus !is LoadStatus.Loading,
+                        enabled = acceptStatus !is LoadStatus.Loading,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = "Merge and post",
-                            tint = if (myPhotoPath != null) Color.Black else Color.Gray,
+                            imageVector = if (myPhotoPath == null) {
+                                Icons.Filled.PhotoCamera
+                            } else {
+                                Icons.Filled.Check
+                            },
+                            contentDescription = if (myPhotoPath == null) {
+                                "Take photo"
+                            } else {
+                                "Merge and post"
+                            },
+                            tint = Color.Black,
                             modifier = Modifier.size(36.dp),
                         )
                     }

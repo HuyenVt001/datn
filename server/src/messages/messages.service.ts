@@ -63,6 +63,8 @@ export class MessagesService {
       content: dto.content,
       sendTime: new Date().toISOString(),
       isSeen: false,
+      attachmentUrl: dto.attachmentUrl,
+      attachmentType: dto.attachmentType,
     });
 
     // Nhan tin = tuong tac qua lai -> cap nhat friend streak.
@@ -94,6 +96,8 @@ export class MessagesService {
       content: dto.content,
       sendTime: new Date().toISOString(),
       isSeen: false,
+      attachmentUrl: dto.attachmentUrl,
+      attachmentType: dto.attachmentType,
     });
 
     const others = group.memberIds.filter((id) => id !== authUser.uid);
@@ -151,6 +155,39 @@ export class MessagesService {
     return [...byCounterpart.entries()]
       .map(([counterpartId, lastMessage]) => ({ counterpartId, lastMessage }))
       .sort((a, b) => b.lastMessage.sendTime.localeCompare(a.lastMessage.sendTime));
+  }
+
+  /**
+   * Tha reaction len tin nhan — chi nguoi TRONG hoi thoai (1-1: sender/receiver;
+   * nhom: thanh vien). Moi nguoi 1 reaction; bam lai cung emoji = go (toggle).
+   * Tra ve tin nhan da cap nhat de app thay reactions ngay khong cho poll.
+   */
+  async react(uid: string, messageId: string, emoji: string): Promise<Message> {
+    const message = await this.repo.findById(messageId);
+    if (!message) {
+      throw new NotFoundException('Khong tim thay tin nhan.');
+    }
+
+    if (message.groupId) {
+      const group = await this.repo.findGroup(message.groupId);
+      if (!group || !group.memberIds.includes(uid)) {
+        throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
+      }
+    } else if (message.senderId !== uid && message.receiverId !== uid) {
+      throw new ForbiddenException('Chi nguoi trong hoi thoai moi tha reaction duoc.');
+    }
+
+    const current = message.reactions?.[uid];
+    const next = current === emoji ? null : emoji;
+    await this.repo.setReaction(messageId, uid, next);
+
+    const reactions = { ...(message.reactions ?? {}) };
+    if (next === null) {
+      delete reactions[uid];
+    } else {
+      reactions[uid] = next;
+    }
+    return { ...message, reactions };
   }
 
   /** Danh dau da xem — chi nguoi nhan lam duoc. */

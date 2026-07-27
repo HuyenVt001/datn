@@ -14,12 +14,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -102,7 +105,7 @@ private val SWIPE_DOWN_TO_CAMERA_THRESHOLD = 120.dp
  * - Menu ⋯ (goc duoi phai): Share / Download / Delete (chi bai minh) / Cancel.
  * - Thanh "Send message...": go text gui DM that toi tac gia, emoji tha reaction.
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PostScreen(
@@ -167,6 +170,7 @@ fun PostScreen(
                 postViewModel.loadFrames() // catalog khung (overlay len anh)
                 coopViewModel.loadPending() // loi moi chup chung dang cho
                 friendsViewModel.loadFriends() // dropdown top bar + resolve tac gia
+                friendsViewModel.loadRequests() // banner 💌 loi moi ket ban dang cho
             }
 
             else -> Log.d("PostScreen", "User is not authenticated, skipping post fetch")
@@ -418,7 +422,10 @@ fun PostScreen(
                 }
             }
 
-            // Thanh message + hang nut day man hinh (co dinh, khong cuon theo trang)
+            // Thanh message + hang nut day man hinh (co dinh, khong cuon theo trang).
+            // Ban phim mo -> CHI o nhap noi len (imePadding), hang nut chup/luoi/⋯
+            // AN di thay vi bi keo len theo (fix 2026-07-27)
+            val imeVisible = WindowInsets.isImeVisible
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -440,7 +447,8 @@ fun PostScreen(
                                 if (currentPost.user.id == myId) {
                                     Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    postViewModel.sendMessageToAuthor(currentPost.user.id, text)
+                                    // Reply gui KEM anh/video cua bai (attachment)
+                                    postViewModel.sendMessageToAuthor(currentPost, text)
                                 }
                             },
                         )
@@ -448,43 +456,45 @@ fun PostScreen(
                 }
 
                 // Hang duoi cung (khop mau): luoi | nut chup trang vien vang | ⋯
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 36.dp, vertical = 4.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = { showGrid = true }) {
-                        Icon(
-                            imageVector = Icons.Default.GridView,
-                            contentDescription = "All posts",
-                            // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-
-                    // Nut chup (ve camera) — cung style nut center 80dp vien vang
-                    Circle(
-                        outerSize = 80.dp,
-                        gap = 7.dp,
-                        backgroundColor = Color.Transparent,
-                        borderColor = Color.Yellow,
-                        borderWidth = 3.dp,
-                        onClick = goBackToCamera,
-                    )
-
-                    IconButton(
-                        onClick = { currentPost?.let { optionsPost = it } },
-                        enabled = currentPost != null,
+                if (!imeVisible) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 36.dp, vertical = 4.dp),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreHoriz,
-                            contentDescription = "Post options",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
+                        IconButton(onClick = { showGrid = true }) {
+                            Icon(
+                                imageVector = Icons.Default.GridView,
+                                contentDescription = "All posts",
+                                // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
+
+                        // Nut chup (ve camera) — cung style nut center 80dp vien vang
+                        Circle(
+                            outerSize = 80.dp,
+                            gap = 7.dp,
+                            backgroundColor = Color.Transparent,
+                            borderColor = Color.Yellow,
+                            borderWidth = 3.dp,
+                            onClick = goBackToCamera,
                         )
+
+                        IconButton(
+                            onClick = { currentPost?.let { optionsPost = it } },
+                            enabled = currentPost != null,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreHoriz,
+                                contentDescription = "Post options",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -523,16 +533,20 @@ fun PostScreen(
             modifier = Modifier.align(Alignment.TopCenter),
         )
 
-        // Banner loi moi CHUP CHUNG dang cho — cham de mo man chap nhan
-        pendingInvites.firstOrNull()?.let { invite ->
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color.Yellow,
-                shadowElevation = 6.dp,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 140.dp, start = 16.dp, end = 16.dp)
-                    .clickable {
+        // Banner thong bao tren feed: loi moi CHUP CHUNG + loi moi KET BAN dang cho
+        Column(
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 140.dp, start = 16.dp, end = 16.dp),
+        ) {
+            // Loi moi chup chung — cham de mo man chap nhan
+            pendingInvites.firstOrNull()?.let { invite ->
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.Yellow,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.clickable {
                         navController.navigate(
                             Screen.CoopAccept.route +
                                 "?inviteId=" + invite.inviteId +
@@ -540,21 +554,53 @@ fun PostScreen(
                                 "&name=" + Uri.encode(invite.inviterName ?: "friend"),
                         )
                     },
-            ) {
-                Text(
-                    text = buildString {
-                        append("📸 ")
-                        append(invite.inviterName ?: "A friend")
-                        append(" invited you to a co-op capture!")
-                        if (pendingInvites.size > 1) {
-                            append(" (+${pendingInvites.size - 1})")
-                        }
+                ) {
+                    Text(
+                        text = buildString {
+                            append("📸 ")
+                            append(invite.inviterName ?: "A friend")
+                            append(" invited you to a co-op capture!")
+                            if (pendingInvites.size > 1) {
+                                append(" (+${pendingInvites.size - 1})")
+                            }
+                        },
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+            }
+
+            // Loi moi ket ban dang cho — cham de mo sheet ban be (section 💌) xac nhan.
+            // Hien ca khi app dang mo (FCM chi bao khi o ngoai app) — fix 2026-07-27
+            friendRequests.firstOrNull()?.let { request ->
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.Yellow,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.clickable {
+                        friendsViewModel.loadFriends()
+                        friendsViewModel.loadInviteLink()
+                        friendsViewModel.loadRequests()
+                        showFriendSheet = true
                     },
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                )
+                ) {
+                    Text(
+                        text = buildString {
+                            append("💌 ")
+                            append(request.name)
+                            append(" sent you a friend request!")
+                            if (friendRequests.size > 1) {
+                                append(" (+${friendRequests.size - 1})")
+                            }
+                        },
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
             }
         }
 

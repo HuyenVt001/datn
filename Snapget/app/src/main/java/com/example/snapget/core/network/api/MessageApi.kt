@@ -6,6 +6,7 @@ import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.ConversationSummaryDto
 import com.example.snapget.core.network.dto.CreateGroupRequest
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.network.dto.ReactMessageRequest
 import com.example.snapget.core.network.dto.SendMessageRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -36,6 +37,13 @@ interface MessageApi {
     /** Danh dau da xem (chi nguoi nhan goi duoc). */
     @PATCH("messages/{id}/seen")
     suspend fun markSeen(@Path("id") messageId: String): ApiResponse<Map<String, String>>
+
+    /** Tha reaction len tin nhan (nguoi trong hoi thoai; tha lai cung emoji = go). */
+    @POST("messages/{id}/reactions")
+    suspend fun react(
+        @Path("id") messageId: String,
+        @Body body: ReactMessageRequest,
+    ): ApiResponse<MessageDto>
 
     /** Tao nhom chat (<=20 thanh vien, nguoi tao tu vao nhom). */
     @POST("messages/groups")

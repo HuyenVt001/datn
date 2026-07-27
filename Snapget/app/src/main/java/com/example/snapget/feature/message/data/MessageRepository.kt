@@ -6,6 +6,7 @@ import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.ConversationSummaryDto
 import com.example.snapget.core.network.dto.CreateGroupRequest
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.network.dto.ReactMessageRequest
 import com.example.snapget.core.network.dto.SendMessageRequest
 import com.example.snapget.core.network.ensureSuccess
 import com.example.snapget.core.network.unwrap
@@ -25,14 +26,29 @@ class MessageRepository @Inject constructor(
     private val uploadApi: UploadApi,
 ) {
 
-    /** Gui tin 1-1 (server kiem tra ban be, cong friend streak, push FCM). */
-    suspend fun send(receiverId: String, content: String, messageType: String = "TEXT"): MessageDto = messageApi.send(
+    /**
+     * Gui tin 1-1 (server kiem tra ban be, cong friend streak, push FCM).
+     * [attachmentUrl]/[attachmentType]: media dinh kem — dung cho tin reply bai dang
+     * (gui kem anh/video cua bai; attachmentType = PHOTO | VIDEO).
+     */
+    suspend fun send(
+        receiverId: String,
+        content: String,
+        messageType: String = "TEXT",
+        attachmentUrl: String? = null,
+        attachmentType: String? = null,
+    ): MessageDto = messageApi.send(
         SendMessageRequest(
             receiverId = receiverId,
             messageType = messageType,
             content = content,
+            attachmentUrl = attachmentUrl,
+            attachmentType = attachmentType,
         ),
     ).unwrap()
+
+    /** Tha/go reaction len 1 tin nhan — tra ve tin nhan da cap nhat reactions. */
+    suspend fun react(messageId: String, emoji: String): MessageDto = messageApi.react(messageId, ReactMessageRequest(emoji)).unwrap()
 
     /** Gui tin vao nhom (server kiem tra thanh vien, FCM cho ca nhom). */
     suspend fun sendToGroup(groupId: String, content: String, messageType: String = "TEXT"): MessageDto = messageApi.send(

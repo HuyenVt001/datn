@@ -5,8 +5,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +38,7 @@ import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -101,6 +105,12 @@ fun ChatScreen(
     var messageText by remember { mutableStateOf("") }
     val sendingMedia by messageViewModel.sendingMedia.collectAsState()
 
+    // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
+    var viewerMedia by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+
+    // Tin nhan dang duoc long-press de tha reaction
+    var reactTargetId by remember { mutableStateOf<String?>(null) }
+
     // Chon anh tu thu vien -> upload -> gui tin PHOTO
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent(),
@@ -146,6 +156,9 @@ fun ChatScreen(
     }
 
     Scaffold(
+        // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
+        // (truoc day ban phim CHE ca o go text)
+        modifier = Modifier.imePadding(),
         topBar = {
             ChatTopBar(
                 navController = navController,
@@ -185,7 +198,8 @@ fun ChatScreen(
                 threadStatus is LoadStatus.Loading && thread.isEmpty() -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color.White,
+                        // Theo theme: hardcode trang la vo hinh o Light mode
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
 
@@ -256,6 +270,8 @@ fun ChatScreen(
                                     senderAvatar = if (isFromCurrentUser) "" else recipientAvatar,
                                     showAvatar = showAvatar,
                                     isFirstInGroup = isNewSenderGroup,
+                                    onMediaClick = { url, isVideo -> viewerMedia = url to isVideo },
+                                    onLongPress = { reactTargetId = message.messageId },
                                 )
                             }
                         }
@@ -263,6 +279,22 @@ fun ChatScreen(
                 }
             }
         }
+    }
+
+    // Xem anh/video full-screen (khong bi crop vuong nhu trong bubble)
+    viewerMedia?.let { (url, isVideo) ->
+        MediaViewerDialog(url = url, isVideo = isVideo, onDismiss = { viewerMedia = null })
+    }
+
+    // Long-press tin nhan -> chon emoji tha reaction (tha lai cung emoji = go)
+    reactTargetId?.let { messageId ->
+        ReactionPickerDialog(
+            onPick = { emoji ->
+                messageViewModel.reactToMessage(messageId, emoji)
+                reactTargetId = null
+            },
+            onDismiss = { reactTargetId = null },
+        )
     }
 }
 
@@ -435,7 +467,8 @@ fun ChatInputPill(
                 onValueChange = onTextChange,
                 singleLine = true,
                 textStyle = TextStyle(
-                    color = Color.White,
+                    // Theo theme: chu trang tren nen surfaceVariant sang = vo hinh
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                 ),
                 modifier = Modifier
@@ -468,7 +501,7 @@ fun ChatInputPill(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 } else {
                     // Emoji gui nhanh — bam la gui 1 tin EMOJI luon
@@ -494,7 +527,7 @@ fun ChatInputPill(
                             Icon(
                                 imageVector = Icons.Default.Image,
                                 contentDescription = "Send photo",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
@@ -506,7 +539,11 @@ fun ChatInputPill(
                             Icon(
                                 imageVector = Icons.Default.EmojiEmotions,
                                 contentDescription = "Sticker",
-                                tint = if (showStickers) Color.Yellow else Color.White,
+                                tint = if (showStickers) {
+                                    Color.Yellow
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                             )
                         }
                     }
@@ -518,7 +555,11 @@ fun ChatInputPill(
                             Icon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Record voice",
-                                tint = if (voiceRecorder.isRecording) Color.Red else Color.White,
+                                tint = if (voiceRecorder.isRecording) {
+                                    Color.Red
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                             )
                         }
                     }
@@ -531,7 +572,7 @@ fun ChatInputPill(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send message",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
@@ -539,6 +580,7 @@ fun ChatInputPill(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MessageBubble(
@@ -548,6 +590,10 @@ fun MessageBubble(
     senderAvatar: String,
     showAvatar: Boolean = false,
     isFirstInGroup: Boolean = false,
+    // Bam anh/video (bubble PHOTO hoac attachment) -> xem full-screen
+    onMediaClick: ((url: String, isVideo: Boolean) -> Unit)? = null,
+    // Long-press tin nhan -> mo picker tha reaction
+    onLongPress: (() -> Unit)? = null,
 ) {
     val bubbleColor = if (isFromCurrentUser) {
         MaterialTheme.colorScheme.primary
@@ -624,13 +670,59 @@ fun MessageBubble(
                 )
             }
 
+            // Media dinh kem (tin reply bai dang): anh/poster video tren bubble text,
+            // bam de xem full-screen, video hien nut ▶ (khop anh mau reply)
+            message.attachmentUrl?.let { attachUrl ->
+                val attachIsVideo = message.attachmentType == "VIDEO"
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .combinedClickable(
+                            onClick = { onMediaClick?.invoke(attachUrl, attachIsVideo) },
+                            onLongClick = onLongPress,
+                        ),
+                ) {
+                    AsyncImage(
+                        // Video Cloudinary: doi duoi .jpg lay poster frame (nhu feed)
+                        model = if (attachIsVideo) {
+                            attachUrl.substringBeforeLast('.') + ".jpg"
+                        } else {
+                            attachUrl
+                        },
+                        contentDescription = "Post media",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (attachIsVideo) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.6f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play video",
+                                tint = Color.White,
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
             // Kieu hien thi theo messageType (content cua PHOTO/STICKER/VOICE la URL)
             when (message.messageType) {
                 // EMOJI: hien to, KHONG bubble (kieu Messenger)
                 "EMOJI" -> Text(
                     text = message.content,
                     fontSize = 36.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .combinedClickable(onClick = {}, onLongClick = onLongPress),
                 )
 
                 // STICKER: anh nho, KHONG bubble
@@ -639,17 +731,22 @@ fun MessageBubble(
                     contentDescription = "Sticker",
                     modifier = Modifier
                         .size(96.dp)
-                        .padding(4.dp),
+                        .padding(4.dp)
+                        .combinedClickable(onClick = {}, onLongClick = onLongPress),
                 )
 
-                // PHOTO: anh trong bubble bo goc
+                // PHOTO: anh trong bubble bo goc — BAM de xem day du (khong crop)
                 "PHOTO" -> AsyncImage(
                     model = message.content,
                     contentDescription = "Photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(200.dp)
-                        .clip(bubbleShape),
+                        .clip(bubbleShape)
+                        .combinedClickable(
+                            onClick = { onMediaClick?.invoke(message.content, false) },
+                            onLongClick = onLongPress,
+                        ),
                 )
 
                 // VOICE: cham de phat/dung
@@ -658,6 +755,7 @@ fun MessageBubble(
                     bubbleColor = bubbleColor,
                     textColor = textColor,
                     shape = bubbleShape,
+                    onLongPress = onLongPress,
                 )
 
                 else -> Box(
@@ -665,6 +763,7 @@ fun MessageBubble(
                         .widthIn(max = 280.dp)
                         .clip(bubbleShape)
                         .background(bubbleColor)
+                        .combinedClickable(onClick = {}, onLongClick = onLongPress)
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Text(
@@ -674,6 +773,13 @@ fun MessageBubble(
                     )
                 }
             }
+
+            // Reaction da tha (gom theo emoji + so luong) — bam de doi/go cua minh
+            MessageReactionsRow(
+                reactions = message.reactions,
+                onClick = { onLongPress?.invoke() },
+                modifier = Modifier.padding(top = 2.dp),
+            )
 
             // Message time (show only for messages with avatars or every few messages)
             if (showAvatar || isFirstInGroup) {
@@ -688,9 +794,7 @@ fun MessageBubble(
             }
         }
 
-        // Space for current user messages alignment
-        if (isFromCurrentUser) {
-            Spacer(modifier = Modifier.width(40.dp))
-        }
+        // (Spacer 40dp ben phai tin cua minh DA XOA 2026-07-27 — gay khoang trong
+        // vo nghia giua bubble va mep phai man hinh)
     }
 }

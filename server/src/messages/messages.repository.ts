@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { FieldValue } from 'firebase-admin/firestore';
 import { Collections } from '../common/constants';
 import { FirebaseService } from '../firebase/firebase.service';
 import { ChatGroup, Message } from './entities/message.entity';
@@ -70,6 +71,13 @@ export class MessagesRepository {
     await this.messages.doc(messageId).update({ isSeen: true });
   }
 
+  /** Dat/go reaction cua 1 user tren tin nhan: emoji = null -> xoa khoi map. */
+  async setReaction(messageId: string, uid: string, emoji: string | null): Promise<void> {
+    await this.messages.doc(messageId).update({
+      [`reactions.${uid}`]: emoji === null ? FieldValue.delete() : emoji,
+    });
+  }
+
   // ==== Nhom chat ====
 
   async createGroup(group: Omit<ChatGroup, 'groupId'>): Promise<ChatGroup> {
@@ -119,6 +127,9 @@ export class MessagesRepository {
       content: data.content ?? '',
       sendTime: data.sendTime ?? data.createdAt ?? '',
       isSeen: data.isSeen ?? data.isRead ?? false,
+      attachmentUrl: data.attachmentUrl,
+      attachmentType: data.attachmentType,
+      reactions: data.reactions ?? {},
     };
   }
 }

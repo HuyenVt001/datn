@@ -198,6 +198,23 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    /**
+     * Dang ky FCM token cua thiet bi voi server — goi MOI lan mo app da dang nhap.
+     * Truoc day chi dang ky luc login (syncWithServer): lan do fail (mat mang/server
+     * chua chay) la user KHONG BAO GIO nhan push (loi moi ket ban, tin nhan...)
+     * vi phien dang nhap giu nguyen, khong login lai. Best-effort, loi chi log.
+     */
+    suspend fun ensureFcmTokenRegistered() {
+        if (auth.currentUser == null) return
+        try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            userApi.addFcmToken(FcmTokenRequest(token)).ensureSuccess()
+            Log.d(tag, "FCM token registered with server")
+        } catch (e: Exception) {
+            Log.w(tag, "Khong dang ky duoc FCM token: ${e.message}")
+        }
+    }
+
     /** Go FCM token cua thiet bi nay khoi server truoc khi logout. */
     private suspend fun removeFcmTokenFromServer() {
         try {

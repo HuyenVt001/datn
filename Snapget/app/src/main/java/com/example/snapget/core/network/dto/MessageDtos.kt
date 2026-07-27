@@ -15,6 +15,11 @@ data class MessageDto(
     val content: String,
     val sendTime: String, // ISO string (UTC)
     val isSeen: Boolean,
+    // Media dinh kem (tin reply bai dang gui kem anh/video cua bai)
+    val attachmentUrl: String? = null,
+    val attachmentType: String? = null, // PHOTO | VIDEO
+    // uid -> emoji (moi nguoi 1 reaction, tha lai cung emoji = go)
+    val reactions: Map<String, String>? = null,
 )
 
 /** 1 dong trong danh sach hoi thoai: tin moi nhat voi tung nguoi. */
@@ -29,6 +34,13 @@ data class SendMessageRequest(
     val groupId: String? = null,
     val messageType: String = "TEXT",
     val content: String,
+    val attachmentUrl: String? = null,
+    val attachmentType: String? = null,
+)
+
+/** Body POST /messages/{id}/reactions — tha/go reaction (toggle cung emoji). */
+data class ReactMessageRequest(
+    val emoji: String,
 )
 
 /** Nhom chat (memberIds <= 20, nguoi tao tu vao nhom). */

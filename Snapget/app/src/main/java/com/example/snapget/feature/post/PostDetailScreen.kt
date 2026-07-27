@@ -316,6 +316,13 @@ fun PostDetailScreen(
     val currentUser by mainViewModel.currentUser.collectAsState()
     val data = mapToUser(currentUser)
 
+    // Dong bo avatar/ten cua MINH cho top bar (fix 2026-07-27): man nay mo tu
+    // calendar profile co MainViewModel scope RIENG — khong goi fetchCurrentUser
+    // thi currentUser rong -> avatar top bar sai/khong dong bo voi cac man khac
+    LaunchedEffect(Unit) {
+        mainViewModel.fetchCurrentUser()
+    }
+
     // Khung anh cua moment (neu co) — resolve URL tu catalog frames
     val frames by postViewModel.frames.collectAsState()
     LaunchedEffect(post.frameId) {
@@ -375,7 +382,8 @@ fun PostDetailScreen(
                         if (post.user.id == data?.id) {
                             Toast.makeText(context, "This is your own post.", Toast.LENGTH_SHORT).show()
                         } else {
-                            postViewModel.sendMessageToAuthor(post.user.id, text)
+                            // Reply gui KEM anh/video cua bai (attachment)
+                            postViewModel.sendMessageToAuthor(post, text)
                         }
                     },
                 )

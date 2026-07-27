@@ -114,6 +114,16 @@
 ### Còn lại của Phase 6 (user test)
 - ⬜ Test 2 máy: A mở sheet bạn bè → "Share your link" → gửi link qua Zalo/Messenger; B bấm link → dialog "Kết bạn với A?" → **Gửi lời mời** → A nhận FCM + thấy section 💌 trong sheet bạn bè → **Chấp nhận** (hoặc Từ chối) → hai bên thành bạn. Thử thêm: B chưa đăng nhập (mã được lưu, login xong tự hiện dialog), B chưa cài app (link mở landing page), quét QR (cũng ra dialog gửi lời mời), 2 bên cùng mời nhau (thành bạn luôn không cần xác nhận).
 
+## Đợt sửa lỗi QA 2026-07-27 (feedback test máy thật của user) — ✅ XONG (build + spotless OK, server 111/111 test)
+
+- ✅ **Nhắn tin**: thông báo lời mời kết bạn (đăng ký lại FCM token mỗi lần mở app + onNewToken đi qua API + banner 💌 trên feed); bubble người gửi hết lệch (bỏ Spacer 40dp); **thả react tin nhắn** (long-press → picker; server mới `POST /messages/:id/reactions`, toggle); **bấm ảnh trong chat → xem full ảnh** (pinch-zoom, không crop vuông); bàn phím hết che ô nhập (imePadding ChatScreen + GroupChatScreen).
+- ✅ **Reply bài đăng**: tin nhắn reply **gửi kèm ảnh/video bài đăng** (server thêm `attachmentUrl/attachmentType` trên message; bubble hiện media + text, video có nút ▶); bàn phím mở chỉ ô text nổi lên, không kéo theo hàng nút chụp.
+- ✅ **Coop**: người được mời chụp được lại (nút center CoopAcceptScreen = nút chụp khi chưa có ảnh — nút chụp trong preview đã bị xóa từ 2026-07-26).
+- ✅ **Camera**: xóa icon "N" (toggle wide-mode); ảnh camera trước tự lật ngang khớp preview.
+- ✅ **Profile**: avatar đồng bộ ở màn xem ảnh từ lịch (PostDetailScreen tự fetchCurrentUser).
+- ✅ **Giao diện Sáng**: icon profile top bar + MessageScreen + thanh nhập chat đổi theo theme (hết trắng-trên-nền-trắng); các chỗ trắng còn lại đều nằm trên overlay/nền tối cố định nên giữ.
+- ⬜ User test lại trên máy thật: react/zoom ảnh chat, reply kèm ảnh, coop chụp, selfie mirror, push lời mời kết bạn, light theme.
+
 ## Còn lại duy nhất: TEST CHẠY THẬT (user tự tổng test)
 
 - ⬜ Chuẩn bị `server/firebase-service-account.json` + `.env` (xem `admin/GUIDE.md` mục 5) → `npm run seed:admin` + `npm run seed:frames` → chạy server.

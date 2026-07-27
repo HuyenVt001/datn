@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,6 +71,12 @@ fun GroupChatScreen(
 
     val listState = rememberLazyListState()
     var messageText by remember { mutableStateOf("") }
+
+    // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
+    var viewerMedia by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+
+    // Tin nhan dang duoc long-press de tha reaction
+    var reactTargetId by remember { mutableStateOf<String?>(null) }
 
     // Chon anh tu thu vien -> upload -> gui tin PHOTO vao nhom
     val photoPicker = rememberLauncherForActivityResult(
@@ -114,6 +120,8 @@ fun GroupChatScreen(
     }
 
     Scaffold(
+        // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
+        modifier = Modifier.imePadding(),
         topBar = {
             GroupChatTopBar(navController = navController, groupName = groupName)
         },
@@ -148,7 +156,8 @@ fun GroupChatScreen(
                 threadStatus is LoadStatus.Loading && thread.isEmpty() -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color.White,
+                        // Theo theme: hardcode trang la vo hinh o Light mode
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
 
@@ -218,6 +227,8 @@ fun GroupChatScreen(
                                     senderAvatar = sender?.avatar.orEmpty(),
                                     showAvatar = showAvatar,
                                     isFirstInGroup = isNewSenderGroup,
+                                    onMediaClick = { url, isVideo -> viewerMedia = url to isVideo },
+                                    onLongPress = { reactTargetId = message.messageId },
                                 )
                             }
                         }
@@ -225,6 +236,22 @@ fun GroupChatScreen(
                 }
             }
         }
+    }
+
+    // Xem anh/video full-screen (khong bi crop vuong nhu trong bubble)
+    viewerMedia?.let { (url, isVideo) ->
+        MediaViewerDialog(url = url, isVideo = isVideo, onDismiss = { viewerMedia = null })
+    }
+
+    // Long-press tin nhan -> chon emoji tha reaction (tha lai cung emoji = go)
+    reactTargetId?.let { messageId ->
+        ReactionPickerDialog(
+            onPick = { emoji ->
+                messageViewModel.reactToMessage(messageId, emoji)
+                reactTargetId = null
+            },
+            onDismiss = { reactTargetId = null },
+        )
     }
 }
 

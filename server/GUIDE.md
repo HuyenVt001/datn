@@ -2,7 +2,10 @@
 
 > Bản đồ **sống** của server: đọc trước khi sửa, **cập nhật sau MỖI lần sửa code** (cây thư mục + task + tiến độ).
 > Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: 2026-07-26 — 2 đợt trong ngày:
+> Cập nhật lần cuối: 2026-07-27 — **Messages: reaction + attachment** (18 test messages pass, build + lint sạch):
+> `POST /messages/:id/reactions` (body `{emoji}`) — thả reaction lên tin nhắn, chỉ người TRONG hội thoại (1-1: sender/receiver; nhóm: thành viên), mỗi người 1 reaction lưu map `reactions{uid: emoji}` trên doc, thả lại cùng emoji = gỡ (toggle), trả về message đã cập nhật; `SendMessageDto` thêm `attachmentUrl` + `attachmentType` (PHOTO|VIDEO) — tin **reply bài đăng** từ app gửi kèm ảnh/video của bài (bubble app hiện media + text). Entity `Message` thêm 3 field tương ứng, repo map + `setReaction` (FieldValue.delete khi gỡ).
+>
+> Trước đó 2026-07-26 — 2 đợt trong ngày:
 > (1) ĐẠI TU TRANG ADMIN: role admin hoàn thiện (cột admin + revoke-admin + chặn tự khóa/tự thu quyền + guard re-check MỖI request + login trả uid); khung ảnh 6 điều kiện mở khóa `unlockType` wire tự mở vào moments/friendships/coop; `GET /frames/:id/owners`; `GET /admin/stats/daily`.
 > (3) ĐỢT HOÀN THIỆN HỆ THỐNG (107 unit + 7 e2e pass): **kiểm duyệt bài đăng** `GET /admin/moments` + `DELETE /admin/moments/:id`; **audit log** module `audit/` (collection `adminLogs`, ghi best-effort mọi hành động admin: khóa/mở user, cấp/thu quyền, CRUD/grant khung, xóa bài) + `GET /admin/logs`; **sync displayName/photoURL lên Firebase Auth** khi PATCH /users/me (hết lệch tên Auth↔Firestore); **helmet** (CSP off cho Swagger) + **@nestjs/throttler** (120 req/60s toàn cục, login admin siết 10/60s); **UsersService.pushToUids** = helper FCM duy nhất (gộp 4 bản sao ở moments/messages/coop/friendships — các service này bỏ dependency FirebaseService); **e2e smoke** `test/app.e2e-spec.ts` (supertest boot AppModule thật: envelope/validation/guard/404 — không cần emulator; hướng dẫn mở rộng bằng `firebase emulators:exec` trong comment đầu file).
 > (2) ĐỢT VÁ LỖI SAU REVIEW (101 test pass): **ensureUser** không ghi `avatar: undefined` (tài khoản email/password hết 500 ở GET /users/me) + backfill doc STUB/prototype (giữ unlockedFrames, không ghi đè tên cũ); **revokeAdmin** post-check chống race 2 admin thu quyền lẫn nhau (về 0 admin thì tự khôi phục claim); **listUsers** search theo fullName Firestore (tên đang hiển thị) — repo đổi `getFullNames`→`getAllFullNames`; **createGroup** chỉ cho thêm bạn bè; **seen/reaction** chỉ người thấy được bài trên feed (chủ bài/coop partner/bạn của 1 trong 2) — `GET :id/reactions` giờ cần biết người gọi; disabled uid lạ trả 404; coop ghi momentId best-effort; declineRequest chạy transaction; xóa moment chunk batch 450; chặn birthday tương lai; dev-streak.ts theo unlockType + guard catalog rỗng.
@@ -169,6 +172,7 @@ Ký hiệu: ✅ xong · 🔄 đang làm · ⬜ chưa làm
 | GET | `/api/messages/conversations` | Danh sách hội thoại 1-1 (tin mới nhất từng người) | Firebase |
 | GET | `/api/messages/with/:friendUid` | Thread 1-1 (`?page&limit`, page 1 = mới nhất) | Firebase |
 | PATCH | `/api/messages/:id/seen` | Đánh dấu đã xem (chỉ người nhận) | Firebase |
+| POST | `/api/messages/:id/reactions` | Thả reaction (`{emoji}`, người trong hội thoại; thả lại cùng emoji = gỡ) | Firebase |
 | POST | `/api/messages/groups` | Tạo nhóm chat (≤20 thành viên) | Firebase |
 | GET | `/api/messages/groups` | Danh sách nhóm của mình | Firebase |
 | GET | `/api/messages/groups/:groupId` | Thread nhóm (member-only) | Firebase |

@@ -247,6 +247,24 @@ class MessageViewModel @Inject constructor(
         _sendError.value = null
     }
 
+    /**
+     * Tha/go reaction len 1 tin nhan (long-press bubble). Server toggle: tha lai
+     * cung emoji = go. Thanh cong -> thay tin nhan trong thread bang ban co
+     * reactions moi (khong doi poll 5s).
+     */
+    fun reactToMessage(messageId: String, emoji: String) {
+        viewModelScope.launch {
+            try {
+                val updated = messageRepository.react(messageId, emoji)
+                _thread.value = _thread.value.map { message ->
+                    if (message.messageId == updated.messageId) updated else message
+                }
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Failed to react.")
+            }
+        }
+    }
+
     /** Reset thread khi roi man chat (tranh loe tin cu khi mo nguoi khac). */
     fun clearThread() {
         _thread.value = emptyList()
@@ -295,11 +313,12 @@ class MessageViewModel @Inject constructor(
         }
     }
 
-    private fun previewOf(message: MessageDto): String = when (message.messageType) {
-        "TEXT", "EMOJI" -> message.content
-        "PHOTO" -> "📷 Photo"
-        "VOICE" -> "🎤 Voice message"
-        "STICKER" -> "Sticker"
+    private fun previewOf(message: MessageDto): String = when {
+        // Tin reply bai dang (co media dinh kem) -> preview kem icon anh
+        message.attachmentUrl != null -> "📷 ${message.content}"
+        message.messageType == "PHOTO" -> "📷 Photo"
+        message.messageType == "VOICE" -> "🎤 Voice message"
+        message.messageType == "STICKER" -> "Sticker"
         else -> message.content
     }
 }
