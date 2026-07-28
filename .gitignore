@@ -1,0 +1,78 @@
+# ==================================================================
+# .gitignore GỐC — lưới an toàn cho TOÀN BỘ monorepo
+# ==================================================================
+# Mỗi thư mục con (Snapget/, server/, admin/, hosting/) vẫn có .gitignore
+# riêng. File này là LỚP CHẶN CUỐI, áp cho mọi thư mục — kể cả thư mục gốc.
+#
+# Vì sao phải có: ngày 2026-07-12, file `firebase-service-account.json`
+# (private key toàn quyền Firebase Admin SDK) đã bị commit NGAY TẠI THƯ MỤC
+# GỐC — nơi lúc đó không có .gitignore nào chặn. Repo lại là public.
+# Chi tiết sự cố: SECURITY.md mục 10.1.
+#
+# ⚠️ Nhớ: .gitignore chỉ chặn file CHƯA được track. File đã lỡ commit thì
+#    phải `git rm --cached <file>` mới thôi bị theo dõi (và nội dung vẫn
+#    còn trong lịch sử git — khóa đã lộ thì phải THU HỒI, không xóa được).
+# ==================================================================
+
+
+# ------------------------------------------------------------------
+# 1. BÍ MẬT — TUYỆT ĐỐI KHÔNG COMMIT
+# ------------------------------------------------------------------
+
+# Firebase Admin SDK service account.
+# Đây là loại khóa nguy hiểm nhất: toàn quyền Firestore/Auth/FCM và
+# BỎ QUA mọi Security Rules. Bắt mọi biến thể tên file thường gặp.
+firebase-service-account.json
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+
+# Khóa dịch vụ khác (Google Cloud, OAuth client...)
+gcp-*.json
+credentials.json
+client_secret*.json
+
+# Biến môi trường — chặn hết, chỉ chừa lại file *.example làm mẫu
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Khóa riêng / chứng chỉ / keystore ký app
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+keystore.properties
+apikey.properties
+secrets.properties
+
+# Cấu hình riêng của máy (sdk.dir, server.base.url...)
+local.properties
+
+
+# ------------------------------------------------------------------
+# 2. Rác build / cache / tool
+# ------------------------------------------------------------------
+node_modules/
+dist/
+build/
+.gradle/
+coverage/
+.firebase/
+*.log
+.codegraph/
+
+
+# ------------------------------------------------------------------
+# 3. IDE / OS
+# ------------------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

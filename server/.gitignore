@@ -6,11 +6,28 @@
 /coverage
 
 # Secrets — TUYET DOI khong commit
+# (Lop chan thu 2; .gitignore o thu muc GOC repo con mot lop nua)
 .env
 .env.*
 !.env.example
+!.env.*.example
+
+# Firebase Admin SDK service account — khoa toan quyen, bo qua moi Security Rules.
+# Bat moi bien the ten file: da tung lo 1 lan o root repo (xem ../SECURITY.md muc 10.1).
 firebase-service-account.json
-*-firebase-adminsdk-*.json
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+
+# Khoa dich vu khac / chung chi
+gcp-*.json
+credentials.json
+client_secret*.json
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Logs
 *.log

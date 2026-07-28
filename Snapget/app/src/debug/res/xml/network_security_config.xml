@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Cau hinh bao mat mang cho ban DEBUG (src/debug) — GHI DE file cung ten o src/main.
+
+    Chi ban debug moi duoc phep:
+    - HTTP tran: server dev chay http://10.0.2.2:3000 (emulator) hoac http://<IP-LAN>:3000 (may that)
+    - Tin CA do user cai: de bat duoc traffic bang Charles/Proxyman khi debug
+
+    Ban RELEASE dung src/main/res/xml/network_security_config.xml (cam ca hai).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -36,4 +36,14 @@ class FirestoreRepository @Inject constructor(
             null
         }
     }
+
+    /**
+     * Xoa cache user trong bo nho — BAT BUOC goi khi dang xuat (2026-07-28).
+     * Day la singleton song suot vong doi process: khong reset thi sau khi dang
+     * xuat roi dang nhap tai khoan khac, [getCurrentUser] van tra ve nguoi cu.
+     * Goi qua [SessionCleaner].
+     */
+    fun clearCache() {
+        currentUserCache = null
+    }
 }

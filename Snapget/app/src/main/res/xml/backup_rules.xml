@@ -1,13 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older that API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Quy tac Auto Backup cho Android 11 tro xuong (API <= 30).
+
+    HIEN TAI `android:allowBackup="false"` trong AndroidManifest nen file nay
+    KHONG duoc dung. Van giu va khai bao day du CO CHU DICH: neu sau nay ai do
+    bat lai backup thi cac muc nhay cam duoi day van bi loai tru, khong lo lot.
+
+    Vi sao phai loai tru (su co 2026-07-28 phat hien khi ra soat bao mat):
+    truoc day allowBackup=true + file nay RONG => toan bo SharedPreferences,
+    KE CA private prefs cua Firebase Auth (chua REFRESH TOKEN), duoc day len
+    Google Drive va co the `adb backup` roi restore sang may khac
+    => chiem phien dang nhap ma khong can biet mat khau.
+    Xem SECURITY.md muc 8.1.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Refresh token cua Firebase Auth -->
+    <exclude domain="sharedpref" path="com.google.firebase.auth.api.Store.xml" />
+    <exclude domain="sharedpref" path="com.google.android.gms.appid.xml" />
+
+    <!-- Ma moi ket ban dang cho + snapshot widget (anh moment cua user) -->
+    <exclude domain="sharedpref" path="snapget_pending_invite.xml" />
+    <exclude domain="sharedpref" path="snapget_widget.xml" />
+    <exclude domain="file" path="widget/" />
+
+    <!-- Cache anh/video Coil (512MB anh rieng tu) + file tam khi chup/chinh sua -->
+    <exclude domain="external" path="." />
 </full-backup-content>

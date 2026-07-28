@@ -60,6 +60,13 @@ captures/
 .cxx/
 
 # Google Services (e.g. APIs or Firebase)
+# CO CHU DICH giu dong duoi day o dang comment => google-services.json VAN duoc commit.
+# Ly do: file nay bat buoc phai co thi plugin com.google.gms.google-services moi build
+# duoc, va noi dung cua no (API key Android, project id, app id) la CONG KHAI theo
+# thiet ke cua Google — no chi dinh danh project, khong cap quyen. Phong thu that nam
+# o Firestore Rules + App Check + restrict API key theo package name/SHA-1.
+# ⚠️ KHAC HOAN TOAN voi service account key (*-adminsdk-*.json) — loai do la khoa
+#    toan quyen, bi chan o duoi va o .gitignore goc repo.
 # google-services.json
 
 # Freeline
@@ -85,10 +92,29 @@ lint/tmp/
 # lint/reports/
 
 apikey.properties
+keystore.properties
+secrets.properties
 
 # Secrets / env — khong commit
 .env
 .env.*
+!.env.example
+!.env.*.example
+
+# Firebase Admin SDK service account — KHONG bao gio thuoc ve app Android
+# (app chi dung google-services.json). Chan phong truong hop copy nham vao day.
+firebase-service-account.json
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+
+# Khoa rieng / chung chi
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
 
 # Kotlin tooling cache (Kotlin 2.x)
 .kotlin/

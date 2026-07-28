@@ -17,6 +17,32 @@ val localProperties =
         if (f.exists()) f.inputStream().use { load(it) }
     }
 
+// URL server. Fallback HTTP chi de tien cho DEBUG tren emulator — ban RELEASE
+// bi chan bang check ben duoi neu khong phai HTTPS.
+val serverBaseUrl: String =
+    localProperties.getProperty("server.base.url") ?: "http://10.0.2.2:3000/api/"
+
+/**
+ * Chan build RELEASE khi `server.base.url` khong phai HTTPS (hardening 2026-07-28).
+ *
+ * Truoc day: thieu local.properties -> app release duoc build voi
+ * "http://10.0.2.2:3000/api/" => Firebase ID token di qua HTTP tran.
+ * Nay fail ngay luc build thay vi phat hien khi da phat hanh.
+ *
+ * Kiem tra o taskGraph (khong phai trong khoi release{}) de build DEBUG voi
+ * server HTTP local van chay binh thuong.
+ */
+gradle.taskGraph.whenReady {
+    val buildingRelease = allTasks.any { it.name.contains("Release") }
+    if (buildingRelease && !serverBaseUrl.startsWith("https://")) {
+        throw GradleException(
+            "Build RELEASE bi chan: server.base.url = '$serverBaseUrl' khong phai HTTPS.\n" +
+                "Sua trong Snapget/local.properties, vi du:\n" +
+                "  server.base.url=https://datn-8810.onrender.com/api/",
+        )
+    }
+}
+
 android {
     namespace = "com.example.snapget"
     compileSdk = 35
@@ -30,9 +56,6 @@ android {
 
         // URL server NestJS. Emulator dung 10.0.2.2 = localhost cua may host.
         // May that: doi trong local.properties -> server.base.url=http://<IP-LAN>:3000/api/
-        val serverBaseUrl =
-            localProperties.getProperty("server.base.url")
-                ?: "http://10.0.2.2:3000/api/"
         buildConfigField("String", "SERVER_BASE_URL", "\"$serverBaseUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -43,7 +66,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // BAT R8 (2026-07-28, hardening bao mat). Truoc day isMinifyEnabled=false
+            // => APK release giu nguyen ten class/method + toan bo chuoi, jadx dich
+            // nguoc ra source gan nhu nguyen ban, va moi Log.d khong bi strip.
+            // Rule keep day du o proguard-rules.pro (Gson dung reflection tren DTO).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

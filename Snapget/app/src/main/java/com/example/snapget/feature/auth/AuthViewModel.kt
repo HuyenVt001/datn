@@ -3,6 +3,7 @@ package com.example.snapget.feature.auth
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.snapget.core.data.SessionCleaner
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.feature.auth.data.AuthRepository
 import com.example.snapget.feature.widget.WidgetRefresher
@@ -22,6 +23,7 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     @ApplicationContext private val context: Context,
     private val widgetRefresher: WidgetRefresher,
+    private val sessionCleaner: SessionCleaner,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -32,6 +34,33 @@ class AuthViewModel @Inject constructor(
 
     init {
         checkAuthStatus()
+        observeForcedSignOut()
+    }
+
+    /**
+     * Phien bi thu hoi tu ben ngoai (admin khoa tai khoan, doi mat khau o may khac,
+     * hoac [com.example.snapget.core.network.interceptor.TokenAuthenticator] dang xuat
+     * sau khi gap 401 lien tiep) -> day user ve man dang nhap + don du lieu cuc bo.
+     *
+     * Chi phan ung khi dang o trang thai Authenticated: luc chua dang nhap,
+     * AuthStateListener cung ban su kien ngay khi dang ky, khong duoc coi la
+     * "bi dang xuat".
+     */
+    private fun observeForcedSignOut() {
+        viewModelScope.launch {
+            authRepository.signedOutEvents().collect {
+                if (_authState.value is AuthState.Authenticated) {
+                    clearLocalSessionData()
+                    _authState.value = AuthState.Unauthenticated
+                }
+            }
+        }
+    }
+
+    /** Xoa cache anh/user/ma moi + dua widget ve trang thai chua dang nhap. */
+    private suspend fun clearLocalSessionData() {
+        sessionCleaner.clear()
+        widgetRefresher.markSignedOut()
     }
 
     /**
@@ -88,8 +117,9 @@ class AuthViewModel @Inject constructor(
                 val success = authRepository.logout()
                 if (success) {
                     _authState.value = AuthState.Unauthenticated
-                    // Widget chuyen sang trang thai "Sign in" ngay (xoa snapshot + anh)
-                    widgetRefresher.markSignedOut()
+                    // Xoa cache anh (512MB anh rieng tu), cache user, ma moi dang cho
+                    // + dua widget ve trang thai "Sign in" (2026-07-28)
+                    clearLocalSessionData()
                 } else {
                     _authState.value = AuthState.Error("Failed to logout")
                 }

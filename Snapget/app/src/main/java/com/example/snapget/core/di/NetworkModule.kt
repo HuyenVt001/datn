@@ -10,12 +10,11 @@ import com.example.snapget.core.network.api.QuestApi
 import com.example.snapget.core.network.api.UploadApi
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.interceptor.AuthInterceptor
+import com.example.snapget.core.network.interceptor.TokenAuthenticator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import java.net.CookieManager
-import java.net.CookiePolicy
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import okhttp3.OkHttpClient
@@ -33,17 +32,13 @@ class NetworkModule {
 
     @Provides
     @Singleton
-    fun provideCookieManager(): CookieManager = CookieManager().apply {
-        setCookiePolicy(CookiePolicy.ACCEPT_ALL)
-    }
-
-    @Provides
-    @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        cookieManager: CookieManager,
+        tokenAuthenticator: TokenAuthenticator,
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        // Gap 401 -> lam moi ID token va thu lai; van 401 -> dang xuat (2026-07-28)
+        .authenticator(tokenAuthenticator)
         .addInterceptor(
             HttpLoggingInterceptor().apply {
                 // BODY chi o debug; che header Authorization de khong lo token ra log

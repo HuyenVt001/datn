@@ -4,8 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION DA GO (2026-07-28, hardening bao mat):
+         khong co man hinh/tinh nang nao dung vi tri (da grep toan bo app/src: 0 ket qua).
+         Xin quyen thua = mo rong be mat tan cong + Play Store bat khai bao ly do. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Ghi am khi quay video ngan (<=5s) + tin nhan thoai -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -14,12 +15,14 @@
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
-    <!-- usesCleartextTraffic chi bat o build DEBUG (src/debug/AndroidManifest.xml) —
-         server dev chay HTTP (10.0.2.2 / IP LAN). Ban release KHONG cho cleartext
-         de token khong bao gio di qua HTTP tran. -->
+    <!-- Cleartext HTTP: khai bao tuong minh qua @xml/network_security_config.
+         - src/main  -> CAM hoan toan (ban release khong bao gio gui token qua HTTP tran)
+         - src/debug -> overlay cho phep, de server dev (10.0.2.2 / IP LAN) van chay duoc
+         networkSecurityConfig co do uu tien CAO HON usesCleartextTraffic. -->
     <application
         android:name=".MainApplication"
-        android:allowBackup="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

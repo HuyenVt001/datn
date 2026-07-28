@@ -1,25 +1,84 @@
-# Đánh thức server (gói free ngủ sau 15 phút — luôn chạy trước khi demo)
-curl https://datn-8810.onrender.com/api/health
+# 🗺️ GUIDE.md — Bản đồ **Snapget Admin** (React web)
 
+> ## 📌 RULE BẮT BUỘC
+> **Luôn cập nhật file GUIDE.md này MỖI KHI có thay đổi** (code, trang, API gọi, luồng, thiết kế) — ngay trong cùng lần làm việc, không đợi "xong tính năng". Mỗi lần cập nhật phải ghi rõ **thay đổi gì trong thiết kế**: sửa mục kiến trúc (mục 1) / cây thư mục (mục 3) / bảng task (mục 4) tương ứng, **và thêm 1 dòng vào Changelog (mục 6)**. Sửa code mà không cập nhật GUIDE = **chưa xong việc**. Chi tiết: mục 7.
 
+> ## 🔐 RULE BẮT BUỘC — SECURITY.md
+> **Mọi thay đổi liên quan BẢO MẬT phải cập nhật [`../SECURITY.md`](../SECURITY.md) NGAY trong cùng lần sửa** (song song với GUIDE này).
+> Tính là thay đổi bảo mật: luồng đăng nhập admin & nơi lưu JWT, `RequireAuth`/bảo vệ route, interceptor gắn token và xử lý 401/403, render dữ liệu người dùng (XSS, `href`/`src` do user kiểm soát), security headers & CSP trong `firebase.json`, biến `VITE_*` và `.gitignore`, thêm chức năng quản trị mới (khóa user, cấp quyền, xóa nội dung).
+> Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
-# GUIDE.md — Bản đồ **Snapget Admin** (React web)
-
-> Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: cây thư mục + ý nghĩa, bảng task + tiến độ.
-> Cập nhật sau **mỗi** lần sửa code.
+> Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
+> Cập nhật lần cuối: **2026-07-28**.
 
 ---
 
-## 1. Trạng thái tổng quát
+## 0. Trạng thái tổng quát
 
-**🟢 Đại tu trang admin hoàn tất (2026-07-26)** — build + lint sạch. 4 trang (Login/Dashboard/Users/Frames) nâng cấp toàn diện:
-- **Users**: cột Vai trò (Admin/User) + cột Đăng nhập cuối; cấp **và THU** quyền admin; không thao tác được lên chính mình (tag "Bạn"); thu quyền/khóa có hiệu lực NGAY (server guard re-check mỗi request).
-- **Frames**: 6 điều kiện mở khóa khi thêm/sửa khung (thưởng quest / mốc streak / đủ N bài đăng / đủ N bạn bè / chụp chung lần đầu / mở sẵn) — loại có ngưỡng N nhập số tự do; drawer "Ai đang sở hữu?" (icon 👥 trên card) liệt kê user sở hữu khung.
-- **Dashboard**: thêm 2 biểu đồ cột 7 ngày (bài đăng/ngày + user mới/ngày, SVG thuần không thêm lib; màu validate dataviz: #A85A1E / #0C7BB3).
-**Đợt vá lỗi sau review (2026-07-26, cùng ngày):** `uid` fallback decode từ payload JWT (phiên đăng nhập cũ không có UID_KEY vẫn chặn được thao-tác-lên-chính-mình); form khung ảnh **reset ngưỡng N khi đổi loại điều kiện** (hết dính ngưỡng loại cũ) + rule min/max; `metaOf()` fallback cho unlockType lạ + `errorElement` router (hết white-screen); xóa khung đóng drawer owners + invalidate cache; search cấp khung reset khi mở + debounce 300ms; cả 4 trang hiển thị Alert khi query GET lỗi; login fail tự signOut phiên Firebase; nhãn grid biểu đồ chỉ số nguyên.
-**Đợt hoàn thiện (2026-07-26, cùng ngày):** thêm 2 trang mới — **Bài đăng** (kiểm duyệt: lưới bài mọi user + xóa bài vi phạm, route `/moments`) và **Nhật ký** (audit log admin, route `/logs`); menu Sider giờ 5 mục. API mới trong `admin.api.ts`: `listMoments`/`deleteMoment`/`listLogs`.
-**Service account key đã có** trên máy (`server/.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`).
-**Chưa test end-to-end** — còn cần chạy `npm run seed:admin` và đăng nhập thử (xem mục 5).
+- 🟢 **Admin hoàn chỉnh 6 trang** (Login / Tổng quan / Người dùng / Bài đăng / Khung ảnh / Nhật ký) — build + lint sạch.
+- Deploy đích: Firebase Hosting site riêng (`snapget-admin-d8693.web.app`), server trên Render — xem `../DEPLOY.md`.
+- ⬜ Còn lại: **test end-to-end** (seed admin + đăng nhập thật + thao tác từng trang).
+
+---
+
+## 1. Kiến trúc hệ thống
+
+### 1.1 Vị trí trong monorepo
+
+```
+Admin (React SPA, web này) ──axios + Bearer JWT──► NestJS API (server/) ──► Firebase / Cloudinary
+        │
+        └── Firebase Web SDK: CHỈ dùng cho bước đăng nhập (lấy ID token đổi JWT server)
+```
+
+Admin **không** chạm Firestore trực tiếp — mọi dữ liệu đi qua REST API của server (endpoint surface: `../server/GUIDE.md` mục 5). Thiếu endpoint → làm ở server trước, không tự bịa.
+
+### 1.2 Tech stack
+
+Vite + React 18 + TS strict · AntD 5 (viVN, theme sáng #8C6239) · react-router v6 · axios + react-query · Firebase Web SDK (chỉ login). **Bảng stack đầy đủ + danh sách cấm thêm: `.claude/CLAUDE.md` mục 2** (đã chốt — không đổi nếu chưa hỏi user).
+
+### 1.3 Phân tầng frontend (bắt buộc, xem CLAUDE.md mục 3)
+
+```
+Page/Component ──► hook react-query (useQuery/useMutation) ──► api/*.api.ts ──► api/client.ts (axios)
+```
+
+- `api/client.ts` là **chốt chặn duy nhất** ra HTTP: gắn `Authorization: Bearer <JWT>`, **bóc envelope** `{success, statusCode, message, data}` (lỗi ném `Error(message)` — message server đã là tiếng Việt), **401 → xóa TOKEN/EMAIL/UID_KEY + đá về /login**.
+- Quy ước code chi tiết (mutation/invalidate, confirm hành động nguy hiểm…): CLAUDE.md mục 4.
+
+### 1.4 Luồng xác thực (2 bước — đừng làm tắt)
+
+```
+1. Admin nhập email/password ─► signInWithEmailAndPassword (Firebase Web SDK)
+2. getIdToken() ─► POST /auth/admin/login {idToken}
+      server: verify token → check claim admin HIỆN HÀNH + disabled → trả {accessToken, uid, email}
+3. AuthContext lưu JWT + email + uid (localStorage) — uid để trang Users biết "chính mình"
+4. Mọi request sau đó mang JWT server (KHÔNG gửi Firebase ID token cho route admin)
+5. 401/403 → logout; login fail → tự signOut phiên Firebase
+```
+
+Server re-check quyền admin + disabled **mỗi request** → bị thu quyền/khóa là mất phiên NGAY, không đợi JWT hết hạn.
+
+### 1.5 Cây route & guard
+
+```
+/login                    ── public (LoginPage)
+<RequireAuth>             ── chưa có JWT → redirect /login
+  └── / (AdminLayout: Sider menu 5 mục + Header email/đăng xuất + <Outlet/>)
+        ├── /        DashboardPage   (stats + 2 biểu đồ cột 7 ngày)
+        ├── /users   UsersPage       (khóa/mở, cấp/thu admin)
+        ├── /moments MomentsPage     (kiểm duyệt bài đăng)
+        ├── /frames  FramesPage      (CRUD khung + grant + owners)
+        └── /logs    LogsPage        (audit log admin)
+```
+
+### 1.6 Triển khai
+
+- Local: server chạy trước (`cd server && npm run start:dev`), rồi `npm run dev` → `http://localhost:5173`.
+- Production: build Vite → Firebase Hosting **site thứ 2** (`snapget-admin-d8693.web.app` — KHÔNG đè site mặc định đang phục vụ invite landing + assetlinks.json); server trên Render. Origin admin phải nằm trong `CORS_ORIGINS` của server. Chi tiết `../DEPLOY.md`.
+- ⚠️ Render gói free **ngủ sau 15 phút** — trước khi demo gọi `curl https://datn-8810.onrender.com/api/health` để đánh thức.
+
+---
 
 ## 2. Chạy dự án
 
@@ -31,8 +90,9 @@ cd server && npm run start:dev          # http://localhost:3000/api, Swagger /do
 cd admin && npm install && npm run dev  # http://localhost:5173
 ```
 
-- Copy `.env.example` → `.env`, điền `VITE_API_BASE_URL` + config Firebase web (lấy ở Firebase Console → Project settings → General → Your apps → Web).
+- Copy `.env.example` → `.env`, điền `VITE_API_BASE_URL` + config Firebase web (Firebase Console → Project settings → General → Your apps → Web).
 - Tài khoản admin đầu tiên: `cd server && npm run seed:admin -- viethoang5301314@gmail.com` (email phải đã đăng ký trong app). Sau đó đăng nhập admin web bằng email/password Firebase của tài khoản đó.
+- Nếu đăng nhập báo lỗi API key (key Android bị giới hạn platform): tạo **Web App** trong Firebase Console và thay 4 biến `VITE_FIREBASE_*` trong `admin/.env`.
 
 ## 3. Cây thư mục & ý nghĩa
 
@@ -42,55 +102,68 @@ admin/
 ├── GUIDE.md               # file này
 ├── src/
 │   ├── main.tsx           # bootstrap: ConfigProvider viVN + theme sáng (#8C6239), react-query, router
-│   ├── App.tsx            # router: /login public; / (AdminLayout + RequireAuth) → dashboard, users, frames
+│   ├── App.tsx            # router: /login public; RequireAuth → AdminLayout → 5 trang; errorElement chống white-screen
 │   ├── api/
-│   │   ├── client.ts      # axios instance: baseURL từ env, Bearer JWT, bóc envelope {success,data,message}, 401 → logout (TOKEN/EMAIL/UID_KEY)
+│   │   ├── client.ts      # axios instance: baseURL từ env, Bearer JWT, bóc envelope, 401 → logout
 │   │   ├── auth.api.ts    # adminLogin(idToken) → POST /auth/admin/login (trả kèm uid)
 │   │   ├── admin.api.ts   # listUsers / getStats / getDailyStats / setUserDisabled / grantAdmin / revokeAdmin
+│   │   │                  #   + listMoments / deleteMoment / listLogs (kiểm duyệt + audit log)
 │   │   ├── frames.api.ts  # listFrames / createFrame / updateFrame (unlockType+unlockValue) / deleteFrame / grantFrame / listFrameOwners
 │   │   └── upload.api.ts  # uploadImage(file) → POST /upload/admin (multipart, Admin JWT)
 │   ├── auth/
 │   │   ├── firebase.ts    # init Firebase web app từ VITE_FIREBASE_*
-│   │   ├── AuthContext.tsx# giữ JWT + email + uid (localStorage) + login()/logout() — uid để trang Users biết "chính mình"
+│   │   ├── AuthContext.tsx# giữ JWT + email + uid (localStorage) + login()/logout(); uid fallback decode từ payload JWT
 │   │   └── RequireAuth.tsx# guard route, chưa đăng nhập → /login
-│   ├── layouts/AdminLayout.tsx  # Sider menu 3 mục + Header (email admin, nút đăng xuất) + <Outlet/>
+│   ├── layouts/AdminLayout.tsx  # Sider menu 5 mục + Header (email admin, đăng xuất) + <Outlet/>
 │   ├── pages/
-│   │   ├── MomentsPage.tsx    # (2026-07-26) KIỂM DUYỆT bài đăng: lưới bài mọi user (ảnh/video, tác giả, caption, ngày) + xóa bài vi phạm (GET /admin/moments + DELETE /admin/moments/:id)
-│   │   ├── LogsPage.tsx       # (2026-07-26) NHẬT KÝ admin: bảng audit log (ai làm gì lên đối tượng nào lúc nào) từ GET /admin/logs
-│   │   ├── LoginPage.tsx      # form email/password → Firebase → đổi JWT
-│   │   ├── DashboardPage.tsx  # thẻ thống kê GET /admin/stats + 2 biểu đồ cột 7 ngày (GET /admin/stats/daily, SVG thuần `DailyBarChart`)
-│   │   ├── UsersPage.tsx      # bảng user: search, phân trang, cột Vai trò/Đăng nhập cuối, khóa/mở khóa, cấp + THU quyền admin, chặn thao tác lên chính mình
-│   │   └── FramesPage.tsx     # grid khung ảnh: thêm/sửa (điều kiện mở khóa 6 loại + ngưỡng N) / xóa / cấp cho user / drawer user sở hữu
-│   ├── types/index.ts     # AdminUser (admin, lastSignInAt), AdminStats, DailyStat, Frame (unlockType/unlockValue), FrameOwner, Paginated<T>… khớp DTO server
+│   │   ├── LoginPage.tsx      # form email/password → Firebase → đổi JWT; fail → signOut Firebase
+│   │   ├── DashboardPage.tsx  # thẻ thống kê GET /admin/stats + 2 biểu đồ cột 7 ngày (SVG thuần DailyBarChart,
+│   │   │                      #   màu #A85A1E / #0C7BB3 đã validate dataviz light+dark)
+│   │   ├── UsersPage.tsx      # bảng user: search, phân trang server-side, cột Vai trò/Đăng nhập cuối,
+│   │   │                      #   khóa/mở, cấp + THU quyền admin, chặn thao tác lên chính mình (tag "Bạn")
+│   │   ├── MomentsPage.tsx    # KIỂM DUYỆT: lưới bài mọi user (ảnh/video, tác giả, caption) + xóa bài vi phạm
+│   │   ├── FramesPage.tsx     # grid khung: thêm/sửa (6 điều kiện mở khóa + ngưỡng N, reset ngưỡng khi đổi loại),
+│   │   │                      #   xóa, cấp cho user (search debounce 300ms), drawer 👥 "Ai đang sở hữu?"
+│   │   └── LogsPage.tsx       # NHẬT KÝ admin: bảng audit log từ GET /admin/logs
+│   ├── types/index.ts     # AdminUser, AdminStats, DailyStat, Frame, FrameOwner, AdminMoment, AdminLog, Paginated<T>… khớp DTO server
 │   └── components/        # (trống — chỉ thêm khi dùng lại ≥2 trang)
-├── .env.example
+├── .env.example / .env.production.example
+├── firebase.json / .firebaserc    # deploy Hosting site admin (xem ../DEPLOY.md)
 └── vite.config.ts
 ```
 
 ## 4. Bảng task & tiến độ
 
-| Task | Trạng thái | Ghi chú |
+| Task | TT | Ghi chú |
 |---|---|---|
-| Scaffold Vite + React + TS + AntD | ✅ | React 18 + Vite 5 + AntD 5 (locale viVN, colorPrimary #8C6239); thay boilerplate JS cũ |
-| Luồng đăng nhập Firebase → JWT server | ✅ (code) | AuthContext 2 bước; CHƯA test thật — key đã có, còn chờ seed admin |
-| AdminLayout + router + guard | ✅ | Sider 3 mục + header đăng xuất; RequireAuth redirect /login; 401 → tự logout |
-| DashboardPage (stats) | ✅ | 6 thẻ Statistic từ GET /admin/stats |
-| UsersPage (search/pagination/lock/grant) | ✅ | Table server-side pagination 10/trang; Popconfirm khóa/mở + cấp admin |
-| FramesPage (CRUD + grant + upload) | ✅ | Card grid; modal thêm/sửa (upload qua /upload/admin); grant qua Select tìm user; server đã có PATCH /frames/:id + GET /frames/admin |
-| Thống kê quest trên Dashboard | ✅ | DashboardPage đã hiện thẻ `questCompletionsToday` từ GET /admin/stats (server quests xong 2026-07-13) |
-| **Role hoàn thiện trên UsersPage** | ✅ 2026-07-26 | Cột Vai trò (Tag Admin 👑/User) + Đăng nhập cuối; nút Cấp admin ↔ Thu quyền theo role; hàng của chính mình chỉ hiện "Tài khoản của bạn" (server cũng chặn tự khóa/tự thu quyền); message nêu rõ thu quyền hiệu lực ngay |
-| **Điều kiện mở khóa khung** | ✅ 2026-07-26 | Form thêm/sửa: Select 6 loại (`UNLOCK_META`) + field ngưỡng N theo loại (mốc streak Select 3/7/14/30, số bài InputNumber ≥1, số bạn 1..20); tag màu theo loại trên card |
-| **Drawer user sở hữu khung** | ✅ 2026-07-26 | Icon 👥 trên card → GET /frames/:id/owners, list avatar+tên+email; khung DEFAULT có Alert giải thích "mọi user đều có" |
-| **Biểu đồ 7 ngày trên Dashboard** | ✅ 2026-07-26 | 2 card: Bài đăng/ngày (#A85A1E) + Người dùng mới/ngày (#0C7BB3) từ GET /admin/stats/daily; SVG thuần (không thêm lib chart), tooltip hover, nhãn ở cột max; màu đã chạy dataviz validator PASS light+dark |
-| Test end-to-end (đăng nhập → thao tác) | ⬜ | key đã có; còn chờ `npm run seed:admin` + đăng nhập thử |
+| Scaffold Vite + React + TS + AntD (viVN, #8C6239) | ✅ | |
+| Auth 2 bước Firebase → JWT + AuthContext + RequireAuth + 401 auto-logout | ✅ | |
+| AdminLayout + router 5 trang + errorElement | ✅ | |
+| DashboardPage: stats + 2 biểu đồ cột 7 ngày (SVG thuần) | ✅ | |
+| UsersPage: search/phân trang/khóa/cấp + thu admin/chặn tự thao tác | ✅ | |
+| FramesPage: CRUD + 6 điều kiện mở khóa + grant + drawer owners | ✅ | |
+| MomentsPage: kiểm duyệt + xóa bài vi phạm | ✅ | |
+| LogsPage: audit log | ✅ | |
+| Alert khi query GET lỗi (cả 4 trang list) | ✅ | |
+| Deploy Firebase Hosting (site riêng) | ✅ config | file sẵn, cần chạy lệnh deploy (../DEPLOY.md) |
+| **Test end-to-end** (seed admin → đăng nhập → thao tác từng trang) | ⬜ | key đã có; còn chạy `npm run seed:admin` + login thử |
 
-## 5. Việc cần user chuẩn bị để chạy thật
+## 5. Liên kết
 
-1. ✅ **Service account key**: đã có — `server/snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json` (tải từ Firebase Console → Project settings → Service accounts → Generate new private key). `server/.env` đã trỏ đúng: `FIREBASE_SERVICE_ACCOUNT=./snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`. File đã được `.gitignore` (pattern `*-firebase-adminsdk-*.json`).
-2. Tài khoản `viethoang5301314@gmail.com` phải đã đăng ký trong app (Firebase Auth) → chạy `cd server && npm run seed:admin` → đăng nhập admin web bằng email/mật khẩu đó.
-3. Nếu đăng nhập web báo lỗi API key (key Android bị giới hạn platform): tạo **Web App** trong Firebase Console và thay 4 biến `VITE_FIREBASE_*` trong `admin/.env` (đang mượn key từ `google-services.json`).
+- API surface đầy đủ: `../server/GUIDE.md` mục 5 + Swagger `http://localhost:3000/docs`.
+- Deploy: `../DEPLOY.md`. Domain chuẩn: 3 file PDF ở root repo.
 
-## 6. Liên kết
+---
 
-- Lộ trình chung: `../TODO.md` (root).
-- API surface đầy đủ: `../server/GUIDE.md` + Swagger `http://localhost:3000/docs`.
+## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-07-26 — Đợt hoàn thiện**: thêm 2 trang MomentsPage (kiểm duyệt, `/moments`) + LogsPage (audit log, `/logs`); Sider 5 mục; API mới `listMoments/deleteMoment/listLogs`.
+- **2026-07-26 — Vá lỗi sau review**: uid fallback decode từ JWT; form khung reset ngưỡng N khi đổi loại; errorElement router; xóa khung đóng drawer + invalidate; search grant debounce; Alert lỗi GET; login fail signOut Firebase.
+- **2026-07-26 — Đại tu 4 trang**: Users thêm cột Vai trò/Đăng nhập cuối + thu quyền + chặn tự thao tác; Frames 6 điều kiện mở khóa + drawer owners; Dashboard 2 biểu đồ 7 ngày.
+
+## 7. Cách cập nhật file này (bắt buộc — xem RULE đầu file)
+
+1. **Mỗi thay đổi** (dù nhỏ) → cập nhật NGAY, ghi rõ **thay đổi gì trong thiết kế** vào **Changelog mục 6** (mới nhất lên đầu).
+2. Trang/route/API-call mới → sửa **cây mục 3** + **cây route mục 1.5** + **bảng task mục 4**.
+3. Đổi luồng auth/data → sửa **mục 1**. Đổi contract API → sửa ở server trước (ruler server), ghi cả 2 GUIDE.
+4. Đổi ngày "Cập nhật lần cuối" ở đầu file.

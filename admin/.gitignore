@@ -11,7 +11,25 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# ==== Secrets / env ====
+# Chan het .env va moi bien the (.env.local, .env.development.local...).
 .env
+.env.*
+
+# Ngoai le CO CHU DICH:
+#  - *.example: file mau, khong chua gia tri that.
+#  - .env.production: Vite chi nhung bien tien to VITE_* vao bundle JS, nghia la
+#    MOI gia tri trong day deu CONG KHAI theo thiet ke (Firebase Web API key,
+#    base URL). File nay can cho `npm run build` truoc khi firebase deploy nen
+#    giu trong repo. ⚠️ TUYET DOI khong dat bi mat that (JWT secret, API secret
+#    cua ben thu 3) vao day — bi mat that thuoc ve server/.env.
+!.env.example
+!.env.*.example
+!.env.production
+
+# Cache cua Firebase CLI khi deploy hosting
+.firebase/
 
 # Editor directories and files
 .vscode/*

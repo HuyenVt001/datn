@@ -19,6 +19,9 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.messaging.FirebaseMessaging
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -50,7 +53,8 @@ class AuthRepository @Inject constructor(
      * sync the profile to the server.
      */
     suspend fun register(email: String, password: String, name: String): AuthUser? = try {
-        Log.d(tag, "Registering user with email: $email")
+        // KHONG log email (PII) — xem SECURITY.md muc 8.6
+        Log.d(tag, "Registering new user")
         val result = auth.createUserWithEmailAndPassword(email, password).await()
         val fbUser = result.user ?: return null
 
@@ -70,7 +74,7 @@ class AuthRepository @Inject constructor(
      * Login with email and password.
      */
     suspend fun login(email: String, password: String): AuthUser? = try {
-        Log.d(tag, "Logging in user with email: $email")
+        Log.d(tag, "Logging in user")
         val result = auth.signInWithEmailAndPassword(email, password).await()
         result.user?.let {
             syncWithServer()
@@ -152,16 +156,41 @@ class AuthRepository @Inject constructor(
     }
 
     /**
-     * Firebase has no client-side "revoke all sessions"; signing out locally is
-     * the closest equivalent. Kept for API compatibility with the old flow.
+     * ⚠️ KHONG phai "dang xuat khoi moi thiet bi" theo dung nghia.
+     *
+     * Firebase client SDK khong the thu hoi phien tren may khac — chi Admin SDK
+     * (`revokeRefreshTokens`) o server lam duoc, va server hien CHUA co endpoint
+     * do cho user thuong (chi dung khi admin khoa tai khoan).
+     *
+     * Vi vay ham nay chi dang xuat tren MAY NAY. Giu ten cu de khong pha API,
+     * nhung UI TUYET DOI khong duoc hua "sign out from all devices" voi user
+     * cho toi khi server co endpoint that. Xem SECURITY.md muc 14.3.
      */
     suspend fun logoutFromAllDevices(): Boolean = logout()
+
+    /**
+     * Phat su kien moi khi Firebase Auth chuyen sang trang thai CHUA dang nhap.
+     *
+     * Dung de UI phan ung khi phien bi thu hoi tu ben ngoai (admin khoa tai khoan,
+     * doi mat khau tren thiet bi khac, hoac [TokenAuthenticator] tu dang xuat sau
+     * khi gap 401 lien tiep) — truoc day nhung truong hop nay khong day user ve
+     * man hinh dang nhap, ho ket lai voi mot man hinh loi.
+     */
+    fun signedOutEvents(): Flow<Unit> = callbackFlow {
+        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+            if (firebaseAuth.currentUser == null) {
+                trySend(Unit)
+            }
+        }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
 
     /**
      * Send a password reset email.
      */
     suspend fun resetPassword(email: String): Boolean = try {
-        Log.d(tag, "Sending password reset to: $email")
+        Log.d(tag, "Sending password reset email")
         auth.sendPasswordResetEmail(email).await()
         true
     } catch (e: Exception) {

@@ -1,19 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Quy tac backup/chuyen thiet bi cho Android 12+ (API 31+).
+
+    HIEN TAI `android:allowBackup="false"` nen file nay KHONG duoc dung.
+    Van khai bao day du CO CHU DICH — xem giai thich o backup_rules.xml.
+
+    Phan biet 2 kenh:
+    - <cloud-backup>    : sao luu len Google Drive  -> loai tru TAT CA thu nhay cam
+    - <device-transfer> : chuyen truc tiep may cu -> may moi (khong qua cloud),
+                          van loai tru token vi may dich co the khong phai cua user
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Refresh token cua Firebase Auth — KHONG BAO GIO duoc roi khoi may -->
+        <exclude domain="sharedpref" path="com.google.firebase.auth.api.Store.xml" />
+        <exclude domain="sharedpref" path="com.google.android.gms.appid.xml" />
+
+        <exclude domain="sharedpref" path="snapget_pending_invite.xml" />
+        <exclude domain="sharedpref" path="snapget_widget.xml" />
+        <exclude domain="file" path="widget/" />
     </cloud-backup>
-    <!--
+
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="sharedpref" path="com.google.firebase.auth.api.Store.xml" />
+        <exclude domain="sharedpref" path="com.google.android.gms.appid.xml" />
+        <exclude domain="sharedpref" path="snapget_pending_invite.xml" />
+        <exclude domain="sharedpref" path="snapget_widget.xml" />
+        <exclude domain="file" path="widget/" />
     </device-transfer>
-    -->
 </data-extraction-rules>

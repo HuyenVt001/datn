@@ -1,5 +1,6 @@
 package com.example.snapget.feature.auth
 
+import android.util.Patterns
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -165,12 +166,51 @@ fun LoginScreenContent(
 
     var authMode by rememberSaveable { mutableStateOf(uiState.authMode) }
     var email by rememberSaveable { mutableStateOf(uiState.email) }
-    var password by rememberSaveable { mutableStateOf(uiState.password) }
+
+    // KHONG dung rememberSaveable cho MAT KHAU (sua 2026-07-28): rememberSaveable
+    // ghi gia tri vao Bundle savedInstanceState, va Bundle do co the bi he thong
+    // ghi ra dia khi process bi kill => mat khau nam duoi dang plaintext tren may.
+    // `remember` chi giu trong bo nho, mat khi process chet — dung y do o day.
+    var password by remember { mutableStateOf(uiState.password) }
+
     var name by rememberSaveable { mutableStateOf(uiState.name) }
     var passwordVisible by rememberSaveable { mutableStateOf(uiState.passwordVisible) }
 
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+
+    // ---- Validate phia client (them 2026-07-28) ----
+    // Truoc day chi kiem tra isNotBlank(): go thieu dau @ hay thua khoang trang
+    // deu goi len Firebase roi nhan ve loi tieng Anh kho hieu.
+    // Luu y: day chi la lop chan UX — server + Firebase van la chot chan that.
+    val cleanEmail = email.trim()
+    val cleanName = name.trim()
+    val isEmailValid = cleanEmail.isNotBlank() &&
+        Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()
+
+    val canSubmit = !uiState.isLoading &&
+        uiState.authState !is AuthState.Loading &&
+        when (authMode) {
+            // Dang nhap: KHONG ep do dai — tai khoan cu co the dat mat khau 6 ky tu
+            AuthMode.LOGIN -> isEmailValid && password.isNotBlank()
+            // Dang ky: ep toi thieu 8 ky tu (Firebase mac dinh chi yeu cau 6)
+            AuthMode.REGISTER ->
+                isEmailValid && password.length >= MIN_NEW_PASSWORD_LENGTH && cleanName.isNotBlank()
+            AuthMode.FORGOT_PASSWORD -> isEmailValid
+        }
+
+    // Dung chung cho nut Submit va phim Done tren ban phim (truoc day 2 cho
+    // goi rieng, de lech nhau khi doi dieu kien)
+    val submit: () -> Unit = {
+        if (canSubmit) {
+            when (authMode) {
+                AuthMode.LOGIN -> actions.onLogin(cleanEmail, password)
+                AuthMode.REGISTER -> actions.onRegister(cleanEmail, password, cleanName)
+                AuthMode.FORGOT_PASSWORD -> actions.onResetPassword(cleanEmail)
+            }
+            focusManager.clearFocus()
+        }
+    }
 
     // Handle auth state changes
     LaunchedEffect(uiState.authState) {
@@ -387,25 +427,7 @@ fun LoginScreenContent(
                                     keyboardType = KeyboardType.Password,
                                     imeAction = ImeAction.Done,
                                 ),
-                                keyboardActions = KeyboardActions(
-                                    onDone = {
-                                        when (authMode) {
-                                            AuthMode.LOGIN -> {
-                                                actions.onLogin(email, password)
-                                                focusManager.clearFocus()
-                                            }
-
-                                            AuthMode.REGISTER -> {
-                                                actions.onRegister(email, password, name)
-                                                focusManager.clearFocus()
-                                            }
-
-                                            else -> {
-                                                /* Not used in forgot password */
-                                            }
-                                        }
-                                    },
-                                ),
+                                keyboardActions = KeyboardActions(onDone = { submit() }),
                                 shape = RoundedCornerShape(cornerShape),
                                 singleLine = true,
                             )
@@ -415,24 +437,11 @@ fun LoginScreenContent(
 
                         // Primary Button - behavior changes based on mode
                         Button(
-                            onClick = {
-                                when (authMode) {
-                                    AuthMode.LOGIN -> actions.onLogin(email, password)
-                                    AuthMode.REGISTER -> actions.onRegister(email, password, name)
-                                    AuthMode.FORGOT_PASSWORD -> actions.onResetPassword(email)
-                                }
-                                focusManager.clearFocus()
-                            },
+                            onClick = submit,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            enabled = !uiState.isLoading &&
-                                uiState.authState !is AuthState.Loading &&
-                                when (authMode) {
-                                    AuthMode.LOGIN -> email.isNotBlank() && password.isNotBlank()
-                                    AuthMode.REGISTER -> email.isNotBlank() && password.isNotBlank() && name.isNotBlank()
-                                    AuthMode.FORGOT_PASSWORD -> email.isNotBlank()
-                                },
+                            enabled = canSubmit,
                             shape = RoundedCornerShape(cornerShape),
                         ) {
                             if (uiState.isLoading || uiState.authState is AuthState.Loading) {
@@ -602,3 +611,6 @@ fun LoginScreenContent(
         }
     }
 }
+
+/** Do dai mat khau toi thieu khi DANG KY (Firebase mac dinh chi yeu cau 6). */
+private const val MIN_NEW_PASSWORD_LENGTH = 8

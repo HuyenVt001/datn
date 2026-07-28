@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Cau hinh bao mat mang cho ban RELEASE (src/main).
+
+    cleartextTrafficPermitted="false" => CAM tuyet doi HTTP tran tren MOI domain.
+    Firebase ID token khong bao gio duoc di qua ket noi khong ma hoa.
+
+    Ban DEBUG dung file cung ten o src/debug/res/xml/ (resource overlay ghi de),
+    noi cho phep cleartext toi server dev.
+
+    Ghi chu ve CERTIFICATE PINNING: co chu dich KHONG pin.
+    Server chay tren Render, cert do Let's Encrypt cap va xoay tu dong ~60 ngay;
+    pin cert la se lam app chet khi cert doi ma khong the vá nong. Neu sau nay
+    can pin thi phai pin theo SPKI cua CA + co pin du phong + co ngay het han.
+    Xem SECURITY.md muc 8.2.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Chi tin CA he thong. KHONG tin CA do user cai them
+                 => chan proxy MITM kieu Burp/Charles tren may da bi cai cert la. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
