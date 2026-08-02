@@ -1,11 +1,24 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { FirebaseAuthGuard } from '../common/guards/firebase-auth.guard';
+import { AddGroupMembersDto } from './dto/add-group-members.dto';
 import { CreateGroupDto } from './dto/create-group.dto';
+import { MuteGroupDto } from './dto/mute-group.dto';
 import { ReactMessageDto } from './dto/react-message.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { UpdateGroupDto } from './dto/update-group.dto';
 import { MessagesService } from './messages.service';
 
 @ApiTags('messages')
@@ -79,5 +92,65 @@ export class MessagesController {
     @Query() pagination: PaginationDto,
   ) {
     return this.messagesService.getGroupThread(user.uid, groupId, pagination);
+  }
+
+  @Get('groups/:groupId/detail')
+  @ApiOperation({ summary: 'Chi tiet nhom + ho so thanh vien (phai la thanh vien)' })
+  getGroupDetail(@CurrentUser() user: AuthUser, @Param('groupId') groupId: string) {
+    return this.messagesService.getGroupDetail(user.uid, groupId);
+  }
+
+  @Patch('groups/:groupId')
+  @ApiOperation({ summary: 'Doi ten / anh dai dien nhom (moi thanh vien deu doi duoc)' })
+  async updateGroup(
+    @CurrentUser() user: AuthUser,
+    @Param('groupId') groupId: string,
+    @Body() dto: UpdateGroupDto,
+  ) {
+    const group = await this.messagesService.updateGroup(user.uid, groupId, dto);
+    return { message: 'Da cap nhat nhom.', data: group };
+  }
+
+  @Post('groups/:groupId/members')
+  @ApiOperation({ summary: 'Them thanh vien vao nhom (chi them duoc ban be cua minh)' })
+  async addMembers(
+    @CurrentUser() user: AuthUser,
+    @Param('groupId') groupId: string,
+    @Body() dto: AddGroupMembersDto,
+  ) {
+    const group = await this.messagesService.addMembers(user.uid, groupId, dto);
+    return { message: 'Da them thanh vien vao nhom.', data: group };
+  }
+
+  @Delete('groups/:groupId/members/:memberUid')
+  @ApiOperation({ summary: 'Xoa thanh vien khoi nhom (chi nguoi tao nhom)' })
+  async removeMember(
+    @CurrentUser() user: AuthUser,
+    @Param('groupId') groupId: string,
+    @Param('memberUid') memberUid: string,
+  ) {
+    const group = await this.messagesService.removeMember(user.uid, groupId, memberUid);
+    return { message: 'Da xoa thanh vien khoi nhom.', data: group };
+  }
+
+  @Post('groups/:groupId/leave')
+  @ApiOperation({ summary: 'Roi nhom (nguoi cuoi cung roi -> xoa nhom)' })
+  async leaveGroup(@CurrentUser() user: AuthUser, @Param('groupId') groupId: string) {
+    await this.messagesService.leaveGroup(user.uid, groupId);
+    return { message: 'Da roi nhom.', data: { groupId } };
+  }
+
+  @Patch('groups/:groupId/mute')
+  @ApiOperation({ summary: 'Bat/tat thong bao nhom cho rieng minh' })
+  async muteGroup(
+    @CurrentUser() user: AuthUser,
+    @Param('groupId') groupId: string,
+    @Body() dto: MuteGroupDto,
+  ) {
+    const group = await this.messagesService.setGroupMuted(user.uid, groupId, dto.muted);
+    return {
+      message: dto.muted ? 'Da tat thong bao nhom.' : 'Da bat thong bao nhom.',
+      data: group,
+    };
   }
 }

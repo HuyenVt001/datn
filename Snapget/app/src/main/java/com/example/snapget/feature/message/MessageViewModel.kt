@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.model.FriendUi
+import com.example.snapget.core.network.dto.ChatGroupDetailDto
 import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.network.serverMessage
@@ -70,6 +71,18 @@ class MessageViewModel @Inject constructor(
     /** Dang upload media (anh/voice) — UI hien spinner tren thanh nhap. */
     private val _sendingMedia = MutableStateFlow(false)
     val sendingMedia: StateFlow<Boolean> = _sendingMedia.asStateFlow()
+
+    /** Chi tiet nhom dang mo (ten/avatar/thanh vien) — cho sheet cai dat nhom. */
+    private val _groupDetail = MutableStateFlow<ChatGroupDetailDto?>(null)
+    val groupDetail: StateFlow<ChatGroupDetailDto?> = _groupDetail.asStateFlow()
+
+    /** Dang goi API sua nhom (doi ten/avatar/thanh vien/mute) — sheet khoa nut + spinner. */
+    private val _groupBusy = MutableStateFlow(false)
+    val groupBusy: StateFlow<Boolean> = _groupBusy.asStateFlow()
+
+    /** true sau khi ROI NHOM thanh cong — GroupChatScreen quan sat de thoat man chat. */
+    private val _leftGroup = MutableStateFlow(false)
+    val leftGroup: StateFlow<Boolean> = _leftGroup.asStateFlow()
 
     /** Tai danh sach hoi thoai + ban be (goi khi mo man Messages). */
     fun loadConversations() {
@@ -282,6 +295,101 @@ class MessageViewModel @Inject constructor(
     fun clearThread() {
         _thread.value = emptyList()
         _threadStatus.value = LoadStatus.Init()
+    }
+
+    // ==== Quan ly nhom chat (sheet cai dat nhom — 2026-08-02) ====
+
+    /** Tai chi tiet nhom (ten/avatar/thanh vien/mute) — goi khi mo GroupChatScreen. */
+    fun loadGroupDetail(groupId: String) {
+        viewModelScope.launch {
+            try {
+                _groupDetail.value = messageRepository.getGroupDetail(groupId)
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Couldn't load group info.")
+            }
+        }
+    }
+
+    /** Doi ten nhom. */
+    fun renameGroup(groupId: String, newName: String) {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) return
+        mutateGroup(groupId, "Failed to rename group.") {
+            messageRepository.updateGroup(groupId, groupName = trimmed)
+        }
+    }
+
+    /** Doi anh dai dien nhom: upload file -> PATCH URL (nhu doi avatar profile). */
+    fun changeGroupAvatar(groupId: String, file: File) {
+        mutateGroup(groupId, "Failed to change group photo.") {
+            val url = messageRepository.uploadMedia(file, "image/jpeg")
+            messageRepository.updateGroup(groupId, avatar = url)
+        }
+    }
+
+    /** Them thanh vien (chi them duoc ban be cua minh — server enforce). */
+    fun addGroupMembers(groupId: String, memberIds: List<String>) {
+        if (memberIds.isEmpty()) return
+        mutateGroup(groupId, "Failed to add members.") {
+            messageRepository.addGroupMembers(groupId, memberIds)
+        }
+    }
+
+    /** Xoa thanh vien khoi nhom (chi nguoi tao nhom). */
+    fun removeGroupMember(groupId: String, memberUid: String) {
+        mutateGroup(groupId, "Failed to remove member.") {
+            messageRepository.removeGroupMember(groupId, memberUid)
+        }
+    }
+
+    /** Bat/tat thong bao nhom cho rieng minh. */
+    fun setGroupMuted(groupId: String, muted: Boolean) {
+        mutateGroup(groupId, "Failed to update notifications.") {
+            messageRepository.setGroupMuted(groupId, muted)
+        }
+    }
+
+    /** Roi nhom — thanh cong thi bao man chat thoat (khong fetch lai detail: da mat quyen). */
+    fun leaveGroup(groupId: String) {
+        if (_groupBusy.value) return
+        viewModelScope.launch {
+            _groupBusy.value = true
+            try {
+                messageRepository.leaveGroup(groupId)
+                _leftGroup.value = true
+                loadGroups()
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage("Failed to leave group.")
+            } finally {
+                _groupBusy.value = false
+            }
+        }
+    }
+
+    /** Reset state nhom khi roi GroupChatScreen (tranh loe detail nhom cu). */
+    fun clearGroupState() {
+        _groupDetail.value = null
+        _leftGroup.value = false
+    }
+
+    /**
+     * Chay 1 thao tac sua nhom roi dong bo lai: fetch detail (nguon chuan tu server —
+     * addMembers can ho so thanh vien moi) + refresh danh sach nhom o man Messages.
+     */
+    private fun mutateGroup(groupId: String, errorFallback: String, block: suspend () -> Unit) {
+        if (_groupBusy.value) return
+        viewModelScope.launch {
+            _groupBusy.value = true
+            try {
+                block()
+                _groupDetail.value = messageRepository.getGroupDetail(groupId)
+                loadGroups()
+            } catch (e: Exception) {
+                _sendError.value = e.serverMessage(errorFallback)
+            } finally {
+                _groupBusy.value = false
+            }
+        }
     }
 
     /** Cac messageId da gui markSeen trong phien — tranh PATCH lap lai moi lan poll 5s. */

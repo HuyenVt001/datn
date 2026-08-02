@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
@@ -239,7 +241,7 @@ fun MessageScreen(
     }
 }
 
-/** 1 dong nhom chat: icon nhom + ten + so thanh vien. */
+/** 1 dong nhom chat: avatar nhom (icon nhom neu chua dat) + ten + so thanh vien. */
 @Composable
 private fun GroupItem(
     group: ChatGroupDto,
@@ -260,12 +262,22 @@ private fun GroupItem(
                 .background(Color(0xFF404137)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Default.Groups,
-                contentDescription = "Group",
-                tint = Color.Yellow,
-                modifier = Modifier.size(28.dp),
-            )
+            if (!group.avatar.isNullOrBlank()) {
+                // Avatar nhom da dat (doi trong sheet cai dat nhom)
+                AsyncImage(
+                    model = group.avatar,
+                    contentDescription = "Group",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Groups,
+                    contentDescription = "Group",
+                    tint = Color.Yellow,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))

@@ -55,13 +55,52 @@ data class ReactMessageRequest(
 data class ChatGroupDto(
     val groupId: String,
     val groupName: String,
+    // Anh dai dien nhom (URL Cloudinary) — null = chua dat, app hien icon nhom
+    val avatar: String? = null,
     val memberIds: List<String> = emptyList(),
     val createdBy: String? = null,
     val createdAt: String? = null,
+    // uid da tat thong bao nhom (chua uid cua minh -> switch Mute dang bat)
+    val mutedBy: List<String> = emptyList(),
 )
 
 /** Body POST /messages/groups — tao nhom (khong can gom nguoi tao). */
 data class CreateGroupRequest(
     val groupName: String,
     val memberIds: List<String>,
+)
+
+/** Ho so cong khai 1 thanh vien nhom (tu GET /messages/groups/{id}/detail). */
+data class GroupMemberDto(
+    val uid: String,
+    val fullName: String? = null,
+    val avatar: String? = null,
+)
+
+/** Chi tiet nhom = ChatGroup + danh sach thanh vien da resolve ten/avatar. */
+data class ChatGroupDetailDto(
+    val groupId: String,
+    val groupName: String,
+    val avatar: String? = null,
+    val memberIds: List<String> = emptyList(),
+    val createdBy: String? = null,
+    val createdAt: String? = null,
+    val mutedBy: List<String> = emptyList(),
+    val members: List<GroupMemberDto> = emptyList(),
+)
+
+/** Body PATCH /messages/groups/{id} — doi ten/anh dai dien nhom (it nhat 1 truong). */
+data class UpdateGroupRequest(
+    val groupName: String? = null,
+    val avatar: String? = null,
+)
+
+/** Body POST /messages/groups/{id}/members — them thanh vien (phai la ban be cua minh). */
+data class AddGroupMembersRequest(
+    val memberIds: List<String>,
+)
+
+/** Body PATCH /messages/groups/{id}/mute — bat/tat thong bao nhom cho rieng minh. */
+data class MuteGroupRequest(
+    val muted: Boolean,
 )

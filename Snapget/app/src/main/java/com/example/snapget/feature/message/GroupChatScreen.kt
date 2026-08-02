@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -68,10 +69,16 @@ fun GroupChatScreen(
     val friendsById by messageViewModel.friendsById.collectAsState()
     val sendError by messageViewModel.sendError.collectAsState()
     val sendingMedia by messageViewModel.sendingMedia.collectAsState()
+    val groupDetail by messageViewModel.groupDetail.collectAsState()
+    val groupBusy by messageViewModel.groupBusy.collectAsState()
+    val leftGroup by messageViewModel.leftGroup.collectAsState()
     val myUid = messageViewModel.myUid
 
     val listState = rememberLazyListState()
     var messageText by remember { mutableStateOf("") }
+
+    // Sheet cai dat nhom (mo tu nut ⋯ tren header)
+    var showGroupSettings by remember { mutableStateOf(false) }
 
     // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
     var viewerMedia by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
@@ -99,9 +106,20 @@ fun GroupChatScreen(
         messageViewModel.sendMedia(null, groupId, file, "audio/mp4", "VOICE")
     }
 
-    // Lan dau: tai ban be (resolve ten — chi khi chua co) + thread nhom; polling 5s/lan
+    // Chon anh tu thu vien -> upload -> PATCH lam avatar NHOM (tu sheet cai dat)
+    val groupAvatarPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let { copyUriToCacheFile(context, it, "group_avatar") }?.let { file ->
+            messageViewModel.changeGroupAvatar(groupId, file)
+        }
+    }
+
+    // Lan dau: tai ban be (resolve ten — chi khi chua co) + detail nhom (ten/avatar/
+    // thanh vien cho sheet cai dat) + thread nhom; polling 5s/lan
     LaunchedEffect(groupId) {
         messageViewModel.loadFriendsIfNeeded()
+        messageViewModel.loadGroupDetail(groupId)
         messageViewModel.refreshGroupThread(groupId, showLoading = true)
         while (true) {
             delay(5000)
@@ -109,8 +127,18 @@ fun GroupChatScreen(
         }
     }
 
+    // Roi nhom thanh cong -> thoat man chat (MessageScreen tu refresh khi quay lai)
+    LaunchedEffect(leftGroup) {
+        if (leftGroup) {
+            navController.navigateUp()
+        }
+    }
+
     DisposableEffect(Unit) {
-        onDispose { messageViewModel.clearThread() }
+        onDispose {
+            messageViewModel.clearThread()
+            messageViewModel.clearGroupState()
+        }
     }
 
     LaunchedEffect(sendError) {
@@ -130,7 +158,17 @@ fun GroupChatScreen(
         // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
         modifier = Modifier.imePadding(),
         topBar = {
-            GroupChatTopBar(navController = navController, groupName = groupName)
+            GroupChatTopBar(
+                navController = navController,
+                // Ten tu detail (cap nhat ngay sau khi doi ten); nav arg lam fallback
+                groupName = groupDetail?.groupName ?: groupName,
+                memberCount = groupDetail?.memberIds?.size,
+                onSettingsClick = {
+                    // Refresh detail truoc khi mo sheet (thanh vien co the vua doi)
+                    messageViewModel.loadGroupDetail(groupId)
+                    showGroupSettings = true
+                },
+            )
         },
         bottomBar = {
             ChatInputPill(
@@ -286,6 +324,27 @@ fun GroupChatScreen(
             onDismiss = { actionTarget = null },
         )
     }
+
+    // Sheet cai dat nhom (⋯): doi avatar/ten, moi/xoa thanh vien, mute, roi nhom
+    if (showGroupSettings) {
+        groupDetail?.let { detail ->
+            GroupSettingsSheet(
+                detail = detail,
+                myUid = myUid,
+                friends = friendsById.values.toList(),
+                busy = groupBusy,
+                onRename = { newName -> messageViewModel.renameGroup(groupId, newName) },
+                onPickAvatar = { groupAvatarPicker.launch("image/*") },
+                onInvite = { memberIds -> messageViewModel.addGroupMembers(groupId, memberIds) },
+                onRemoveMember = { member ->
+                    messageViewModel.removeGroupMember(groupId, member.uid)
+                },
+                onMuteChange = { muted -> messageViewModel.setGroupMuted(groupId, muted) },
+                onLeave = { messageViewModel.leaveGroup(groupId) },
+                onDismiss = { showGroupSettings = false },
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -293,6 +352,8 @@ fun GroupChatScreen(
 private fun GroupChatTopBar(
     navController: NavController,
     groupName: String,
+    memberCount: Int? = null,
+    onSettingsClick: () -> Unit = {},
 ) {
     TopAppBar(
         title = {
@@ -302,7 +363,7 @@ private fun GroupChatTopBar(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "Group chat",
+                    text = memberCount?.let { "$it members" } ?: "Group chat",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -313,6 +374,15 @@ private fun GroupChatTopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
+                )
+            }
+        },
+        actions = {
+            // ⋯ mo sheet cai dat nhom (doi ten/avatar, thanh vien, mute, roi nhom)
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Group settings",
                 )
             }
         },

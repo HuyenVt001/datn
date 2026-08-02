@@ -90,28 +90,38 @@ export class MessagesRepository {
     if (!snap.exists) {
       return null;
     }
-    const data = snap.data() ?? {};
-    return {
-      groupId: snap.id,
-      groupName: data.groupName ?? '',
-      memberIds: data.memberIds ?? [],
-      createdBy: data.createdBy ?? '',
-      createdAt: data.createdAt ?? '',
-    };
+    return this.toGroup(snap.id, snap.data() ?? {});
   }
 
   async listGroupsByMember(uid: string): Promise<ChatGroup[]> {
     const snap = await this.groups.where('memberIds', 'array-contains', uid).get();
-    return snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        groupId: d.id,
-        groupName: data.groupName ?? '',
-        memberIds: data.memberIds ?? [],
-        createdBy: data.createdBy ?? '',
-        createdAt: data.createdAt ?? '',
-      };
-    });
+    return snap.docs.map((d) => this.toGroup(d.id, d.data()));
+  }
+
+  /** Cap nhat 1 phan nhom (ten/avatar/memberIds/mutedBy/createdBy) — loai field undefined. */
+  async updateGroup(
+    groupId: string,
+    data: Partial<Pick<ChatGroup, 'groupName' | 'avatar' | 'memberIds' | 'mutedBy' | 'createdBy'>>,
+  ): Promise<void> {
+    const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+    await this.groups.doc(groupId).update(clean);
+  }
+
+  /** Xoa nhom (khi thanh vien cuoi cung roi nhom). Tin nhan cu giu nguyen — khong ai query duoc. */
+  async deleteGroup(groupId: string): Promise<void> {
+    await this.groups.doc(groupId).delete();
+  }
+
+  private toGroup(groupId: string, data: FirebaseFirestore.DocumentData): ChatGroup {
+    return {
+      groupId,
+      groupName: data.groupName ?? '',
+      avatar: data.avatar,
+      memberIds: data.memberIds ?? [],
+      createdBy: data.createdBy ?? '',
+      createdAt: data.createdAt ?? '',
+      mutedBy: data.mutedBy ?? [],
+    };
   }
 
   private toMessage(messageId: string, data: FirebaseFirestore.DocumentData): Message {

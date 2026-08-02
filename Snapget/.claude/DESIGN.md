@@ -175,6 +175,9 @@ Giá trị thật trong code:
 ### 7.14 Splash/logo
 Ảnh: `splash_screen.png`, `logo.png`. Nền trắng ngà `#F7F7F5`, logo lá 2 cánh vàng-xanh nhạt `#E3E6C4` giữa màn. (Splash là màn DUY NHẤT nền sáng.)
 
+### 7.15 Group settings sheet — `feature/message/GroupSettingsSheet.kt` (✅ 2026-08-02, theo ảnh Messenger user gửi)
+Entry: nút **⋯ (MoreVert)** bên phải header `GroupChatScreen` (subtitle header = "N members"). `ModalBottomSheet` nền `surface`, nội dung căn giữa: **avatar nhóm 96dp** (ảnh thật hoặc icon Groups vàng trên nền `#404137`; BẤM = đổi ảnh qua GetContent → upload → PATCH; spinner vàng đè khi busy) · **tên nhóm Bold + bút chì** (dialog đổi tên style CreateGroupDialog) · hàng **Invite** (vòng tròn NÉT ĐỨT `#B0B0B0` + dấu cộng, subtitle "New members can see previous messages"; dialog tick bạn bè chưa trong nhóm, chặn quá 20) · **danh sách thành viên** (avatar 44dp + tên + "(You)"/"Group creator"; menu **⋯ "Remove from group"** màu error — CHỈ người tạo thấy, kèm AlertDialog xác nhận) · **card `#2C2C2C` bo 20dp**: hàng Mute notifications (Switch trung tính trắng/xám — KHÔNG vàng) + divider + hàng **Leave group màu error** (confirm dialog). Mọi mutation → `MessageViewModel.mutateGroup` refetch detail + refresh danh sách nhóm; rời nhóm thành công → `navigateUp()`.
+
 ---
 
 ## 8. Tính năng CHƯA có asset — bắt buộc HỎI USER trước khi thiết kế
@@ -186,7 +189,7 @@ Các tính năng sau **không có ảnh mẫu**; khi làm phải: (1) đề xu�
 - **Khung ảnh (frame)** — chọn khung sau khi chụp + hiển thị khung quanh moment + catalog khung thưởng
 - **Co-op capture (chụp chung)** — lời mời + ghép split-screen
 - **Daily Quest** — màn quest, nộp ảnh, trạng thái hoàn thành
-- **Chat nhóm** (asset chỉ có 1-1; server sẵn endpoint — user chốt 2026-07-12 để đợt riêng, hỏi UI tạo nhóm trước khi làm)
+- ~~Chat nhóm~~ → ✅ màn chat nhóm + **sheet cài đặt nhóm** đã làm (7.15 — user gửi ảnh mẫu Messenger 2026-08-02: đổi tên/avatar, mời/xóa thành viên, mute, rời nhóm); tạo nhóm vẫn là dialog GroupAdd ở Messages (chưa có asset riêng)
 - ~~Friend streak cạnh tên bạn~~ → ✅ đã làm trong sheet bạn bè (7.12); nếu muốn hiện thêm chỗ khác (dropdown, chat) thì hỏi lại
 - ~~Màn `relationship`~~ → ✅ đã làm = sheet 7.12 + QR 7.12b (user chốt 2026-07-12: chỉ mã mời, QR, bottom sheet)
 - **Thông báo (notifications) UI**

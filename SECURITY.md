@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-07-28 — khảo sát toàn bộ 3 thành phần (đối chiếu từng dòng code), **siết hàng rào `.gitignore` 5 lớp** ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)), và **hoàn tất hardening app Android** ([mục 8](#8-bảo-mật-app-android) — R8, backup, network config, xử lý 401, dọn phiên; build debug + release đều PASS).
+> **Cập nhật lần cuối:** 2026-08-02 — thêm nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): cập nhật ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`. Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -238,12 +238,14 @@ Request → 401 từ host server
 | **moments** | Xóa moment | Chỉ chủ bài | [moments.service.ts:139-148](server/src/moments/moments.service.ts#L139-L148) |
 | | Xem moment người khác | Phải là bạn bè | [moments.service.ts:96-112](server/src/moments/moments.service.ts#L96-L112) |
 | | Seen / React / Xem reactions | Chủ bài **hoặc** người chụp chung **hoặc** bạn của một trong hai | [moments.service.ts:183-202](server/src/moments/moments.service.ts#L183-L202) |
-| **messages** | Gửi 1-1 | Phải là bạn bè | [messages.service.ts:54-57](server/src/messages/messages.service.ts#L54-L57) |
-| | Gửi / đọc nhóm | Phải là thành viên nhóm | [messages.service.ts:94-96](server/src/messages/messages.service.ts#L94-L96) · [:143-145](server/src/messages/messages.service.ts#L143-L145) |
+| **messages** | Gửi 1-1 | Phải là bạn bè | [messages.service.ts:61-63](server/src/messages/messages.service.ts#L61-L63) |
+| | Gửi / đọc / quản lý nhóm | Phải là thành viên nhóm — helper `requireMembership` dùng chung cho MỌI thao tác nhóm (send, thread, detail, rename/avatar, mời, xóa, rời, mute) | [messages.service.ts:363-372](server/src/messages/messages.service.ts#L363-L372) |
 | | Đọc thread 1-1 | Query scope cứng theo cặp `(sender, receiver)` → chỉ trả tin mà mình là một bên | [messages.repository.ts:44-52](server/src/messages/messages.repository.ts#L44-L52) |
-| | Reply | Tin gốc phải **cùng hội thoại** (chặn leak nội dung qua `replyToContent`) | [messages.service.ts:186-188](server/src/messages/messages.service.ts#L186-L188) |
-| | Mark seen | Chỉ người nhận | [messages.service.ts:236-238](server/src/messages/messages.service.ts#L236-L238) |
-| | Tạo nhóm | **Mọi thành viên phải là bạn của người tạo** (chặn lách luật "chỉ nhắn với bạn bè" bằng nhóm 2 người) | [messages.service.ts:254-259](server/src/messages/messages.service.ts#L254-L259) |
+| | Reply | Tin gốc phải **cùng hội thoại** (chặn leak nội dung qua `replyToContent`) | [messages.service.ts:182-185](server/src/messages/messages.service.ts#L182-L185) |
+| | Mark seen | Chỉ người nhận | [messages.service.ts:232-235](server/src/messages/messages.service.ts#L232-L235) |
+| | Tạo nhóm / **thêm thành viên** (2026-08-02) | **Người được thêm phải là bạn của người tạo/người mời** (chặn lách luật "chỉ nhắn với bạn bè" bằng nhóm 2 người) — helper `assertAllFriendsOf` dùng chung cho cả 2 luồng | [messages.service.ts:378-385](server/src/messages/messages.service.ts#L378-L385) |
+| | Xóa thành viên khỏi nhóm (2026-08-02) | **Chỉ người tạo nhóm** (`createdBy`); không tự xóa mình (phải dùng rời nhóm) | [messages.service.ts:316-322](server/src/messages/messages.service.ts#L316-L322) |
+| | Xem chi tiết nhóm (hồ sơ thành viên) | Member-only; chỉ trả `PublicUser` từng thành viên (ẩn email/fcmTokens) | [messages.service.ts:264-278](server/src/messages/messages.service.ts#L264-L278) |
 | **friendships** | Accept/decline | Transaction theo uid hiện tại; không tự kết bạn với mình; giới hạn 20 kiểm tra **cả 2 phía** | [friendships.service.ts:64-68](server/src/friendships/friendships.service.ts#L64-L68) · [:119-148](server/src/friendships/friendships.service.ts#L119-L148) |
 | **users** | Sửa hồ sơ | Mọi route ghi đều là `me`, uid lấy từ token — **không nhận uid từ client** | [users.controller.ts:22-40](server/src/users/users.controller.ts#L22-L40) |
 | | Xem user khác | Chỉ trả `PublicUser` (uid, fullName, avatar, personalStreak) — **ẩn email, fcmTokens, inviteCode, birthday** | [users.repository.ts:92-99](server/src/users/users.repository.ts#L92-L99) |
@@ -252,7 +254,7 @@ Request → 401 từ host server
 | **frames** | Ghi (CRUD, cấp khung) | Chỉ admin | [frames.controller.ts](server/src/frames/frames.controller.ts) |
 | **quests** | Xem quest hôm nay | uid lấy từ token, không nhận input người dùng | [quests.controller.ts:19](server/src/quests/quests.controller.ts#L19) |
 
-> ✅ **Lịch sử:** đợt rà soát 2026-07-26 đã vá **2 IDOR thật**: (1) ai cầm `momentId` cũng seen/react được kể cả người lạ; (2) tạo nhóm 2 người với người lạ để lách luật chỉ-nhắn-với-bạn-bè. Comment giải thích còn nguyên trong code tại [moments.service.ts:177-182](server/src/moments/moments.service.ts#L177-L182) và [messages.service.ts:245-247](server/src/messages/messages.service.ts#L245-L247).
+> ✅ **Lịch sử:** đợt rà soát 2026-07-26 đã vá **2 IDOR thật**: (1) ai cầm `momentId` cũng seen/react được kể cả người lạ; (2) tạo nhóm 2 người với người lạ để lách luật chỉ-nhắn-với-bạn-bè. Comment giải thích còn nguyên trong code tại [moments.service.ts:177-182](server/src/moments/moments.service.ts#L177-L182) và [messages.service.ts:239-243](server/src/messages/messages.service.ts#L239-L243). Đợt thêm quản lý nhóm 2026-08-02 **tái dùng đúng rào chắn này** cho `addMembers` (helper `assertAllFriendsOf`) — không mở lại lỗ hổng.
 
 ### 4.3 Bảo vệ chức năng quản trị
 

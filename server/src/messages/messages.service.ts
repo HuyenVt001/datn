@@ -12,9 +12,16 @@ import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
+import { AddGroupMembersDto } from './dto/add-group-members.dto';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { SendMessageDto } from './dto/send-message.dto';
-import { ChatGroup, ConversationSummary, Message } from './entities/message.entity';
+import { UpdateGroupDto } from './dto/update-group.dto';
+import {
+  ChatGroup,
+  ChatGroupDetail,
+  ConversationSummary,
+  Message,
+} from './entities/message.entity';
 import { MessagesRepository } from './messages.repository';
 
 @Injectable()
@@ -87,13 +94,7 @@ export class MessagesService {
 
   private async sendToGroup(authUser: AuthUser, dto: SendMessageDto): Promise<Message> {
     const groupId = dto.groupId as string;
-    const group = await this.repo.findGroup(groupId);
-    if (!group) {
-      throw new NotFoundException('Khong tim thay nhom chat.');
-    }
-    if (!group.memberIds.includes(authUser.uid)) {
-      throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
-    }
+    const group = await this.requireMembership(groupId, authUser.uid);
 
     const replyFields = await this.resolveReply(
       dto.replyToId,
@@ -112,7 +113,9 @@ export class MessagesService {
       ...replyFields,
     });
 
-    const others = group.memberIds.filter((id) => id !== authUser.uid);
+    // Bo qua thanh vien da tat thong bao nhom (mutedBy) khi gui FCM.
+    const muted = new Set(group.mutedBy ?? []);
+    const others = group.memberIds.filter((id) => id !== authUser.uid && !muted.has(id));
     await this.pushTo(others, authUser.uid, dto).catch((e) => {
       this.logger.warn(`Khong gui duoc FCM nhom: ${e.message}`);
     });
@@ -136,13 +139,7 @@ export class MessagesService {
     groupId: string,
     pagination: PaginationDto,
   ): Promise<PaginatedResult<Message>> {
-    const group = await this.repo.findGroup(groupId);
-    if (!group) {
-      throw new NotFoundException('Khong tim thay nhom chat.');
-    }
-    if (!group.memberIds.includes(uid)) {
-      throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
-    }
+    await this.requireMembership(groupId, uid);
     const all = await this.repo.listByGroup(groupId);
     return this.paginateLatest(all, pagination);
   }
@@ -250,13 +247,7 @@ export class MessagesService {
     if (memberIds.length > MAX_GROUP_SIZE) {
       throw new BadRequestException(`Nhom chat toi da ${MAX_GROUP_SIZE} thanh vien.`);
     }
-
-    const friendships = await this.friendshipsRepo.listAccepted(uid);
-    const friendIds = new Set(friendships.map((f) => f.userIds.find((id) => id !== uid) ?? ''));
-    const strangers = memberIds.filter((id) => id !== uid && !friendIds.has(id));
-    if (strangers.length > 0) {
-      throw new ForbiddenException('Chi them duoc ban be vao nhom chat.');
-    }
+    await this.assertAllFriendsOf(uid, memberIds);
 
     return this.repo.createGroup({
       groupName: dto.groupName,
@@ -268,6 +259,129 @@ export class MessagesService {
 
   async listMyGroups(uid: string): Promise<ChatGroup[]> {
     return this.repo.listGroupsByMember(uid);
+  }
+
+  /** Chi tiet nhom + ho so cong khai tung thanh vien (phai la thanh vien moi xem duoc). */
+  async getGroupDetail(uid: string, groupId: string): Promise<ChatGroupDetail> {
+    const group = await this.requireMembership(groupId, uid);
+    const members = await Promise.all(
+      group.memberIds.map(async (memberUid) => {
+        const profile = await this.usersService.getPublicProfile(memberUid).catch(() => null);
+        return {
+          uid: memberUid,
+          fullName: profile?.fullName ?? 'Nguoi dung',
+          avatar: profile?.avatar,
+        };
+      }),
+    );
+    return { ...group, members };
+  }
+
+  /** Doi ten / anh dai dien nhom — moi thanh vien deu doi duoc (kieu Messenger). */
+  async updateGroup(uid: string, groupId: string, dto: UpdateGroupDto): Promise<ChatGroup> {
+    const group = await this.requireMembership(groupId, uid);
+    if (dto.groupName === undefined && dto.avatar === undefined) {
+      throw new BadRequestException('Can it nhat 1 truong: groupName hoac avatar.');
+    }
+    await this.repo.updateGroup(groupId, { groupName: dto.groupName, avatar: dto.avatar });
+    return {
+      ...group,
+      groupName: dto.groupName ?? group.groupName,
+      avatar: dto.avatar ?? group.avatar,
+    };
+  }
+
+  /**
+   * Them thanh vien: moi thanh vien nhom deu moi duoc, nhung nguoi duoc moi PHAI
+   * la ban be cua NGUOI MOI (giu nguyen rao chan "chi ban be" nhu createGroup —
+   * khong co check nay la lach duoc luat nhan tin voi nguoi la).
+   */
+  async addMembers(uid: string, groupId: string, dto: AddGroupMembersDto): Promise<ChatGroup> {
+    const group = await this.requireMembership(groupId, uid);
+    const newcomers = [...new Set(dto.memberIds)].filter((id) => !group.memberIds.includes(id));
+    if (newcomers.length === 0) {
+      throw new BadRequestException('Nhung nguoi nay da o trong nhom.');
+    }
+    const memberIds = [...group.memberIds, ...newcomers];
+    if (memberIds.length > MAX_GROUP_SIZE) {
+      throw new BadRequestException(`Nhom chat toi da ${MAX_GROUP_SIZE} thanh vien.`);
+    }
+    await this.assertAllFriendsOf(uid, newcomers);
+    await this.repo.updateGroup(groupId, { memberIds });
+    return { ...group, memberIds };
+  }
+
+  /** Xoa thanh vien khoi nhom — CHI nguoi tao nhom (createdBy) lam duoc. */
+  async removeMember(uid: string, groupId: string, memberUid: string): Promise<ChatGroup> {
+    const group = await this.requireMembership(groupId, uid);
+    if (group.createdBy !== uid) {
+      throw new ForbiddenException('Chi nguoi tao nhom moi xoa duoc thanh vien.');
+    }
+    if (memberUid === uid) {
+      throw new BadRequestException('Muon roi nhom hay dung chuc nang roi nhom.');
+    }
+    if (!group.memberIds.includes(memberUid)) {
+      throw new NotFoundException('Nguoi nay khong o trong nhom.');
+    }
+    const memberIds = group.memberIds.filter((id) => id !== memberUid);
+    const mutedBy = (group.mutedBy ?? []).filter((id) => id !== memberUid);
+    await this.repo.updateGroup(groupId, { memberIds, mutedBy });
+    return { ...group, memberIds, mutedBy };
+  }
+
+  /**
+   * Roi nhom: thanh vien cuoi cung roi -> xoa nhom; nguoi tao roi -> chuyen
+   * quyen createdBy cho thanh vien con lai dau tien (nhom luon co nguoi quan ly).
+   */
+  async leaveGroup(uid: string, groupId: string): Promise<void> {
+    const group = await this.requireMembership(groupId, uid);
+    const memberIds = group.memberIds.filter((id) => id !== uid);
+    if (memberIds.length === 0) {
+      await this.repo.deleteGroup(groupId);
+      return;
+    }
+    const mutedBy = (group.mutedBy ?? []).filter((id) => id !== uid);
+    const createdBy = group.createdBy === uid ? memberIds[0] : group.createdBy;
+    await this.repo.updateGroup(groupId, { memberIds, mutedBy, createdBy });
+  }
+
+  /** Bat/tat thong bao nhom cho rieng minh (mutedBy) — khong dung toi thanh vien khac. */
+  async setGroupMuted(uid: string, groupId: string, muted: boolean): Promise<ChatGroup> {
+    const group = await this.requireMembership(groupId, uid);
+    const current = new Set(group.mutedBy ?? []);
+    if (muted) {
+      current.add(uid);
+    } else {
+      current.delete(uid);
+    }
+    const mutedBy = [...current];
+    await this.repo.updateGroup(groupId, { mutedBy });
+    return { ...group, mutedBy };
+  }
+
+  /** Nhom phai ton tai va uid phai la thanh vien — tra ve nhom de dung tiep. */
+  private async requireMembership(groupId: string, uid: string): Promise<ChatGroup> {
+    const group = await this.repo.findGroup(groupId);
+    if (!group) {
+      throw new NotFoundException('Khong tim thay nhom chat.');
+    }
+    if (!group.memberIds.includes(uid)) {
+      throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
+    }
+    return group;
+  }
+
+  /**
+   * Moi uid trong [candidateIds] (tru chinh minh) phai la ban be ACCEPTED cua [uid].
+   * Fix 2026-07-26 (createGroup) — ap dung cho ca addMembers de khong mo lai lo hong.
+   */
+  private async assertAllFriendsOf(uid: string, candidateIds: string[]): Promise<void> {
+    const friendships = await this.friendshipsRepo.listAccepted(uid);
+    const friendIds = new Set(friendships.map((f) => f.userIds.find((id) => id !== uid) ?? ''));
+    const strangers = candidateIds.filter((id) => id !== uid && !friendIds.has(id));
+    if (strangers.length > 0) {
+      throw new ForbiddenException('Chi them duoc ban be vao nhom chat.');
+    }
   }
 
   /** Trang cuoi = tin moi nhat: tra ve doan cuoi cua thread theo page/limit. */

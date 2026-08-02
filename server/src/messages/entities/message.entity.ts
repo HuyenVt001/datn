@@ -30,13 +30,31 @@ export interface Message {
   replyToSenderId?: string;
 }
 
-/** Nhom chat (Chat_Group + Group_Member gop thanh memberIds[]). */
+/**
+ * Nhom chat (Chat_Group + Group_Member gop thanh memberIds[]).
+ * avatar: URL Cloudinary (doi qua PATCH /messages/groups/:id, upload truoc qua /upload).
+ * mutedBy: uid da tat thong bao nhom — sendToGroup bo qua khi gui FCM.
+ */
 export interface ChatGroup {
   groupId: string;
   groupName: string;
+  avatar?: string;
   memberIds: string[]; // <= MAX_GROUP_SIZE
   createdBy: string;
   createdAt: string;
+  mutedBy?: string[];
+}
+
+/** Thong tin cong khai 1 thanh vien nhom (phuc vu man cai dat nhom o app). */
+export interface GroupMemberSummary {
+  uid: string;
+  fullName: string;
+  avatar?: string;
+}
+
+/** Chi tiet nhom = nhom + ho so cong khai tung thanh vien. */
+export interface ChatGroupDetail extends ChatGroup {
+  members: GroupMemberSummary[];
 }
 
 /** 1 dong trong danh sach hoi thoai (tin nhan moi nhat voi tung nguoi). */

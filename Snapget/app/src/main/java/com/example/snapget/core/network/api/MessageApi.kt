@@ -2,13 +2,18 @@ package com.example.snapget.core.network.api
 
 import com.example.snapget.core.network.ApiResponse
 import com.example.snapget.core.network.PaginatedData
+import com.example.snapget.core.network.dto.AddGroupMembersRequest
+import com.example.snapget.core.network.dto.ChatGroupDetailDto
 import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.ConversationSummaryDto
 import com.example.snapget.core.network.dto.CreateGroupRequest
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.network.dto.MuteGroupRequest
 import com.example.snapget.core.network.dto.ReactMessageRequest
 import com.example.snapget.core.network.dto.SendMessageRequest
+import com.example.snapget.core.network.dto.UpdateGroupRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -60,4 +65,40 @@ interface MessageApi {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 50,
     ): ApiResponse<PaginatedData<MessageDto>>
+
+    /** Chi tiet nhom + ho so thanh vien (member-only). */
+    @GET("messages/groups/{groupId}/detail")
+    suspend fun getGroupDetail(@Path("groupId") groupId: String): ApiResponse<ChatGroupDetailDto>
+
+    /** Doi ten / anh dai dien nhom (moi thanh vien deu doi duoc). */
+    @PATCH("messages/groups/{groupId}")
+    suspend fun updateGroup(
+        @Path("groupId") groupId: String,
+        @Body body: UpdateGroupRequest,
+    ): ApiResponse<ChatGroupDto>
+
+    /** Them thanh vien vao nhom (chi them duoc BAN BE cua minh — server enforce). */
+    @POST("messages/groups/{groupId}/members")
+    suspend fun addGroupMembers(
+        @Path("groupId") groupId: String,
+        @Body body: AddGroupMembersRequest,
+    ): ApiResponse<ChatGroupDto>
+
+    /** Xoa thanh vien khoi nhom (chi nguoi tao nhom lam duoc). */
+    @DELETE("messages/groups/{groupId}/members/{memberUid}")
+    suspend fun removeGroupMember(
+        @Path("groupId") groupId: String,
+        @Path("memberUid") memberUid: String,
+    ): ApiResponse<ChatGroupDto>
+
+    /** Roi nhom (nguoi cuoi cung roi -> server xoa nhom). */
+    @POST("messages/groups/{groupId}/leave")
+    suspend fun leaveGroup(@Path("groupId") groupId: String): ApiResponse<Map<String, String>>
+
+    /** Bat/tat thong bao nhom cho rieng minh (mutedBy). */
+    @PATCH("messages/groups/{groupId}/mute")
+    suspend fun muteGroup(
+        @Path("groupId") groupId: String,
+        @Body body: MuteGroupRequest,
+    ): ApiResponse<ChatGroupDto>
 }

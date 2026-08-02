@@ -33,6 +33,8 @@ describe('MessagesService', () => {
       createGroup: jest.fn(),
       findGroup: jest.fn(),
       listGroupsByMember: jest.fn(),
+      updateGroup: jest.fn().mockResolvedValue(undefined),
+      deleteGroup: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<MessagesRepository>;
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue(null),
@@ -47,6 +49,7 @@ describe('MessagesService', () => {
 
     usersService = {
       pushToUids: jest.fn().mockResolvedValue(0),
+      getPublicProfile: jest.fn().mockResolvedValue({ uid: 'x', fullName: 'X' }),
     } as unknown as jest.Mocked<UsersService>;
 
     service = new MessagesService(
@@ -170,6 +173,144 @@ describe('MessagesService', () => {
         service.createGroup('me', { groupName: 'g', memberIds: ['a', 'stranger'] }),
       ).rejects.toThrow(ForbiddenException);
       expect(repo.createGroup).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('group management', () => {
+    const group = () => ({
+      groupId: 'g',
+      groupName: 'Squad',
+      memberIds: ['creator', 'me', 'other'],
+      createdBy: 'creator',
+      createdAt: '2026-01-01',
+      mutedBy: [] as string[],
+    });
+
+    beforeEach(() => {
+      repo.findGroup.mockResolvedValue(group() as never);
+    });
+
+    it('getGroupDetail: chan nguoi ngoai nhom', async () => {
+      await expect(service.getGroupDetail('outsider', 'g')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('getGroupDetail: tra ve nhom + ho so cong khai tung thanh vien', async () => {
+      usersService.getPublicProfile.mockImplementation(
+        async (uid: string) => ({ uid, fullName: `name-${uid}` }) as never,
+      );
+
+      const result = await service.getGroupDetail('me', 'g');
+
+      expect(result.members).toHaveLength(3);
+      expect(result.members[1]).toEqual({ uid: 'me', fullName: 'name-me', avatar: undefined });
+    });
+
+    it('updateGroup: doi ten/avatar, bao loi khi body rong', async () => {
+      const updated = await service.updateGroup('me', 'g', { groupName: 'New name' });
+
+      expect(repo.updateGroup).toHaveBeenCalledWith('g', {
+        groupName: 'New name',
+        avatar: undefined,
+      });
+      expect(updated.groupName).toBe('New name');
+      await expect(service.updateGroup('me', 'g', {})).rejects.toThrow(BadRequestException);
+    });
+
+    it('addMembers: chi them duoc BAN BE cua nguoi moi', async () => {
+      friendshipsRepo.listAccepted.mockResolvedValue([
+        { userIds: ['me', 'friend'], status: 'ACCEPTED' },
+      ] as never);
+
+      await expect(service.addMembers('me', 'g', { memberIds: ['stranger'] })).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(repo.updateGroup).not.toHaveBeenCalled();
+    });
+
+    it('addMembers: them ban be thanh cong, khu trung nguoi da trong nhom', async () => {
+      friendshipsRepo.listAccepted.mockResolvedValue([
+        { userIds: ['me', 'friend'], status: 'ACCEPTED' },
+      ] as never);
+
+      const updated = await service.addMembers('me', 'g', { memberIds: ['friend', 'other'] });
+
+      expect(updated.memberIds).toEqual(['creator', 'me', 'other', 'friend']);
+      await expect(service.addMembers('me', 'g', { memberIds: ['other'] })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it(`addMembers: chan nhom vuot ${MAX_GROUP_SIZE} thanh vien`, async () => {
+      const full = group();
+      full.memberIds = Array.from({ length: MAX_GROUP_SIZE }, (_, i) => (i === 0 ? 'me' : `u${i}`));
+      repo.findGroup.mockResolvedValue(full as never);
+
+      await expect(service.addMembers('me', 'g', { memberIds: ['one-more'] })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('removeMember: chi NGUOI TAO nhom xoa duoc thanh vien', async () => {
+      await expect(service.removeMember('me', 'g', 'other')).rejects.toThrow(ForbiddenException);
+
+      const updated = await service.removeMember('creator', 'g', 'other');
+      expect(updated.memberIds).toEqual(['creator', 'me']);
+    });
+
+    it('removeMember: nguoi tao khong tu xoa minh (phai dung roi nhom)', async () => {
+      await expect(service.removeMember('creator', 'g', 'creator')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('leaveGroup: thanh vien thuong roi nhom', async () => {
+      await service.leaveGroup('me', 'g');
+      expect(repo.updateGroup).toHaveBeenCalledWith('g', {
+        memberIds: ['creator', 'other'],
+        mutedBy: [],
+        createdBy: 'creator',
+      });
+    });
+
+    it('leaveGroup: nguoi tao roi -> chuyen quyen cho thanh vien dau tien con lai', async () => {
+      await service.leaveGroup('creator', 'g');
+      expect(repo.updateGroup).toHaveBeenCalledWith(
+        'g',
+        expect.objectContaining({ createdBy: 'me' }),
+      );
+    });
+
+    it('leaveGroup: nguoi cuoi cung roi -> xoa nhom', async () => {
+      const solo = group();
+      solo.memberIds = ['me'];
+      repo.findGroup.mockResolvedValue(solo as never);
+
+      await service.leaveGroup('me', 'g');
+
+      expect(repo.deleteGroup).toHaveBeenCalledWith('g');
+      expect(repo.updateGroup).not.toHaveBeenCalled();
+    });
+
+    it('setGroupMuted: bat/tat thong bao cho rieng minh', async () => {
+      const muted = await service.setGroupMuted('me', 'g', true);
+      expect(muted.mutedBy).toEqual(['me']);
+
+      const already = group();
+      already.mutedBy = ['me', 'other'];
+      repo.findGroup.mockResolvedValue(already as never);
+      const unmuted = await service.setGroupMuted('me', 'g', false);
+      expect(unmuted.mutedBy).toEqual(['other']);
+    });
+
+    it('send nhom: KHONG push FCM cho thanh vien da mute', async () => {
+      const withMuted = group();
+      withMuted.memberIds = ['me', 'a', 'b'];
+      withMuted.mutedBy = ['b'];
+      repo.findGroup.mockResolvedValue(withMuted as never);
+
+      await service.send(me, textDto({ groupId: 'g' }));
+
+      expect(usersService.pushToUids).toHaveBeenCalledWith(['a'], expect.any(String), 'hi');
     });
   });
 

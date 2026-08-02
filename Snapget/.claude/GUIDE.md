@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-07-28**.
+> Cập nhật lần cuối: **2026-08-02**.
 
 ---
 
@@ -131,7 +131,8 @@ feature/                    # Mỗi tính năng 1 package: screen + viewmodel + 
   │                         #   PostDetailScreen (PostDetailContent dùng chung), SubmitPhotoScreen,
   │                         #   EditMediaScreen (khung/filter/doodle), MomentMapper
   message/                  #   MessageScreen, ChatScreen, GroupChatScreen, ChatMedia (sticker/voice/photo),
-  │                         #   ChatMediaViewer (zoom ảnh/video), MessageViewModel, data/MessageRepository (poll 5s)
+  │                         #   ChatMediaViewer (zoom ảnh/video), GroupSettingsSheet (⋯ header nhóm: đổi tên/avatar,
+  │                         #   mời/xóa thành viên, mute, rời nhóm), MessageViewModel, data/MessageRepository (poll 5s)
   profile/                  #   UserProfileScreen (calendar + edit hồ sơ), ProfileViewModel, data/ProfileRepository
   quest/                    #   DailyQuestScreen (quest + bộ sưu tập khung), QuestViewModel, data/QuestRepository
   settings/                 #   SettingScreen (dispatch theo SettingIds), SettingsViewModel,
@@ -154,6 +155,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Feed: VerticalPager full-screen + grid tổng hợp; khung overlay + video ExoPlayer; mark-seen theo trang hiển thị; reaction emoji bay; gõ text = DM tác giả; menu ⋯ Share/Download/Delete (bài mình) | ✅ |
 | Bạn bè (≤20): sheet bạn bè + streak 🔥; QR + link mời TTL 30 ngày; App Links domain thật; **kết bạn 2 bước** (PENDING → chủ link accept/decline) + banner 💌 trên feed | ✅ |
 | Chat: 1-1 + nhóm ≤20; TEXT/EMOJI/PHOTO/STICKER/VOICE; media viewer zoom; reaction (long-press); **reply kiểu Messenger** (trích dẫn tin gốc); polling 5s; mark seen | ✅ |
+| Quản lý nhóm chat (sheet ⋯ trên header, theo mẫu Messenger): đổi tên + đổi avatar nhóm (upload Cloudinary), mời bạn vào nhóm (≤20), xóa thành viên (chỉ người tạo), rời nhóm, mute thông báo (server bỏ qua khi push FCM) | ✅ |
 | Co-op capture: mời → banner vàng feed → chụp nửa còn lại → server ghép | ✅ |
 | Profile: streak thật, calendar moment, edit tên/avatar; profile người khác chỉ bạn bè xem | ✅ |
 | Daily Quest + bộ sưu tập khung (khóa = mờ + 🔒) | ✅ |
@@ -162,7 +164,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | UI tiếng Anh toàn bộ; avatar fallback DiceBear thống nhất; FCM đăng ký mỗi lần mở app | ✅ |
 | **Hardening bảo mật** 🔐: tắt backup, R8 + obfuscate, cấm cleartext + chỉ tin CA hệ thống, xử lý 401 + auto-logout, dọn sạch phiên khi đăng xuất, gỡ quyền thừa, không log PII (chi tiết: `../../SECURITY.md` mục 8) | ✅ |
 
-**⬜ Cần test trên emulator/máy thật (2 máy)** — code xong, chưa verify end-to-end: reply chat (1-1 + nhóm), reaction/zoom media trong chat, coop chụp 2 máy, mirror selfie, FCM push (lời mời/tin nhắn), App Links (cài APK debug — verify theo SHA-256 debug keystore), widget (đặt/toggle/tap), pinch-zoom + quay video nút center, share/download/xóa bài, bàn phím không che ô nhập, theme light toàn màn.
+**⬜ Cần test trên emulator/máy thật (2 máy)** — code xong, chưa verify end-to-end: reply chat (1-1 + nhóm), **sheet cài đặt nhóm** (đổi tên/avatar, mời/xóa thành viên, rời nhóm, mute — cần 2 máy để xem phía thành viên bị xóa/không nhận push khi mute), reaction/zoom media trong chat, coop chụp 2 máy, mirror selfie, FCM push (lời mời/tin nhắn), App Links (cài APK debug — verify theo SHA-256 debug keystore), widget (đặt/toggle/tap), pinch-zoom + quay video nút center, share/download/xóa bài, bàn phím không che ô nhập, theme light toàn màn.
 
 **⬜ 🔐 Test riêng cho bản RELEASE (R8 vừa bật lần đầu 2026-07-28)** — build đã PASS nhưng **chưa chạy runtime**. Rủi ro của R8 nằm ở phản chiếu (Gson/Retrofit), đã bọc bằng rule keep nhưng phải xác nhận thật: `assembleRelease` rồi cài lên máy và chạy hết **đăng nhập → feed → chat → upload ảnh/video → quest/khung → widget → deep link mời**. Nếu màn nào hiện dữ liệu rỗng bất thường ⇒ nghi thiếu rule keep cho class tương ứng, thêm vào `app/proguard-rules.pro`. Ngoài ra: bản release **chưa có `signingConfig`** nên hiện chỉ ra `app-release-unsigned.apk`.
 
@@ -238,6 +240,7 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-02 — Quản lý nhóm chat + dọn bottom bar feed**: (1) `GroupSettingsSheet` mở từ nút ⋯ mới trên header `GroupChatScreen` (bố cục theo ảnh Messenger user gửi): avatar nhóm bấm để đổi (upload → PATCH), tên nhóm + bút chì đổi tên, hàng Invite (chỉ bạn bè chưa trong nhóm, chặn quá 20), danh sách thành viên (menu ⋯ "Remove from group" — CHỈ người tạo thấy), card Mute notifications (Switch) + Leave group (đỏ, confirm); subtitle header = "N members"; `GroupItem` ở MessageScreen hiện avatar nhóm thật. 6 endpoint mới phía server (xem `server/GUIDE.md`), thêm hằng `MAX_GROUP_SIZE=20` vào `core/constants/GroupConstants.kt`. (2) Xóa icon video (SmartDisplay → Setting, thừa) bên phải nút chụp ở bottom bar grid feed (`sampleItems2` — thay bằng placeholder giữ nút chụp ở giữa).
 - **2026-07-28 — Hardening bảo mật app** 🔐: `allowBackup="false"` + backup rules đầy đủ (trước đó refresh token Firebase Auth lọt vào Google Drive backup); **bật R8** cho release (`isMinifyEnabled`/`isShrinkResources` + `proguard-rules.pro` thật — giữ DTO cho Gson, strip `Log.d/v/i`); `network_security_config.xml` cấm cleartext + chỉ tin CA hệ thống ở release, overlay `src/debug/res/xml/` vẫn cho HTTP để dev; chặn build release khi `server.base.url` không phải HTTPS; **`TokenAuthenticator`** xử lý 401 (ép refresh → thử lại → hết thì signOut) + `AuthViewModel` lắng nghe `AuthStateListener` để đẩy về Login; **`SessionCleaner`** xóa Coil cache 512MB + `currentUserCache` + pending invite khi đăng xuất; gỡ 2 quyền LOCATION thừa; bỏ email khỏi log; mật khẩu chuyển từ `rememberSaveable` → `remember`; validate email/độ dài mật khẩu ở LoginScreen; xóa `AuthConstants` + `provideCookieManager` chết. **Chi tiết đầy đủ: `../../SECURITY.md` mục 8.** Build debug + release đều PASS — ⚠️ **cần test runtime bản release trên máy thật** (R8 mới bật lần đầu).
 - **2026-07-28 — Reply tin nhắn kiểu Messenger**: long-press bubble → hàng 😊|↩ bên cạnh; thanh "Replying to X" trên ô nhập; bubble vẽ khối trích dẫn tin gốc (server snapshot `replyTo*`); áp dụng 1-1 + nhóm, mọi loại tin.
 - **2026-07-27 (chiều) — QA bổ sung**: xóa `FLAG_LAYOUT_NO_LIMITS` (fix gốc bàn phím che ô nhập mọi máy); ẩn pill react/reply với bài của chính mình; Settings chỉ còn 1 nút back.

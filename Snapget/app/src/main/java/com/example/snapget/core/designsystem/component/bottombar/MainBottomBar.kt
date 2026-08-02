@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.MotionPhotosAuto
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material.icons.filled.ViewCozy
 import androidx.compose.material.icons.outlined.Cached
 import androidx.compose.material.icons.outlined.Close
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.outlined.MotionPhotosAuto
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.SmartDisplay
 import androidx.compose.material.icons.outlined.ViewCozy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -297,11 +295,12 @@ val sampleItems2 = listOf(
         route = Screen.Camera.route,
         isCenter = true,
     ),
+    // Placeholder giu nut chup o giua — icon video (SmartDisplay -> Setting) da xoa (2026-08-02)
     BottomNavItem(
-        title = "Share",
-        selectedIcon = Icons.Filled.SmartDisplay,
-        unselectedIcon = Icons.Outlined.SmartDisplay,
-        route = Screen.Setting.route,
+        title = null,
+        selectedIcon = null,
+        unselectedIcon = null,
+        route = "",
     ),
 )
 

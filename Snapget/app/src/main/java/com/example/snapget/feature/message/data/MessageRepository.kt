@@ -2,12 +2,16 @@ package com.example.snapget.feature.message.data
 
 import com.example.snapget.core.network.api.MessageApi
 import com.example.snapget.core.network.api.UploadApi
+import com.example.snapget.core.network.dto.AddGroupMembersRequest
+import com.example.snapget.core.network.dto.ChatGroupDetailDto
 import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.network.dto.ConversationSummaryDto
 import com.example.snapget.core.network.dto.CreateGroupRequest
 import com.example.snapget.core.network.dto.MessageDto
+import com.example.snapget.core.network.dto.MuteGroupRequest
 import com.example.snapget.core.network.dto.ReactMessageRequest
 import com.example.snapget.core.network.dto.SendMessageRequest
+import com.example.snapget.core.network.dto.UpdateGroupRequest
 import com.example.snapget.core.network.ensureSuccess
 import com.example.snapget.core.network.unwrap
 import com.example.snapget.core.network.uploadFile
@@ -90,4 +94,24 @@ class MessageRepository @Inject constructor(
     suspend fun markSeen(messageId: String) {
         messageApi.markSeen(messageId).ensureSuccess()
     }
+
+    /** Chi tiet nhom + ho so thanh vien (member-only). */
+    suspend fun getGroupDetail(groupId: String): ChatGroupDetailDto = messageApi.getGroupDetail(groupId).unwrap()
+
+    /** Doi ten / anh dai dien nhom (truyen it nhat 1 truong). */
+    suspend fun updateGroup(groupId: String, groupName: String? = null, avatar: String? = null): ChatGroupDto = messageApi.updateGroup(groupId, UpdateGroupRequest(groupName, avatar)).unwrap()
+
+    /** Them thanh vien (chi them duoc ban be cua minh — server enforce). */
+    suspend fun addGroupMembers(groupId: String, memberIds: List<String>): ChatGroupDto = messageApi.addGroupMembers(groupId, AddGroupMembersRequest(memberIds)).unwrap()
+
+    /** Xoa thanh vien khoi nhom (chi nguoi tao nhom). */
+    suspend fun removeGroupMember(groupId: String, memberUid: String): ChatGroupDto = messageApi.removeGroupMember(groupId, memberUid).unwrap()
+
+    /** Roi nhom (nguoi cuoi cung roi -> server xoa nhom). */
+    suspend fun leaveGroup(groupId: String) {
+        messageApi.leaveGroup(groupId).ensureSuccess()
+    }
+
+    /** Bat/tat thong bao nhom cho rieng minh. */
+    suspend fun setGroupMuted(groupId: String, muted: Boolean): ChatGroupDto = messageApi.muteGroup(groupId, MuteGroupRequest(muted)).unwrap()
 }

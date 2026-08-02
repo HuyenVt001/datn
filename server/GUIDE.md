@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-07-28**.
+> Cập nhật lần cuối: **2026-08-02**.
 
 ---
 
@@ -18,7 +18,7 @@
 | | |
 |---|---|
 | Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, admin, audit) |
-| Đã verify | `npm run build` + `npm run lint` sạch · unit test 9 suite pass (lần gần nhất 2026-07-28, messages 17 test) · e2e smoke pass (`test/app.e2e-spec.ts`) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
+| Đã verify | `npm run build` + `npm run lint` sạch · unit test 9 suite pass (lần gần nhất 2026-08-02, messages 30 test) · e2e smoke pass (`test/app.e2e-spec.ts`) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
 | Deploy | Đã chạy trên Render: `https://datn-8810.onrender.com/api` (gói free ngủ sau 15 phút — gọi `/api/health` để đánh thức trước demo). Hướng dẫn: `../DEPLOY.md` |
 | Việc kế tiếp | Test end-to-end app + server (co-op, chat nhóm, reply, deep link) trên 2 máy/emulator |
 | Blocker | ✅ Không có |
@@ -164,7 +164,7 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 | `friendships/{pairId}` | quan hệ 2 user, friendStreak, lastInteractionAt, status (PENDING = lời mời chờ chủ link xác nhận), requesterUid |
 | `posts/{id}` (Moment) | bài đăng; `+ /views/{viewerId}`, `+ /reactions/{id}` (subcollection) |
 | `messages/{id}` | tin nhắn (receiverId? / groupId?), messageType, isSeen, reactions{uid: emoji}, attachmentUrl/Type, replyTo* (snapshot tin gốc) |
-| `chatGroups/{id}` | nhóm chat (memberIds[] ≤20) |
+| `chatGroups/{id}` | nhóm chat (memberIds[] ≤20, `avatar?` URL Cloudinary, `mutedBy[]` uid tắt thông báo, `createdBy` = người quản lý) |
 | `coopInvites/{id}` | lời mời chụp chung (inviterId, inviteeId, inviterMediaUrl, status, momentId?) |
 | `frames/{id}` | khung ảnh: frameName, imageUrl, `unlockType` + `unlockValue`; `milestone` legacy (suy ngược tương thích doc cũ) |
 | `dailyQuests/{id}` + `userQuests/{id}` | quest cố định/ngày + trạng thái hoàn thành/thưởng của từng user |
@@ -182,7 +182,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | friendships | ✅ | kết bạn 2 bước, limit 20 transaction 2 phía, streak 24h, mã hết hạn | ✅ | ✅ |
 | moments | ✅ | video≤5s (tại upload), seen/reaction chỉ người thấy được bài, xóa chỉ chủ bài, streak + FCM wired | ✅ | ✅ |
 | coop | ✅ | chỉ bạn bè ACCEPTED, chỉ invitee trả lời, TTL 24h, sharp ghép, streak/quest cả 2 | ✅ | ✅ |
-| messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè), seen, reaction toggle, reply cùng-hội-thoại | ✅ | ✅ |
+| messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè — cả lúc tạo lẫn lúc mời thêm), seen, reaction toggle, reply cùng-hội-thoại, quản lý nhóm (rename/avatar/mời/xóa — chỉ creator/rời/mute) | ✅ | ✅ |
 | frames | ✅ | 6 unlockType + hook tự mở ở moments/friendships/coop | ✅ | ✅ |
 | quests | ✅ | 2 quest/ngày lazy, thưởng 2/2 + mốc streak | ✅ | ✅ |
 | admin | ✅ | chặn tự khóa/tự thu quyền (luôn ≥1 admin), guard re-check mỗi request, khóa = revoke refresh token, audit log | ✅ | ✅ |
@@ -232,6 +232,12 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/messages/groups` | Tạo nhóm chat (≤20 thành viên, chỉ bạn bè) | Firebase |
 | GET | `/api/messages/groups` | Danh sách nhóm của mình | Firebase |
 | GET | `/api/messages/groups/:groupId` | Thread nhóm (member-only) | Firebase |
+| GET | `/api/messages/groups/:groupId/detail` | Chi tiết nhóm + hồ sơ công khai từng thành viên (member-only) | Firebase |
+| PATCH | `/api/messages/groups/:groupId` | Đổi tên/ảnh đại diện nhóm (`{groupName?, avatar?}` — mọi thành viên) | Firebase |
+| POST | `/api/messages/groups/:groupId/members` | Thêm thành viên (`{memberIds[]}` — phải là bạn bè của người mời, tổng ≤20) | Firebase |
+| DELETE | `/api/messages/groups/:groupId/members/:memberUid` | Xóa thành viên (CHỈ người tạo nhóm; không tự xóa mình) | Firebase |
+| POST | `/api/messages/groups/:groupId/leave` | Rời nhóm (creator rời → chuyển quyền; người cuối rời → xóa nhóm) | Firebase |
+| PATCH | `/api/messages/groups/:groupId/mute` | Bật/tắt thông báo nhóm cho riêng mình (`{muted}` — mutedBy bị loại khỏi FCM nhóm) | Firebase |
 | GET | `/api/quests/today` | 2 quest hôm nay + trạng thái (lazy; gọi = tự hoàn thành LOGIN; `rewardFrameId` nếu vừa được thưởng) | Firebase |
 | GET | `/api/frames` | Catalog khung + `isUnlocked` của mình (kèm `unlockType`/`unlockValue`) | Firebase |
 | GET | `/api/frames/admin` | [Admin] Toàn bộ catalog khung | Admin JWT |
@@ -289,6 +295,7 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-02 — Quản lý nhóm chat**: `ChatGroup` thêm `avatar?` + `mutedBy[]`; 6 endpoint mới (detail / PATCH rename+avatar / thêm thành viên / xóa thành viên / rời nhóm / mute). Phân quyền: rename/avatar/mời = mọi thành viên (người được mời PHẢI là bạn bè của người mời — giữ rào chắn createGroup 2026-07-26); xóa thành viên = CHỈ `createdBy`; creator rời → chuyển `createdBy` cho thành viên đầu tiên còn lại, người cuối rời → xóa nhóm; `sendToGroup` bỏ qua `mutedBy` khi push FCM. 30 test messages pass. App Android đã sync (sheet cài đặt nhóm).
 - **2026-07-28 — Reply tin nhắn kiểu Messenger**: `SendMessageDto.replyToId` — tin mới reply 1 tin cũ CÙNG hội thoại (1-1: tin gốc giữa đúng 2 người; nhóm: cùng `groupId`; sai → 400). Service snapshot `replyToType/Content/SenderId` vào tin mới (app vẽ trích dẫn không cần lookup). 17 test messages pass.
 - **2026-07-27 — Message reaction + attachment**: `POST /messages/:id/reactions` (map `reactions{uid: emoji}`, toggle); `SendMessageDto` thêm `attachmentUrl/attachmentType` (reply bài đăng kèm media).
 - **2026-07-26 — Hoàn thiện hệ thống** (107 unit + 7 e2e pass): kiểm duyệt bài đăng + audit log module `audit/`; sync displayName/photoURL lên Firebase Auth khi PATCH /users/me; helmet + throttler (120/60s, login 10/60s); gộp FCM về `UsersService.pushToUids`; e2e smoke `test/app.e2e-spec.ts`.
