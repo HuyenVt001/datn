@@ -151,6 +151,8 @@ fun UserProfile(
             profileViewModel.updateProfile(newName, avatarFile)
         },
         onResetUpdateStatus = { profileViewModel.resetUpdateStatus() },
+        // Xoa bai tu man detail -> tai lai moment de calendar het o ngay da xoa
+        onReloadProfile = { profileViewModel.load(userId) },
     )
 }
 
@@ -174,6 +176,7 @@ fun UserProfileContent(
     onDeclineRequest: (FriendUi) -> Unit = {},
     onUpdateProfile: (String, File?) -> Unit,
     onResetUpdateStatus: () -> Unit,
+    onReloadProfile: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var showEditDialog by remember { mutableStateOf(false) }
@@ -236,6 +239,12 @@ fun UserProfileContent(
                 post = selectedPost!!,
                 onBack = { selectedPost = null },
                 navController = navController,
+                // Xoa bai thanh cong -> toast + dong detail + tai lai calendar
+                onDeleted = {
+                    Toast.makeText(context, "Post deleted.", Toast.LENGTH_SHORT).show()
+                    selectedPost = null
+                    onReloadProfile()
+                },
             )
         }
 

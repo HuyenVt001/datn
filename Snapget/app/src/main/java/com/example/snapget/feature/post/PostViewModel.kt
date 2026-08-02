@@ -204,14 +204,19 @@ class PostViewModel @Inject constructor(
         _actionMessage.value = null
     }
 
-    /** Xoa bai cua minh (menu ⋯ tren feed) — xong thi bo khoi state, khong can reload. */
-    fun deleteMoment(momentId: String) {
+    /**
+     * Xoa bai cua minh (menu ⋯ tren feed + man xem post tu profile) — xong thi
+     * bo khoi state, khong can reload. [onDeleted] (luong profile): dong man detail
+     * + tu toast/refresh — khi truyen thi KHONG set actionMessage (man detail bi
+     * dong truoc khi kip toast, message se ket lai sang lan mo post sau).
+     */
+    fun deleteMoment(momentId: String, onDeleted: (() -> Unit)? = null) {
         viewModelScope.launch {
             try {
                 postRepository.deleteMoment(momentId)
                 _feed.value = _feed.value.filterNot { it.momentId == momentId }
                 _userMoments.value = _userMoments.value.filterNot { it.momentId == momentId }
-                _actionMessage.value = "Post deleted."
+                if (onDeleted != null) onDeleted() else _actionMessage.value = "Post deleted."
             } catch (e: Exception) {
                 _actionMessage.value = e.serverMessage("Failed to delete post.")
             }

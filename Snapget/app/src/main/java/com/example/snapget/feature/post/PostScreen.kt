@@ -1,13 +1,9 @@
 package com.example.snapget.feature.post
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -68,7 +64,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
@@ -243,49 +238,8 @@ fun PostScreen(
         }
     }
 
-    // ==== Download ve thu vien — Android 7-9 (API < 29) can WRITE_EXTERNAL_STORAGE
-    // runtime (fix 2026-07-26: truoc day khong xin -> insert fail -> "Download failed") ====
-    val downloadToGallery: (String, Boolean) -> Unit = { url, video ->
-        scope.launch {
-            val ok = MediaActions.saveToGallery(context, url, video)
-            Toast.makeText(
-                context,
-                if (ok) "Saved to gallery." else "Download failed.",
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
-    var pendingDownload by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
-    val storagePermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        val request = pendingDownload
-        pendingDownload = null
-        if (request != null) {
-            if (granted) {
-                downloadToGallery(request.first, request.second)
-            } else {
-                Toast.makeText(
-                    context,
-                    "Storage permission is required to download.",
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
-        }
-    }
-    val requestDownload: (String, Boolean) -> Unit = { url, video ->
-        val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            ) != PackageManager.PERMISSION_GRANTED
-        if (needsPermission) {
-            pendingDownload = url to video
-            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        } else {
-            downloadToGallery(url, video)
-        }
-    }
+    // Download ve thu vien (helper dung chung voi PostDetailScreen — 2026-08-02)
+    val requestDownload = rememberGalleryDownloader()
 
     // Dang o POST MOI NHAT (trang 0) ma keo xuong tiep -> pager khong cuon duoc
     // nua, phan du roi vao onPostScroll -> cong don, qua nguong thi ve camera
@@ -724,10 +678,11 @@ private fun EmptyFeedMessage(
  * Bottom sheet menu ⋯ cua 1 post (khop anh mau popup):
  * Share / Download / Delete (do, CHI bai cua minh) / Cancel.
  * (Report BO theo quyet dinh user 2026-07-26 — server khong co he thong report.)
+ * Dung chung: feed pager + PostDetailScreen (xem post cu tu profile — 2026-08-02).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PostOptionsSheet(
+internal fun PostOptionsSheet(
     isOwnPost: Boolean,
     onShare: () -> Unit,
     onDownload: () -> Unit,

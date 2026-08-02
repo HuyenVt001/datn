@@ -17,17 +17,23 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +43,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -59,19 +66,20 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
-import com.example.snapget.core.designsystem.component.bottombar.sampleItems3
+import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
+import com.example.snapget.core.util.MediaActions
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.core.util.relativeTimeShort
 import com.example.snapget.navigation.Screen
 import kotlin.random.Random
+import kotlinx.coroutines.launch
 
 /** 1 emoji dang "bay" len sau khi tha reaction (xoa khoi list khi bay xong). */
 data class FlyingEmoji(
@@ -286,6 +294,9 @@ fun PostDetailContent(
  * Man chi tiet 1 post DOC LAP — con dung tu UserProfileScreen (bam o calendar).
  * Feed chinh KHONG dung man nay nua (2026-07-26) — PostScreen hien pager
  * full-screen voi PostDetailContent ben trong.
+ * 2026-08-02: dong bo hang nut day voi pager feed (luoi = ve calendar profile |
+ * nut chup 80dp vien vang = ve camera | ⋯ = PostOptionsSheet Share/Download/Delete).
+ * [onDeleted]: profile truyen vao de dong man + refresh calendar sau khi xoa bai.
  */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -294,10 +305,24 @@ fun PostDetailScreen(
     onBack: () -> Unit,
     navController: NavController,
     friends: List<User> = emptyList(),
+    onDeleted: (() -> Unit)? = null,
     mainViewModel: MainViewModel = hiltViewModel(),
     postViewModel: PostViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Menu ⋯ + xac nhan xoa (dong bo voi feed pager)
+    var showOptions by remember { mutableStateOf(false) }
+    var showConfirmDelete by remember { mutableStateOf(false) }
+    val requestDownload = rememberGalleryDownloader()
+
+    // Ve camera: pop ve entry camera co san (camera la startDestination)
+    val goBackToCamera: () -> Unit = {
+        if (!navController.popBackStack(Screen.Camera.route, false)) {
+            navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+        }
+    }
 
     // Reaction: emoji minh vua tha (highlight) + danh sach emoji dang bay
     var selectedEmoji by remember { mutableStateOf<String?>(null) }
@@ -393,10 +418,96 @@ fun PostDetailScreen(
         // Emoji bay len tu thanh message roi mo dan
         FlyingEmojiOverlay(flyingEmojis)
 
-        MainBottomBar(
-            navController,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            items = sampleItems3,
+        // Hang nut day — DONG BO voi pager feed (2026-08-02): luoi | chup | ⋯
+        // (truoc day dung sampleItems3 voi icon Share mo... Settings — sai chuc nang)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .fillMaxWidth()
+                .padding(horizontal = 36.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Luoi = dong detail, ve calendar profile (tuong duong grid tong hop o feed)
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Default.GridView,
+                    contentDescription = "All posts",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+
+            // Nut chup (ve camera) — cung style nut center 80dp vien vang nhu feed
+            Circle(
+                outerSize = 80.dp,
+                gap = 7.dp,
+                backgroundColor = Color.Transparent,
+                borderColor = Color.Yellow,
+                borderWidth = 3.dp,
+                onClick = goBackToCamera,
+            )
+
+            IconButton(onClick = { showOptions = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = "Post options",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+        }
+    }
+
+    // ==== Menu ⋯ (dung chung voi feed): Share / Download / Delete (bai minh) / Cancel ====
+    if (showOptions) {
+        val isVideo = post.postType == PostType.VIDEO
+        PostOptionsSheet(
+            isOwnPost = post.user.id == data.id,
+            onShare = {
+                showOptions = false
+                scope.launch {
+                    try {
+                        MediaActions.share(context, post.thumbnailUrl, isVideo)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Share failed.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onDownload = {
+                showOptions = false
+                requestDownload(post.thumbnailUrl, isVideo)
+            },
+            onDelete = {
+                showOptions = false
+                showConfirmDelete = true
+            },
+            onDismiss = { showOptions = false },
+        )
+    }
+
+    // Xac nhan xoa (huy duoc) — xoa that qua DELETE /moments/:id roi bao profile refresh
+    if (showConfirmDelete) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDelete = false },
+            title = { Text("Delete post?") },
+            text = { Text("This moment will be permanently deleted.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmDelete = false
+                        postViewModel.deleteMoment(post.id, onDeleted ?: onBack)
+                    },
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDelete = false }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 }

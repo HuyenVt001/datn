@@ -137,7 +137,8 @@ fun SubmitPhotoScreen(
     val coroutineScope = rememberCoroutineScope()
     var showCaptionSheet by remember { mutableStateOf(false) }
 
-    // Caption cua bai dang: null = chua co pill; "" = pill rong dang go; gui kem khi Send
+    // Caption cua bai dang: go truc tiep vao o tren anh HOAC chon chip tu
+    // Captions List (chip dien noi dung vao o, sua tiep duoc); gui kem khi Send
     var caption by remember { mutableStateOf<String?>(null) }
 
     // Get current time to use as remember key
@@ -250,18 +251,18 @@ fun SubmitPhotoScreen(
                         )
                     }
 
-                    // Caption dang nhap — pill trang mo chu den (DESIGN.md 7.7)
-                    caption?.let { current ->
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 24.dp),
-                        ) {
-                            InputCaptionPill(
-                                text = current,
-                                onTextChange = { caption = it },
-                            )
-                        }
+                    // O caption LUON hien tren anh de go truc tiep (2026-08-02 —
+                    // truoc day chi hien sau khi chon chip tu Captions List).
+                    // Pill trang mo chu den, placeholder "Add a caption..." (DESIGN.md 7.7)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 24.dp),
+                    ) {
+                        InputCaptionPill(
+                            text = caption.orEmpty(),
+                            onTextChange = { caption = it },
+                        )
                     }
 
                     // Overlay loading khi dang upload + tao moment
