@@ -79,6 +79,7 @@ import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.core.model.auth.AuthState
+import com.example.snapget.core.network.dto.CoopInviteDto
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.MediaActions
 import com.example.snapget.core.util.mapToUser
@@ -120,9 +121,18 @@ fun PostScreen(
     val userMomentsStatus by postViewModel.userMomentsStatus.collectAsState()
     val frames by postViewModel.frames.collectAsState()
 
-    // Loi moi chup chung dang cho (banner tren feed)
+    // Loi moi chup chung dang cho (banner tren feed) + dialog tra loi
     val coopViewModel: CoopViewModel = hiltViewModel()
     val pendingInvites by coopViewModel.pendingInvites.collectAsState()
+    val coopError by coopViewModel.coopError.collectAsState()
+    var coopInviteToRespond by remember { mutableStateOf<CoopInviteDto?>(null) }
+
+    LaunchedEffect(coopError) {
+        coopError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            coopViewModel.clearError()
+        }
+    }
 
     // Sheet ban be (QR ket ban) — data tu API /friendships
     val friendsViewModel: FriendsViewModel = hiltViewModel()
@@ -493,20 +503,13 @@ fun PostScreen(
                 .align(Alignment.TopCenter)
                 .padding(top = 140.dp, start = 16.dp, end = 16.dp),
         ) {
-            // Loi moi chup chung — cham de mo man chap nhan
+            // Loi moi chup chung — cham de mo dialog Accept/Decline (redesign 2026-08-02)
             pendingInvites.firstOrNull()?.let { invite ->
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = Color.Yellow,
                     shadowElevation = 6.dp,
-                    modifier = Modifier.clickable {
-                        navController.navigate(
-                            Screen.CoopAccept.route +
-                                "?inviteId=" + invite.inviteId +
-                                "&mediaUrl=" + Uri.encode(invite.inviterMediaUrl) +
-                                "&name=" + Uri.encode(invite.inviterName ?: "friend"),
-                        )
-                    },
+                    modifier = Modifier.clickable { coopInviteToRespond = invite },
                 ) {
                     Text(
                         text = buildString {
@@ -582,6 +585,44 @@ fun PostScreen(
                 null
             },
             onDismiss = { showFriendSheet = false },
+        )
+    }
+
+    // ==== Dialog tra loi loi moi CHUP CHUNG: Accept -> man chup coop; Decline ====
+    coopInviteToRespond?.let { invite ->
+        val inviterName = invite.inviterName ?: "A friend"
+        AlertDialog(
+            onDismissRequest = { coopInviteToRespond = null },
+            title = { Text("Co-op capture invite") },
+            text = {
+                Text("$inviterName invited you to take a photo together. Invites expire after 5 minutes.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coopInviteToRespond = null
+                        coopViewModel.acceptInvite(invite.inviteId) {
+                            navController.navigate(
+                                Screen.CoopCapture.route +
+                                    "?inviteId=" + invite.inviteId +
+                                    "&name=" + Uri.encode(inviterName),
+                            )
+                        }
+                    },
+                ) {
+                    Text("Accept")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        coopViewModel.declineInvite(invite.inviteId)
+                        coopInviteToRespond = null
+                    },
+                ) {
+                    Text("Decline", color = MaterialTheme.colorScheme.error)
+                }
+            },
         )
     }
 

@@ -1,20 +1,25 @@
-export type CoopInviteStatus = 'PENDING' | 'COMPLETED' | 'DECLINED' | 'EXPIRED';
+export type CoopInviteStatus = 'PENDING' | 'ACCEPTED' | 'COMPLETED' | 'DECLINED' | 'EXPIRED';
 
 /**
- * Loi moi chup chung (Co-op Capture) — collection 'coopInvites'.
- * Nguoi moi chup nua anh truoc; nguoi nhan chap nhan + chup nua con lai
- * -> server ghep 2 anh (sharp, chia doi trai/phai) thanh 1 moment chung.
+ * Loi moi chup chung (redesign 2026-08-02): moi KHONG kem anh; nguoi nhan accept
+ * -> ACCEPTED -> ca 2 vao man chup, moi nguoi nop nua anh cua minh; du 2 nua
+ * server ghep -> mergedMediaUrl + COMPLETED. Server KHONG tu tao moment nua —
+ * moi nguoi cam anh ghep di dang bai theo luong thuong. TTL loi moi: 5 phut.
  */
 export interface CoopInvite {
   inviteId: string;
   inviterId: string;
   inviteeId: string;
-  /** Nua anh cua nguoi moi (URL Cloudinary tu /upload). */
-  inviterMediaUrl: string;
+  /** Nua anh TRAI cua nguoi moi (URL Cloudinary tu /upload) — nop sau khi ACCEPTED. */
+  inviterMediaUrl?: string;
+  /** Nua anh PHAI cua nguoi nhan. */
+  inviteeMediaUrl?: string;
+  /** Anh da ghep — co khi COMPLETED; client tai ve roi vao luong edit -> dang bai. */
+  mergedMediaUrl?: string;
   status: CoopInviteStatus;
   createdAt: string;
   respondedAt?: string;
-  /** Moment da tao sau khi ghep (chi khi COMPLETED). */
+  /** Legacy (flow cu: server tu tao moment) — khong con ghi moi. */
   momentId?: string;
 }
 

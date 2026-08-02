@@ -2,10 +2,12 @@ package com.example.snapget.feature.post
 
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +23,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,6 +72,7 @@ import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.circle.Circle
+import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.model.Post
@@ -291,17 +297,25 @@ fun PostDetailContent(
 }
 
 /**
- * Man chi tiet 1 post DOC LAP — con dung tu UserProfileScreen (bam o calendar).
- * Feed chinh KHONG dung man nay nua (2026-07-26) — PostScreen hien pager
- * full-screen voi PostDetailContent ben trong.
- * 2026-08-02: dong bo hang nut day voi pager feed (luoi = ve calendar profile |
- * nut chup 80dp vien vang = ve camera | ⋯ = PostOptionsSheet Share/Download/Delete).
+ * Man xem POST CU tu profile (bam o calendar) — feed chinh KHONG dung man nay
+ * (PostScreen tu hien pager rieng tu 2026-07-26).
+ * 2026-08-02 (lan 2): chuyen thanh VERTICAL PAGER giong het feed chinh — nhan
+ * TOAN BO post cu (moi -> cu), mo dung post cua ngay vua bam, vuot len/xuong de
+ * xem cac post khac (cung ngay roi den ngay khac); icon luoi mo GRID tong hop
+ * tat ca post cu (bam 1 o -> ve pager dung post do); nut chup vien vang ve
+ * camera; ⋯ = PostOptionsSheet Share/Download/Delete dung chung voi feed.
+ * Back he thong: grid -> pager -> calendar.
  * [onDeleted]: profile truyen vao de dong man + refresh calendar sau khi xoa bai.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PostDetailScreen(
-    post: Post,
+    // TOAN BO post cu (moi -> cu) — pager vuot doc nhu feed chinh (2026-08-02:
+    // truoc day chi nhan 1 post -> khong vuot xem duoc cac bai khac trong ngay)
+    posts: List<Post>,
+    // Post cua o calendar vua bam — pager mo dung trang nay
+    initialPostId: String?,
     onBack: () -> Unit,
     navController: NavController,
     friends: List<User> = emptyList(),
@@ -311,6 +325,20 @@ fun PostDetailScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // false = pager (mac dinh); true = GRID tong hop tat ca post cu (icon luoi)
+    var showGrid by remember { mutableStateOf(false) }
+
+    // Back he thong: dang o grid -> ve pager; dang o pager -> ve calendar profile
+    BackHandler {
+        if (showGrid) showGrid = false else onBack()
+    }
+
+    val initialPage = remember(posts, initialPostId) {
+        posts.indexOfFirst { it.id == initialPostId }.coerceAtLeast(0)
+    }
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { posts.size })
+    val currentPost = posts.getOrNull(pagerState.currentPage)
 
     // Menu ⋯ + xac nhan xoa (dong bo voi feed pager)
     var showOptions by remember { mutableStateOf(false) }
@@ -324,8 +352,8 @@ fun PostDetailScreen(
         }
     }
 
-    // Reaction: emoji minh vua tha (highlight) + danh sach emoji dang bay
-    var selectedEmoji by remember { mutableStateOf<String?>(null) }
+    // Reaction: emoji vua tha theo TUNG post (nhu feed) + emoji dang bay
+    val selectedEmojiByPost = remember { mutableStateMapOf<String, String>() }
     val flyingEmojis = remember { mutableStateListOf<FlyingEmoji>() }
     var selectedUser by remember {
         mutableStateOf<User?>(
@@ -346,14 +374,17 @@ fun PostDetailScreen(
     // thi currentUser rong -> avatar top bar sai/khong dong bo voi cac man khac
     LaunchedEffect(Unit) {
         mainViewModel.fetchCurrentUser()
+        // Khung anh: tai catalog 1 lan cho ca pager + grid
+        postViewModel.loadFrames()
     }
 
-    // Khung anh cua moment (neu co) — resolve URL tu catalog frames
+    // Map frameId -> URL khung (nhu feed) de overlay len tung post
     val frames by postViewModel.frames.collectAsState()
-    LaunchedEffect(post.frameId) {
-        if (post.frameId != null) postViewModel.loadFrames()
+    val frameUrls = remember(frames) {
+        frames
+            .mapNotNull { f -> f.imageUrl?.let { url -> f.frameId to url } }
+            .toMap()
     }
-    val frameImageUrl = frames.find { it.frameId == post.frameId }?.imageUrl
 
     // Toast ket qua gui tin nhan/xoa (one-shot)
     val actionMessage by postViewModel.actionMessage.collectAsState()
@@ -381,36 +412,47 @@ fun PostDetailScreen(
                 )
             },
         ) { paddingValues ->
-            Column(
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 70.dp)
                     .padding(paddingValues),
             ) {
-                PostDetailContent(
-                    post = post,
-                    frameImageUrl = frameImageUrl,
-                )
-
-                // Message Pill — emoji tha reaction + go text nhan tin toi tac gia.
-                // AN voi bai cua CHINH MINH (fix 2026-07-27); luc currentUser CHUA tai
-                // xong (id "unknown") cung an de khong loe pill tren bai cua minh
-                if (data.id != "unknown" && post.user.id != data.id) {
-                    MessageInputPill(
-                        modifier = Modifier.padding(top = 24.dp),
-                        selectedEmoji = selectedEmoji,
-                        onEmojiClick = { emoji ->
-                            selectedEmoji = emoji
-                            postViewModel.react(post.id, emoji)
-                            flyingEmojis.add(newFlyingEmoji(emoji))
+                if (showGrid) {
+                    // ==== GRID MODE: tong hop tat ca post cu (nhu grid o feed) ====
+                    PostGrid(
+                        posts = posts,
+                        // Bam 1 o -> quay ve pager dung post do
+                        onPostClick = { post ->
+                            val index = posts.indexOfFirst { it.id == post.id }
+                            if (index >= 0) {
+                                scope.launch { pagerState.scrollToPage(index) }
+                            }
+                            showGrid = false
                         },
-                        onSendMessage = { text ->
-                            // Reply gui KEM anh/video cua bai (attachment)
-                            postViewModel.sendMessageToAuthor(post, text)
-                        },
+                        frameUrls = frameUrls,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
+                } else {
+                    // ==== PAGER MODE: vuot len = post cu hon (bat dau tu ngay vua bam) ====
+                    VerticalPager(
+                        state = pagerState,
+                        key = { index -> posts.getOrNull(index)?.id ?: index },
+                        modifier = Modifier.fillMaxSize(),
+                    ) { page ->
+                        val post = posts.getOrNull(page) ?: return@VerticalPager
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                // Chua cho hang nut day (overlay)
+                                .padding(top = 16.dp, bottom = 150.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            PostDetailContent(
+                                post = post,
+                                frameImageUrl = frameUrls[post.frameId],
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -418,96 +460,127 @@ fun PostDetailScreen(
         // Emoji bay len tu thanh message roi mo dan
         FlyingEmojiOverlay(flyingEmojis)
 
-        // Hang nut day — DONG BO voi pager feed (2026-08-02): luoi | chup | ⋯
-        // (truoc day dung sampleItems3 voi icon Share mo... Settings — sai chuc nang)
-        Row(
+        // Overlay day man hinh: pill nhan tin (chi bai nguoi khac) + hang nut
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .fillMaxWidth()
-                .padding(horizontal = 36.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Luoi = dong detail, ve calendar profile (tuong duong grid tong hop o feed)
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.Default.GridView,
-                    contentDescription = "All posts",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(32.dp),
-                )
+            // Message Pill — AN voi bai cua CHINH MINH (fix 2026-07-27); currentUser
+            // chua tai xong (id "unknown") cung an de khong loe pill tren bai minh
+            if (!showGrid && currentPost != null && data.id != "unknown" && currentPost.user.id != data.id) {
+                key(currentPost.id) {
+                    MessageInputPill(
+                        selectedEmoji = selectedEmojiByPost[currentPost.id],
+                        onEmojiClick = { emoji ->
+                            selectedEmojiByPost[currentPost.id] = emoji
+                            postViewModel.react(currentPost.id, emoji)
+                            flyingEmojis.add(newFlyingEmoji(emoji))
+                        },
+                        onSendMessage = { text ->
+                            postViewModel.sendMessageToAuthor(currentPost, text)
+                        },
+                    )
+                }
             }
 
-            // Nut chup (ve camera) — cung style nut center 80dp vien vang nhu feed
-            Circle(
-                outerSize = 80.dp,
-                gap = 7.dp,
-                backgroundColor = Color.Transparent,
-                borderColor = Color.Yellow,
-                borderWidth = 3.dp,
-                onClick = goBackToCamera,
-            )
+            // Hang nut day — DONG BO voi pager feed: luoi | chup vien vang | ⋯
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 36.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Luoi: mo/dong grid tong hop cac post cu
+                IconButton(onClick = { showGrid = !showGrid }) {
+                    Icon(
+                        imageVector = Icons.Default.GridView,
+                        contentDescription = "All posts",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
 
-            IconButton(onClick = { showOptions = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreHoriz,
-                    contentDescription = "Post options",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(32.dp),
+                // Nut chup (ve camera) — cung style nut center 80dp vien vang nhu feed
+                Circle(
+                    outerSize = 80.dp,
+                    gap = 7.dp,
+                    backgroundColor = Color.Transparent,
+                    borderColor = Color.Yellow,
+                    borderWidth = 3.dp,
+                    onClick = goBackToCamera,
                 )
+
+                // ⋯ chi co nghia o pager (grid khong co "post hien tai")
+                IconButton(
+                    onClick = { showOptions = true },
+                    enabled = !showGrid && currentPost != null,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreHoriz,
+                        contentDescription = "Post options",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
             }
         }
     }
 
     // ==== Menu ⋯ (dung chung voi feed): Share / Download / Delete (bai minh) / Cancel ====
     if (showOptions) {
-        val isVideo = post.postType == PostType.VIDEO
-        PostOptionsSheet(
-            isOwnPost = post.user.id == data.id,
-            onShare = {
-                showOptions = false
-                scope.launch {
-                    try {
-                        MediaActions.share(context, post.thumbnailUrl, isVideo)
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Share failed.", Toast.LENGTH_SHORT).show()
+        currentPost?.let { post ->
+            val isVideo = post.postType == PostType.VIDEO
+            PostOptionsSheet(
+                isOwnPost = post.user.id == data.id,
+                onShare = {
+                    showOptions = false
+                    scope.launch {
+                        try {
+                            MediaActions.share(context, post.thumbnailUrl, isVideo)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Share failed.", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                }
-            },
-            onDownload = {
-                showOptions = false
-                requestDownload(post.thumbnailUrl, isVideo)
-            },
-            onDelete = {
-                showOptions = false
-                showConfirmDelete = true
-            },
-            onDismiss = { showOptions = false },
-        )
+                },
+                onDownload = {
+                    showOptions = false
+                    requestDownload(post.thumbnailUrl, isVideo)
+                },
+                onDelete = {
+                    showOptions = false
+                    showConfirmDelete = true
+                },
+                onDismiss = { showOptions = false },
+            )
+        }
     }
 
     // Xac nhan xoa (huy duoc) — xoa that qua DELETE /moments/:id roi bao profile refresh
     if (showConfirmDelete) {
-        AlertDialog(
-            onDismissRequest = { showConfirmDelete = false },
-            title = { Text("Delete post?") },
-            text = { Text("This moment will be permanently deleted.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showConfirmDelete = false
-                        postViewModel.deleteMoment(post.id, onDeleted ?: onBack)
-                    },
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDelete = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
+        currentPost?.let { post ->
+            AlertDialog(
+                onDismissRequest = { showConfirmDelete = false },
+                title = { Text("Delete post?") },
+                text = { Text("This moment will be permanently deleted.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showConfirmDelete = false
+                            postViewModel.deleteMoment(post.id, onDeleted ?: onBack)
+                        },
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDelete = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
     }
 }

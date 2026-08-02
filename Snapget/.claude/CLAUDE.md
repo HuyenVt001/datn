@@ -108,7 +108,7 @@ App Android mạng xã hội kiểu **BeReal/Locket**: mở thẳng camera, ch�
 | Tin nhắn | trạng thái `isSeen`; loại text/voice/emoji/sticker/photo; reaction + reply (trích dẫn tin gốc) |
 | Solo Streak | ngày liên tiếp đăng ≥1 moment → thưởng khung; mỗi user 1 streak cá nhân |
 | Friend Streak | mỗi cặp bạn 1 streak chung; +1 khi tương tác qua lại trong 24h; **>24h → reset 0** |
-| Co-op Capture | 1 người chụp nửa ảnh + gửi yêu cầu → bạn chụp nửa còn lại → **server ghép** thành 1 moment cho cả 2 |
+| Co-op Capture | **(REDESIGN 2026-08-02 — user chốt)** mời KHÔNG kèm ảnh, hiệu lực **5 phút** → bạn accept → cả 2 vào màn chụp coop (nửa camera + nửa chờ đối phương) → mỗi người nộp nửa ảnh → **server ghép** → mỗi người cầm ảnh ghép đăng bài theo luồng thường (edit → caption → đăng) |
 | Daily Quest | **(CHỐT 2026-07-13)** Thiết kế gốc **3 quest/ngày** (quest 3 do **AI** tạo — hoãn) → **tạm 2 quest cố định/ngày**: đăng nhập + đăng 1 bài — server **tự hoàn thành**, app chỉ hiển thị qua `GET /quests/today`. Thưởng: đủ quest → khung ngẫu nhiên; mốc streak 3/7/14/30 → khung mốc |
 
 > Giới hạn đặt thành **hằng số có tên** trong `constants/`, khớp `server/src/common/constants.ts` (`MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=5`, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` — tạm, 3 khi có AI). **Ràng buộc thật do server enforce** — client chỉ chặn UX. Tên field/enum khớp `server/.claude/CLAUDE.md` mục 6.

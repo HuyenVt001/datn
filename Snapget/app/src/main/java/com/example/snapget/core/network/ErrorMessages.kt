@@ -8,7 +8,7 @@ import retrofit2.HttpException
  *
  * Retrofit nem HttpException voi MOI response 4xx/5xx — `message` cua no chi la
  * "HTTP 400 Bad Request" (vo nghia voi user). Message nghiep vu that cua server
- * ("Loi moi da het han (qua 24 gio).", "Nhom chat toi da 20 thanh vien."...)
+ * ("Loi moi da het han (qua 5 phut).", "Nhom chat toi da 20 thanh vien."...)
  * nam trong errorBody theo envelope { success, statusCode, message, data }.
  * Moi catch hien loi cho user PHAI dung ham nay thay vi `e.message ?:`.
  */

@@ -23,8 +23,7 @@ import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.auth.LoginScreen
 import com.example.snapget.feature.camera.CameraScreen
-import com.example.snapget.feature.coop.CoopAcceptScreen
-import com.example.snapget.feature.coop.CoopSendScreen
+import com.example.snapget.feature.coop.CoopCaptureScreen
 import com.example.snapget.feature.friends.QrScanScreen
 import com.example.snapget.feature.message.ChatScreen
 import com.example.snapget.feature.message.GroupChatScreen
@@ -52,8 +51,7 @@ sealed class Screen(val route: String) { // enum
     object Camera : Screen("camera")
     object DailyQuest : Screen("daily_quest")
     object EditMedia : Screen("edit_media")
-    object CoopSend : Screen("coop_send")
-    object CoopAccept : Screen("coop_accept")
+    object CoopCapture : Screen("coop_capture")
     object WidgetSettings : Screen("widget_settings")
     object HowToAddWidget : Screen("how_to_add_widget")
 
@@ -87,8 +85,7 @@ fun Navigation(
         Screen.GroupChat.route,
         Screen.QrScan.route,
         Screen.DailyQuest.route,
-        Screen.CoopSend.route,
-        Screen.CoopAccept.route,
+        Screen.CoopCapture.route,
         Screen.WidgetSettings.route,
         Screen.HowToAddWidget.route,
         Screen.LegalDoc.route,
@@ -295,34 +292,21 @@ fun Navigation(
                 HowToAddWidgetScreen(navController = navController)
             }
 
-            // Chup chung: gui loi moi (sau khi chup nua anh cua minh o che do Co-op)
+            // Chup chung (redesign 2026-08-02): man cho accept + chup nua anh + doi ghep
             composable(
-                route = Screen.CoopSend.route + "?photoPath={photoPath}",
-                arguments = listOf(navArgument("photoPath") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                CoopSendScreen(
-                    navController = navController,
-                    photoPath = backStackEntry.arguments?.getString("photoPath") ?: "",
-                )
-            }
-
-            // Chup chung: chap nhan loi moi + chup nua con lai
-            composable(
-                route = Screen.CoopAccept.route + "?inviteId={inviteId}&mediaUrl={mediaUrl}&name={name}",
+                route = Screen.CoopCapture.route + "?inviteId={inviteId}&name={name}",
                 arguments = listOf(
                     navArgument("inviteId") { type = NavType.StringType },
-                    navArgument("mediaUrl") { type = NavType.StringType },
                     navArgument("name") {
                         type = NavType.StringType
                         defaultValue = "friend"
                     },
                 ),
             ) { backStackEntry ->
-                CoopAcceptScreen(
+                CoopCaptureScreen(
                     navController = navController,
                     inviteId = backStackEntry.arguments?.getString("inviteId") ?: "",
-                    inviterMediaUrl = backStackEntry.arguments?.getString("mediaUrl") ?: "",
-                    inviterName = backStackEntry.arguments?.getString("name") ?: "friend",
+                    partnerName = backStackEntry.arguments?.getString("name") ?: "friend",
                 )
             }
         }

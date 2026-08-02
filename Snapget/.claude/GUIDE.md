@@ -122,9 +122,10 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
 
 feature/                    # Mỗi tính năng 1 package: screen + viewmodel + data riêng
   auth/                     #   LoginScreen (kèm Forgot Password), AuthViewModel, data/AuthRepository
-  camera/                   #   CameraScreen (CameraX: chụp/quay nút center, pinch-zoom, lật cam, toggle co-op,
-  │                         #   vuốt lên mở feed, mirror selfie)
-  coop/                     #   CoopSendScreen, CoopAcceptScreen, CoopViewModel, data/CoopRepository (/moments/coop)
+  camera/                   #   CameraScreen (CameraX: chụp/quay nút center, pinch-zoom, lật cam, nút Co-op
+  │                         #   mở popup chọn bạn gửi lời mời, vuốt lên mở feed, mirror selfie)
+  coop/                     #   CoopCaptureScreen (màn chụp coop nửa camera + CoopFriendPickerDialog),
+  │                         #   CoopViewModel (poll 2.5s), data/CoopRepository (/moments/coop)
   friends/                  #   FriendsViewModel (kết bạn 2 bước), QrScanScreen, data/FriendsRepository (/friendships)
   │                         #   + data/PendingInviteStore (mã mời chờ login)
   post/                     #   PostScreen (VerticalPager full-screen + grid + menu ⋯ + banner coop/lời mời),
@@ -157,7 +158,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Bạn bè (≤20): sheet bạn bè + streak 🔥; QR + link mời TTL 30 ngày; App Links domain thật; **kết bạn 2 bước** (PENDING → chủ link accept/decline) + banner 💌 trên feed | ✅ |
 | Chat: 1-1 + nhóm ≤20; TEXT/EMOJI/PHOTO/STICKER/VOICE; media viewer zoom; reaction (long-press); **reply kiểu Messenger** (trích dẫn tin gốc); polling 5s; mark seen | ✅ |
 | Quản lý nhóm chat (sheet ⋯ trên header, theo mẫu Messenger): đổi tên + đổi avatar nhóm (upload Cloudinary), mời bạn vào nhóm (≤20), xóa thành viên (chỉ người tạo), rời nhóm, mute thông báo (server bỏ qua khi push FCM) | ✅ |
-| Co-op capture: mời → banner vàng feed → chụp nửa còn lại → server ghép | ✅ |
+| Co-op capture **(redesign 2026-08-02)**: nút Co-op → popup chọn bạn → lời mời 5 phút → accept → màn chụp coop (nửa camera + nửa xám chờ, nút chụp/again/send) → server ghép → cả 2 vào luồng edit → đăng bài thường | ✅ |
 | Profile: streak thật, calendar moment, edit tên/avatar; profile người khác chỉ bạn bè xem | ✅ |
 | Daily Quest + bộ sưu tập khung (khóa = mờ + 🔒) | ✅ |
 | Settings hoạt động thật: theme Dark/Light/System, edit name/birthday, share/rate/MXH, Terms/Privacy, sign out | ✅ |
@@ -165,7 +166,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | UI tiếng Anh toàn bộ; avatar fallback DiceBear thống nhất; FCM đăng ký mỗi lần mở app | ✅ |
 | **Hardening bảo mật** 🔐: tắt backup, R8 + obfuscate, cấm cleartext + chỉ tin CA hệ thống, xử lý 401 + auto-logout, dọn sạch phiên khi đăng xuất, gỡ quyền thừa, không log PII (chi tiết: `../../SECURITY.md` mục 8) | ✅ |
 
-**⬜ Cần test trên emulator/máy thật (2 máy)** — code xong, chưa verify end-to-end: reply chat (1-1 + nhóm), **sheet cài đặt nhóm** (đổi tên/avatar, mời/xóa thành viên, rời nhóm, mute — cần 2 máy để xem phía thành viên bị xóa/không nhận push khi mute), reaction/zoom media trong chat, coop chụp 2 máy, mirror selfie, FCM push (lời mời/tin nhắn), App Links (cài APK debug — verify theo SHA-256 debug keystore), widget (đặt/toggle/tap), pinch-zoom + quay video nút center, share/download/xóa bài, bàn phím không che ô nhập, theme light toàn màn.
+**⬜ Cần test trên emulator/máy thật (2 máy)** — code xong, chưa verify end-to-end: reply chat (1-1 + nhóm), **sheet cài đặt nhóm** (đổi tên/avatar, mời/xóa thành viên, rời nhóm, mute — cần 2 máy để xem phía thành viên bị xóa/không nhận push khi mute), reaction/zoom media trong chat, **coop flow mới 2 máy** (mời → accept → chụp 2 nửa → ghép → cả 2 vào edit; hết hạn 5 phút; hủy lời mời), mirror selfie, FCM push (lời mời/tin nhắn), App Links (cài APK debug — verify theo SHA-256 debug keystore), widget (đặt/toggle/tap), pinch-zoom + quay video nút center, share/download/xóa bài, bàn phím không che ô nhập, theme light toàn màn.
 
 **⬜ 🔐 Test riêng cho bản RELEASE (R8 vừa bật lần đầu 2026-07-28)** — build đã PASS nhưng **chưa chạy runtime**. Rủi ro của R8 nằm ở phản chiếu (Gson/Retrofit), đã bọc bằng rule keep nhưng phải xác nhận thật: `assembleRelease` rồi cài lên máy và chạy hết **đăng nhập → feed → chat → upload ảnh/video → quest/khung → widget → deep link mời**. Nếu màn nào hiện dữ liệu rỗng bất thường ⇒ nghi thiếu rule keep cho class tương ứng, thêm vào `app/proguard-rules.pro`. Ngoài ra: bản release **chưa có `signingConfig`** nên hiện chỉ ra `app-release-unsigned.apk`.
 
@@ -190,8 +191,7 @@ Route khai báo trong `navigation/Navigation.kt` (sealed class `Screen`). Bảng
 | `setting` | `feature/settings/SettingScreen.kt` | Dispatch theo SettingIds |
 | `legal/{docType}` | `feature/settings/LegalDocScreen.kt` | Terms/Privacy tĩnh; ẩn bottom bar |
 | `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Entry: nút 🏆 top bar feed; ẩn bottom bar |
-| `coop_send?photoPath=` | `feature/coop/CoopSendScreen.kt` | Gửi lời mời chụp chung; ẩn bottom bar |
-| `coop_accept?inviteId=&mediaUrl=&name=` | `feature/coop/CoopAcceptScreen.kt` | Entry: banner vàng feed; ẩn bottom bar |
+| `coop_capture?inviteId=&name=` | `feature/coop/CoopCaptureScreen.kt` | Màn chụp coop (chờ accept → chụp nửa ảnh → chờ ghép); entry: nút Co-op camera (inviter) / banner vàng feed (invitee); ẩn bottom bar |
 | `widget_settings` | `feature/widget/WidgetSettingsScreen.kt` | Preview + toggle + pin; ẩn bottom bar |
 | `how_to_add_widget` | `feature/widget/HowToAddWidgetScreen.kt` | Hướng dẫn 4 bước; ẩn bottom bar |
 
@@ -241,6 +241,7 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-02 (tối) — Đại tu Co-op Capture + pager xem post cũ**: (1) Co-op flow MỚI (user chốt): nút Co-op trên camera → `CoopFriendPickerDialog` chọn bạn → gửi lời mời KHÔNG kèm ảnh (TTL 5 phút) → cả 2 vào `CoopCaptureScreen` (route `coop_capture?inviteId=&name=`): nửa màn camera của mình (trái = người mời/phải = người nhận, khớp thứ tự ghép server), nửa kia xám + vòng xoay chờ; chụp → nút SEND tròn mũi tên + icon AGAIN bên trái để chụp lại; send xong ẩn nút hiện "waiting for X"; đủ 2 nửa server ghép → tự tải ảnh ghép về (`downloadToCacheFile` mới trong FileUtils) → vào `EditMedia` đăng bài như thường; banner feed giờ mở dialog Accept/Decline; poll 2.5s. XÓA `CoopSendScreen` + `CoopAcceptScreen` + 2 route cũ. Server: 6 endpoint coop (xem `server/GUIDE.md`). (2) `PostDetailScreen` (profile) thành VerticalPager giống feed: nhận toàn bộ post cũ, mở đúng post của ngày bấm, vuốt xem tiếp; icon lưới mở PostGrid tổng hợp thật (trước đó chỉ đóng màn); back: grid → pager → calendar.
 - **2026-08-02 (chiều) — Đồng bộ xem post cũ từ profile + ô caption luôn hiện**: (1) `PostDetailScreen` (mở từ calendar profile) bỏ `MainBottomBar(sampleItems3)` cũ (icon Share mở… Settings — sai chức năng), thay bằng hàng nút GIỐNG pager feed: lưới `GridView` = về calendar · nút chụp 80dp viền vàng = về camera · ⋯ = `PostOptionsSheet` Share/Download/Delete (sheet chuyển `internal` dùng chung; logic Download + xin quyền tách thành `rememberGalleryDownloader()` — `GalleryDownloader.kt`); xóa bài từ profile → toast + đóng detail + tải lại calendar (`deleteMoment` thêm callback `onDeleted`). (2) `SubmitPhotoScreen`: ô caption (`InputCaptionPill`, placeholder "Add a caption...") LUÔN hiện trên ảnh để gõ trực tiếp — trước chỉ hiện sau khi chọn chip từ Captions List; chip vẫn điền vào ô này.
 - **2026-08-02 — Quản lý nhóm chat + dọn bottom bar feed**: (1) `GroupSettingsSheet` mở từ nút ⋯ mới trên header `GroupChatScreen` (bố cục theo ảnh Messenger user gửi): avatar nhóm bấm để đổi (upload → PATCH), tên nhóm + bút chì đổi tên, hàng Invite (chỉ bạn bè chưa trong nhóm, chặn quá 20), danh sách thành viên (menu ⋯ "Remove from group" — CHỈ người tạo thấy), card Mute notifications (Switch) + Leave group (đỏ, confirm); subtitle header = "N members"; `GroupItem` ở MessageScreen hiện avatar nhóm thật. 6 endpoint mới phía server (xem `server/GUIDE.md`), thêm hằng `MAX_GROUP_SIZE=20` vào `core/constants/GroupConstants.kt`. (2) Xóa icon video (SmartDisplay → Setting, thừa) bên phải nút chụp ở bottom bar grid feed (`sampleItems2` — thay bằng placeholder giữ nút chụp ở giữa).
 - **2026-07-28 — Hardening bảo mật app** 🔐: `allowBackup="false"` + backup rules đầy đủ (trước đó refresh token Firebase Auth lọt vào Google Drive backup); **bật R8** cho release (`isMinifyEnabled`/`isShrinkResources` + `proguard-rules.pro` thật — giữ DTO cho Gson, strip `Log.d/v/i`); `network_security_config.xml` cấm cleartext + chỉ tin CA hệ thống ở release, overlay `src/debug/res/xml/` vẫn cho HTTP để dev; chặn build release khi `server.base.url` không phải HTTPS; **`TokenAuthenticator`** xử lý 401 (ép refresh → thử lại → hết thì signOut) + `AuthViewModel` lắng nghe `AuthStateListener` để đẩy về Login; **`SessionCleaner`** xóa Coil cache 512MB + `currentUserCache` + pending invite khi đăng xuất; gỡ 2 quyền LOCATION thừa; bỏ email khỏi log; mật khẩu chuyển từ `rememberSaveable` → `remember`; validate email/độ dài mật khẩu ở LoginScreen; xóa `AuthConstants` + `provideCookieManager` chết. **Chi tiết đầy đủ: `../../SECURITY.md` mục 8.** Build debug + release đều PASS — ⚠️ **cần test runtime bản release trên máy thật** (R8 mới bật lần đầu).

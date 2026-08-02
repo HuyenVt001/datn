@@ -188,7 +188,7 @@ Các tính năng sau **không có ảnh mẫu**; khi làm phải: (1) đề xu�
 - ~~Reaction emoji bay~~ → ✅ đã làm ở post detail (7.4, user chốt 2026-07-12: bay + highlight, không đếm; ⊕ = hàng emoji mở rộng)
 - **Doodle / vẽ tay lên ảnh** trước khi đăng
 - **Khung ảnh (frame)** — chọn khung sau khi chụp + hiển thị khung quanh moment + catalog khung thưởng
-- **Co-op capture (chụp chung)** — lời mời + ghép split-screen
+- ~~Co-op capture (chụp chung)~~ → ✅ đã làm theo spec chữ user chốt 2026-08-02: popup chọn bạn (dialog `#2C2C2C`, avatar viền vàng khi chọn) → `CoopCaptureScreen` nửa camera + nửa xám `#2C2C2C` spinner chờ; nút chụp 80dp viền vàng → nút Send tròn mũi tên (xoay -45° như màn đăng bài) + icon Again trái; ảnh ghép → luồng edit/đăng bài thường
 - **Daily Quest** — màn quest, nộp ảnh, trạng thái hoàn thành
 - ~~Chat nhóm~~ → ✅ màn chat nhóm + **sheet cài đặt nhóm** đã làm (7.15 — user gửi ảnh mẫu Messenger 2026-08-02: đổi tên/avatar, mời/xóa thành viên, mute, rời nhóm); tạo nhóm vẫn là dialog GroupAdd ở Messages (chưa có asset riêng)
 - ~~Friend streak cạnh tên bạn~~ → ✅ đã làm trong sheet bạn bè (7.12); nếu muốn hiện thêm chỗ khác (dropdown, chat) thì hỏi lại

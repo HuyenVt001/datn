@@ -44,6 +44,9 @@ import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
+import com.example.snapget.feature.coop.CoopFriendPickerDialog
+import com.example.snapget.feature.coop.CoopViewModel
+import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
 
 // Vuot len qua nguong nay (tinh tu man camera) thi mo feed
@@ -54,6 +57,8 @@ private val SWIPE_UP_TO_FEED_THRESHOLD = 120.dp
 fun CameraScreen(
     navController: NavController,
     mainViewModel: MainViewModel = hiltViewModel(),
+    coopViewModel: CoopViewModel = hiltViewModel(),
+    friendsViewModel: FriendsViewModel = hiltViewModel(),
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -80,8 +85,19 @@ fun CameraScreen(
         mainViewModel.fetchCurrentUser()
     }
 
-    // Che do CHUP CHUNG (co-op): chup nua anh -> chon ban gui loi moi (thay vi dang solo)
-    var coopMode by remember { mutableStateOf(false) }
+    // CHUP CHUNG (redesign 2026-08-02): bam nut coop -> popup chon ban -> gui loi
+    // moi (khong kem anh, TTL 5 phut) -> sang man cho/chup coop
+    var showCoopPicker by remember { mutableStateOf(false) }
+    val coopBusy by coopViewModel.busy.collectAsState()
+    val coopError by coopViewModel.coopError.collectAsState()
+    val apiFriends by friendsViewModel.friends.collectAsState()
+
+    LaunchedEffect(coopError) {
+        coopError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            coopViewModel.clearError()
+        }
+    }
 
     // Moi lan bam nut center bottom bar -> tang 1 -> CameraPreviewWithZoom chup 1 tam
     // (truoc day nut nay navigate submit_photo KHONG co anh -> "No image selected")
@@ -149,29 +165,15 @@ fun CameraScreen(
                         // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
                         // DA roi man camera -> bo qua, khong chong 2 man EditMedia
                         if (navController.currentDestination?.route == Screen.Camera.route) {
-                            if (coopMode) {
-                                // Che do chup chung -> chon ban de gui loi moi (nua anh cua minh)
-                                navController.navigate(
-                                    Screen.CoopSend.route + "?photoPath=" + Uri.encode(photoPath),
-                                )
-                            } else {
-                                // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
-                                navController.navigate(
-                                    Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
-                                )
-                            }
+                            // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
+                            navController.navigate(
+                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
+                            )
                         }
                     },
                     // Giu nut chup de quay video <=5s -> cung sang man chinh sua (chi chon khung)
                     onVideoTaken = { videoPath ->
-                        if (coopMode) {
-                            // Server chi ghep ANH — video khong dung cho chup chung
-                            Toast.makeText(
-                                context,
-                                "Co-op only supports photos — tap to take one!",
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                        } else if (navController.currentDestination?.route == Screen.Camera.route) {
+                        if (navController.currentDestination?.route == Screen.Camera.route) {
                             navController.navigate(
                                 Screen.EditMedia.route + "?mediaPath=" + Uri.encode(videoPath) + "&isVideo=true",
                             )
@@ -188,15 +190,18 @@ fun CameraScreen(
                 )
             }
 
-            // Toggle che do CHUP CHUNG (co-op): bat -> chup xong chon ban gui loi moi
+            // Nut CHUP CHUNG (co-op): mo popup chon ban + gui loi moi (TTL 5 phut)
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = if (coopMode) Color.Yellow else Color.Black.copy(alpha = 0.6f),
-                modifier = Modifier.clickable { coopMode = !coopMode },
+                color = Color.Black.copy(alpha = 0.6f),
+                modifier = Modifier.clickable {
+                    friendsViewModel.loadFriends()
+                    showCoopPicker = true
+                },
             ) {
                 Text(
-                    text = if (coopMode) "👥 Co-op: ON" else "👥 Co-op",
-                    color = if (coopMode) Color.Black else Color.White,
+                    text = "👥 Co-op",
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -223,6 +228,25 @@ fun CameraScreen(
             )
             // (Hang "History" + nut mui ten cu da XOA 2026-07-13 — UI chet, bam khong lam gi)
         }
+    }
+
+    // Popup chon ban gui loi moi chup chung -> thanh cong sang man cho/chup coop
+    if (showCoopPicker) {
+        CoopFriendPickerDialog(
+            friends = apiFriends,
+            busy = coopBusy,
+            onSend = { friend ->
+                coopViewModel.createInvite(friend.id) { invite ->
+                    showCoopPicker = false
+                    navController.navigate(
+                        Screen.CoopCapture.route +
+                            "?inviteId=" + invite.inviteId +
+                            "&name=" + Uri.encode(friend.name),
+                    )
+                }
+            },
+            onDismiss = { showCoopPicker = false },
+        )
     }
 }
 

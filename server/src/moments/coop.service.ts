@@ -6,28 +6,31 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import sharp from 'sharp';
-import { COOP_INVITE_TTL_HOURS } from '../common/constants';
-import { AuthUser } from '../common/decorators/current-user.decorator';
+import { COOP_INVITE_TTL_MINUTES } from '../common/constants';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
-import { QuestsService } from '../quests/quests.service';
 import { UploadService } from '../upload/upload.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
-import { AcceptCoopInviteDto, CreateCoopInviteDto } from './dto/coop.dto';
+import { CreateCoopInviteDto, SubmitCoopMediaDto } from './dto/coop.dto';
 import { CoopInvite, CoopInviteView } from './entities/coop-invite.entity';
-import { Moment } from './entities/moment.entity';
 import { CoopRepository } from './coop.repository';
-import { MomentsService } from './moments.service';
 
 /** Kich thuoc anh ghep (vuong, chia doi trai/phai). */
 const MERGED_SIZE = 1080;
 
 /**
- * Co-op Capture (chup chung): A chup nua anh + gui loi moi -> B chap nhan +
- * chup nua con lai -> server GHEP 2 anh (sharp, split trai/phai) thanh 1 moment
- * dang boi A kem coopUserId = B (hien tren feed cua ca 2 vi la ban be).
+ * Co-op Capture (REDESIGN 2026-08-02 theo yeu cau user):
+ * 1. A moi B (KHONG kem anh) — loi moi co hieu luc 5 PHUT.
+ * 2. B accept -> ACCEPTED -> ca 2 vao man chup coop (2 client POLL GET :id).
+ * 3. Moi nguoi tu chup + nop nua anh cua minh (POST :id/media) — nguoi moi =
+ *    nua TRAI, nguoi nhan = nua PHAI.
+ * 4. Du 2 nua: server ghep (sharp) + upload Cloudinary -> mergedMediaUrl,
+ *    status COMPLETED. Server KHONG tu tao moment nua — moi nguoi tai anh ghep
+ *    ve va di dang bai theo luong thuong (edit -> caption -> POST /moments);
+ *    streak/quest tinh luc dang bai. Khung COOP_FIRST + friend streak van
+ *    duoc cong ngay khi ghep xong.
  */
 @Injectable()
 export class CoopService {
@@ -35,17 +38,15 @@ export class CoopService {
 
   constructor(
     private readonly repo: CoopRepository,
-    private readonly momentsService: MomentsService,
     private readonly friendshipsRepo: FriendshipsRepository,
     private readonly friendshipsService: FriendshipsService,
     private readonly usersRepo: UsersRepository,
     private readonly usersService: UsersService,
-    private readonly questsService: QuestsService,
     private readonly framesService: FramesService,
     private readonly uploadService: UploadService,
   ) {}
 
-  /** Gui loi moi chup chung (chi moi duoc ban be). */
+  /** Gui loi moi chup chung (chi moi duoc ban be; khong kem anh). */
   async createInvite(inviterId: string, dto: CreateCoopInviteDto): Promise<CoopInvite> {
     if (inviterId === dto.friendUid) {
       throw new BadRequestException('Khong the moi chinh minh chup chung.');
@@ -58,7 +59,6 @@ export class CoopService {
     const invite = await this.repo.create({
       inviterId,
       inviteeId: dto.friendUid,
-      inviterMediaUrl: dto.mediaUrl,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
     });
@@ -66,7 +66,7 @@ export class CoopService {
     await this.pushToUser(
       dto.friendUid,
       'Loi moi chup chung 📸',
-      'Ban be vua moi ban chup nua con lai cua khoanh khac!',
+      'Ban be vua moi ban chup chung — loi moi co hieu luc 5 phut!',
       { type: 'COOP_INVITE', inviteId: invite.inviteId },
     ).catch((e) => this.logger.warn(`Khong gui duoc FCM loi moi: ${e.message}`));
 
@@ -106,82 +106,137 @@ export class CoopService {
     });
   }
 
-  /** Chap nhan: nop nua anh con lai -> ghep -> upload -> tao moment chung. */
-  async accept(uid: string, inviteId: string, dto: AcceptCoopInviteDto): Promise<Moment> {
+  /**
+   * Chi tiet loi moi — 2 CLIENT POLL trang thai o man chup coop (chi nguoi moi/
+   * nguoi nhan). PENDING qua 5 phut -> danh dau EXPIRED de ben dang doi biet.
+   */
+  async getInvite(uid: string, inviteId: string): Promise<CoopInvite> {
+    const invite = await this.assertParticipant(uid, inviteId);
+    if (invite.status === 'PENDING' && this.isExpired(invite)) {
+      await this.repo
+        .update(inviteId, { status: 'EXPIRED' })
+        .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
+      return { ...invite, status: 'EXPIRED' };
+    }
+    return invite;
+  }
+
+  /** Nguoi nhan chap nhan -> ACCEPTED; nguoi moi dang poll se thay va vao man chup. */
+  async accept(uid: string, inviteId: string): Promise<CoopInvite> {
     const invite = await this.assertPendingInviteOf(uid, inviteId);
 
-    // KHOA loi moi TRUOC khi ghep (transaction PENDING->COMPLETED): buoc ghep anh
-    // mat vai giay, khong khoa thi 2 request accept dong thoi se tao 2 moment.
-    const locked = await this.repo.markCompletedIfPending(inviteId);
+    const locked = await this.repo.transition(inviteId, 'PENDING', 'ACCEPTED');
     if (!locked) {
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
 
-    let moment: Moment;
-    try {
-      // Ghep 2 nua anh: trai = nguoi moi, phai = nguoi nhan
-      const merged = await this.mergeSideBySide(invite.inviterMediaUrl, dto.mediaUrl);
-      const uploaded = await this.uploadService.uploadBuffer(merged, 'snapget/coop');
-
-      // Moment dang boi NGUOI MOI (streak/quest/FCM ban be cua ho chay trong create)
-      moment = await this.momentsService.create(
-        { uid: invite.inviterId } as AuthUser,
-        { contentType: 'PHOTO', mediaUrl: uploaded.url, caption: dto.caption },
-        invite.inviteeId,
-      );
-    } catch (e) {
-      // Ghep/upload/tao moment fail -> tra loi moi ve PENDING de thu lai duoc
-      await this.repo
-        .update(inviteId, { status: 'PENDING' })
-        .catch(() => this.logger.warn(`Khong revert duoc loi moi ${inviteId} ve PENDING.`));
-      throw e;
-    }
-
-    // Best-effort: moment DA dang thanh cong — loi ghi momentId vao invite khong
-    // duoc phep lam client nhan 500 + bo qua streak/quest/FCM phia sau.
-    await this.repo
-      .update(inviteId, { momentId: moment.momentId })
-      .catch((e) =>
-        this.logger.warn(
-          `Khong ghi duoc momentId vao loi moi ${inviteId}: ${(e as Error).message}`,
-        ),
-      );
-
-    // Nguoi nhan cung duoc tinh hoat dong: streak + quest + friend streak voi nguoi moi
-    try {
-      const streak = await this.usersService.registerActivityForStreak(uid);
-      await this.questsService.registerMomentPosted(uid, streak);
-      await this.friendshipsService.registerInteraction(uid, invite.inviterId);
-    } catch (e) {
-      this.logger.warn(`Khong cap nhat duoc streak/quest cho nguoi nhan: ${(e as Error).message}`);
-    }
-
-    // Khung dieu kien COOP_FIRST: hoan thanh chup chung -> mo cho CA 2 nguoi (best-effort).
-    await Promise.all([
-      this.framesService.unlockCoopFrames(invite.inviterId),
-      this.framesService.unlockCoopFrames(invite.inviteeId),
-    ]).catch((e) => this.logger.warn(`Khong mo duoc khung chup chung: ${(e as Error).message}`));
-
     await this.pushToUser(
       invite.inviterId,
-      'Chup chung hoan tat 🎉',
-      'Ban be da chup nua con lai — khoanh khac chung da len feed!',
-      { type: 'COOP_DONE', momentId: moment.momentId },
-    ).catch((e) => this.logger.warn(`Khong gui duoc FCM hoan tat: ${e.message}`));
+      'Loi moi chup chung duoc chap nhan 🎉',
+      'Ban be da dong y — vao chup nua anh cua ban ngay!',
+      { type: 'COOP_ACCEPTED', inviteId },
+    ).catch((e) => this.logger.warn(`Khong gui duoc FCM chap nhan: ${e.message}`));
 
-    return moment;
+    return { ...invite, status: 'ACCEPTED' };
   }
 
-  /** Tu choi loi moi (transition transactional — khong ghi de duoc len COMPLETED). */
+  /**
+   * Tu choi (nguoi nhan) HOAC huy (nguoi moi) loi moi dang PENDING —
+   * transition transactional, khong ghi de duoc len ACCEPTED/COMPLETED.
+   */
   async decline(uid: string, inviteId: string): Promise<void> {
-    await this.assertPendingInviteOf(uid, inviteId);
-    const declined = await this.repo.markDeclinedIfPending(inviteId);
+    const invite = await this.assertParticipant(uid, inviteId);
+    if (invite.status !== 'PENDING') {
+      throw new BadRequestException('Loi moi da duoc xu ly roi.');
+    }
+    const declined = await this.repo.transition(inviteId, 'PENDING', 'DECLINED');
     if (!declined) {
       // Accept vua khoa loi moi trong luc minh bam tu choi
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
   }
 
+  /**
+   * Nop nua anh cua minh (chi khi ACCEPTED). Nguoi moi = nua TRAI, nguoi nhan =
+   * nua PHAI; nop lai truoc khi ghep = ghi de (chup lai). Khi DU 2 nua: khoa
+   * ACCEPTED -> COMPLETED bang transaction (2 ben nop cung luc thi chi 1 ben
+   * ghep), ghep + upload -> mergedMediaUrl; fail -> tra ve ACCEPTED de thu lai.
+   */
+  async submitMedia(uid: string, inviteId: string, dto: SubmitCoopMediaDto): Promise<CoopInvite> {
+    const invite = await this.assertParticipant(uid, inviteId);
+    if (invite.status !== 'ACCEPTED') {
+      throw new BadRequestException(
+        invite.status === 'PENDING' ? 'Loi moi chua duoc chap nhan.' : 'Loi moi da duoc xu ly roi.',
+      );
+    }
+
+    const isInviter = invite.inviterId === uid;
+    await this.repo.update(
+      inviteId,
+      isInviter ? { inviterMediaUrl: dto.mediaUrl } : { inviteeMediaUrl: dto.mediaUrl },
+    );
+
+    // DOC LAI tu DB: ben kia co the vua nop nua cua ho xong (2 request dan xen)
+    const updated = await this.repo.findById(inviteId);
+    if (!updated?.inviterMediaUrl || !updated.inviteeMediaUrl) {
+      return updated ?? invite; // con thieu 1 nua — client hien "doi ban be chup"
+    }
+
+    const locked = await this.repo.transition(inviteId, 'ACCEPTED', 'COMPLETED');
+    if (!locked) {
+      // Ben kia vua gianh quyen ghep — cu tra ve, client poll se thay mergedMediaUrl
+      return { ...updated, status: 'COMPLETED' };
+    }
+
+    try {
+      const merged = await this.mergeSideBySide(updated.inviterMediaUrl, updated.inviteeMediaUrl);
+      const uploaded = await this.uploadService.uploadBuffer(merged, 'snapget/coop');
+      await this.repo.update(inviteId, { mergedMediaUrl: uploaded.url });
+      updated.mergedMediaUrl = uploaded.url;
+      updated.status = 'COMPLETED';
+    } catch (e) {
+      // Ghep/upload fail -> tra ve ACCEPTED de 1 trong 2 ben nop lai kich hoat ghep
+      await this.repo
+        .update(inviteId, { status: 'ACCEPTED' })
+        .catch(() => this.logger.warn(`Khong revert duoc loi moi ${inviteId} ve ACCEPTED.`));
+      throw e;
+    }
+
+    // Chup chung = tuong tac qua lai -> friend streak; khung COOP_FIRST mo cho
+    // CA 2 (best-effort — anh ghep DA xong, loi hook khong duoc lam client 500)
+    await this.friendshipsService
+      .registerInteraction(invite.inviterId, invite.inviteeId)
+      .catch((e) => this.logger.warn(`Khong cap nhat duoc friend streak: ${(e as Error).message}`));
+    await Promise.all([
+      this.framesService.unlockCoopFrames(invite.inviterId),
+      this.framesService.unlockCoopFrames(invite.inviteeId),
+    ]).catch((e) => this.logger.warn(`Khong mo duoc khung chup chung: ${(e as Error).message}`));
+
+    // Bao ben kia (co the chua poll toi) anh ghep da san sang
+    const other = isInviter ? invite.inviteeId : invite.inviterId;
+    await this.pushToUser(
+      other,
+      'Chup chung hoan tat 🎉',
+      'Anh ghep da san sang — vao chinh sua va dang bai ngay!',
+      { type: 'COOP_DONE', inviteId },
+    ).catch((e) => this.logger.warn(`Khong gui duoc FCM hoan tat: ${e.message}`));
+
+    return updated;
+  }
+
+  /** Loi moi phai ton tai va uid la 1 trong 2 ben (nguoi moi / nguoi nhan). */
+  private async assertParticipant(uid: string, inviteId: string): Promise<CoopInvite> {
+    const invite = await this.repo.findById(inviteId);
+    if (!invite) {
+      throw new NotFoundException('Khong tim thay loi moi chup chung.');
+    }
+    if (invite.inviterId !== uid && invite.inviteeId !== uid) {
+      throw new ForbiddenException('Loi moi nay khong danh cho ban.');
+    }
+    return invite;
+  }
+
+  /** Accept: chi NGUOI NHAN, loi moi con PENDING va chua het han 5 phut. */
   private async assertPendingInviteOf(uid: string, inviteId: string): Promise<CoopInvite> {
     const invite = await this.repo.findById(inviteId);
     if (!invite) {
@@ -194,15 +249,15 @@ export class CoopService {
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
     if (this.isExpired(invite)) {
-      throw new BadRequestException('Loi moi da het han (qua 24 gio).');
+      throw new BadRequestException('Loi moi da het han (qua 5 phut).');
     }
     return invite;
   }
 
-  /** Loi moi qua 24h chua tra loi -> het han. */
+  /** Loi moi qua 5 phut chua duoc chap nhan -> het han. */
   private isExpired(invite: CoopInvite): boolean {
     const ageMs = Date.now() - new Date(invite.createdAt).getTime();
-    return ageMs > COOP_INVITE_TTL_HOURS * 60 * 60 * 1000;
+    return ageMs > COOP_INVITE_TTL_MINUTES * 60 * 1000;
   }
 
   /** Ghep split-screen: moi nua crop 'cover' ve 540x1080, dat canh nhau thanh anh vuong 1080. */

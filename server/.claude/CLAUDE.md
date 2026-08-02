@@ -95,7 +95,7 @@ Cây thư mục thực tế + ý nghĩa từng file: **GUIDE.md mục 2**. Luậ
 | **Reaction** | `posts/{id}/reactions/{id}` | `reactorId`, `emojiType`, `createdAt` | Junction → subcollection |
 | **Chat_Group** | `chatGroups/{id}` | `groupName`, `memberIds[]` (≤20) | Group_Member gộp vào `memberIds[]` |
 | **Message** | `messages/{id}` | `senderId`, `receiverId?`/`groupId?` (một trong hai), `messageType` (TEXT/VOICE/EMOJI/STICKER/PHOTO), `content`, `sendTime`, `isSeen`, `reactions{uid: emoji}`, `attachmentUrl?`+`attachmentType?`, `replyToId?`+`replyToType/Content/SenderId` (snapshot tin gốc) | Reply chỉ trong CÙNG hội thoại; snapshot để client vẽ trích dẫn không cần lookup |
-| **Coop_Invite** | `coopInvites/{id}` | `inviterId`, `inviteeId`, `inviterMediaUrl`, `status` (PENDING/COMPLETED/DECLINED), `momentId?` | TTL 24h |
+| **Coop_Invite** | `coopInvites/{id}` | `inviterId`, `inviteeId`, `inviterMediaUrl?`, `inviteeMediaUrl?`, `mergedMediaUrl?`, `status` (PENDING/ACCEPTED/COMPLETED/DECLINED/EXPIRED) | TTL **5 phút** (redesign 2026-08-02) |
 | **Frame** | `frames/{id}` | `frameName`, `imageUrl`, `unlockType` + `unlockValue` (6 loại điều kiện mở khóa), `milestone` (legacy — repo suy ngược cho doc cũ) | Catalog do admin quản lý |
 | **Daily_Quest** | `dailyQuests/{date}_{type}` | `type` (LOGIN/POST_MOMENT), `content`, `releaseDate` | Id cố định → lazy-create idempotent |
 | **User_Quest** | `userQuests/{date}_{uid}_{type}` | `questId`, `userId`, `type`, `status`, `completedAt` | Hoàn thành TỰ ĐỘNG. Doc `_DAILY_REWARD` đánh dấu đã thưởng khung ngày đó |
@@ -196,13 +196,13 @@ Client chỉ chặn UX; **server mới validate ràng buộc thật**. Luật r�
 | Personal streak | ngày liên tiếp đăng ≥1 moment; mỗi user 1 streak | `users` |
 | Moment view / Message seen | tự đánh dấu `isSeen`; seen/reaction **chỉ người thấy được bài** (chủ bài/coop partner/bạn bè); message seen chỉ người nhận | `moments` / `messages` |
 | Xóa moment | chỉ chủ bài (admin xóa qua route kiểm duyệt riêng, có audit log) | `moments` / `admin` |
-| Co-op capture | chỉ bạn bè ACCEPTED; chỉ invitee trả lời; lời mời TTL 24h; server ghép 2 nửa ảnh (sharp) → 1 moment chung, streak/quest cho CẢ 2 | `moments` (coop) |
+| Co-op capture | **(REDESIGN 2026-08-02)** chỉ bạn bè ACCEPTED; lời mời KHÔNG kèm ảnh, TTL **5 phút**; invitee accept → cả 2 nộp nửa ảnh riêng → server ghép (sharp) → `mergedMediaUrl` — KHÔNG tự tạo moment nữa, mỗi người cầm ảnh ghép đăng bài theo luồng thường (streak/quest tính lúc đăng); friend streak + khung COOP_FIRST cộng lúc ghép xong; hủy PENDING được cả 2 phía | `moments` (coop) |
 | Daily quest | **(CHỐT 2026-07-13)** Thiết kế gốc **3 quest/ngày** (quest thứ 3 do **AI** tạo) — AI hoãn nên **tạm giữ 2** quest cố định/ngày: LOGIN (tự xong khi `GET /quests/today`) + POST_MOMENT (tự xong khi đăng bài); sinh lazy. Thưởng: đủ quest/ngày → 1 khung QUEST_RANDOM; mốc streak 3/7/14/30 → khung mốc. Làm AI → nâng `DAILY_QUESTS_PER_DAY` lên 3 | `quests` |
 | Mở khóa khung | 6 loại `unlockType`: QUEST_RANDOM · STREAK_MILESTONE (3/7/14/30) · POST_COUNT · FRIEND_COUNT (mở cả 2 phía) · COOP_FIRST (cả 2) · DEFAULT (mở sẵn) — hook tự mở đặt ở moments/friendships/coop | `frames` |
 
 **Phân quyền admin**: quản lý user (list/search, khóa/mở = `updateUser({disabled})` + revoke refresh token, cấp/THU quyền), thống kê (+ theo ngày), quản lý khung (CRUD/grant/owners), **kiểm duyệt bài đăng**, **audit log** mọi hành động admin.
 
-> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=5`, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` (tạm — thiết kế 3 khi có AI), `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_HOURS=24`, `INVITE_LINK_TTL_DAYS=30`.
+> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=5`, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` (tạm — thiết kế 3 khi có AI), `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_MINUTES=5`, `INVITE_LINK_TTL_DAYS=30`.
 
 ---
 

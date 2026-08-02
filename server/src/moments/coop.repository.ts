@@ -41,27 +41,19 @@ export class CoopRepository {
   }
 
   /**
-   * Chuyen PENDING -> COMPLETED bang TRANSACTION (optimistic lock).
-   * Tra ve false neu loi moi khong con PENDING — chong 2 request accept
-   * dong thoi cung tao moment (accept mat vai giay de ghep anh).
+   * Chuyen trang thai [from] -> [to] bang TRANSACTION (optimistic lock).
+   * Tra ve false neu trang thai hien tai khong con la [from] — chong 2 request
+   * dong thoi (2 ben cung nop nua anh -> chi 1 ben duoc ghep; accept vs decline).
    */
-  async markCompletedIfPending(inviteId: string): Promise<boolean> {
-    return this.transitionIfPending(inviteId, 'COMPLETED');
-  }
-
-  /**
-   * Chuyen PENDING -> DECLINED bang TRANSACTION — decline khong duoc ghi de
-   * len COMPLETED (accept dang ghep anh) hay nguoc lai.
-   */
-  async markDeclinedIfPending(inviteId: string): Promise<boolean> {
-    return this.transitionIfPending(inviteId, 'DECLINED');
-  }
-
-  private async transitionIfPending(inviteId: string, to: CoopInviteStatus): Promise<boolean> {
+  async transition(
+    inviteId: string,
+    from: CoopInviteStatus,
+    to: CoopInviteStatus,
+  ): Promise<boolean> {
     const ref = this.col.doc(inviteId);
     return this.firebase.firestore().runTransaction(async (tx) => {
       const snap = await tx.get(ref);
-      if (!snap.exists || (snap.data()?.status ?? '') !== 'PENDING') {
+      if (!snap.exists || (snap.data()?.status ?? '') !== from) {
         return false;
       }
       tx.update(ref, { status: to, respondedAt: new Date().toISOString() });
@@ -74,7 +66,9 @@ export class CoopRepository {
       inviteId,
       inviterId: data.inviterId ?? '',
       inviteeId: data.inviteeId ?? '',
-      inviterMediaUrl: data.inviterMediaUrl ?? '',
+      inviterMediaUrl: data.inviterMediaUrl,
+      inviteeMediaUrl: data.inviteeMediaUrl,
+      mergedMediaUrl: data.mergedMediaUrl,
       status: data.status ?? 'PENDING',
       createdAt: data.createdAt ?? '',
       respondedAt: data.respondedAt,

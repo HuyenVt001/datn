@@ -236,7 +236,10 @@ fun UserProfileContent(
     when {
         selectedPost != null -> {
             PostDetailScreen(
-                post = selectedPost!!,
+                // TOAN BO post cu (moi -> cu) — pager vuot doc nhu feed, mo dung
+                // post cua ngay vua bam; icon luoi hien grid tong hop (2026-08-02)
+                posts = posts.sortedByDescending { it.createdAt },
+                initialPostId = selectedPost!!.id,
                 onBack = { selectedPost = null },
                 navController = navController,
                 // Xoa bai thanh cong -> toast + dong detail + tai lai calendar

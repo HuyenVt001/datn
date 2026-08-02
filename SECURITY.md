@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-08-02 — thêm nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): cập nhật ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`. Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
+> **Cập nhật lần cuối:** 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -249,8 +249,10 @@ Request → 401 từ host server
 | **friendships** | Accept/decline | Transaction theo uid hiện tại; không tự kết bạn với mình; giới hạn 20 kiểm tra **cả 2 phía** | [friendships.service.ts:64-68](server/src/friendships/friendships.service.ts#L64-L68) · [:119-148](server/src/friendships/friendships.service.ts#L119-L148) |
 | **users** | Sửa hồ sơ | Mọi route ghi đều là `me`, uid lấy từ token — **không nhận uid từ client** | [users.controller.ts:22-40](server/src/users/users.controller.ts#L22-L40) |
 | | Xem user khác | Chỉ trả `PublicUser` (uid, fullName, avatar, personalStreak) — **ẩn email, fcmTokens, inviteCode, birthday** | [users.repository.ts:92-99](server/src/users/users.repository.ts#L92-L99) |
-| **coop** | Mời chụp chung | Phải là bạn | [coop.service.ts:53-56](server/src/moments/coop.service.ts#L53-L56) |
-| | Accept/decline | Chỉ đúng người được mời; chống race bằng transaction | [coop.service.ts:185-200](server/src/moments/coop.service.ts#L185-L200) |
+| **coop** | Mời chụp chung | Phải là bạn | [coop.service.ts:54-57](server/src/moments/coop.service.ts#L54-L57) |
+| | Accept | Chỉ đúng người được mời, lời mời còn PENDING + chưa hết hạn 5 phút; chống race bằng transaction | [coop.service.ts:240-256](server/src/moments/coop.service.ts#L240-L256) |
+| | Poll trạng thái / nộp nửa ảnh (2026-08-02) | Chỉ 2 người trong lời mời (`assertParticipant`); nộp nửa ảnh chỉ khi ACCEPTED; ghép khóa transaction ACCEPTED→COMPLETED (2 bên nộp cùng lúc chỉ 1 bên ghép) | [coop.service.ts:228-238](server/src/moments/coop.service.ts#L228-L238) |
+| | Decline / hủy | Người nhận từ chối HOẶC người mời hủy — chỉ khi còn PENDING, transition transactional | [coop.service.ts:147-157](server/src/moments/coop.service.ts#L147-L157) |
 | **frames** | Ghi (CRUD, cấp khung) | Chỉ admin | [frames.controller.ts](server/src/frames/frames.controller.ts) |
 | **quests** | Xem quest hôm nay | uid lấy từ token, không nhận input người dùng | [quests.controller.ts:19](server/src/quests/quests.controller.ts#L19) |
 
@@ -316,7 +318,7 @@ new ValidationPipe({
 | NoSQL injection | ✅ Rủi ro rất thấp | Giá trị người dùng chỉ làm **operand** của `==`/`in`/`array-contains`, không bao giờ dựng tên field hay operator |
 | Trường hợp duy nhất dùng biến làm field path | ✅ An toàn | `` [`reactions.${uid}`] `` tại [messages.repository.ts:77](server/src/messages/messages.repository.ts#L77) — `uid` lấy từ **token đã verify**, không phải body |
 | Path traversal | ❌ Không thể | Server không phục vụ file tĩnh, không ghi file lên đĩa; đã rà toàn bộ `readFileSync/createReadStream/sendFile/express.static` — chỉ có 1 chỗ đọc service account từ **env**, không từ input người dùng |
-| SSRF | ⚠️ Blind SSRF hạn chế | [coop.service.ts:235-241](server/src/moments/coop.service.ts#L235-L241) `fetch(url)` với URL từ DTO. Có `@IsUrl()` nhưng **không giới hạn domain** → có thể quét cổng nội bộ / gọi `169.254.169.254`. Kết quả đi qua `sharp()` nên không đọc được nội dung. **Nên whitelist `res.cloudinary.com`** |
+| SSRF | ⚠️ Blind SSRF hạn chế | [coop.service.ts:290-296](server/src/moments/coop.service.ts#L290-L296) `fetch(url)` với URL từ DTO. Có `@IsUrl()` nhưng **không giới hạn domain** → có thể quét cổng nội bộ / gọi `169.254.169.254`. Kết quả đi qua `sharp()` nên không đọc được nội dung. **Nên whitelist `res.cloudinary.com`** |
 
 ---
 
@@ -793,7 +795,7 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 | API4 | Unrestricted Resource Consumption | 🔴 **Yếu** | Upload không giới hạn buffer ([7.2](#72--điểm-nguy-hiểm-nhất-của-tầng-upload)); phân trang in-memory; `trust proxy` sai |
 | API5 | Broken Function Level Authorization | ✅ Tốt | Guard phủ 11/11 controller; ⚠️ kiến trúc "mặc định mở" |
 | API6 | Unrestricted Access to Sensitive Business Flows | ✅ Khá | Rate limit + giới hạn nghiệp vụ (20 bạn, 20 nhóm) |
-| API7 | Server Side Request Forgery | ⚠️ Blind SSRF hạn chế | [coop.service.ts:235-241](server/src/moments/coop.service.ts#L235-L241) |
+| API7 | Server Side Request Forgery | ⚠️ Blind SSRF hạn chế | [coop.service.ts:290-296](server/src/moments/coop.service.ts#L290-L296) |
 | API8 | Security Misconfiguration | ⚠️ Cần siết | Swagger public, CSP tắt, `trust proxy`, thiếu headers trên Hosting |
 | API9 | Improper Inventory Management | ⚠️ | `/docs` public phơi bày toàn bộ inventory API |
 | API10 | Unsafe Consumption of 3rd-party APIs | ✅ Khá | Cloudinary/Firebase là nhà cung cấp lớn; ⚠️ media public |
@@ -839,7 +841,7 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 | ~~P10~~ | ~~Xử lý 401 phía app~~ → ✅ **XONG 2026-07-28** — [TokenAuthenticator.kt](Snapget/app/src/main/java/com/example/snapget/core/network/interceptor/TokenAuthenticator.kt) |
 | ~~P11~~ | ~~Logout xóa Coil cache + reset `currentUserCache` + `PendingInviteStore`~~ → ✅ **XONG 2026-07-28** — [SessionCleaner.kt](Snapget/app/src/main/java/com/example/snapget/core/data/SessionCleaner.kt) |
 | P12 | `RequireAuth` decode `exp`, tự logout khi hết hạn | [RequireAuth.tsx](admin/src/auth/RequireAuth.tsx) |
-| P13 | Whitelist domain Cloudinary cho SSRF ở co-op | [coop.service.ts:235-241](server/src/moments/coop.service.ts#L235-L241) |
+| P13 | Whitelist domain Cloudinary cho SSRF ở co-op | [coop.service.ts:290-296](server/src/moments/coop.service.ts#L290-L296) |
 | P14 | Xoay `JWT_SECRET`, `CLOUDINARY_API_SECRET`, tạo service account key mới | Env + Console |
 | P15 | Restrict Firebase API key (package+SHA-1 / HTTP referrer) + bật App Check | Google Cloud Console |
 | ~~P16~~ | ~~`network_security_config.xml` + bỏ fallback HTTP ở release~~ → ✅ **XONG 2026-07-28** — thêm cả bản debug (cho cleartext) lẫn release (cấm + chỉ tin CA hệ thống), kèm check chặn build release dùng HTTP ([8.2](#82-tầng-mạng)) |
