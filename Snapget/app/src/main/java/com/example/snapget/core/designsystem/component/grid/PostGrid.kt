@@ -17,11 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
@@ -96,24 +94,22 @@ fun PostGridItem(
             .aspectRatio(1f)
             .clickable { onClick() },
     ) {
-        // Video: URL la file .mp4, AsyncImage khong decode duoc -> nen den + icon play
-        if (post.postType == PostType.VIDEO) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.Black),
-            )
-        } else {
-            AsyncImage(
-                model = post.thumbnailUrl,
-                contentDescription = "Post image",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp)),
-                contentScale = ContentScale.Crop,
-            )
-        }
+        // GIF (.mp4): AsyncImage khong decode duoc file video -> doi duoi sang .jpg
+        // lay POSTER FRAME cua Cloudinary (2026-08-03 — truoc day chi la o den).
+        // Grid khong tu phat de khong nuoi hang chuc ExoPlayer cung luc.
+        AsyncImage(
+            model = if (post.postType == PostType.VIDEO) {
+                post.thumbnailUrl.substringBeforeLast('.') + ".jpg"
+            } else {
+                post.thumbnailUrl
+            },
+            contentDescription = if (post.postType == PostType.VIDEO) "Post GIF" else "Post image",
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.Black),
+            contentScale = ContentScale.Crop,
+        )
 
         // Khung phan thuong ap len anh (business rule: dang bai hien thi kem khung)
         if (frameUrl != null) {
@@ -127,22 +123,22 @@ fun PostGridItem(
             )
         }
 
+        // Badge "GIF" goc tren phai (thay nut play giua o — 2026-08-03): bam vao o
+        // se mo pager, o do GIF tu chay lap
         if (post.postType == PostType.VIDEO) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(40.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        shape = CircleShape,
-                    ),
-                contentAlignment = Alignment.Center,
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Video",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp),
+                Text(
+                    text = "GIF",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }

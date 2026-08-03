@@ -38,7 +38,6 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,6 +77,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.designsystem.theme.SnapYellow
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.navigation.Screen
@@ -157,7 +157,8 @@ private val DOODLE_WIDTHS = listOf(8f, 12f, 20f)
  * Man chinh sua SAU KHI CHUP (user chot 2026-07-13): giong submit_photo_screen.png nhung
  * nut TIEP thay nut dang, picker khung + filter nam DUOI anh, KHONG co o caption.
  * Anh: filter + doodle duoc BAKE vao file moi; khung gui kem frameId (overlay khi hien thi).
- * Video: chi chon khung (khong filter/doodle).
+ * "Anh GIF" (clip <=3s): xem truoc tu chay lap, chi chon khung (khong filter/doodle
+ * vi khong bake duoc len tung frame video).
  */
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -273,22 +274,11 @@ fun EditMediaScreen(
                     )
 
                     isVideo ->
-                        // Video: preview don gian (icon play) — video se phat that o feed
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = "Video",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(36.dp),
-                                )
-                            }
-                        }
+                        // "Anh GIF": xem truoc dung nhu luc dang — tu chay lap, khong tieng
+                        GifVideoPlayer(
+                            source = mediaPath,
+                            modifier = Modifier.fillMaxSize(),
+                        )
 
                     else ->
                         // Anh dang decode o IO thread

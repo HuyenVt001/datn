@@ -99,8 +99,8 @@ class PostViewModel @Inject constructor(
                 // Gui kem vao chat neu co chon nguoi nhan — loi o buoc nay KHONG lam
                 // fail bai dang (moment da len feed roi), chi bao rieng qua chatSendError
                 if (sendToUids.isNotEmpty() && isVideo) {
-                    // Bubble chat hien chi ho tro PHOTO — video van len feed binh thuong
-                    _chatSendError.value = "Videos post to the feed only — sending videos in chat isn't supported yet."
+                    // Bubble chat hien chi ho tro PHOTO — GIF van len feed binh thuong
+                    _chatSendError.value = "GIFs post to the feed only — sending them in chat isn't supported yet."
                 } else if (sendToUids.isNotEmpty()) {
                     var failed = 0
                     sendToUids.forEach { uid ->

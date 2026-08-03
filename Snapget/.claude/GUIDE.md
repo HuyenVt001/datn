@@ -9,13 +9,13 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-02**.
+> Cập nhật lần cuối: **2026-08-03**.
 
 ---
 
 ## 1. Snapget là gì
 
-App Android mạng xã hội kiểu **BeReal/Locket**: mở thẳng camera, chụp/quay nhanh (≤5s), chia sẻ với vòng bạn bè nhỏ (≤20), nhắn tin, gamification (streak + quest + khung ảnh). Đặc tả đầy đủ: 3 file PDF ở root repo.
+App Android mạng xã hội kiểu **BeReal/Locket**: mở thẳng camera, chụp ảnh / giữ nút quay **"ảnh GIF" ≤3s**, chia sẻ với vòng bạn bè nhỏ (≤20), nhắn tin, gamification (streak + quest + khung ảnh). Đặc tả đầy đủ: 3 file PDF ở root repo.
 
 Stack đã chốt: Kotlin 2.0.21 (`minSdk 24`) · Jetpack Compose + Material 3 (theme Dark/Light/System) · Hilt · **Retrofit → NestJS API** · Firebase Auth + FCM (client) · CameraX + ML Kit · Coil + ExoPlayer · Glance. **Bảng đầy đủ + danh sách cấm thêm: `.claude/CLAUDE.md` mục 2** (không đổi nếu chưa hỏi user). Chuỗi UI **tiếng Anh toàn bộ**; message lỗi từ server vẫn tiếng Việt.
 
@@ -63,7 +63,7 @@ Composable Screen ──state/event──► ViewModel ──► Repository ─�
 
 ### 2.4 Media pipeline
 
-Chụp/quay (CameraX, video ≤5s, selfie mirror bake vào pixel) → `EditMediaScreen` (khung/filter/doodle) → upload `POST /upload` (server đẩy Cloudinary, trả URL) → tạo moment/message qua API. App chỉ cầm URL, không giữ secret Cloudinary. Co-op: mỗi bên chụp nửa ảnh, **server ghép** bằng sharp.
+Chụp ảnh / giữ nút quay **"ảnh GIF" ≤3s** (CameraX, không tiếng, selfie mirror bake vào pixel) → `EditMediaScreen` (khung/filter/doodle; GIF chỉ chọn khung) → upload `POST /upload` (server đẩy Cloudinary, trả URL) → tạo moment/message qua API. App chỉ cầm URL, không giữ secret Cloudinary. Co-op: mỗi bên chụp nửa ảnh, **server ghép** bằng sharp.
 
 ### 2.5 Khởi động & điều hướng
 
@@ -152,7 +152,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Tính năng | TT |
 |---|---|
 | Auth: email/password + Google Sign-In + quên mật khẩu | ✅ |
-| UX camera-first: login → thẳng camera; vuốt lên mở feed; giữ nút center quay video ≤5s; pinch-zoom; lật cam 🔄; mirror selfie | ✅ |
+| UX camera-first: login → thẳng camera; vuốt lên mở feed; **giữ nút center = quay "ảnh GIF" ≤3s** (không tiếng, không đồng hồ/vòng tiến độ, tự dừng ở 3s, giữ tối thiểu 0.8s); pinch-zoom; lật cam 🔄; mirror selfie | ✅ |
 | Đăng bài: chụp → EditMedia (khung/filter/doodle 3 mức nét) → SubmitPhoto (caption ≤30, tùy chọn gửi kèm chat 1 bạn/Everyone) → upload + moment | ✅ |
 | Feed: VerticalPager full-screen + grid tổng hợp; khung overlay + video ExoPlayer; mark-seen theo trang hiển thị; reaction emoji bay; gõ text = DM tác giả; menu ⋯ Share/Download/Delete (bài mình) | ✅ |
 | Bạn bè (≤20): sheet bạn bè + streak 🔥; QR + link mời TTL 30 ngày; App Links domain thật; **kết bạn 2 bước** (PENDING → chủ link accept/decline) + banner 💌 trên feed | ✅ |
@@ -241,6 +241,8 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-03 (2) — Rà soát coop toàn diện (độ mượt + chống race)**: (1) `CoopViewModel.preferNewer()` — response poll VỀ MUỘN không ghi đè được state mới hơn (trước đó GET đan xen với submit làm nửa ảnh vừa nộp "biến mất", nút chụp hiện lại, dễ nộp trùng); đã có `mergedMediaUrl` thì không bao giờ lùi. (2) **Rời màn chụp = HỦY phiên cho cả 2 bên** (BackHandler + nút back top bar): PENDING hủy thẳng, ACCEPTED hiện dialog xác nhận "Leave co-op capture?" — trước đó back chỉ pop, đối phương "waiting for X" vô hạn (server thêm decline-từ-ACCEPTED cùng đợt). (3) Poll đổi sang `repeatOnLifecycle(STARTED)` — app xuống background là NGỪNG poll, quay lại tự refresh; trạng thái kết thúc thì dừng hẳn. (4) `downloadToCacheFile` thêm timeout 10s/15s (URL.openStream mặc định KHÔNG timeout — mạng treo là kẹt "Merging photos" vô hạn). (5) Feed poll `loadPending` 10s/lần — banner lời mời (TTL 5 phút) hiện kịp mà không cần rời/vào lại feed. (6) Picker bạn bè hiện spinner khi đang tải (hết lóe "No friends yet").
+- **2026-08-03 — "Ảnh GIF" (thay video 5s) + fix coop kẹt "Merging photos"**: (1) 🐞 **Fix coop treo**: `CoopCaptureScreen` đặt `navigatedToEdit` VÀO KEY của chính `LaunchedEffect` rồi set nó bên trong → Compose hủy đúng coroutine đang chạy → `downloadToCacheFile` không bao giờ xong → kẹt "Merging photos…" vĩnh viễn. Bỏ cờ khỏi key, thêm retry tải ảnh 3 lần + nút "Tap to retry" khi server ghép lỗi (revert về ACCEPTED) qua `CoopViewModel.retryMerge`. (2) **Ảnh GIF**: `MAX_VIDEO_SECONDS` 5 → **3** (app + server); GIỮ nút chụp = quay GIF, thả tay = dừng (ép tối thiểu 0.8s để CameraX không trả ERROR_NO_VALID_DATA), **XÓA đồng hồ đếm giây + vòng tiến độ đỏ**, **bỏ ghi âm** (GIF không tiếng, hết xin RECORD_AUDIO); QualitySelector HD→SD→LOWEST + FallbackStrategy (trước ép cứng HD nên nhiều máy bind fail = mất hẳn chức năng quay); màn camera KHÔNG có dòng hint nào dưới nút chụp (user chốt). Component mới `component/video/GifVideoPlayer.kt` (tự phát, lặp vô hạn, muted, không controls) dùng ở feed/pager/xem post cũ + preview EditMedia/SubmitPhoto; grid đổi ô đen + nút play → **poster frame Cloudinary + badge "GIF"**. Enum/contract giữ nguyên (`.mp4`, `PostType.VIDEO`).
 - **2026-08-02 (tối) — Đại tu Co-op Capture + pager xem post cũ**: (1) Co-op flow MỚI (user chốt): nút Co-op trên camera → `CoopFriendPickerDialog` chọn bạn → gửi lời mời KHÔNG kèm ảnh (TTL 5 phút) → cả 2 vào `CoopCaptureScreen` (route `coop_capture?inviteId=&name=`): nửa màn camera của mình (trái = người mời/phải = người nhận, khớp thứ tự ghép server), nửa kia xám + vòng xoay chờ; chụp → nút SEND tròn mũi tên + icon AGAIN bên trái để chụp lại; send xong ẩn nút hiện "waiting for X"; đủ 2 nửa server ghép → tự tải ảnh ghép về (`downloadToCacheFile` mới trong FileUtils) → vào `EditMedia` đăng bài như thường; banner feed giờ mở dialog Accept/Decline; poll 2.5s. XÓA `CoopSendScreen` + `CoopAcceptScreen` + 2 route cũ. Server: 6 endpoint coop (xem `server/GUIDE.md`). (2) `PostDetailScreen` (profile) thành VerticalPager giống feed: nhận toàn bộ post cũ, mở đúng post của ngày bấm, vuốt xem tiếp; icon lưới mở PostGrid tổng hợp thật (trước đó chỉ đóng màn); back: grid → pager → calendar.
 - **2026-08-02 (chiều) — Đồng bộ xem post cũ từ profile + ô caption luôn hiện**: (1) `PostDetailScreen` (mở từ calendar profile) bỏ `MainBottomBar(sampleItems3)` cũ (icon Share mở… Settings — sai chức năng), thay bằng hàng nút GIỐNG pager feed: lưới `GridView` = về calendar · nút chụp 80dp viền vàng = về camera · ⋯ = `PostOptionsSheet` Share/Download/Delete (sheet chuyển `internal` dùng chung; logic Download + xin quyền tách thành `rememberGalleryDownloader()` — `GalleryDownloader.kt`); xóa bài từ profile → toast + đóng detail + tải lại calendar (`deleteMoment` thêm callback `onDeleted`). (2) `SubmitPhotoScreen`: ô caption (`InputCaptionPill`, placeholder "Add a caption...") LUÔN hiện trên ảnh để gõ trực tiếp — trước chỉ hiện sau khi chọn chip từ Captions List; chip vẫn điền vào ô này.
 - **2026-08-02 — Quản lý nhóm chat + dọn bottom bar feed**: (1) `GroupSettingsSheet` mở từ nút ⋯ mới trên header `GroupChatScreen` (bố cục theo ảnh Messenger user gửi): avatar nhóm bấm để đổi (upload → PATCH), tên nhóm + bút chì đổi tên, hàng Invite (chỉ bạn bè chưa trong nhóm, chặn quá 20), danh sách thành viên (menu ⋯ "Remove from group" — CHỈ người tạo thấy), card Mute notifications (Switch) + Leave group (đỏ, confirm); subtitle header = "N members"; `GroupItem` ở MessageScreen hiện avatar nhóm thật. 6 endpoint mới phía server (xem `server/GUIDE.md`), thêm hằng `MAX_GROUP_SIZE=20` vào `core/constants/GroupConstants.kt`. (2) Xóa icon video (SmartDisplay → Setting, thừa) bên phải nút chụp ở bottom bar grid feed (`sampleItems2` — thay bằng placeholder giữ nút chụp ở giữa).

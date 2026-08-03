@@ -109,7 +109,7 @@ class CoopViewModel @Inject constructor(
     fun refreshInvite(inviteId: String) {
         viewModelScope.launch {
             try {
-                _invite.value = repository.getInvite(inviteId)
+                _invite.value = preferNewer(repository.getInvite(inviteId))
             } catch (_: Exception) {
                 // Mat mang thoang qua — cho lan poll sau
             }
@@ -123,7 +123,7 @@ class CoopViewModel @Inject constructor(
             _busy.value = true
             try {
                 val mediaUrl = repository.uploadHalf(photoFile)
-                _invite.value = repository.submitMedia(inviteId, mediaUrl)
+                _invite.value = preferNewer(repository.submitMedia(inviteId, mediaUrl))
             } catch (e: Exception) {
                 _coopError.value = e.serverMessage("Failed to send your photo.")
             } finally {
@@ -131,6 +131,43 @@ class CoopViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Nop LAI dung URL nua anh da co de kich hoat ghep lan nua — dung khi server
+     * ghep loi va da revert ve ACCEPTED (man chup hien nut "Tap to retry").
+     */
+    fun retryMerge(inviteId: String, myMediaUrl: String) {
+        if (_busy.value) return
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                _invite.value = preferNewer(repository.submitMedia(inviteId, myMediaUrl))
+            } catch (e: Exception) {
+                _coopError.value = e.serverMessage("Failed to merge photos.")
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
+    /**
+     * Chong response VE MUON ghi de state moi hon (poll 2.5s dan xen voi submit —
+     * GET ban ra TRUOC khi submit xong co the VE SAU response submit; nuot guard
+     * nay thi nua anh vua nop "bien mat", nut chup hien lai, user nop trung lan 2):
+     * 1. Da co anh ghep -> KHONG bao gio lui ve ban chua co (mergedMediaUrl la moc cuoi).
+     * 2. Cung status nhung IT media hon = ban cu — giu ban hien tai.
+     * Doi status van luon tin server (ke ca COMPLETED -> ACCEPTED: server revert
+     * khi ghep loi, phai nhan de con hien nut retry).
+     */
+    private fun preferNewer(latest: CoopInviteDto): CoopInviteDto {
+        val cur = _invite.value
+        if (cur == null || cur.inviteId != latest.inviteId) return latest
+        if (cur.mergedMediaUrl != null && latest.mergedMediaUrl == null) return cur
+        if (latest.status == cur.status && mediaCount(latest) < mediaCount(cur)) return cur
+        return latest
+    }
+
+    private fun mediaCount(invite: CoopInviteDto): Int = listOfNotNull(invite.inviterMediaUrl, invite.inviteeMediaUrl, invite.mergedMediaUrl).size
 
     /** Reset khi roi man chup coop (tranh loe loi moi cu khi mo lan sau). */
     fun clearInvite() {

@@ -87,6 +87,7 @@ import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.coop.CoopViewModel
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Keo xuong qua nguong nay khi dang o POST MOI NHAT -> quay ve man camera
@@ -131,6 +132,17 @@ fun PostScreen(
         coopError?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
             coopViewModel.clearError()
+        }
+    }
+
+    // Loi moi coop TTL chi 5 PHUT — poll nhe 10s/lan khi dang o feed de banner
+    // hien kip (truoc chi load luc vao feed: ngoi xem feed la lo luon loi moi)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(10_000)
+            if (authState is AuthState.Authenticated) {
+                coopViewModel.loadPending()
+            }
         }
     }
 

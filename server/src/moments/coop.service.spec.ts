@@ -164,13 +164,24 @@ describe('CoopService', () => {
       expect(result.status).toBe('ACCEPTED');
     });
 
-    it('PENDING qua 5 phut -> tra ve EXPIRED + danh dau vao DB', async () => {
+    it('PENDING qua 5 phut -> tra ve EXPIRED + danh dau qua TRANSITION transactional', async () => {
       repo.findById.mockResolvedValue(expiredInvite as never);
 
       const result = await service.getInvite('alice', 'i2');
 
       expect(result.status).toBe('EXPIRED');
-      expect(repo.update).toHaveBeenCalledWith('i2', { status: 'EXPIRED' });
+      expect(repo.transition).toHaveBeenCalledWith('i2', 'PENDING', 'EXPIRED');
+    });
+
+    it('thua transition EXPIRED (accept vua thang) -> tra ve trang thai THAT tu DB', async () => {
+      repo.findById
+        .mockResolvedValueOnce(expiredInvite as never)
+        .mockResolvedValueOnce({ ...expiredInvite, status: 'ACCEPTED' } as never);
+      repo.transition.mockResolvedValue(false as never);
+
+      const result = await service.getInvite('alice', 'i2');
+
+      expect(result.status).toBe('ACCEPTED');
     });
   });
 
@@ -222,7 +233,7 @@ describe('CoopService', () => {
       expect(framesService.unlockCoopFrames).toHaveBeenCalledWith('bob');
     });
 
-    it('2 ben nop cung luc: ben thua transaction KHONG ghep lai', async () => {
+    it('2 ben nop cung luc: ben thua transaction KHONG ghep lai, tra ve trang thai THAT', async () => {
       const bothHalves = {
         ...acceptedInvite,
         inviterMediaUrl: 'https://cdn/left.jpg',
@@ -230,7 +241,13 @@ describe('CoopService', () => {
       };
       repo.findById
         .mockResolvedValueOnce(bothHalves as never)
-        .mockResolvedValueOnce(bothHalves as never);
+        .mockResolvedValueOnce(bothHalves as never)
+        // Doc lai sau khi thua transition: ben kia da ghep xong
+        .mockResolvedValueOnce({
+          ...bothHalves,
+          status: 'COMPLETED',
+          mergedMediaUrl: 'https://cdn/merged.jpg',
+        } as never);
       repo.transition.mockResolvedValue(false as never);
       const mergeSpy = mockMerge();
 
@@ -238,6 +255,7 @@ describe('CoopService', () => {
 
       expect(mergeSpy).not.toHaveBeenCalled();
       expect(result.status).toBe('COMPLETED');
+      expect(result.mergedMediaUrl).toBe('https://cdn/merged.jpg');
     });
 
     it('ghep FAIL -> tra loi moi ve ACCEPTED de nop lai', async () => {
@@ -287,11 +305,21 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i1', 'PENDING', 'DECLINED');
     });
 
-    it('chan nguoi ngoai cuoc + loi moi da xu ly', async () => {
+    it('HUY duoc phien dang ACCEPTED (roi man chup) — ca 2 phia', async () => {
+      repo.findById.mockResolvedValue(acceptedInvite as never);
+
+      await service.decline('alice', 'i1');
+      expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'DECLINED');
+
+      await service.decline('bob', 'i1');
+      expect(repo.transition).toHaveBeenCalledTimes(2);
+    });
+
+    it('chan nguoi ngoai cuoc + loi moi da COMPLETED', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await expect(service.decline('stranger', 'i1')).rejects.toThrow(ForbiddenException);
 
-      repo.findById.mockResolvedValue(acceptedInvite as never);
+      repo.findById.mockResolvedValue({ ...pendingInvite, status: 'COMPLETED' } as never);
       await expect(service.decline('bob', 'i1')).rejects.toThrow(BadRequestException);
     });
   });

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.takePhotoBar
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
@@ -91,6 +92,7 @@ fun CameraScreen(
     val coopBusy by coopViewModel.busy.collectAsState()
     val coopError by coopViewModel.coopError.collectAsState()
     val apiFriends by friendsViewModel.friends.collectAsState()
+    val friendsStatus by friendsViewModel.friendsStatus.collectAsState()
 
     LaunchedEffect(coopError) {
         coopError?.let {
@@ -208,8 +210,8 @@ fun CameraScreen(
                 )
             }
 
-            // Nut center "Take a picture": BAM = chup, GIU = quay video <=5s, THA = dung
-            // (khong navigate submit_photo rong)
+            // Nut center "Take a picture": BAM = chup anh, GIU = quay "anh GIF" <=3s,
+            // THA = dung (khong navigate submit_photo rong)
             MainBottomBar(
                 navController,
                 items = takePhotoBar.map { item ->
@@ -235,6 +237,7 @@ fun CameraScreen(
         CoopFriendPickerDialog(
             friends = apiFriends,
             busy = coopBusy,
+            loading = friendsStatus is LoadStatus.Loading,
             onSend = { friend ->
                 coopViewModel.createInvite(friend.id) { invite ->
                     showCoopPicker = false

@@ -101,7 +101,7 @@ App Android mạng xã hội kiểu **BeReal/Locket**: mở thẳng camera, ch�
 |---|---|
 | Giới hạn bạn bè | **tối đa 20**; muốn thêm phải xóa người cũ. Kết bạn qua **invite link/QR, 2 bước** (gửi lời mời → chủ link xác nhận), kiểm tra giới hạn cả 2 phía |
 | Chat nhóm | **tối đa 20 người** (≤ số bạn bè, chỉ thêm bạn bè) |
-| Video ngắn | **tối đa 5 giây** |
+| **Ảnh GIF** (clip ngắn) | **tối đa 3 giây** (chốt 2026-08-03, trước là 5s). GIU nút chụp = quay, thả tay = dừng; phát **lặp vô hạn, KHÔNG tiếng, không nút play/đồng hồ** — coi như ảnh biết chuyển động. Luồng chỉnh sửa/đăng bài y hệt ảnh thường. File thật vẫn là `.mp4`, enum vẫn `PostType.VIDEO`/`contentType=VIDEO` (không đổi contract API) |
 | Khung ảnh & filter | chọn **sau khi đã chụp**; có **doodle** vẽ tay; đăng hiển thị kèm khung |
 | Reaction | emoji **bay lên màn hình** khi xem feed |
 | Feed đã xem | tự đánh dấu `isSeen` cho moment **thực sự hiển thị** (không mark cả feed) |
@@ -111,7 +111,7 @@ App Android mạng xã hội kiểu **BeReal/Locket**: mở thẳng camera, ch�
 | Co-op Capture | **(REDESIGN 2026-08-02 — user chốt)** mời KHÔNG kèm ảnh, hiệu lực **5 phút** → bạn accept → cả 2 vào màn chụp coop (nửa camera + nửa chờ đối phương) → mỗi người nộp nửa ảnh → **server ghép** → mỗi người cầm ảnh ghép đăng bài theo luồng thường (edit → caption → đăng) |
 | Daily Quest | **(CHỐT 2026-07-13)** Thiết kế gốc **3 quest/ngày** (quest 3 do **AI** tạo — hoãn) → **tạm 2 quest cố định/ngày**: đăng nhập + đăng 1 bài — server **tự hoàn thành**, app chỉ hiển thị qua `GET /quests/today`. Thưởng: đủ quest → khung ngẫu nhiên; mốc streak 3/7/14/30 → khung mốc |
 
-> Giới hạn đặt thành **hằng số có tên** trong `constants/`, khớp `server/src/common/constants.ts` (`MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=5`, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` — tạm, 3 khi có AI). **Ràng buộc thật do server enforce** — client chỉ chặn UX. Tên field/enum khớp `server/.claude/CLAUDE.md` mục 6.
+> Giới hạn đặt thành **hằng số có tên** trong `constants/`, khớp `server/src/common/constants.ts` (`MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=3` — độ dài ảnh GIF, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` — tạm, 3 khi có AI). **Ràng buộc thật do server enforce** — client chỉ chặn UX. Tên field/enum khớp `server/.claude/CLAUDE.md` mục 6.
 
 ---
 

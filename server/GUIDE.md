@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-08-02**.
+> Cập nhật lần cuối: **2026-08-03**.
 
 ---
 
@@ -84,11 +84,11 @@ helmet (security headers, CSP off cho Swagger)
 |---|---|---|
 | `config` (@Global) | Nạp + validate `.env` bằng Joi (fail-fast) | — |
 | `firebase` (@Global) | Khởi tạo Admin SDK; expose `auth()/firestore()/messaging()` | boot được cả khi thiếu key (warn) |
-| `common` | Envelope, filter, interceptor, guards, decorators, constants (MAX_FRIENDS=20, MAX_GROUP_SIZE=20, MAX_VIDEO_SECONDS=5…) | dùng chung, không business logic |
+| `common` | Envelope, filter, interceptor, guards, decorators, constants (MAX_FRIENDS=20, MAX_GROUP_SIZE=20, MAX_VIDEO_SECONDS=3 (ảnh GIF)…) | dùng chung, không business logic |
 | `auth` | Login admin, phát JWT; export JwtModule cho AdminJwtGuard | firebase |
 | `users` | Hồ sơ, fcm-tokens, personal streak, inviteCode TTL 30 ngày, **`pushToUids()` = helper FCM DUY NHẤT toàn server** | moments/messages/coop/friendships gọi qua UsersService |
 | `friendships` | Kết bạn 2 bước qua invite link (PENDING → accept/decline), limit 20 trong transaction, friend streak reset 24h | users (FCM, profile) |
-| `upload` | Multipart ≤25MB → Cloudinary; enforce video ≤5s từ metadata; route riêng cho admin | cloudinary |
+| `upload` | Multipart ≤25MB → Cloudinary; enforce ảnh GIF ≤3s từ metadata; route riêng cho admin | cloudinary |
 | `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal+friend streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
 | `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin | users, audit |
@@ -129,7 +129,7 @@ server/
 │   │                           ensureUser (tự tạo/backfill doc), personal streak, inviteCode TTL 30 ngày, pushToUids (FCM helper)
 │   ├── friendships/         ✅ list, invite-link/-info, connect (PENDING, transaction limit 20), requests accept/decline, remove,
 │   │                           registerInteraction (friend streak 24h)
-│   ├── upload/              ✅ POST /upload (app) + /upload/admin; Cloudinary; video ≤5s enforce
+│   ├── upload/              ✅ POST /upload (app) + /upload/admin; Cloudinary; ảnh GIF ≤3s enforce
 │   ├── moments/             ✅ đăng bài, feed, mine, user/:uid, delete (chủ bài), seen, reactions
 │   │   └── (coop)           ✅ coop.controller/service/repository — mời (TTL 5')/accept/nộp nửa ảnh (sharp ghép)/poll :id/decline
 │   │                           (CoopController đứng TRƯỚC MomentsController trong module — tránh nuốt route bởi :id)
@@ -180,13 +180,13 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 |---|---|---|---|---|
 | users | ✅ | personal streak, inviteCode TTL, sync Auth, ensureUser backfill | ✅ | ✅ |
 | friendships | ✅ | kết bạn 2 bước, limit 20 transaction 2 phía, streak 24h, mã hết hạn | ✅ | ✅ |
-| moments | ✅ | video≤5s (tại upload), seen/reaction chỉ người thấy được bài, xóa chỉ chủ bài, streak + FCM wired | ✅ | ✅ |
+| moments | ✅ | ảnh GIF ≤3s (tại upload), seen/reaction chỉ người thấy được bài, xóa chỉ chủ bài, streak + FCM wired | ✅ | ✅ |
 | coop | ✅ | chỉ bạn bè ACCEPTED; TTL **5 phút**; accept chỉ invitee (hủy được cả 2 phía); mỗi bên nộp nửa ảnh riêng; sharp ghép → mergedMediaUrl (KHÔNG tự tạo moment); friend streak + khung COOP_FIRST lúc ghép | ✅ | ✅ |
 | messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè — cả lúc tạo lẫn lúc mời thêm), seen, reaction toggle, reply cùng-hội-thoại, quản lý nhóm (rename/avatar/mời/xóa — chỉ creator/rời/mute) | ✅ | ✅ |
 | frames | ✅ | 6 unlockType + hook tự mở ở moments/friendships/coop | ✅ | ✅ |
 | quests | ✅ | 2 quest/ngày lazy, thưởng 2/2 + mốc streak | ✅ | ✅ |
 | admin | ✅ | chặn tự khóa/tự thu quyền (luôn ≥1 admin), guard re-check mỗi request, khóa = revoke refresh token, audit log | ✅ | ✅ |
-| upload | ✅ | ≤25MB, video ≤5s enforce | ⬜ | ✅ |
+| upload | ✅ | ≤25MB, ảnh GIF ≤3s enforce | ⬜ | ✅ |
 | audit | ✅ | ghi best-effort, không chặn hành động chính | — | ✅ |
 
 ---
@@ -210,7 +210,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/friendships/requests/:requesterUid/accept` | Chấp nhận lời mời → thành bạn (re-check limit 20; FCM) | Firebase |
 | POST | `/api/friendships/requests/:requesterUid/decline` | Từ chối lời mời (xóa im lặng) | Firebase |
 | DELETE | `/api/friendships/:friendUid` | Xóa bạn bè | Firebase |
-| POST | `/api/upload` | Upload ảnh/video (multipart `file`, ≤25MB, video ≤5s) → `{url, publicId, resourceType, duration}` | Firebase |
+| POST | `/api/upload` | Upload ảnh/video (multipart `file`, ≤25MB, ảnh GIF ≤3s) → `{url, publicId, resourceType, duration}` | Firebase |
 | POST | `/api/upload/admin` | [Admin] Upload ảnh (khung ảnh…) — cùng format với /upload | Admin JWT |
 | POST | `/api/moments` | Đăng moment (mediaUrl từ /upload; tăng personal streak; FCM bạn bè) | Firebase |
 | GET | `/api/moments/feed` | Feed mình + bạn bè (`?page&limit`) | Firebase |
@@ -220,7 +220,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | GET | `/api/moments/coop/pending` | Lời mời chụp chung đang chờ mình (kèm tên/avatar người mời) | Firebase |
 | GET | `/api/moments/coop/:id` | Chi tiết lời mời — 2 bên poll trạng thái ở màn chụp coop | Firebase |
 | POST | `/api/moments/coop/:id/accept` | Chấp nhận → ACCEPTED, cả 2 vào màn chụp coop | Firebase |
-| POST | `/api/moments/coop/:id/decline` | Từ chối (invitee) / hủy (inviter) lời mời đang chờ | Firebase |
+| POST | `/api/moments/coop/:id/decline` | Từ chối lời mời PENDING / **hủy phiên ACCEPTED** (cả 2 phía — rời màn chụp = hủy) | Firebase |
 | POST | `/api/moments/coop/:id/media` | Nộp nửa ảnh của mình (`{mediaUrl}`) — đủ 2 nửa server ghép → `mergedMediaUrl` | Firebase |
 | DELETE | `/api/moments/:id` | Xóa moment — CHỈ chủ bài (403 nếu không); xóa cả subcollection | Firebase |
 | POST | `/api/moments/:id/seen` | Đánh dấu đã xem (chỉ người thấy được bài) | Firebase |
@@ -297,6 +297,8 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-03 — Rà soát coop (3 fix race + đổi ngữ nghĩa decline)**: (1) đánh dấu EXPIRED ở `getInvite`/`listPending` chuyển từ `update` trần sang **`transition('PENDING','EXPIRED')` transactional** — update trần có thể ghi đè EXPIRED lên phiên VỪA accept đúng mốc 5 phút; thua transition thì đọc lại trạng thái thật. (2) `submitMedia` thua transaction ghép giờ **đọc lại DB** thay vì đoán COMPLETED (transition fail còn có thể do phiên vừa bị hủy). (3) `decline` cho phép **hủy cả phiên ACCEPTED** (2 phía) — trước đó 1 bên thoát màn chụp là bên kia "đợi bạn bè chụp" vô hạn. 22 test coop pass (137 toàn suite). App sync cùng đợt (xem `Snapget/.claude/GUIDE.md`).
+- **2026-08-03 — "Ảnh GIF" thay video 5s**: `MAX_VIDEO_SECONDS` 5 → **3** (`common/constants.ts`) — clip ngắn giờ là "ảnh GIF" (lặp vô hạn, không tiếng, app phát tự động). `upload.service.ts` đổi message lỗi sang "Anh GIF toi da 3 giay" (vẫn +0.5s dung sai). Không đổi enum/contract: file vẫn `.mp4`, `contentType=VIDEO`.
 - **2026-08-02 — Đại tu Co-op Capture (theo yêu cầu user)**: lời mời KHÔNG kèm ảnh + TTL **5 phút** (`COOP_INVITE_TTL_MINUTES=5` thay `COOP_INVITE_TTL_HOURS`); thêm status `ACCEPTED`; entity thêm `inviteeMediaUrl` + `mergedMediaUrl`; endpoint mới `GET /moments/coop/:id` (2 bên poll) + `POST /moments/coop/:id/media` (nộp nửa ảnh — đủ 2 nửa thì khóa transaction ACCEPTED→COMPLETED rồi sharp ghép → `mergedMediaUrl`); **server KHÔNG tự tạo moment nữa** — mỗi người cầm ảnh ghép đăng bài theo luồng thường (streak/quest tính lúc đăng); friend streak + khung COOP_FIRST cộng lúc ghép; decline giờ cho CẢ inviter hủy. 20 test coop pass. App Android đã sync (màn CoopCapture mới).
 - **2026-08-02 — Quản lý nhóm chat**: `ChatGroup` thêm `avatar?` + `mutedBy[]`; 6 endpoint mới (detail / PATCH rename+avatar / thêm thành viên / xóa thành viên / rời nhóm / mute). Phân quyền: rename/avatar/mời = mọi thành viên (người được mời PHẢI là bạn bè của người mời — giữ rào chắn createGroup 2026-07-26); xóa thành viên = CHỈ `createdBy`; creator rời → chuyển `createdBy` cho thành viên đầu tiên còn lại, người cuối rời → xóa nhóm; `sendToGroup` bỏ qua `mutedBy` khi push FCM. 30 test messages pass. App Android đã sync (sheet cài đặt nhóm).
 - **2026-07-28 — Reply tin nhắn kiểu Messenger**: `SendMessageDto.replyToId` — tin mới reply 1 tin cũ CÙNG hội thoại (1-1: tin gốc giữa đúng 2 người; nhóm: cùng `groupId`; sai → 400). Service snapshot `replyToType/Content/SenderId` vào tin mới (app vẽ trích dẫn không cần lookup). 17 test messages pass.

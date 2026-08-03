@@ -191,7 +191,7 @@ Client chỉ chặn UX; **server mới validate ràng buộc thật**. Luật r�
 | Giới hạn bạn bè | **≤ 20** mỗi user; kiểm tra giới hạn **cả 2 phía** trong transaction (lúc gửi lời mời lẫn lúc accept) | `friendships` |
 | Kết bạn qua link | 2 bước: mở link/QR → gửi lời mời PENDING → chủ link accept/decline (mutual → ACCEPTED luôn); mã mời TTL 30 ngày | `friendships` |
 | Nhóm chat | thành viên **≤ 20**, chỉ thêm bạn bè | `messages` |
-| Video | **≤ 5 giây** (kiểm tra metadata lúc upload, quá thì xóa asset) | `upload` |
+| **Ảnh GIF** (clip ngắn, lặp vô hạn, không tiếng) | **≤ 3 giây** (chốt 2026-08-03, trước 5s; kiểm tra metadata lúc upload, quá thì xóa asset). Lưu như video `.mp4`, `contentType=VIDEO` — không đổi enum để giữ contract | `upload` |
 | Friend streak | mỗi cặp bạn 1 streak chung; +1 khi tương tác qua lại trong 24h; **>24h → reset 0** (dựa `lastInteractionAt`) | `friendships` |
 | Personal streak | ngày liên tiếp đăng ≥1 moment; mỗi user 1 streak | `users` |
 | Moment view / Message seen | tự đánh dấu `isSeen`; seen/reaction **chỉ người thấy được bài** (chủ bài/coop partner/bạn bè); message seen chỉ người nhận | `moments` / `messages` |
@@ -202,7 +202,7 @@ Client chỉ chặn UX; **server mới validate ràng buộc thật**. Luật r�
 
 **Phân quyền admin**: quản lý user (list/search, khóa/mở = `updateUser({disabled})` + revoke refresh token, cấp/THU quyền), thống kê (+ theo ngày), quản lý khung (CRUD/grant/owners), **kiểm duyệt bài đăng**, **audit log** mọi hành động admin.
 
-> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=5`, `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` (tạm — thiết kế 3 khi có AI), `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_MINUTES=5`, `INVITE_LINK_TTL_DAYS=30`.
+> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=3` (độ dài ảnh GIF), `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` (tạm — thiết kế 3 khi có AI), `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_MINUTES=5`, `INVITE_LINK_TTL_DAYS=30`.
 
 ---
 

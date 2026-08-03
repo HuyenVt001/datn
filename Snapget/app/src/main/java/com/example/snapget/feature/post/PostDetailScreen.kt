@@ -9,7 +9,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -30,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,7 +37,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -62,19 +59,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
+import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
@@ -133,8 +125,9 @@ fun BoxScope.FlyingEmojiOverlay(flyingEmojis: SnapshotStateList<FlyingEmoji>) {
 }
 
 /**
- * Noi dung 1 post (khop anh mau 2026-07-26): anh/video vuong bo 20dp + khung +
+ * Noi dung 1 post (khop anh mau 2026-07-26): anh/GIF vuong bo 20dp + khung +
  * caption de day anh, duoi la hang tac gia (avatar 40 + ten Bold + "1d" xam).
+ * Moment VIDEO = "anh GIF": tu phat + lap vo han + khong tieng (2026-08-03).
  * KHONG chua top bar / message pill / bottom bar — man chua tu bo tri
  * (PostScreen dat trong VerticalPager, PostDetailScreen dat trong Scaffold).
  */
@@ -149,51 +142,26 @@ fun PostDetailContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier,
     ) {
-        // Post image / video (full width)
+        // Post image / GIF (full width)
         post.thumbnailUrl.takeIf { it.isNotBlank() }?.let { imageUrl ->
-            val context = LocalContext.current
-            var isPlayingVideo by remember(post.id) { mutableStateOf(false) }
-
             Box(
                 modifier = Modifier
                     .height(400.dp)
                     .fillMaxWidth()
                     .aspectRatio(1f),
             ) {
-                if (isPlayingVideo && post.postType == PostType.VIDEO) {
-                    // Phat video <=5s bang ExoPlayer, lap lai; cham de dung
-                    val exoPlayer = remember {
-                        ExoPlayer.Builder(context).build().apply {
-                            setMediaItem(MediaItem.fromUri(imageUrl))
-                            repeatMode = Player.REPEAT_MODE_ONE
-                            prepare()
-                            playWhenReady = true
-                        }
-                    }
-                    DisposableEffect(Unit) {
-                        onDispose { exoPlayer.release() }
-                    }
-                    AndroidView(
-                        factory = { ctx ->
-                            PlayerView(ctx).apply {
-                                player = exoPlayer
-                                useController = false
-                                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            }
-                        },
+                if (post.postType == PostType.VIDEO) {
+                    // "Anh GIF": phat TU DONG + lap vo han + khong tieng (2026-08-03 —
+                    // truoc day phai cham nut play moi xem duoc)
+                    GifVideoPlayer(
+                        source = imageUrl,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { isPlayingVideo = false },
+                            .clip(RoundedCornerShape(20.dp)),
                     )
                 } else {
                     AsyncImage(
-                        // Video tren Cloudinary: doi duoi sang .jpg de lay poster frame
-                        model = if (post.postType == PostType.VIDEO) {
-                            imageUrl.substringBeforeLast('.') + ".jpg"
-                        } else {
-                            imageUrl
-                        },
+                        model = imageUrl,
                         contentDescription = "Post image",
                         modifier = Modifier
                             .fillMaxSize()
@@ -214,27 +182,7 @@ fun PostDetailContent(
                     )
                 }
 
-                // Nut play video (an khi dang phat)
-                if (post.postType == PostType.VIDEO && !isPlayingVideo) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(72.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.6f),
-                                shape = CircleShape,
-                            )
-                            .clickable { isPlayingVideo = true },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play video",
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-                }
+                // (Nut play 72dp DA XOA 2026-08-03 — GIF tu chay lap, khong can bam)
 
                 // Caption
                 post.caption?.let { caption ->

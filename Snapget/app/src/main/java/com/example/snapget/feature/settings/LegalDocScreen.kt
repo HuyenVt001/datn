@@ -95,7 +95,7 @@ private val termsSections: List<Pair<String, String>> = listOf(
         "You can delete your moments at any time.",
     "5. Community Rules" to
         "Snapget is built for small, close friend circles: you can connect with up to 20 friends, " +
-        "and short videos are limited to 5 seconds. Do not post abusive, illegal, or harmful " +
+        "and GIFs are limited to 3 seconds. Do not post abusive, illegal, or harmful " +
         "content, and do not use the app to harass others.",
     "6. Termination" to
         "We may suspend or disable accounts that violate these terms or harm the community.",

@@ -19,6 +19,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
@@ -103,6 +104,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Do dai TOI THIEU cua 1 "anh GIF" (ms). Nguong long-press cua Compose ~500ms nen
+ * tha tay ngay sau do se ra clip gan 0 giay -> CameraX bao ERROR_NO_VALID_DATA.
+ */
+private const val MIN_GIF_MS = 800L
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun CameraPreviewWithZoom(
@@ -162,7 +169,8 @@ fun CameraPreviewWithZoom(
         var videoCapture: VideoCapture<Recorder>? by remember { mutableStateOf(null) }
         var activeRecording: Recording? by remember { mutableStateOf(null) }
         var isRecording by remember { mutableStateOf(false) }
-        var recordElapsedMs by remember { mutableLongStateOf(0L) }
+        // Moc bat dau quay — de ep GIF dai toi thieu MIN_GIF_MS (xem stopRecordRequestId)
+        var recordStartedAt by remember { mutableLongStateOf(0L) }
         var isFrontCamera by remember { mutableStateOf(false) }
 
         // Doi camera truoc/sau: lat co -> key(isFrontCamera) ben duoi tao lai
@@ -173,14 +181,12 @@ fun CameraPreviewWithZoom(
             }
         }
 
-        // Dem thoi gian quay + TU DONG DUNG khi cham 5s (server cung enforce)
+        // TU DONG DUNG khi cham MAX_VIDEO_SECONDS (3s — server cung enforce).
+        // KHONG hien dong ho/vong tien do: "anh GIF" chi la anh biet chuyen dong
+        // nen giu UI sach nhu luc chup anh thuong (chot 2026-08-03).
         LaunchedEffect(isRecording) {
             if (isRecording) {
-                recordElapsedMs = 0L
-                while (isRecording && recordElapsedMs < MAX_VIDEO_SECONDS * 1000L) {
-                    delay(100)
-                    recordElapsedMs += 100
-                }
+                delay(MAX_VIDEO_SECONDS * 1000L)
                 if (isRecording) {
                     activeRecording?.stop() // Finalize callback se tra file ve onVideoTaken
                 }
@@ -303,8 +309,16 @@ fun CameraPreviewWithZoom(
                                 // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
                                 // stream -> fallback bind khong co video, chi chup anh.
                                 val camera = if (onVideoTaken != null) {
+                                    // Quality tu cao xuong thap + fallback: ep cung Quality.HD
+                                    // lam nhieu may (va emulator) bind FAIL -> mat han chuc nang
+                                    // quay GIF (fix 2026-08-03)
                                     val recorder = Recorder.Builder()
-                                        .setQualitySelector(QualitySelector.from(Quality.HD))
+                                        .setQualitySelector(
+                                            QualitySelector.fromOrderedList(
+                                                listOf(Quality.HD, Quality.SD, Quality.LOWEST),
+                                                FallbackStrategy.lowerQualityOrHigherThan(Quality.SD),
+                                            ),
+                                        )
                                         .build()
                                     val videoCaptureUseCase = VideoCapture.withOutput(recorder)
                                     try {
@@ -386,24 +400,10 @@ fun CameraPreviewWithZoom(
 //                }
 //            }
 
-            // Nut chup — CHAM = chup anh, GIU = quay video <=5s (tha tay / het gio thi dung).
-            // File luu vao cacheDir roi tra duong dan qua callback tuong ung.
+            // Nut chup — CHAM = chup anh, GIU = quay "anh GIF" <=3s (tha tay / het gio
+            // thi dung). File luu vao cacheDir roi tra duong dan qua callback tuong ung.
+            // GIF KHONG co tieng nen khong xin quyen ghi am nua (chot 2026-08-03).
             if (onPhotoTaken != null) {
-                // Xin quyen ghi am 1 lan de video co tieng (tu choi van quay duoc, khong tieng)
-                val audioLauncher = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestPermission(),
-                ) { }
-                LaunchedEffect(onVideoTaken != null) {
-                    if (onVideoTaken != null &&
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO,
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        audioLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
-
                 fun takePhoto() {
                     val capture = imageCapture ?: return
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -456,7 +456,7 @@ fun CameraPreviewWithZoom(
                         // thay vi im lang de user tuong app do (fix 2026-07-26)
                         Toast.makeText(
                             context,
-                            "Video recording isn't supported on this device.",
+                            "GIF recording isn't supported on this device.",
                             Toast.LENGTH_SHORT,
                         ).show()
                         return
@@ -466,30 +466,31 @@ fun CameraPreviewWithZoom(
                         context.cacheDir,
                         "snapget_${System.currentTimeMillis()}.mp4",
                     )
-                    val pending = capture.output.prepareRecording(
-                        context,
-                        FileOutputOptions.Builder(videoFile).build(),
-                    )
-                    val hasAudio = ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.RECORD_AUDIO,
-                    ) == PackageManager.PERMISSION_GRANTED
-                    val ready = if (hasAudio) pending.withAudioEnabled() else pending
-                    activeRecording = ready.start(ContextCompat.getMainExecutor(context)) { event ->
-                        if (event is VideoRecordEvent.Finalize) {
-                            isRecording = false
-                            activeRecording = null
-                            if (!event.hasError()) {
-                                onVideoTaken(videoFile.absolutePath)
-                            } else {
-                                Log.e("CameraPreview", "Quay video loi: ${event.error}")
+                    // GIF = anh biet chuyen dong -> quay KHONG TIENG (khong withAudioEnabled,
+                    // khong xin RECORD_AUDIO). Chot 2026-08-03.
+                    activeRecording = capture.output
+                        .prepareRecording(context, FileOutputOptions.Builder(videoFile).build())
+                        .start(ContextCompat.getMainExecutor(context)) { event ->
+                            if (event is VideoRecordEvent.Finalize) {
+                                isRecording = false
+                                activeRecording = null
+                                if (!event.hasError()) {
+                                    onVideoTaken(videoFile.absolutePath)
+                                } else {
+                                    Log.e("CameraPreview", "Quay GIF loi: ${event.error}")
+                                    Toast.makeText(
+                                        context,
+                                        "Couldn't record the GIF. Try again.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
                             }
                         }
-                    }
                     isRecording = true
+                    recordStartedAt = System.currentTimeMillis()
                 }
 
-                // Yeu cau quay video tu ngoai: GIU nut center bottom bar = bat dau, THA = dung
+                // Yeu cau quay GIF tu ngoai: GIU nut center bottom bar = bat dau, THA = dung
                 LaunchedEffect(startRecordRequestId) {
                     if (startRecordRequestId > 0) {
                         startRecording()
@@ -497,47 +498,22 @@ fun CameraPreviewWithZoom(
                 }
                 LaunchedEffect(stopRecordRequestId) {
                     if (stopRecordRequestId > 0 && isRecording) {
+                        // Tha tay qua nhanh (giu ~0.5s vua qua nguong long-press) thi
+                        // Recorder tra ERROR_NO_VALID_DATA -> mat clip. Giu du MIN_GIF_MS
+                        // roi moi dung de GIF nao cung dung (fix 2026-08-03).
+                        val elapsed = System.currentTimeMillis() - recordStartedAt
+                        if (elapsed < MIN_GIF_MS) {
+                            delay(MIN_GIF_MS - elapsed)
+                        }
                         activeRecording?.stop() // Finalize callback tra file ve onVideoTaken
-                    }
-                }
-
-                // Dong ho dem giay khi dang quay
-                if (isRecording) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 16.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.Black.copy(alpha = 0.6f),
-                    ) {
-                        Text(
-                            text = "● ${recordElapsedMs / 1000}s / ${MAX_VIDEO_SECONDS}s",
-                            color = Color.Red,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
                     }
                 }
 
                 // (Nut chup 72dp trong preview DA XOA 2026-07-26 — trung voi nut center
                 // bottom bar. Chup/quay deu dieu khien tu ngoai qua captureRequestId +
-                // start/stopRecordRequestId; khi quay chi con vong tien do lam feedback.)
-                if (isRecording) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        progress = {
-                            (recordElapsedMs.toFloat() / (MAX_VIDEO_SECONDS * 1000f))
-                                .coerceIn(0f, 1f)
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 20.dp)
-                            .size(56.dp),
-                        color = Color.Red,
-                        strokeWidth = 4.dp,
-                        trackColor = Color.White.copy(alpha = 0.3f),
-                    )
-                }
+                // start/stopRecordRequestId.)
+                // Dong ho dem giay + vong tien do do DA XOA 2026-08-03: "anh GIF" chi la
+                // anh biet chuyen dong (<=3s) nen giu UI sach y het luc chup anh thuong.
             }
 
             // Enhanced flash toggle with animation (only show if controls enabled)

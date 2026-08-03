@@ -15,13 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -57,6 +53,7 @@ import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheetData
 import com.example.snapget.core.designsystem.component.sheet.generalCaptions
 import com.example.snapget.core.designsystem.component.sheet.rememberCurrentTime
+import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
@@ -206,28 +203,13 @@ fun SubmitPhotoScreen(
                         .aspectRatio(1f),
                 ) {
                     if (isVideo) {
-                        // Video <=5s: placeholder toi + icon play (video phat that o feed)
-                        Box(
+                        // "Anh GIF" <=3s: xem truoc dung nhu luc dang — tu chay lap, khong tieng
+                        GifVideoPlayer(
+                            source = photoPath,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.Black),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Video",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(36.dp),
-                                )
-                            }
-                        }
+                                .clip(RoundedCornerShape(20.dp)),
+                        )
                     } else {
                         AsyncImage(
                             model = File(photoPath),

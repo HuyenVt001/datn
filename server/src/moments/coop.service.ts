@@ -78,11 +78,12 @@ export class CoopService {
     const all = await this.repo.listPendingForInvitee(uid);
 
     // Loi moi het han: danh dau EXPIRED vao DB (fire-and-forget) de khong con
-    // nam trong PENDING mai — tranh danh sach phinh vo han theo thoi gian.
+    // nam trong PENDING mai. Dung TRANSITION transactional de khong ghi de len
+    // accept vua xay ra dung moc het han (cung ly do voi getInvite).
     const expired = all.filter((invite) => this.isExpired(invite));
     for (const invite of expired) {
       this.repo
-        .update(invite.inviteId, { status: 'EXPIRED' })
+        .transition(invite.inviteId, 'PENDING', 'EXPIRED')
         .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
     }
 
@@ -113,10 +114,18 @@ export class CoopService {
   async getInvite(uid: string, inviteId: string): Promise<CoopInvite> {
     const invite = await this.assertParticipant(uid, inviteId);
     if (invite.status === 'PENDING' && this.isExpired(invite)) {
-      await this.repo
-        .update(inviteId, { status: 'EXPIRED' })
-        .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
-      return { ...invite, status: 'EXPIRED' };
+      // Danh dau EXPIRED bang TRANSITION transactional, KHONG update tran: accept
+      // co the vua chuyen PENDING->ACCEPTED dung moc 5 phut — update tran se ghi
+      // de EXPIRED len ACCEPTED, giet oan phien vua accept (fix race 2026-08-03)
+      const marked = await this.repo.transition(inviteId, 'PENDING', 'EXPIRED').catch((e) => {
+        this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`);
+        return false;
+      });
+      if (marked) {
+        return { ...invite, status: 'EXPIRED' };
+      }
+      // Thua transition = trang thai vua doi (accept/decline) — tra ve ban that
+      return (await this.repo.findById(inviteId)) ?? invite;
     }
     return invite;
   }
@@ -141,17 +150,19 @@ export class CoopService {
   }
 
   /**
-   * Tu choi (nguoi nhan) HOAC huy (nguoi moi) loi moi dang PENDING —
-   * transition transactional, khong ghi de duoc len ACCEPTED/COMPLETED.
+   * Tu choi loi moi PENDING HOAC huy phien coop dang ACCEPTED — CA 2 phia deu
+   * huy duoc (2026-08-03: khong co duong huy khi ACCEPTED thi 1 ben thoat man
+   * chup la ben kia "doi ban be chup" VO HAN). Transition transactional —
+   * khong ghi de duoc len COMPLETED (dang ghep / da ghep xong).
    */
   async decline(uid: string, inviteId: string): Promise<void> {
     const invite = await this.assertParticipant(uid, inviteId);
-    if (invite.status !== 'PENDING') {
+    if (invite.status !== 'PENDING' && invite.status !== 'ACCEPTED') {
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
-    const declined = await this.repo.transition(inviteId, 'PENDING', 'DECLINED');
+    const declined = await this.repo.transition(inviteId, invite.status, 'DECLINED');
     if (!declined) {
-      // Accept vua khoa loi moi trong luc minh bam tu choi
+      // Trang thai vua doi duoi tay minh (accept / ghep xong / ben kia huy truoc)
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
   }
@@ -184,8 +195,10 @@ export class CoopService {
 
     const locked = await this.repo.transition(inviteId, 'ACCEPTED', 'COMPLETED');
     if (!locked) {
-      // Ben kia vua gianh quyen ghep — cu tra ve, client poll se thay mergedMediaUrl
-      return { ...updated, status: 'COMPLETED' };
+      // Khong gianh duoc quyen ghep: HOAC ben kia dang ghep, HOAC phien vua bi
+      // huy (DECLINED) — doc lai trang thai THAT thay vi doan COMPLETED
+      // (doan bua thi client huy-phien lai tuong ghep xong — fix 2026-08-03)
+      return (await this.repo.findById(inviteId)) ?? { ...updated, status: 'COMPLETED' };
     }
 
     try {

@@ -250,9 +250,9 @@ Request → 401 từ host server
 | **users** | Sửa hồ sơ | Mọi route ghi đều là `me`, uid lấy từ token — **không nhận uid từ client** | [users.controller.ts:22-40](server/src/users/users.controller.ts#L22-L40) |
 | | Xem user khác | Chỉ trả `PublicUser` (uid, fullName, avatar, personalStreak) — **ẩn email, fcmTokens, inviteCode, birthday** | [users.repository.ts:92-99](server/src/users/users.repository.ts#L92-L99) |
 | **coop** | Mời chụp chung | Phải là bạn | [coop.service.ts:54-57](server/src/moments/coop.service.ts#L54-L57) |
-| | Accept | Chỉ đúng người được mời, lời mời còn PENDING + chưa hết hạn 5 phút; chống race bằng transaction | [coop.service.ts:240-256](server/src/moments/coop.service.ts#L240-L256) |
-| | Poll trạng thái / nộp nửa ảnh (2026-08-02) | Chỉ 2 người trong lời mời (`assertParticipant`); nộp nửa ảnh chỉ khi ACCEPTED; ghép khóa transaction ACCEPTED→COMPLETED (2 bên nộp cùng lúc chỉ 1 bên ghép) | [coop.service.ts:228-238](server/src/moments/coop.service.ts#L228-L238) |
-| | Decline / hủy | Người nhận từ chối HOẶC người mời hủy — chỉ khi còn PENDING, transition transactional | [coop.service.ts:147-157](server/src/moments/coop.service.ts#L147-L157) |
+| | Accept | Chỉ đúng người được mời, lời mời còn PENDING + chưa hết hạn 5 phút; chống race bằng transaction (đánh dấu EXPIRED cũng qua transition — không ghi đè được accept vừa thắng, fix 2026-08-03) | [coop.service.ts:253-269](server/src/moments/coop.service.ts#L253-L269) |
+| | Poll trạng thái / nộp nửa ảnh (2026-08-02) | Chỉ 2 người trong lời mời (`assertParticipant`); nộp nửa ảnh chỉ khi ACCEPTED; ghép khóa transaction ACCEPTED→COMPLETED (2 bên nộp cùng lúc chỉ 1 bên ghép) | [coop.service.ts:241-251](server/src/moments/coop.service.ts#L241-L251) |
+| | Decline / hủy phiên | 2 phía đều hủy được khi PENDING **hoặc ACCEPTED** (2026-08-03 — rời màn chụp = hủy phiên, tránh đối phương chờ vô hạn); transition transactional, không ghi đè được COMPLETED | [coop.service.ts:158-168](server/src/moments/coop.service.ts#L158-L168) |
 | **frames** | Ghi (CRUD, cấp khung) | Chỉ admin | [frames.controller.ts](server/src/frames/frames.controller.ts) |
 | **quests** | Xem quest hôm nay | uid lấy từ token, không nhận input người dùng | [quests.controller.ts:19](server/src/quests/quests.controller.ts#L19) |
 
