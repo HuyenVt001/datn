@@ -85,6 +85,9 @@ class PostViewModel @Inject constructor(
         // Tuy chon: uid cac ban se duoc gui kem anh vao chat 1-1 sau khi dang.
         // Rong = chi dang len feed (mac dinh); "Everyone" o UI = list moi ban be.
         sendToUids: List<String> = emptyList(),
+        // Chong dang TRUNG: man SubmitPhoto sinh UUID 1 lan, giu nguyen khi user
+        // bam dang lai sau timeout — server tra bai cu neu request truoc da tao
+        clientRequestId: String? = null,
     ) {
         viewModelScope.launch {
             _submitStatus.value = LoadStatus.Loading()
@@ -95,6 +98,7 @@ class PostViewModel @Inject constructor(
                     isVideo = isVideo,
                     caption = caption,
                     frameId = frameId,
+                    clientRequestId = clientRequestId,
                 )
                 // Gui kem vao chat neu co chon nguoi nhan — loi o buoc nay KHONG lam
                 // fail bai dang (moment da len feed roi), chi bao rieng qua chatSendError

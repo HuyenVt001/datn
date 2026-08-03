@@ -41,12 +41,14 @@ class PostRepository @Inject constructor(
         isVideo: Boolean = false,
         caption: String? = null,
         frameId: String? = null,
+        clientRequestId: String? = null,
     ): MomentDto = momentApi.create(
         CreateMomentRequest(
             contentType = if (isVideo) "VIDEO" else "PHOTO",
             mediaUrl = mediaUrl,
             frameId = frameId,
             caption = caption,
+            clientRequestId = clientRequestId,
         ),
     ).unwrap()
 

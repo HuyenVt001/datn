@@ -19,6 +19,9 @@ data class CreateMomentRequest(
     val mediaUrl: String,
     val frameId: String? = null,
     val caption: String? = null,
+    // Chong dang TRUNG khi retry sau timeout: app sinh UUID theo TUNG lan vao man
+    // dang bai, giu nguyen qua cac lan bam lai — server tra bai cu neu da tao
+    val clientRequestId: String? = null,
 )
 
 /** Ket qua POST /upload — server day len Cloudinary (video da bi chan >5s). */

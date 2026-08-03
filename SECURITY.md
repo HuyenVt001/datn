@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
+> **Cập nhật lần cuối:** 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -189,6 +189,8 @@ Request → 401 từ host server
 | Chỉ coi là "bị đăng xuất" khi state đang là `Authenticated` | `AuthStateListener` cũng bắn ngay lúc đăng ký listener; lúc chưa đăng nhập không được hiểu nhầm là bị thu hồi |
 
 > Nhờ đó, khi **admin khóa tài khoản** (server gọi `revokeRefreshTokens`), app tự đăng xuất và dọn sạch dữ liệu cục bộ trong vòng ≤1 giờ (khi ID token hiện tại hết hạn) thay vì kẹt vô thời hạn.
+
+✅ **Vá bổ sung 2026-08-03** — chuỗi trên từng bị hỏng khi user **đăng nhập rồi đăng xuất trong cùng phiên app**: [LoginScreen.kt](Snapget/app/src/main/java/com/example/snapget/feature/auth/LoginScreen.kt) dùng `hiltViewModel()` mặc định nên tạo `AuthViewModel` **riêng** (scope theo back-stack entry "login"); đăng nhập chỉ đổi state instance riêng đó, instance chung mà `Navigation` quan sát vẫn `Unauthenticated` → lần Sign Out sau `StateFlow` không emit (giá trị không đổi) → **không điều hướng về màn Login dù Firebase đã signOut**, mọi API sau đó 401 "Thieu token xac thuc.". Fix: [Navigation.kt](Snapget/app/src/main/java/com/example/snapget/navigation/Navigation.kt) truyền `authViewModel` chung (scope Activity) vào `LoginScreen` — một nguồn `authState` duy nhất cho login/logout/thu hồi phiên.
 
 ### 3.5 Mật khẩu
 

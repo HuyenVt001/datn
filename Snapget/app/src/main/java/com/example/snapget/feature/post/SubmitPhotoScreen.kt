@@ -138,6 +138,10 @@ fun SubmitPhotoScreen(
     // Captions List (chip dien noi dung vao o, sua tiep duoc); gui kem khi Send
     var caption by remember { mutableStateOf<String?>(null) }
 
+    // Id chong dang TRUNG: sinh 1 lan cho MOI lan vao man nay, giu nguyen qua cac
+    // lan bam dang lai (request truoc timeout nhung bai DA len -> server tra bai cu)
+    val submitRequestId = remember { java.util.UUID.randomUUID().toString() }
+
     // Get current time to use as remember key
     val currentTime = rememberCurrentTime()
 
@@ -310,6 +314,7 @@ fun SubmitPhotoScreen(
                                         "everyone" -> friendUsers.map { it.id }
                                         else -> listOf(selectedUser!!.id)
                                     },
+                                    clientRequestId = submitRequestId,
                                 )
                             }
                         }

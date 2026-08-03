@@ -29,6 +29,24 @@ export class MomentsRepository {
   }
 
   /**
+   * Tim bai theo (userId, clientRequestId) — chong dang TRUNG khi client retry
+   * sau timeout. 2 filter equality: Firestore merge duoc single-field index,
+   * KHONG can composite index (cung pattern voi messages.listBetween).
+   */
+  async findByClientRequestId(uid: string, clientRequestId: string): Promise<Moment | null> {
+    const snap = await this.col
+      .where('userId', '==', uid)
+      .where('clientRequestId', '==', clientRequestId)
+      .limit(1)
+      .get();
+    if (snap.empty) {
+      return null;
+    }
+    const doc = snap.docs[0];
+    return this.toEntity(doc.id, doc.data());
+  }
+
+  /**
    * Toan bo moment, moi nhat truoc — trang admin KIEM DUYET (2026-07-26).
    * orderBy 1 field (postTime) dung index tu dong; gioi han 500 bai gan nhat
    * roi phan trang trong bo nho — du cho quy mo DATN.
@@ -145,6 +163,7 @@ export class MomentsRepository {
       caption: data.caption,
       coopUserId: data.coopUserId,
       postTime: data.postTime ?? data.createdAt ?? '',
+      clientRequestId: data.clientRequestId,
     };
   }
 }

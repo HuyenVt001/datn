@@ -448,11 +448,15 @@ fun ConversationItem(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
 
-                    Text(
-                        text = formatTime(conversation.sendTime),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // Ban moi ket chua co tin nhan (sendTime rong) -> khong hien gio
+                    // (formatTime se fallback "Now" gay hieu nham la co tin moi)
+                    if (conversation.sendTime.isNotBlank()) {
+                        Text(
+                            text = formatTime(conversation.sendTime),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))

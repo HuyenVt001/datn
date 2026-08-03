@@ -27,6 +27,7 @@ describe('MomentsService', () => {
       create: jest.fn(),
       findById: jest.fn(),
       countByUserId: jest.fn().mockResolvedValue(1),
+      findByClientRequestId: jest.fn().mockResolvedValue(null),
       listByUserIds: jest.fn(),
       listByCoopUserIds: jest.fn().mockResolvedValue([]),
       markSeen: jest.fn(),
@@ -97,6 +98,26 @@ describe('MomentsService', () => {
       friendshipsRepo.listAccepted.mockRejectedValue(new Error('fcm down'));
 
       await expect(service.create(me, dto)).resolves.toBeDefined();
+    });
+
+    it('retry CUNG clientRequestId -> tra lai bai DA dang, khong tao ban sao', async () => {
+      repo.findByClientRequestId.mockResolvedValue({ momentId: 'm-old', userId: 'me' } as never);
+
+      const result = await service.create(me, { ...dto, clientRequestId: 'req-1' });
+
+      expect(result.momentId).toBe('m-old');
+      expect(repo.create).not.toHaveBeenCalled();
+    });
+
+    it('clientRequestId MOI -> tao bai + luu id de dedupe lan retry sau', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1' } as never);
+
+      await service.create(me, { ...dto, clientRequestId: 'req-1' });
+
+      expect(repo.findByClientRequestId).toHaveBeenCalledWith('me', 'req-1');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ clientRequestId: 'req-1' }),
+      );
     });
   });
 

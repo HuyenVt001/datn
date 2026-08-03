@@ -149,6 +149,14 @@ fun Navigation(
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
+                    // PHAI dung chung AuthViewModel scope Navigation (fix 2026-08-03):
+                    // de mac dinh hiltViewModel() thi LoginScreen tao instance RIENG
+                    // (scope theo back stack entry "login") -> dang nhap trong phien chi
+                    // doi state instance rieng do, instance chung van Unauthenticated.
+                    // Lan Sign Out sau, logout() set Unauthenticated vao gia tri Y HET
+                    // (StateFlow khong emit) -> LaunchedEffect khong chay, KHONG ve man
+                    // Login du Firebase da signOut -> moi API deu 401 "Thieu token".
+                    viewModel = authViewModel,
                 )
             }
 

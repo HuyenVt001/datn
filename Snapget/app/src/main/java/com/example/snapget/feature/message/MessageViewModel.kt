@@ -101,7 +101,7 @@ class MessageViewModel @Inject constructor(
                 _friendsById.value = friends
 
                 val uid = myUid
-                _conversations.value = messageRepository.getConversations().map { convo ->
+                val withMessages = messageRepository.getConversations().map { convo ->
                     val friend = friends[convo.counterpartId]
                     val last = convo.lastMessage
                     ConversationUi(
@@ -114,6 +114,26 @@ class MessageViewModel @Inject constructor(
                         unread = last.receiverId == uid && !last.isSeen,
                     )
                 }
+
+                // Ban be CHUA co hoi thoai van phai co khung chat (fix 2026-08-03):
+                // truoc day man Messages chi hien /messages/conversations (can >=1 tin)
+                // -> vua ket ban xong khong co loi vao nao de nhan tin nguoi moi.
+                // Them ho vao cuoi danh sach voi moi "Say hi", bam vao mo chat nhu thuong.
+                val talkedTo = withMessages.mapTo(mutableSetOf()) { it.counterpartId }
+                val newFriends = friends.values
+                    .filter { it.id !in talkedTo }
+                    .sortedBy { it.name.lowercase() }
+                    .map { friend ->
+                        ConversationUi(
+                            counterpartId = friend.id,
+                            name = friend.name,
+                            avatar = friend.avatar,
+                            preview = "Say hi to your new friend! 👋",
+                            sendTime = "", // chua co tin nhan -> UI an gio
+                            unread = false,
+                        )
+                    }
+                _conversations.value = withMessages + newFriends
                 _conversationsStatus.value = LoadStatus.Success()
             } catch (e: Exception) {
                 _conversationsStatus.value = LoadStatus.Error(e.serverMessage("Couldn't load conversations."))

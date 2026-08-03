@@ -26,10 +26,20 @@ export class MomentsService {
   ) {}
 
   /**
-   * Dang moment: tao doc -> tang personal streak -> bao ban be qua FCM.
-   * mediaUrl da qua POST /upload (Cloudinary da enforce video <= 5s).
+   * Dang moment: tao doc -> tang personal streak + quest -> tra response NGAY;
+   * 2 hook nang (dem bai mo khung POST_COUNT + FCM ca danh sach ban) chay SAU
+   * response. mediaUrl da qua POST /upload (Cloudinary da enforce gioi han).
    */
   async create(authUser: AuthUser, dto: CreateMomentDto, coopUserId?: string): Promise<Moment> {
+    // Chong dang TRUNG: client timeout roi bam dang lai — request dau da tao bai
+    // thanh cong nhung response khong ve kip. Cung clientRequestId -> tra bai cu.
+    if (dto.clientRequestId) {
+      const existing = await this.repo.findByClientRequestId(authUser.uid, dto.clientRequestId);
+      if (existing) {
+        return existing;
+      }
+    }
+
     const moment = await this.repo.create({
       userId: authUser.uid,
       contentType: dto.contentType,
@@ -38,6 +48,7 @@ export class MomentsService {
       caption: dto.caption,
       coopUserId, // co-op capture: moment chung cua 2 nguoi
       postTime: new Date().toISOString(),
+      clientRequestId: dto.clientRequestId,
     });
 
     // Business rule: mo app + upload >= 1 moment/ngay -> tang personal streak.
@@ -53,14 +64,15 @@ export class MomentsService {
       this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
     });
 
-    // Khung dieu kien POST_COUNT: dem tong bai roi mo cac khung vua dat nguong (best-effort).
-    await this.unlockPostCountFrames(authUser.uid).catch((e) => {
+    // 2 hook NANG chay fire-and-forget SAU response (fix 2026-08-03): dem tong bai
+    // + FCM ca danh sach ban truoc day duoc await lam POST /moments cham nhieu giay
+    // tren Render free (2 user coop cung dang 1 luc la client timeout du bai DA len).
+    // Ket qua 2 hook nay user khong can thay ngay trong response.
+    void this.unlockPostCountFrames(authUser.uid).catch((e) => {
       this.logger.warn(`Khong mo duoc khung theo so bai dang: ${(e as Error).message}`);
     });
-
-    // Gui push cho danh sach ban be (khong chan luong dang bai neu loi).
-    await this.notifyFriends(authUser).catch((e) => {
-      this.logger.warn(`Khong gui duoc FCM: ${e.message}`);
+    void this.notifyFriends(authUser).catch((e) => {
+      this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
     });
 
     return moment;

@@ -23,4 +23,15 @@ export class CreateMomentDto {
   @IsString()
   @MaxLength(500)
   caption?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Id chong dang TRUNG (app sinh UUID, giu nguyen khi retry): request truoc ' +
+      'timeout nhung bai DA len -> retry tra lai bai cu thay vi tao ban sao',
+    maxLength: 64,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  clientRequestId?: string;
 }

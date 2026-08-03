@@ -15,6 +15,8 @@ export interface Moment {
   /** uid nguoi chup chung (co-op capture) — moment "cua ca 2". */
   coopUserId?: string;
   postTime: string; // ISO string
+  /** Id chong dang trung khi client retry sau timeout (app sinh UUID, 2026-08-03). */
+  clientRequestId?: string;
 }
 
 /** Reaction (emoji bay) trong subcollection posts/{id}/reactions. */

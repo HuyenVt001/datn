@@ -131,10 +131,19 @@ class AuthRepository @Inject constructor(
             val authResult = auth.signInWithCredential(firebaseCredential).await()
             val fbUser = authResult.user ?: return null
 
-            syncWithServer(
-                fullName = fbUser.displayName ?: googleIdTokenCredential.displayName,
-                avatar = fbUser.photoUrl?.toString(),
-            )
+            // CHI day ten/avatar Google len server o LAN DANG NHAP DAU (tao tai khoan
+            // — fix 2026-08-03). Truoc day MOI lan re-login deu PATCH fullName/avatar
+            // theo profile Google/Firebase Auth -> ten (va avatar) user da doi trong
+            // app bi ghi de nguoc ve gia tri cu sau khi dang xuat + dang nhap lai.
+            // Ho so tren server la nguon chuan; cac lan login sau chi sync FCM token.
+            if (authResult.additionalUserInfo?.isNewUser == true) {
+                syncWithServer(
+                    fullName = fbUser.displayName ?: googleIdTokenCredential.displayName,
+                    avatar = fbUser.photoUrl?.toString(),
+                )
+            } else {
+                syncWithServer()
+            }
 
             return AuthUser.fromFirebaseUser(fbUser)
         }

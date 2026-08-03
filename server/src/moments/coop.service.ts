@@ -280,9 +280,12 @@ export class CoopService {
       this.downloadImage(leftUrl),
       this.downloadImage(rightUrl),
     ]);
+    // .rotate() KHONG doi so = tu xoay theo EXIF orientation roi go tag: anh CameraX
+    // (camera sau) luu pixel NGANG + co EXIF "xoay 90°" — sharp mac dinh bo qua EXIF
+    // nen thieu buoc nay la anh ghep bi xoay 90° so voi luc chup (fix 2026-08-03)
     const [left, right] = await Promise.all([
-      sharp(leftBuf).resize(half, MERGED_SIZE, { fit: 'cover' }).toBuffer(),
-      sharp(rightBuf).resize(half, MERGED_SIZE, { fit: 'cover' }).toBuffer(),
+      sharp(leftBuf).rotate().resize(half, MERGED_SIZE, { fit: 'cover' }).toBuffer(),
+      sharp(rightBuf).rotate().resize(half, MERGED_SIZE, { fit: 'cover' }).toBuffer(),
     ]);
     return sharp({
       create: {
