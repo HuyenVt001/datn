@@ -745,6 +745,8 @@ Sự cố 2026-07-12 xảy ra vì file bí mật nằm ở **thư mục gốc �
 | `GRANT_ADMIN` / `REVOKE_ADMIN` | [admin.service.ts:140](server/src/admin/admin.service.ts#L140) · [:169](server/src/admin/admin.service.ts#L169) |
 | `MOMENT_DELETE` | [admin.service.ts:201-204](server/src/admin/admin.service.ts#L201-L204) |
 | `FRAME_CREATE` / `FRAME_UPDATE` / `FRAME_DELETE` / `FRAME_GRANT` | [frames.controller.ts:58-102](server/src/frames/frames.controller.ts#L58-L102) |
+| `GACHA_ITEM_CREATE` / `GACHA_ITEM_UPDATE` / `GACHA_ITEM_DELETE` / `GACHA_ITEM_GRANT` (2026-08-06) | [gacha.controller.ts](server/src/gacha/gacha.controller.ts) — kho vật phẩm + tặng vật phẩm cho user |
+| `TOPUP_PACKAGE_CREATE` / `TOPUP_PACKAGE_UPDATE` / `TOPUP_PACKAGE_DELETE` | [topup.controller.ts](server/src/topup/topup.controller.ts) — gói nạp đụng tiền thật |
 
 **Xem log:** `GET /api/admin/logs` (phân trang, mới nhất trước) → trang Nhật ký trên web admin.
 

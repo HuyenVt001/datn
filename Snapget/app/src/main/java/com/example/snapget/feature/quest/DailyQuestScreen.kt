@@ -1,5 +1,6 @@
 package com.example.snapget.feature.quest
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,9 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,12 +34,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.snapget.R
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -158,30 +164,47 @@ private fun QuestContent(
     }
 }
 
-/** Banner mo man Gacha — anh nen hardcode trong APK (user chot 2026-08-05). */
+/**
+ * Banner mo man Gacha — anh `R.drawable.gacha_banner` hardcode trong APK
+ * (user chot 2026-08-05): thay anh = ghi de file trong `res/drawable-nodpi/`.
+ * Anh goc 1080×608 (~16:9) nen banner giu dung ti le do thay vi cao co dinh.
+ */
 @Composable
 private fun GachaBanner(onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .aspectRatio(1080f / 608f)
             .clip(SkinTheme.shapes.image)
-            .background(SkinTheme.colors.surface)
-            .border(1.dp, SkinTheme.colors.accent, SkinTheme.shapes.image)
             .clickable { onClick() },
-        contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "🎲", fontSize = 30.sp)
+        Image(
+            painter = painterResource(R.drawable.gacha_banner),
+            contentDescription = "Open the gacha",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Dai mo chan de chu doc duoc du banner sang; chu trang co y (nam tren anh)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
+                    ),
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
             Text(
                 text = "Gacha",
-                color = SkinTheme.colors.accent,
+                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
                 text = "Roll for skins, effects and frames",
-                color = SkinTheme.colors.textSecondary,
+                color = Color.White.copy(alpha = 0.85f),
                 style = MaterialTheme.typography.bodySmall,
             )
         }

@@ -273,6 +273,8 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/gacha/items` | **(2026-08-05)** [Admin] Thêm vật phẩm — **CHỈ `itemType=FRAME`**, refId phải là frame có thật và chưa nằm trong kho | Admin JWT |
 | PATCH | `/api/gacha/items/:id` | **(2026-08-05)** [Admin] Sửa vật phẩm (tên/phẩm chất/ảnh/bật-tắt/thứ tự — KHÔNG đổi `itemType`/`refId`) | Admin JWT |
 | DELETE | `/api/gacha/items/:id` | **(2026-08-05)** [Admin] Xoá khỏi kho quay (người đã sở hữu vẫn giữ) | Admin JWT |
+| GET | `/api/gacha/items/:id/owners` | **(2026-08-06)** [Admin] Danh sách user đang sở hữu vật phẩm (drawer "Ai đang sở hữu?") | Admin JWT |
+| POST | `/api/gacha/items/:id/grant/:uid` | **(2026-08-06)** [Admin] **Tặng vật phẩm** cho user (kho thưởng) — idempotent, uid phải tồn tại, ghi audit `GACHA_ITEM_GRANT` | Admin JWT |
 | GET | `/api/topup/packages` | **(2026-08-05)** Gói nạp đang bật | Firebase |
 | POST | `/api/topup/orders` | **(2026-08-05)** Tạo đơn + link PayOS. Body **chỉ** `{packageId}` — giá tra ở server. Chưa cấu hình khoá → 503 | Firebase |
 | GET | `/api/topup/orders/:orderCode` | **(2026-08-05)** Trạng thái đơn của mình (đơn người khác → 403) | Firebase |
@@ -341,6 +343,8 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-06 — Kho thưởng: tặng vật phẩm + owners; seed dữ liệu lần đầu**. `POST /gacha/items/:id/grant/:uid` (tặng thẳng vào tài khoản — demo/đền bù; KHÔNG liên quan Astrite, không ghi sổ cái) + `GET /gacha/items/:id/owners`; audit action mới `GACHA_ITEM_GRANT`. `UsersRepository` thêm `unlockCollectible`/`listByCollectible` dùng chung 3 mảng sở hữu. 4 test mới (**198 test pass**). Đã chạy `seed:gacha` (10 vật phẩm: 3 khung + 5 hiệu ứng + 2 skin; 3 khung `QUEST_RANDOM` cũ chuẩn hoá về `GACHA`) và `seed:topup` (5 gói nạp) — trước đó kho trống nên app quay báo "Kho vật phẩm đang trống" và popup nạp rỗng.
+ - ⚠️ **SKIN/EFFECT tặng bằng SỐ, FRAME bằng chuỗi** — app so id kiểu Int với `SkinRegistry`/`TouchEffectRegistry`; tặng dạng chuỗi là app không nhận ra vật phẩm đã mở (đã khoá bằng test).
 - **2026-08-05 — Soát lại luồng G6: vá 3 đường cộng tiền 2 lần**. Rà toàn bộ module `topup` sau khi hoàn thành; 4 test mới (**194 test pass**).
   - 🔴 **Dọn đơn quá hạn ghi đè trạng thái `PAID`**. `expireStaleOrders` đọc danh sách rồi ghi thẳng `EXPIRED`; giữa 2 bước, webhook thật có thể vừa chuyển đơn sang `PAID` — lệnh ghi kéo nó về `EXPIRED`, và webhook gọi lại sau đó **không còn `PAID` để chặn nên cộng tiền lần hai**. Thay bằng `TopupRepository.expireOrderIfPending` chạy trong transaction, chỉ đổi khi doc **vẫn còn** `PENDING`.
   - 🟠 **`createOrder` ghi lại `status: 'PENDING'`** khi lưu `checkoutUrl` — cùng kiểu rủi ro. Tách `patchOrder` (không bao giờ đụng `status`).

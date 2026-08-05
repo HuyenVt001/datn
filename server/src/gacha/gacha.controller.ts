@@ -119,6 +119,41 @@ export class GachaController {
     return { message: 'Da them vat pham vao kho quay.', data: item };
   }
 
+  @Get('items/:id/owners')
+  @ApiBearerAuth('admin')
+  @UseGuards(AdminJwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({
+    summary: '[Admin] Danh sách user đang sở hữu vật phẩm',
+    description: 'Dùng cho drawer "Ai đang sở hữu?" ở trang Kho vật phẩm.',
+  })
+  listItemOwners(@Param('id') itemId: string) {
+    return this.gachaService.listItemOwners(itemId);
+  }
+
+  @Post('items/:id/grant/:uid')
+  @ApiBearerAuth('admin')
+  @UseGuards(AdminJwtGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({
+    summary: '[Admin] Tặng vật phẩm cho user (kho thưởng)',
+    description:
+      'Mở khoá thẳng vào tài khoản — dùng để demo/đền bù. Idempotent: tặng lại vật phẩm ' +
+      'đã sở hữu thì không đổi gì. Không liên quan Astrite, không ghi sổ cái.',
+  })
+  async grantItem(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') itemId: string,
+    @Param('uid') uid: string,
+  ) {
+    const item = await this.gachaService.grantItem(itemId, uid);
+    await this.auditService.log(actor, 'GACHA_ITEM_GRANT', {
+      id: uid,
+      label: `${item.itemName} → ${uid}`,
+    });
+    return { message: 'Da tang vat pham cho nguoi dung.', data: { itemId, uid } };
+  }
+
   @Patch('items/:id')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)

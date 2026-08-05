@@ -1,13 +1,23 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  GiftOutlined,
+  PlusOutlined,
+  TeamOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   App as AntApp,
+  Avatar,
   Button,
+  Drawer,
   Form,
   Image,
   Input,
   InputNumber,
+  List,
   Modal,
   Popconfirm,
   Segmented,
@@ -21,11 +31,14 @@ import {
   Upload,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { listUsers } from '../api/admin.api';
 import { listFrames } from '../api/frames.api';
 import {
   createGachaItem,
   deleteGachaItem,
+  grantGachaItem,
+  listGachaItemOwners,
   listGachaItems,
   updateGachaItem,
 } from '../api/gacha.api';
@@ -153,6 +166,52 @@ export function GachaItemsPage() {
     onError: (err: Error) => message.error(err.message),
   });
 
+  // ==== Kho thuong: tang vat pham cho user ====
+  const [grantTarget, setGrantTarget] = useState<GachaItem | null>(null);
+  const [grantUid, setGrantUid] = useState<string | undefined>(undefined);
+  const [userSearch, setUserSearch] = useState('');
+  // Debounce go phim o search user — moi keystroke la 1 request /admin/users neu khong debounce
+  const searchTimer = useRef<number | undefined>(undefined);
+  const onUserSearch = (value: string) => {
+    window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => setUserSearch(value), 300);
+  };
+  const openGrant = (item: GachaItem) => {
+    setUserSearch(''); // khong de dinh ket qua loc cua lan tang truoc
+    setGrantUid(undefined);
+    setGrantTarget(item);
+  };
+
+  const { data: userOptions, isFetching: searchingUsers } = useQuery({
+    queryKey: ['admin-users-search', userSearch],
+    queryFn: () => listUsers({ page: 1, limit: 20, search: userSearch || undefined }),
+    enabled: grantTarget !== null,
+  });
+
+  const grantMutation = useMutation({
+    mutationFn: ({ itemId, uid }: { itemId: string; uid: string }) => grantGachaItem(itemId, uid),
+    onSuccess: () => {
+      message.success('Đã tặng vật phẩm cho người dùng.');
+      setGrantTarget(null);
+      setGrantUid(undefined);
+      void queryClient.invalidateQueries({ queryKey: ['gacha-item-owners'] });
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  // ==== Drawer danh sách user sở hữu vật phẩm ====
+  const [ownersTarget, setOwnersTarget] = useState<GachaItem | null>(null);
+
+  const {
+    data: ownersData,
+    isFetching: loadingOwners,
+    error: ownersError,
+  } = useQuery({
+    queryKey: ['gacha-item-owners', ownersTarget?.itemId],
+    queryFn: () => listGachaItemOwners(ownersTarget!.itemId),
+    enabled: ownersTarget !== null,
+  });
+
   const openCreate = () => {
     setEditing(null);
     setImageUrl(undefined);
@@ -239,9 +298,15 @@ export function GachaItemsPage() {
     {
       title: 'Hành động',
       key: 'actions',
-      width: 170,
+      width: 230,
       render: (_, item) => (
         <Space>
+          <Tooltip title="Tặng vật phẩm này cho một người dùng">
+            <Button size="small" icon={<GiftOutlined />} onClick={() => openGrant(item)} />
+          </Tooltip>
+          <Tooltip title="Ai đang sở hữu?">
+            <Button size="small" icon={<TeamOutlined />} onClick={() => setOwnersTarget(item)} />
+          </Tooltip>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(item)}>
             Sửa
           </Button>
@@ -405,6 +470,65 @@ export function GachaItemsPage() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal
+        title={grantTarget ? `Tặng: ${grantTarget.itemName}` : 'Tặng vật phẩm'}
+        open={grantTarget !== null}
+        onCancel={() => setGrantTarget(null)}
+        onOk={() =>
+          grantTarget && grantUid && grantMutation.mutate({ itemId: grantTarget.itemId, uid: grantUid })
+        }
+        okText="Tặng"
+        cancelText="Hủy"
+        okButtonProps={{ disabled: !grantUid }}
+        confirmLoading={grantMutation.isPending}
+        destroyOnClose
+      >
+        <Typography.Paragraph type="secondary">
+          Mở khoá thẳng vào tài khoản (demo / đền bù). Người đã sở hữu rồi thì tặng lại không đổi
+          gì. Không cộng Astrite.
+        </Typography.Paragraph>
+        <Select
+          showSearch
+          style={{ width: '100%' }}
+          placeholder="Tìm theo email hoặc tên..."
+          value={grantUid}
+          onChange={setGrantUid}
+          onSearch={onUserSearch}
+          filterOption={false}
+          loading={searchingUsers}
+          options={(userOptions?.items ?? []).map((u) => ({
+            value: u.uid,
+            label: `${u.fullName || '(chưa đặt tên)'} — ${u.email ?? u.uid}`,
+          }))}
+        />
+      </Modal>
+
+      <Drawer
+        title={ownersTarget ? `Ai đang sở hữu: ${ownersTarget.itemName}` : ''}
+        open={ownersTarget !== null}
+        onClose={() => setOwnersTarget(null)}
+        width={400}
+      >
+        {ownersError ? (
+          <Alert type="error" showIcon message={(ownersError as Error).message} />
+        ) : (
+          <List
+            loading={loadingOwners}
+            dataSource={ownersData?.owners ?? []}
+            locale={{ emptyText: 'Chưa có ai sở hữu vật phẩm này.' }}
+            renderItem={(owner) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<Avatar src={owner.avatar}>{owner.fullName?.[0] ?? '?'}</Avatar>}
+                  title={owner.fullName || '(chưa đặt tên)'}
+                  description={owner.email ?? owner.uid}
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }

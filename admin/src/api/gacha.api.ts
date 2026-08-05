@@ -1,4 +1,11 @@
-import type { AdminRoll, GachaItem, ItemRarity, ItemType, RollTier } from '../types';
+import type {
+  AdminRoll,
+  GachaItem,
+  GachaItemOwnersResult,
+  ItemRarity,
+  ItemType,
+  RollTier,
+} from '../types';
 import { del, get, patch, post } from './client';
 
 /** Body them vat pham. Server CHI cho tao `itemType = FRAME`. */
@@ -45,6 +52,16 @@ export function updateGachaItem(itemId: string, body: UpdateGachaItemBody): Prom
 
 export function deleteGachaItem(itemId: string) {
   return del<{ itemId: string }>(`/gacha/items/${itemId}`);
+}
+
+/** Tang vat pham cho user (kho thuong) — idempotent, khong lien quan Astrite. */
+export function grantGachaItem(itemId: string, uid: string) {
+  return post<{ itemId: string; uid: string }>(`/gacha/items/${itemId}/grant/${uid}`);
+}
+
+/** Danh sach user dang so huu 1 vat pham. */
+export function listGachaItemOwners(itemId: string): Promise<GachaItemOwnersResult> {
+  return get<GachaItemOwnersResult>(`/gacha/items/${itemId}/owners`);
 }
 
 /** Lich su quay toan he thong (loc theo user / bac / ngay). */

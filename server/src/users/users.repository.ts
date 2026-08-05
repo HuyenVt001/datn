@@ -79,6 +79,29 @@ export class UsersRepository {
     return snap.docs.map((d) => this.toEntity(d.id, d.data()));
   }
 
+  // ==== So huu vat pham gacha (2026-08-06 — kho thuong) ====
+  // 3 mang so huu tren user doc: `unlockedFrames` giu CHUOI frameId,
+  // `unlockedSkins`/`unlockedEffects` giu SO (khop id int trong app).
+  // GachaService chiu trach nhiem map itemType -> (field, kieu gia tri).
+
+  /** Mo khoa 1 vat pham cho user (arrayUnion — idempotent, da co thi thoi). */
+  async unlockCollectible(
+    uid: string,
+    field: 'unlockedFrames' | 'unlockedSkins' | 'unlockedEffects',
+    value: string | number,
+  ): Promise<void> {
+    await this.col.doc(uid).set({ [field]: FieldValue.arrayUnion(value) }, { merge: true });
+  }
+
+  /** Danh sach user dang so huu 1 vat pham (array-contains, khong can index). */
+  async listByCollectible(
+    field: 'unlockedFrames' | 'unlockedSkins' | 'unlockedEffects',
+    value: string | number,
+  ): Promise<User[]> {
+    const snap = await this.col.where(field, 'array-contains', value).get();
+    return snap.docs.map((d) => this.toEntity(d.id, d.data()));
+  }
+
   /**
    * Ten hien thi cua nhieu user cung luc (trang admin enrich uid -> ten).
    * Dung `getAll` chu khong phai `where in` — `in` gioi han 10 phan tu.

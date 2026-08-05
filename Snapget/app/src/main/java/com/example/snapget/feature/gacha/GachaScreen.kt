@@ -3,6 +3,7 @@ package com.example.snapget.feature.gacha
 import android.net.Uri
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,7 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import com.example.snapget.R
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.GachaStateDto
@@ -206,117 +212,158 @@ private fun GachaContent(
     onTopup: () -> Unit,
     onCancelPayment: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = SkinTheme.colors.textPrimary,
+    // ⚠️ Chu/icon trong man nay nam DE LEN anh nen `gacha_bg` (khong doi theo
+    // skin) nen dung mau trang co dinh — dung quy tac "trang vi nam tren anh".
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(R.drawable.gacha_bg),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Dai mo duoi chan man de nut + chu chan doc duoc du anh nen sang
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                    ),
+                ),
+        )
+
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                // O Astrite + nut `+` mo popup nap — dat GIUA cho can voi 2 icon
+                // hai ben. Ca cum bam duoc, khong chi rieng dau `+` (vung cham
+                // 24dp qua nho de bam trung).
+                Row(
+                    modifier = Modifier
+                        .clip(SkinTheme.shapes.pill)
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .clickable(onClick = onTopup)
+                        .padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_astrite),
+                        contentDescription = "Astrite",
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "%,d".format(state.astrite),
+                        color = SkinTheme.colors.accentGold,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Top up Astrite",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                IconButton(onClick = onShowRules) {
+                    Icon(
+                        imageVector = Icons.Filled.HelpOutline,
+                        contentDescription = "Gacha rules",
+                        tint = Color.White,
+                    )
+                }
+            }
+
+            if (isAwaitingPayment) {
+                PendingPaymentBanner(
+                    onCancel = onCancelPayment,
+                    modifier = Modifier.padding(top = 12.dp),
                 )
             }
 
-            // O Astrite + nut `+` mo popup nap. Ca cum bam duoc, khong chi rieng
-            // dau `+` — vung cham 24dp qua nho de bam trung.
-            Row(
-                modifier = Modifier
-                    .clip(SkinTheme.shapes.pill)
-                    .background(SkinTheme.colors.pill)
-                    .clickable(onClick = onTopup)
-                    .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = "⭐", fontSize = 16.sp)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "%,d".format(state.astrite),
-                    color = SkinTheme.colors.accentGold,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Top up Astrite",
-                    tint = SkinTheme.colors.accent,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            // Tieu de keo len ~1/3 tren man thay vi giua man — phan duoi de
+            // tho cho art cua anh nen
+            Spacer(Modifier.weight(0.55f))
+
+            Text(
+                text = "Snapget Gacha",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Skins · touch effects · frames",
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                textAlign = TextAlign.Center,
+            )
 
             Spacer(Modifier.weight(1f))
 
-            IconButton(onClick = onShowRules) {
-                Icon(
-                    imageVector = Icons.Filled.HelpOutline,
-                    contentDescription = "Gacha rules",
-                    tint = SkinTheme.colors.textPrimary,
+            // Chip pity SSR dat ngay tren nut quay — dung ngu canh "con bao
+            // nhieu luot nua chac chan ra SSR" truoc khi bam (CHI hien SSR,
+            // user chot 2026-08-05)
+            Text(
+                text = "SSR pity ${state.pity.SSR}/${state.pityLimit.SSR}",
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clip(SkinTheme.shapes.pill)
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 12.dp, vertical = 5.dp),
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RollButton(
+                    label = "Roll x1",
+                    cost = state.costSingle,
+                    enabled = !isRolling && state.astrite >= state.costSingle,
+                    loading = isRolling,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onRoll(1) },
+                )
+                RollButton(
+                    label = "Roll x${state.tenTimes}",
+                    cost = state.costTen,
+                    enabled = !isRolling && state.astrite >= state.costTen,
+                    loading = isRolling,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onRoll(state.tenTimes) },
                 )
             }
-        }
 
-        // CHI hien pity SSR (user chot 2026-08-05) — pity R/SR an hoan toan
-        Text(
-            text = "SSR ${state.pity.SSR}/${state.pityLimit.SSR}",
-            color = SkinTheme.colors.textSecondary,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(start = 12.dp, top = 2.dp),
-        )
-
-        if (isAwaitingPayment) {
-            PendingPaymentBanner(
-                onCancel = onCancelPayment,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Text(
-            text = "Snapget Gacha",
-            color = SkinTheme.colors.textPrimary,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = "Skins · touch effects · frames",
-            color = SkinTheme.colors.textSecondary,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            textAlign = TextAlign.Center,
-        )
-
-        Spacer(Modifier.weight(1f))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            RollButton(
-                label = "Roll x1",
-                cost = state.costSingle,
-                enabled = !isRolling && state.astrite >= state.costSingle,
-                loading = isRolling,
-                modifier = Modifier.weight(1f),
-                onClick = { onRoll(1) },
-            )
-            RollButton(
-                label = "Roll x${state.tenTimes}",
-                cost = state.costTen,
-                enabled = !isRolling && state.astrite >= state.costTen,
-                loading = isRolling,
-                modifier = Modifier.weight(1f),
-                onClick = { onRoll(state.tenTimes) },
-            )
-        }
-
-        if (state.astrite < state.costSingle) {
-            Text(
-                text = "Not enough Astrite — finish your daily quests, or tap ⭐ to top up.",
-                color = SkinTheme.colors.textSecondary,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-            )
+            if (state.astrite < state.costSingle) {
+                Text(
+                    text = "Not enough Astrite — finish your daily quests, or tap the balance to top up.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                )
+            }
         }
     }
 }
@@ -351,7 +398,15 @@ private fun RollButton(
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = label, fontWeight = FontWeight.Bold)
-                Text(text = "⭐ $cost", fontSize = 11.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_astrite),
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                    )
+                    Spacer(Modifier.width(3.dp))
+                    Text(text = "$cost", fontSize = 11.sp)
+                }
             }
         }
     }

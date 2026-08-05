@@ -114,6 +114,7 @@ export type AdminAction =
   | 'GACHA_ITEM_CREATE'
   | 'GACHA_ITEM_UPDATE'
   | 'GACHA_ITEM_DELETE'
+  | 'GACHA_ITEM_GRANT'
   | 'TOPUP_PACKAGE_CREATE'
   | 'TOPUP_PACKAGE_UPDATE'
   | 'TOPUP_PACKAGE_DELETE';
@@ -142,6 +143,20 @@ export interface GachaItem {
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;
+}
+
+/** 1 user dang so huu vat pham (GET /gacha/items/:id/owners). */
+export interface GachaItemOwner {
+  uid: string;
+  email?: string;
+  fullName: string;
+  avatar?: string;
+}
+
+/** Ket qua GET /gacha/items/:id/owners. */
+export interface GachaItemOwnersResult {
+  item: GachaItem;
+  owners: GachaItemOwner[];
 }
 
 /** 1 ket qua le trong 1 luot quay. */

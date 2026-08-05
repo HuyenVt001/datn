@@ -1,6 +1,7 @@
 package com.example.snapget.core.designsystem.skin.skins
 
 import androidx.compose.ui.graphics.Color
+import com.example.snapget.R
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinColors
 
@@ -10,13 +11,14 @@ import com.example.snapget.core.designsystem.skin.SkinColors
  * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Vat pham **SSR** cua
  * gacha; mo khoa qua `users.unlockedSkins`.
  *
- * Chua cam asset rieng (icon/nut/thumbnail) — [AppSkin.icons] va [AppSkin.images]
- * de trong nen tu dung ban Material + shape mac dinh. Doi mau da chay day du:
- * khai `accent` xanh la MOI cho vang trong app thanh xanh cung luc.
+ * Da cam `thumbnail` (tab Skins, 9:16). Icon/nut rieng chua cam — [AppSkin.icons]
+ * va [AppSkin.images] de trong nen tu dung ban Material + shape mac dinh. Doi mau
+ * da chay day du: khai `accent` xanh la MOI cho vang trong app thanh xanh cung luc.
  */
 val SnowSkin = AppSkin(
     id = 1,
     displayName = "Snow",
+    thumbnail = R.drawable.skin1_thumb,
     colors = SkinColors(
         background = Color(0xFF0B0F1A),
         surface = Color(0xFF10192B),

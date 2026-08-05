@@ -1,6 +1,7 @@
 package com.example.snapget.core.designsystem.skin.skins
 
 import androidx.compose.ui.graphics.Color
+import com.example.snapget.R
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinColors
 
@@ -13,6 +14,7 @@ import com.example.snapget.core.designsystem.skin.SkinColors
 val ForestSkin = AppSkin(
     id = 2,
     displayName = "Forest",
+    thumbnail = R.drawable.skin2_thumb,
     colors = SkinColors(
         background = Color(0xFF0E2416),
         surface = Color(0xFF14301F),

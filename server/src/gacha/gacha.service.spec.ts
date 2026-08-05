@@ -126,6 +126,12 @@ describe('GachaService', () => {
     } as unknown as jest.Mocked<FramesRepository>;
     usersRepo = {
       getFullNamesByUids: jest.fn(async () => new Map([['u1', 'Nguyen Van An']])),
+      // Kho thuong (grant/owners)
+      findByUid: jest.fn(async (uid: string) => (uid === 'u1' ? { uid, fullName: 'An' } : null)),
+      unlockCollectible: jest.fn(),
+      listByCollectible: jest.fn(async () => [
+        { uid: 'u1', fullName: 'Nguyen Van An', email: 'an@x.vn' },
+      ]),
     } as unknown as jest.Mocked<UsersRepository>;
 
     service = new TestableGachaService(repo, astriteRepo, framesRepo, usersRepo);
@@ -417,6 +423,46 @@ describe('GachaService', () => {
       const rows = await service.listAllRolls({});
       expect(rows.find((r) => r.uid === 'u1')?.fullName).toBe('Nguyen Van An');
       expect(rows.find((r) => r.uid === 'u2')?.fullName).toBe('u2');
+    });
+  });
+
+  describe('kho thưởng — tặng vật phẩm', () => {
+    it('tặng SKIN ghi vào unlockedSkins dạng SỐ — app so id kiểu Int', async () => {
+      repo.findItemById.mockResolvedValueOnce(item({ itemId: 's1', itemType: 'SKIN', refId: '1' }));
+
+      await service.grantItem('s1', 'u1');
+
+      expect(usersRepo.unlockCollectible).toHaveBeenCalledWith('u1', 'unlockedSkins', 1);
+    });
+
+    it('tặng FRAME giữ refId dạng chuỗi (frameId Firestore)', async () => {
+      repo.findItemById.mockResolvedValueOnce(
+        item({ itemId: 'f1', itemType: 'FRAME', rarity: 'R', refId: 'frame-9' }),
+      );
+
+      await service.grantItem('f1', 'u1');
+
+      expect(usersRepo.unlockCollectible).toHaveBeenCalledWith('u1', 'unlockedFrames', 'frame-9');
+    });
+
+    it('tặng cho uid không tồn tại -> 404, không sinh user doc "ma"', async () => {
+      repo.findItemById.mockResolvedValueOnce(item({ itemId: 's1' }));
+
+      await expect(service.grantItem('s1', 'uid-go-nham')).rejects.toThrow(
+        'Không tìm thấy người dùng này.',
+      );
+      expect(usersRepo.unlockCollectible).not.toHaveBeenCalled();
+    });
+
+    it('owners: tra cứu đúng field + kiểu giá trị theo loại vật phẩm', async () => {
+      repo.findItemById.mockResolvedValueOnce(
+        item({ itemId: 'e1', itemType: 'EFFECT', rarity: 'SR', refId: '3' }),
+      );
+
+      const { owners } = await service.listItemOwners('e1');
+
+      expect(usersRepo.listByCollectible).toHaveBeenCalledWith('unlockedEffects', 3);
+      expect(owners).toEqual([{ uid: 'u1', fullName: 'Nguyen Van An', email: 'an@x.vn' }]);
     });
   });
 });

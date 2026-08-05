@@ -113,7 +113,8 @@ admin/
 │   │   ├── admin.api.ts   # listUsers / getStats / getDailyStats / setUserDisabled / grantAdmin / revokeAdmin
 │   │   │                  #   + listMoments / deleteMoment / listLogs (kiểm duyệt + audit log)
 │   │   ├── frames.api.ts  # listFrames / createFrame / updateFrame (unlockType+unlockValue) / deleteFrame / grantFrame / listFrameOwners
-│   │   ├── gacha.api.ts   # (2026-08-05) listGachaItems / createGachaItem / updateGachaItem / deleteGachaItem / listGachaRolls
+│   │   ├── gacha.api.ts   # (2026-08-05) listGachaItems / create / update / delete / listGachaRolls
+│   │   │                  #   + (2026-08-06) grantGachaItem / listGachaItemOwners (kho thưởng)
 │   │   └── upload.api.ts  # uploadImage(file) → POST /upload/admin (multipart, Admin JWT)
 │   ├── auth/
 │   │   ├── firebase.ts    # init Firebase web app từ VITE_FIREBASE_*
@@ -177,6 +178,7 @@ admin/
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-06 — Kho thưởng trên trang Kho vật phẩm**. Mỗi vật phẩm thêm 2 nút: 🎁 **Tặng** (modal tìm user theo email/tên, debounce 300ms — tặng thẳng vào tài khoản, idempotent, KHÔNG cộng Astrite) và 👥 **Ai đang sở hữu?** (drawer). `LogsPage` thêm nhãn `GACHA_ITEM_GRANT`. Nhắc lại đúng phân công: **sửa** vật phẩm chỉ là metadata (tên/ảnh/phẩm chất) — asset thật của skin/hiệu ứng nằm trong APK, ẩn thì dùng công tắc `isActive`.
 - **2026-08-05 — G6: 2 trang nạp tiền (PayOS — TIỀN THẬT)**. `TopupPackagesPage` (`/topup`) CRUD gói nạp + công tắc "hiện trong app" ngay trong bảng; có cột tính sẵn **"Astrite / 1.000đ"** để soi xem gói to có thực sự đáng tiền hơn gói nhỏ không (không thì không ai mua gói to), và banner cảnh báo sửa giá ở đây **đổi ngay số tiền người dùng phải trả** cho đơn tạo từ lúc đó — đơn đã tạo giữ giá của chính nó nên không hồi tố. `TopupHistoryPage` (`/topup-history`) lọc uid/trạng thái/ngày, 4 ô doanh thu + bảng theo ngày, hiện `orderCode` **và mã giao dịch ngân hàng** (`payosReference`) để đối soát với dashboard PayOS; đơn do `/topup/simulate` sinh có nhãn **"Giả lập"** để không lẫn vào doanh thu thật. `LogsPage` thêm 3 nhãn `TOPUP_PACKAGE_*`.
   - 🧭 **Doanh thu tính trên toàn bộ tập đã lọc**, không phải trên số dòng đang hiển thị — đặt `limit` nhỏ không được làm doanh thu tụt (server trả `{rows, summary}` riêng vì lý do này).
 - **2026-08-05 — G3: 2 trang gacha + Astrite trên trang có sẵn**. `GachaItemsPage` (`/gacha`) quản lý kho vật phẩm: lọc theo loại, thêm khung (chọn từ catalog `/frames/admin`, **ẩn khung đã nằm trong kho** — server cũng chặn trùng vì 1 khung 2 lần = tỉ lệ nổ gấp đôi), sửa tên/phẩm chất/ảnh/thứ tự, công tắc bật-tắt ngay trong bảng, xóa (kèm cảnh báo người đã sở hữu vẫn giữ). Skin/hiệu ứng **chỉ sửa** — asset nằm trong APK, tạo mới sẽ ra vật phẩm app không hiển thị được. `GachaHistoryPage` (`/gacha-history`) lọc theo uid/bậc/ngày + 4 ô tổng hợp và đếm theo bậc **tính trên đúng tập đang lọc**. `UsersPage` thêm cột Astrite (sort được), `DashboardPage` thêm 2 ô lượt quay, `LogsPage` thêm 3 nhãn `GACHA_ITEM_*`. **Bỏ `GachaBannerPage`** — user chốt hardcode banner trong APK.

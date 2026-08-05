@@ -13,6 +13,8 @@ export const ADMIN_ACTIONS = [
   'GACHA_ITEM_CREATE',
   'GACHA_ITEM_UPDATE',
   'GACHA_ITEM_DELETE',
+  // (2026-08-06) kho thuong: admin tang vat pham thang vao tai khoan
+  'GACHA_ITEM_GRANT',
   // (2026-08-05 — G6) quan ly goi nap PayOS. Doi gia/so Astrite la hanh dong
   // lien quan TIEN THAT nen bat buoc co dau vet ai sua, luc nao.
   'TOPUP_PACKAGE_CREATE',

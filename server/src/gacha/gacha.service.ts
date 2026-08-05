@@ -31,6 +31,14 @@ export interface AdminRollRow extends GachaRoll {
   fullName: string;
 }
 
+/** 1 user dang so huu vat pham (drawer "Ai đang sở hữu?" cua trang admin). */
+export interface GachaItemOwner {
+  uid: string;
+  email?: string;
+  fullName: string;
+  avatar?: string;
+}
+
 /** Bo loc cua trang lich su quay (admin). */
 export interface AdminRollFilter {
   uid?: string;
@@ -392,6 +400,65 @@ export class GachaService {
     }
     await this.repo.deleteItem(itemId);
     return item;
+  }
+
+  /**
+   * Vi tri + kieu gia tri cua quyen so huu tren user doc, theo loai vat pham.
+   * ⚠️ SKIN/EFFECT luu dang SO (khop `SkinRegistry`/`TouchEffectRegistry` trong
+   * app) — tang dang chuoi la app khong nhan ra vat pham da mo.
+   */
+  private ownershipKey(item: GachaItem): {
+    field: 'unlockedFrames' | 'unlockedSkins' | 'unlockedEffects';
+    value: string | number;
+  } {
+    switch (item.itemType) {
+      case 'FRAME':
+        return { field: 'unlockedFrames', value: item.refId };
+      case 'SKIN':
+        return { field: 'unlockedSkins', value: Number(item.refId) };
+      case 'EFFECT':
+        return { field: 'unlockedEffects', value: Number(item.refId) };
+    }
+  }
+
+  /**
+   * Admin TANG vat pham cho user (kho thuong — dung de demo/den bu).
+   * Idempotent: tang lai vat pham da so huu thi khong doi gi.
+   *
+   * Khong dung AstriteService: tang khong lien quan tien, khong ghi so cai.
+   */
+  async grantItem(itemId: string, uid: string): Promise<GachaItem> {
+    const item = await this.repo.findItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Không tìm thấy vật phẩm.');
+    }
+    // Chan go nham uid: set-merge len uid khong ton tai se sinh user doc "ma"
+    if (!(await this.usersRepo.findByUid(uid))) {
+      throw new NotFoundException('Không tìm thấy người dùng này.');
+    }
+    const { field, value } = this.ownershipKey(item);
+    await this.usersRepo.unlockCollectible(uid, field, value);
+    this.logger.log(`Admin tang [${item.itemType}] ${item.itemName} cho ${uid}`);
+    return item;
+  }
+
+  /** Admin xem danh sach user dang so huu 1 vat pham. */
+  async listItemOwners(itemId: string): Promise<{ item: GachaItem; owners: GachaItemOwner[] }> {
+    const item = await this.repo.findItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Không tìm thấy vật phẩm.');
+    }
+    const { field, value } = this.ownershipKey(item);
+    const users = await this.usersRepo.listByCollectible(field, value);
+    return {
+      item,
+      owners: users.map((u) => ({
+        uid: u.uid,
+        email: u.email || undefined,
+        fullName: u.fullName,
+        avatar: u.avatar,
+      })),
+    };
   }
 
   /** Lich su quay toan he thong + loc; enrich ten nguoi quay tu uid. */
