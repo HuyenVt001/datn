@@ -468,6 +468,8 @@ Server bảo vệ rất kỹ việc *ai được xem moment nào* ([moments.serv
 
 `SessionCleaner.clear()` xóa cả ba, chạy trên `Dispatchers.IO` và best-effort (lỗi dọn dẹp không làm hỏng luồng đăng xuất). Được gọi ở **cả hai** đường đăng xuất: người dùng tự bấm Sign Out, **và** phiên bị thu hồi từ bên ngoài.
 
+✅ **Bổ sung 2026-08-05 — reset skin + hiệu ứng chạm khi đăng xuất.** Hai thứ này là **vật phẩm gacha mua bằng tiền thật**, gắn với tài khoản chứ không gắn với thiết bị; lựa chọn lại nằm ở `SharedPreferences`. Không reset thì tài khoản đăng nhập kế tiếp trên cùng máy dùng miễn phí skin SSR của tài khoản trước (và màn Appearance hiện skin đang áp dụng ở trạng thái bị khoá). Xem `SettingsPreferences.resetAppearance()`.
+
 ✅ **`logoutFromAllDevices()` đã được ghi chú trung thực** — Firebase client SDK không thể thu hồi phiên trên máy khác (chỉ `revokeRefreshTokens` phía server làm được, và server chưa có endpoint đó cho user thường). Hàm giữ nguyên tên để không phá API nhưng comment cảnh báo rõ **UI không được hứa "sign out from all devices"** cho tới khi có endpoint thật.
 
 ✅ **Đã xóa dead code `AuthConstants`** (`SHARED_PREFS_NAME = "auth_prefs"` / `TOKEN_KEY = "access_token"`) — không nơi nào dùng, là tàn dư của flow token thủ công cũ. Xóa để lập trình viên sau không vô tình quay lại kiểu lưu token plaintext.
@@ -1007,6 +1009,16 @@ doc id của topupOrders  ==  orderCode        ← 1 mã ⇒ đúng 1 doc, khôn
 
 Firestore **serialize** các transaction chạm cùng document, nên hai webhook đến đồng thời không thể cùng nhìn thấy `PENDING`.
 
+> 🔴 **Ba lỗ hổng đã vá khi soát lại (2026-08-05).** Cả ba đều cùng một dạng: *ghi đè trạng thái đơn ở nơi không thực sự đổi trạng thái*, làm mất lá chắn `PAID` và mở đường cộng tiền lần hai.
+>
+> | Chỗ | Vấn đề | Cách vá |
+> |---|---|---|
+> | Dọn đơn quá hạn | Đọc danh sách rồi ghi thẳng `EXPIRED`; webhook thật có thể chen vào giữa và chuyển đơn sang `PAID`, lệnh ghi kéo ngược về `EXPIRED` | `expireOrderIfPending` chạy **trong transaction**, chỉ đổi khi doc vẫn còn `PENDING` |
+> | Lưu `checkoutUrl` sau khi tạo link | Ghi kèm `status: 'PENDING'` dù không đổi trạng thái | Tách `patchOrder` — **không bao giờ** ghi `status` |
+> | `/topup/simulate` | Không kiểm tra chủ đơn: đoán đúng `orderCode` là cộng vào ví người khác | Dùng `getOrderForUser` (403 nếu không phải của mình) |
+>
+> 📏 **Luật rút ra cho mọi thay đổi sau này:** chỉ được ghi `status` của `topupOrders` ở đúng hai chỗ — transaction cộng tiền (`PENDING → PAID`) và transaction dọn quá hạn (`PENDING → EXPIRED`). Mọi cập nhật khác dùng `patchOrder`.
+
 **Bài test bắt buộc trước khi bật production** (đã có trong [topup.service.spec.ts](server/src/topup/topup.service.spec.ts)): gọi webhook **3 lần cùng `orderCode`** → số dư tăng **đúng 1 lần**, `astriteTransactions` có **đúng 1 dòng**.
 
 ### 17.5 Endpoint giả lập `/topup/simulate`
@@ -1025,12 +1037,13 @@ Firestore **serialize** các transaction chạm cùng document, nên hai webhook
 - 3 hành động `TOPUP_PACKAGE_CREATE/UPDATE/DELETE` ghi `adminLogs` — đổi giá gói là thao tác đụng tiền, phải biết ai sửa lúc nào.
 - Trang **Lịch sử nạp** hiện `orderCode` + `payosReference` (mã giao dịch ngân hàng) để đối chiếu với dashboard PayOS.
 - Doanh thu chỉ tính đơn `PAID`.
+- **Vật phẩm gắn với tài khoản, không gắn với máy**: skin và hiệu ứng chạm đang dùng được lưu ở `SharedPreferences`, nên `SessionCleaner` **reset về mặc định khi đăng xuất** (vá 2026-08-05). Không reset thì người đăng nhập tiếp theo trên cùng thiết bị dùng miễn phí đồ của tài khoản trước.
 
 ### 17.7 Khoảng trống đã biết
 
 | Vấn đề | Mức | Ghi chú |
 |---|---|---|
 | Không có rate limit riêng cho `/topup/orders` | ⚠️ | Đang dùng rate limit toàn cục 120 req/60s/IP. Spam tạo đơn không mất tiền (link chưa trả không tiêu giao dịch) nhưng làm rác `topupOrders` |
-| Dọn đơn quá hạn chạy cơ hội | 🧭 | Không dùng `@nestjs/schedule` (thêm dependency) — đơn `PENDING` được quét sang `EXPIRED` khi có người mở lịch sử nạp hoặc trang admin. Không ảnh hưởng tiền |
+| Dọn đơn quá hạn chạy cơ hội | 🧭 | Không dùng `@nestjs/schedule` (thêm dependency) — đơn `PENDING` được quét sang `EXPIRED` khi có người mở lịch sử nạp hoặc trang admin. Chạy trong transaction có điều kiện nên không đụng tới đơn đã `PAID` |
 | Chưa có đối soát tự động sổ cái ↔ PayOS | ⚠️ | Quy mô DATN đối soát tay qua trang Lịch sử nạp. Sản phẩm thật nên có job so tổng `paidRevenueVnd` với báo cáo PayOS |
 | Chênh lệch số tiền phải xử lý tay | 🧭 | `AMOUNT_MISMATCH` chỉ ghi log + giữ đơn `PENDING`. Cố tình không tự đoán: đây là tiền thật |

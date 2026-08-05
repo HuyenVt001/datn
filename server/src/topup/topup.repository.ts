@@ -126,6 +126,44 @@ export class TopupRepository {
     await this.orders.doc(String(orderCode)).set({ status, ...strip(extra) }, { merge: true });
   }
 
+  /**
+   * Cap nhat cac field PHU cua don — **khong bao gio dung toi `status`**.
+   *
+   * Vi sao tach rieng khoi [updateOrderStatus]: ghi kem `status` o nhung cho
+   * khong thuc su doi trang thai co the **keo mot don da PAID ve PENDING**, va
+   * webhook goi lai sau do se cong Astrite lan hai.
+   */
+  async patchOrder(orderCode: number, patch: Omit<Partial<TopupOrder>, 'status'>): Promise<void> {
+    const data = strip(patch);
+    if (Object.keys(data).length === 0) {
+      return;
+    }
+    await this.orders.doc(String(orderCode)).set(data, { merge: true });
+  }
+
+  /**
+   * Danh dau don qua han — **chi khi doc do VAN con `PENDING`**, kiem tra ben
+   * trong transaction.
+   *
+   * Bat buoc phai co transaction o day: neu doc-roi-ghi thi giua hai buoc,
+   * webhook that co the vua chuyen don sang `PAID`; lenh ghi de se keo no ve
+   * `EXPIRED`, va webhook goi lai sau do khong con thay `PAID` de chan
+   * -> **cong tien lan hai**.
+   *
+   * Tra ve true neu that su doi trang thai.
+   */
+  async expireOrderIfPending(orderCode: number): Promise<boolean> {
+    const ref = this.orders.doc(String(orderCode));
+    return this.firebase.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists || snap.data()?.status !== 'PENDING') {
+        return false;
+      }
+      tx.set(ref, { status: 'EXPIRED' satisfies TopupOrderStatus }, { merge: true });
+      return true;
+    });
+  }
+
   /** Lich su nap cua 1 user, moi nhat truoc (1 filter + sort bo nho, khong can index). */
   async listOrdersByUid(uid: string, limit = 50): Promise<TopupOrder[]> {
     const snap = await this.orders.where('uid', '==', uid).get();

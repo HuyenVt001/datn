@@ -114,6 +114,20 @@ describe('TopupService', () => {
           orders.set(code, { ...cur, status, ...extra });
         }
       }),
+      patchOrder: jest.fn(async (code: number, patch: Partial<TopupOrder>) => {
+        const cur = orders.get(code);
+        if (cur) {
+          orders.set(code, { ...cur, ...patch });
+        }
+      }),
+      expireOrderIfPending: jest.fn(async (code: number) => {
+        const cur = orders.get(code);
+        if (cur?.status !== 'PENDING') {
+          return false;
+        }
+        orders.set(code, { ...cur, status: 'EXPIRED' });
+        return true;
+      }),
       listOrdersByUid: jest.fn(async () => [...orders.values()]),
       listAllOrders: jest.fn(async () => [...orders.values()]),
       listStalePendingOrders: jest.fn(async () => []),
@@ -272,6 +286,19 @@ describe('TopupService', () => {
       expect([...orders.values()][0].status).toBe('CANCELLED');
     });
 
+    it('lưu checkoutUrl bằng patchOrder — KHÔNG ghi đè status', async () => {
+      // Ghi kem `status` o buoc nay tung la duong keo mot don da PAID ve PENDING
+      // -> webhook goi lai se cong tien lan hai.
+      await service.createOrder('u1', PKG.packageId);
+
+      expect(repo.patchOrder).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.objectContaining({ checkoutUrl: 'https://pay.payos.vn/web/link-1' }),
+      );
+      expect(repo.patchOrder.mock.calls[0][1]).not.toHaveProperty('status');
+      expect(repo.updateOrderStatus).not.toHaveBeenCalled();
+    });
+
     it('gói đang tắt -> từ chối', async () => {
       repo.findPackageById.mockResolvedValueOnce({ ...PKG, isActive: false });
 
@@ -286,6 +313,29 @@ describe('TopupService', () => {
       putOrder({ uid: 'nguoi-khac' });
 
       await expect(service.getOrderForUser('u1', 111)).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('dọn đơn quá hạn', () => {
+    it('dọn bằng transaction có điều kiện, KHÔNG ghi đè thẳng trạng thái', async () => {
+      // Ghi thang se de len mot don vua duoc webhook chuyen sang PAID, va webhook
+      // goi lai sau do khong con thay PAID de chan -> cong tien lan hai.
+      const stale = putOrder({ orderCode: 99, createdAt: '2020-01-01T00:00:00.000Z' });
+      repo.listStalePendingOrders.mockResolvedValueOnce([stale]);
+
+      await service.listHistory('u1');
+
+      expect(repo.expireOrderIfPending).toHaveBeenCalledWith(99);
+      expect(repo.updateOrderStatus).not.toHaveBeenCalled();
+    });
+
+    it('đơn đã PAID thì không bị kéo về EXPIRED', async () => {
+      const paid = putOrder({ orderCode: 99, status: 'PAID' });
+      repo.listStalePendingOrders.mockResolvedValueOnce([paid]);
+
+      await service.listHistory('u1');
+
+      expect(orders.get(99)?.status).toBe('PAID');
     });
   });
 
@@ -305,6 +355,15 @@ describe('TopupService', () => {
 
       expect(again.outcome).toBe('ALREADY_PAID');
       expect(ledger).toHaveLength(1);
+    });
+
+    it('không cộng được vào ví người khác dù đoán đúng mã đơn', async () => {
+      putOrder({ uid: 'nguoi-khac' });
+
+      await expect(service.simulate('u1', { orderCode: 111 })).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(balance).toBe(1_000);
     });
 
     it('môi trường production -> chặn hẳn', async () => {

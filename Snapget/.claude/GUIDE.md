@@ -103,7 +103,8 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   config/                   #   StatusBar (edge-to-edge; KHÔNG dùng FLAG_LAYOUT_NO_LIMITS — phá insets bàn phím)
   constants/                #   FirestoreConfig, ScreenTitle, UserRole, ... (AuthConstants ĐÃ XÓA 2026-07-28)
   data/                     #   FirestoreRepository (legacy — getCurrentUser + clearCache),
-  │                         #   SessionCleaner (🔐 xóa Coil cache + user cache + pending invite khi đăng xuất),
+  │                         #   SessionCleaner (🔐 xóa Coil cache + user cache + pending invite + RESET
+  │                         #   skin/hiệu ứng khi đăng xuất — vật phẩm gắn với tài khoản, không gắn với máy),
   │                         #   SettingDefaults (23 mục settings tĩnh + SettingIds + visible),
   │                         #   SettingsPreferences (toggle + **skinId** + **touchEffectId** qua SharedPreferences),
   │                         #   MainLog/MainLogImpl, Store/StoreImpl2, SampleData (chỉ cho @Preview)
@@ -112,7 +113,9 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
     │                       #   empty/ frame/ grid/ indicator/ input/ list/ pill/ sheet/ topbar/
     collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung cho cả 3 tab Appearance
     effect/                 #   **(2026-08-05 — P4)** HIỆU ỨNG TOUCH: TouchEffect (model) + TouchEffectRegistry
-    │                       #   (None + 5 hiệu ứng) + TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume)
+    │                       #   (None + 5 hiệu ứng) + TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume;
+    │                       #   đồng hồ withFrameMillis CHỈ chạy khi còn cụm đang bay)
+    │                       #   + TouchEffectController (tắt tạm theo ngữ cảnh — màn camera bật cờ lúc quay GIF)
     skin/                   #   **(2026-08-05 — P0/P1)** ENGINE SKIN: AppSkin + SkinColors/Icons/Shapes/Images,
     │                       #   LocalAppSkin + `SkinTheme` (cổng đọc token), SkinIcon (fallback Material),
     │                       #   SkinShapeDefaults, SkinRegistry (skin bundled, find() chịu được id lạ),
@@ -263,6 +266,12 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-05 — Soát lại luồng mới: vá 4 lỗi ở overlay hiệu ứng, đăng xuất và poll đơn nạp**.
+  - 🔴 **Chọn hiệu ứng xong bị văng về màn camera.** `TouchEffectOverlay` có nhánh `if (!active) { Box { content() }; return }` riêng, nên bật/tắt hiệu ứng làm Compose huỷ và dựng lại cả cây bên dưới → `rememberNavController` trong `Navigation()` sinh lại → back stack mất. Nay `content()` **luôn ở đúng một vị trí gọi**, chỉ modifier và Canvas đổi theo `active`.
+  - 🔴 **Cụm hạt tự phát lại mỗi 10 giây.** Mốc thời gian lấy từ đồng hồ `rememberInfiniteTransition` chạy vòng 10s; sau đúng 1 vòng, `tick - startMs` quay về ~0 nên cụm cũ vẽ lại từ đầu. Nay mốc lấy từ `System.nanoTime()` (không lặp vòng), và đồng hồ đổi sang `withFrameMillis` **chỉ chạy khi còn cụm đang bay** — trước đây nó vẽ lại mỗi frame suốt vòng đời app dù không có gì để vẽ.
+  - 🟠 **Skin/hiệu ứng theo máy chứ không theo tài khoản.** `SessionCleaner` không reset `skinId`/`touchEffectId` → tài khoản đăng nhập sau trên cùng máy dùng miễn phí skin SSR của tài khoản trước. Thêm `SettingsPreferences.resetAppearance()`.
+  - 🟠 **Kết quả poll cũ đè lên đơn nạp mới.** `refreshPendingOrder` không đối chiếu lại `orderCode` sau khi mạng trả về; thêm chốt so sánh trước khi ghi state.
+  - ⚙️ Bổ sung 2 thứ đã chốt trong SKIN_PLAN nhưng chưa nối dây: `TouchEffectController` + `LocalTouchEffectController` (**tắt hiệu ứng trong lúc quay GIF**, mục 2.5.4) và **bấm ô Effects để chạy lại demo** — với ô chưa sở hữu thì đó là tác dụng duy nhất, thiếu nó thì bấm vào không có gì xảy ra.
 - **2026-08-05 — G6: nạp Astrite bằng TIỀN THẬT (PayOS)**. `core/network/dto/TopupDtos.kt` + `api/TopupApi.kt` + `feature/gacha/data/TopupRepository.kt`; `TopupSheet.kt` (popup gói nạp + dải "đang chờ thanh toán" + popup "đã cộng N Astrite"); `GachaViewModel` thêm `TopupUiState`. Nút `+` cạnh số dư Astrite **bật lại** (G4 tạm ẩn vì chưa có luồng nạp). Không thêm dependency nào — `androidx.browser` đã có sẵn trong `libs.versions.toml`.
   - 💳 **App chỉ gửi `packageId`** — số tiền và số Astrite do server tra từ `topupPackages`. Gửi kèm số tiền là mở đường cho "tôi trả 1đ, cộng cho tôi 5 triệu Astrite".
   - 🔎 **Nguồn sự thật là webhook PayOS → server, KHÔNG phải URL trình duyệt chuyển về**: người dùng sửa được thanh địa chỉ thành `?status=PAID`. App chỉ hỏi `GET /topup/orders/:orderCode` và chỉ tin khi server trả `PAID`.

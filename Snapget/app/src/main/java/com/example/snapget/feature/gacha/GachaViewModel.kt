@@ -190,6 +190,10 @@ class GachaViewModel @Inject constructor(
             } catch (_: Exception) {
                 return@launch // mat mang tam thoi -> lan poll sau thu lai
             }
+            // Trong luc doi mang, nguoi dung co the da bo cuoc hoac tao don MOI.
+            // Khong co chot nay thi ket qua cu se xoa don moi dang cho, hoac hien
+            // popup "da cong X Astrite" cua don khong con lien quan.
+            if (_uiState.value.topup.pendingOrderCode != orderCode) return@launch
             when {
                 order.isPaid -> {
                     // Doc lai state tu server thay vi tu cong o app

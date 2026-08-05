@@ -126,7 +126,9 @@ export class TopupService {
       throw e;
     }
 
-    await this.repo.updateOrderStatus(order.orderCode, 'PENDING', {
+    // `patchOrder` chu khong phai `updateOrderStatus`: don vua tao da la PENDING
+    // roi, ghi de `status` o day chi tao co hoi keo mot don da PAID ve PENDING.
+    await this.repo.patchOrder(order.orderCode, {
       checkoutUrl: link.checkoutUrl,
       payosPaymentLinkId: link.paymentLinkId,
     });
@@ -308,10 +310,10 @@ export class TopupService {
       orderCode = order.orderCode;
     }
 
-    const order = await this.repo.findOrder(orderCode);
-    if (!order) {
-      throw new NotFoundException('Không tìm thấy đơn nạp này.');
-    }
+    // Dung `getOrderForUser` chu khong phai `findOrder`: endpoint nay tuy chi
+    // chay o dev nhung van khong duoc phep cong tien vao vi nguoi khac chi vi
+    // doan dung ma don.
+    const order = await this.getOrderForUser(uid, orderCode);
 
     const data = buildFakeWebhookData(order);
     if (this.payos.canSign) {
@@ -401,13 +403,18 @@ export class TopupService {
    * Danh dau don PENDING qua han thanh EXPIRED — de trang lich su khong day
    * don treo. Khong lam mat tien: [creditOrderOnce] van cong cho don EXPIRED
    * neu webhook that ve muon.
+   *
+   * ⚠️ Dung `expireOrderIfPending` (co transaction) chu KHONG ghi thang: giua
+   * luc doc danh sach va luc ghi, webhook that co the vua chuyen don sang
+   * `PAID` — ghi de se keo no ve `EXPIRED` va webhook goi lai sau do se cong
+   * tien lan hai.
    */
   private async expireStaleOrders(): Promise<void> {
     const cutoff = new Date(Date.now() - TOPUP_ORDER_TTL_MINUTES * 60_000).toISOString();
     const stale = await this.repo.listStalePendingOrders(cutoff);
     for (const order of stale) {
       await this.repo
-        .updateOrderStatus(order.orderCode, 'EXPIRED')
+        .expireOrderIfPending(order.orderCode)
         .catch((e) =>
           this.logger.warn(`Khong danh dau duoc don ${order.orderCode}: ${describe(e)}`),
         );

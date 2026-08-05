@@ -72,6 +72,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -98,6 +99,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
+import com.example.snapget.core.designsystem.effect.LocalTouchEffectController
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -185,6 +187,16 @@ fun CameraPreviewWithZoom(
             if (flipRequestId > 0) {
                 isFrontCamera = !isFrontCamera
             }
+        }
+
+        // Tat hieu ung cham trong luc quay GIF (SKIN_PLAN.md muc 2.5.4, chot
+        // 2026-08-05) — dung tinh than DESIGN.md 7.5 "khi quay KHONG hien gi
+        // them". `onDispose` tu nha co khi roi man, ke ca luc quay bi ngat giua
+        // chung, nen khong the ket o trang thai tat vinh vien.
+        val touchEffectController = LocalTouchEffectController.current
+        DisposableEffect(isRecording) {
+            touchEffectController.suppressed.value = isRecording
+            onDispose { touchEffectController.suppressed.value = false }
         }
 
         // TU DONG DUNG khi cham MAX_VIDEO_SECONDS (3s — server cung enforce).

@@ -1,17 +1,17 @@
 package com.example.snapget.core.designsystem.effect
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -39,9 +39,17 @@ private const val MAX_LIVE_EMISSIONS = 8
 private data class Emission(
     val id: Long,
     val origin: Offset,
+    /**
+     * Moc bat dau, don vi ms, lay tu **dong ho don dieu khong lap vong**
+     * (`System.nanoTime`). Truoc day dung dong ho animation chay vong 10s nen
+     * cum cham cu **phat lai** moi 10 giay khi man hinh de yen — xem [nowMs].
+     */
     val startMs: Long,
     val seeds: List<Float>,
 )
+
+/** Moc thoi gian don dieu, CUNG goc voi `withFrameMillis` tren Android. */
+private fun nowMs(): Long = System.nanoTime() / 1_000_000L
 
 /**
  * Lop phu bat cham toan man va ve hieu ung tai diem cham (SKIN_PLAN.md muc 2.5).
@@ -53,8 +61,9 @@ private data class Emission(
  * su kien roi tha nguyen cho cay ben duoi xu ly. Nho vay nut bam, `VerticalPager`
  * cua feed, giu-de-quay-GIF va pinch-zoom deu nhan du su kien y nhu cu.
  *
- * @param enabled `false` = tam tat (vd dang quay GIF o man camera — user chot
- *   2026-08-05). Tat thi khong dang ky `pointerInput` luon, khong ton gi.
+ * @param enabled `false` = tat cung. Ngoai ra con tat MEM theo ngu canh qua
+ *   [LocalTouchEffectController] — man camera bat co do trong luc quay GIF.
+ *   Tat thi khong dang ky `pointerInput` va khong ve Canvas, khong ton gi.
  */
 @Composable
 fun TouchEffectOverlay(
@@ -63,87 +72,114 @@ fun TouchEffectOverlay(
     enabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val active = enabled && effect.id != TouchEffectRegistry.NONE_ID
-
-    if (!active) {
-        Box(modifier) { content() }
-        return
-    }
+    // Doc co "tam ngung" NGAY TAI DAY chu khong o MainActivity: chi rieng overlay
+    // recompose khi bat/tat quay GIF, khong keo ca cay UI recompose theo.
+    val suppressed = LocalTouchEffectController.current.suppressed.value
+    val active = enabled && !suppressed && effect.id != TouchEffectRegistry.NONE_ID
 
     val emissions = remember { mutableStateListOf<Emission>() }
+    // Tang moi lan cham — dung lam khoa khoi dong lai dong ho. KHONG dung
+    // `emissions.size` vi khi da cham tran 8 thi size dung yen, dong ho se khong
+    // duoc gia han va cum dang bay bi xoa giua chung.
+    var emissionSeq by remember { mutableIntStateOf(0) }
+    var frameMs by remember { mutableLongStateOf(0L) }
+
     val density = LocalDensity.current
     val accent = SkinTheme.colors.accent
     val color = if (effect.useSkinAccent) accent else Color.White
 
-    // Dong ho chung: 1 vong 10s chay lien tuc. Dung 1 transition cho MOI hat
-    // thay vi Animatable moi lan cham — cham 20 phat lien khong sinh 20 coroutine.
-    val clock = rememberInfiniteTransition(label = "touch-effect-clock")
-    val tick by clock.animateFloat(
-        initialValue = 0f,
-        targetValue = 10_000f,
-        animationSpec = infiniteRepeatable(tween(10_000, easing = LinearEasing)),
-        label = "tick",
-    )
+    // Tat hieu ung giua chung -> bo cum dang bay, khong de treo lai tren man hinh.
+    LaunchedEffect(active) {
+        if (!active) {
+            emissions.clear()
+        }
+    }
 
+    /*
+     * Dong ho CHI chay khi con cum dang bay (truoc day la `rememberInfiniteTransition`
+     * chay suot vong doi app — ve lai moi frame ke ca khi khong co gi de ve).
+     * Het cum thi vong lap thoat, khong ton frame nao nua.
+     *
+     * `emissions.clear()` nam o day — trong coroutine, KHONG phai luc compose.
+     */
+    LaunchedEffect(emissionSeq) {
+        while (emissions.isNotEmpty()) {
+            withFrameMillis { frameMs = it }
+            val newest = emissions.last().startMs
+            if (frameMs - newest > effect.durationMs) {
+                emissions.clear()
+            }
+        }
+    }
+
+    /*
+     * ⚠️ `content()` phai nam o DUNG MOT vi tri goi, du dang bat hay tat hieu ung.
+     * Truoc day co nhanh `if (!active) { Box { content() }; return }` rieng: bat/tat
+     * hieu ung lam Compose huy va dung lai ca cay ben duoi -> `rememberNavController`
+     * trong `Navigation()` sinh lai -> nguoi dung bi nem ve man hinh dau tien ngay
+     * khi vua chon hieu ung trong man Appearance.
+     */
     Box(
-        modifier = modifier.pointerInput(effect.id) {
-            awaitPointerEventScope {
-                while (true) {
-                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                    val down = event.changes.firstOrNull { it.pressed && !it.previousPressed }
-                    if (down != null) {
-                        if (emissions.size >= MAX_LIVE_EMISSIONS) {
-                            emissions.removeAt(0)
+        modifier = if (!active) {
+            modifier
+        } else {
+            modifier.pointerInput(effect.id) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val down = event.changes.firstOrNull { it.pressed && !it.previousPressed }
+                        if (down != null) {
+                            if (emissions.size >= MAX_LIVE_EMISSIONS) {
+                                emissions.removeAt(0)
+                            }
+                            emissions.add(
+                                Emission(
+                                    id = down.id.value,
+                                    origin = down.position,
+                                    startMs = nowMs(),
+                                    seeds = List(effect.particleCount) { Random.nextFloat() },
+                                ),
+                            )
+                            emissionSeq++
                         }
-                        emissions.add(
-                            Emission(
-                                id = down.id.value,
-                                origin = down.position,
-                                startMs = tick.toLong(),
-                                seeds = List(effect.particleCount) { Random.nextFloat() },
-                            ),
-                        )
+                        // TUYET DOI khong consume(): consume la nut/scroll ben duoi chet
                     }
-                    // TUYET DOI khong consume(): consume la nut/scroll ben duoi chet
                 }
             }
         },
     ) {
         content()
 
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val scale = density.density
-            val sizePx = effect.sizeDp * scale
-            val distancePx = effect.distanceDp * scale
-            val swayPx = effect.swayDp * scale
+        if (active) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val scale = density.density
+                val sizePx = effect.sizeDp * scale
+                val distancePx = effect.distanceDp * scale
+                val swayPx = effect.swayDp * scale
 
-            emissions.forEach { emission ->
-                // `tick` chay vong nen co the nho hon startMs -> cong bu 1 vong
-                val raw = tick - emission.startMs
-                val elapsed = if (raw < 0) raw + 10_000f else raw
-                val progress = elapsed / effect.durationMs
-                if (progress > 1f) return@forEach
+                emissions.forEach { emission ->
+                    val progress = (frameMs - emission.startMs).toFloat() / effect.durationMs
+                    // progress < 0: frame dau tien sau khi cham, dong ho chua kip
+                    // tick lan nao -> bo qua 1 frame thay vi ve o vi tri sai.
+                    if (progress < 0f || progress > 1f) return@forEach
 
-                emission.seeds.forEachIndexed { index, seed ->
-                    drawParticle(
-                        effect = effect,
-                        color = color,
-                        origin = emission.origin,
-                        index = index,
-                        seed = seed,
-                        progress = progress,
-                        sizePx = sizePx,
-                        distancePx = distancePx,
-                        swayPx = swayPx,
-                    )
+                    emission.seeds.forEachIndexed { index, seed ->
+                        drawParticle(
+                            effect = effect,
+                            color = color,
+                            origin = emission.origin,
+                            index = index,
+                            seed = seed,
+                            progress = progress,
+                            sizePx = sizePx,
+                            distancePx = distancePx,
+                            swayPx = swayPx,
+                        )
+                    }
                 }
             }
         }
     }
-
-    // Khong can don list: cum het vong doi thi `progress > 1` nen khong ve gi,
-    // va [MAX_LIVE_EMISSIONS] da chan tran 8 phan tu. Don o day se la side-effect
-    // NGAY TRONG luc compose — Compose cam, va de gay recompose vo han.
 }
 
 @Suppress("LongParameterList")

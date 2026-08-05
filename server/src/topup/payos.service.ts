@@ -42,6 +42,13 @@ export class PayosService {
     if (clientId && apiKey && checksumKey) {
       this.client = new PayOS({ clientId, apiKey, checksumKey });
       this.logger.log('PayOS da san sang (che do TIEN THAT).');
+      if (!this.returnUrl || !this.cancelUrl) {
+        // Bat som o day thay vi de PayOS tra 400 kho hieu luc nguoi dung bam nap.
+        this.logger.error(
+          'Co du 3 khoa PayOS nhung THIEU PAYOS_RETURN_URL / PAYOS_CANCEL_URL — ' +
+            'tao link thanh toan se that bai. Nho tien to /api trong 2 URL nay.',
+        );
+      }
     } else {
       this.client = null;
       this.logger.warn(
@@ -71,6 +78,11 @@ export class PayosService {
    */
   async createPaymentLink(params: CreateLinkParams): Promise<CreatePaymentLinkResponse> {
     const client = this.requireClient();
+    if (!this.returnUrl || !this.cancelUrl) {
+      throw new ServiceUnavailableException(
+        'Server thiếu cấu hình đường dẫn quay lại của PayOS. Vui lòng thử lại sau.',
+      );
+    }
     return client.paymentRequests.create({
       orderCode: params.orderCode,
       amount: params.amountVnd,

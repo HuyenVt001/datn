@@ -69,6 +69,19 @@ class SettingsPreferences @Inject constructor(
         _touchEffectId.value = id
     }
 
+    /**
+     * Ve lai skin + hieu ung mac dinh khi dang xuat (goi tu [SessionCleaner]).
+     *
+     * Skin va hieu ung la vat pham gacha mua bang tien that, gan voi TAI KHOAN
+     * chu khong phai thiet bi — khong reset thi nguoi dang nhap tiep theo tren
+     * cung may duoc dung mien phi do cua tai khoan truoc.
+     */
+    fun resetAppearance() {
+        prefs.edit().remove(KEY_SKIN_ID).remove(KEY_TOUCH_EFFECT_ID).apply()
+        _skinId.value = SkinRegistry.DEFAULT_ID
+        _touchEffectId.value = NO_EFFECT_ID
+    }
+
     companion object {
         private const val PREFS_NAME = "snapget_settings"
         private const val KEY_SKIN_ID = "skin_id"

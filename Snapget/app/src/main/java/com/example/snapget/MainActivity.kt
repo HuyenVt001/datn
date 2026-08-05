@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -28,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.config.statusBarConfig
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
+import com.example.snapget.core.designsystem.effect.LocalTouchEffectController
+import com.example.snapget.core.designsystem.effect.TouchEffectController
 import com.example.snapget.core.designsystem.effect.TouchEffectOverlay
 import com.example.snapget.core.designsystem.theme.AppTheme
 import com.example.snapget.core.model.auth.AuthState
@@ -190,27 +194,34 @@ fun SnapgetApp(
         }
     }
 
-    AppTheme(skin = skin) {
-        // Overlay hieu ung cham BOC NGOAI Navigation -> viet 1 lan, moi man deu co.
-        // Chi "nghe lom" su kien cham (khong consume) nen nut/pager/giu-quay-GIF
-        // ben duoi van chay y nhu cu — xem ghi chu trong TouchEffectOverlay.
-        TouchEffectOverlay(effect = touchEffect, modifier = Modifier.fillMaxSize()) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background,
-            ) {
-                Navigation(mainViewModel, authViewModel)
-            }
-        }
+    // Cung cap TUONG MINH thay vi dua vao gia tri mac dinh cua CompositionLocal:
+    // man camera set co `suppressed` trong luc quay GIF va overlay doc co do —
+    // hai ben BAT BUOC phai thay cung mot doi tuong.
+    val touchEffectController = remember { TouchEffectController() }
 
-        // Dialog xac nhan ket ban tu deep link — de len tren moi man hinh
-        inviteConfirm?.let { confirm ->
-            InviteConfirmDialog(
-                info = confirm.info,
-                error = confirm.error,
-                onConfirm = { friendsViewModel.confirmInvite() },
-                onDismiss = { friendsViewModel.dismissInviteConfirm() },
-            )
+    AppTheme(skin = skin) {
+        CompositionLocalProvider(LocalTouchEffectController provides touchEffectController) {
+            // Overlay hieu ung cham BOC NGOAI Navigation -> viet 1 lan, moi man deu co.
+            // Chi "nghe lom" su kien cham (khong consume) nen nut/pager/giu-quay-GIF
+            // ben duoi van chay y nhu cu — xem ghi chu trong TouchEffectOverlay.
+            TouchEffectOverlay(effect = touchEffect, modifier = Modifier.fillMaxSize()) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    Navigation(mainViewModel, authViewModel)
+                }
+            }
+
+            // Dialog xac nhan ket ban tu deep link — de len tren moi man hinh
+            inviteConfirm?.let { confirm ->
+                InviteConfirmDialog(
+                    info = confirm.info,
+                    error = confirm.error,
+                    onConfirm = { friendsViewModel.confirmInvite() },
+                    onDismiss = { friendsViewModel.dismissInviteConfirm() },
+                )
+            }
         }
     }
 }

@@ -266,6 +266,10 @@ private fun EffectsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(uiState.effects, key = { it.id }) { effect ->
+            // Bam o -> chay lai demo. Voi o CHUA so huu thi day la tac dung duy
+            // nhat (ViewModel chan ap dung), nen thieu no la bam vao khong co gi
+            // xay ra — dung ky vong "cham thu truoc khi quyet dinh quay".
+            var replay by remember(effect.id) { mutableIntStateOf(0) }
             CollectibleItem(
                 name = effect.displayName,
                 state = when {
@@ -274,22 +278,26 @@ private fun EffectsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
                     else -> CollectibleState.LOCKED
                 },
                 aspectRatio = 1f,
-                onClick = { onApply(effect.id) },
+                onClick = {
+                    replay++
+                    onApply(effect.id)
+                },
             ) {
-                EffectDemoCell(effect)
+                EffectDemoCell(effect = effect, replay = replay)
             }
         }
     }
 }
 
 /**
- * O demo hieu ung: moi lan o duoc bam (hoac vao man lan dau) thi chay 1 vong.
+ * O demo hieu ung: chay 1 vong khi o xuat hien, va chay lai moi lan [replay]
+ * doi (o duoc bam).
  *
  * Khong dung thumbnail tinh — nguoi dung thay dung thu se nhan duoc, khong phai
  * ap dung roi moi biet.
  */
 @Composable
-private fun EffectDemoCell(effect: TouchEffect) {
+private fun EffectDemoCell(effect: TouchEffect, replay: Int) {
     if (effect.id == TouchEffectRegistry.NONE_ID) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = "—", color = SkinTheme.colors.textSecondary, fontSize = 24.sp)
@@ -307,8 +315,9 @@ private fun EffectDemoCell(effect: TouchEffect) {
     val density = LocalDensity.current.density
     val accent = SkinTheme.colors.accent
 
-    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay ca 6 o cung dien
-    LaunchedEffect(Unit) { round = 1 }
+    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay ca 6 o cung dien;
+    // moi lan bam o (replay doi) thi chay them 1 vong nua.
+    LaunchedEffect(replay) { round++ }
 
     Box(
         modifier = Modifier.fillMaxSize().clip(SkinTheme.shapes.input),
