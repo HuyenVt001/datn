@@ -49,8 +49,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
-import com.example.snapget.core.designsystem.theme.GrayBackground
-import com.example.snapget.core.designsystem.theme.SnapYellow
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.feature.widget.data.WidgetStateKind
 import com.example.snapget.navigation.Screen
 import java.io.File
@@ -137,18 +136,18 @@ fun WidgetSettingsScreen(
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
-                            color = SnapYellow,
+                            color = SkinTheme.colors.accent,
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = null,
-                            tint = SnapYellow,
+                            tint = SkinTheme.colors.accent,
                             modifier = Modifier.size(18.dp),
                         )
                     }
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Refresh now", color = SnapYellow, fontWeight = FontWeight.Bold)
+                    Text(text = "Refresh now", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -180,8 +179,8 @@ private fun WidgetPreviewCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(GrayBackground),
+            .clip(SkinTheme.shapes.input)
+            .background(SkinTheme.colors.background),
         contentAlignment = Alignment.BottomEnd,
     ) {
         if (imagePath != null) {
@@ -204,7 +203,7 @@ private fun WidgetPreviewCard(
             Box(
                 modifier = Modifier
                     .padding(12.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(SkinTheme.shapes.input)
                     .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f))
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
@@ -212,6 +211,7 @@ private fun WidgetPreviewCard(
                     text = "🔥 $streak",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
+                    // Chu de len ANH xem truoc cua widget -> trang that o moi skin
                     color = androidx.compose.ui.graphics.Color.White,
                 )
             }
@@ -244,7 +244,7 @@ private fun AddWidgetButton(navController: NavHostController) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.AddToHomeScreen,
                 contentDescription = null,
-                tint = SnapYellow,
+                tint = SkinTheme.colors.accent,
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(

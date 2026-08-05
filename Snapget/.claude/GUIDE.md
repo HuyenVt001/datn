@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-03**.
+> Cập nhật lần cuối: **2026-08-04**.
 
 ---
 
@@ -105,22 +105,38 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   data/                     #   FirestoreRepository (legacy — getCurrentUser + clearCache),
   │                         #   SessionCleaner (🔐 xóa Coil cache + user cache + pending invite khi đăng xuất),
   │                         #   SettingDefaults (23 mục settings tĩnh + SettingIds + visible),
-  │                         #   SettingsPreferences (toggle + themeMode qua SharedPreferences),
+  │                         #   SettingsPreferences (toggle + **skinId** + **touchEffectId** qua SharedPreferences),
   │                         #   MainLog/MainLogImpl, Store/StoreImpl2, SampleData (chỉ cho @Preview)
   designsystem/
     component/              #   UI tái sử dụng theo loại: bottombar/ button/ circle/ common/ container/
     │                       #   empty/ frame/ grid/ indicator/ input/ list/ pill/ sheet/ topbar/
-    theme/                  #   Color (palette Dark + Light), Type, Theme (AppTheme(themeMode))
+    collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung cho cả 3 tab Appearance
+    effect/                 #   **(2026-08-05 — P4)** HIỆU ỨNG TOUCH: TouchEffect (model) + TouchEffectRegistry
+    │                       #   (None + 5 hiệu ứng) + TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume)
+    skin/                   #   **(2026-08-05 — P0/P1)** ENGINE SKIN: AppSkin + SkinColors/Icons/Shapes/Images,
+    │                       #   LocalAppSkin + `SkinTheme` (cổng đọc token), SkinIcon (fallback Material),
+    │                       #   SkinShapeDefaults, SkinRegistry (skin bundled, find() chịu được id lạ),
+    │                       #   skins/: DefaultSkin (0 — thay hẳn Color.kt cũ) · SnowSkin (1) · ForestSkin (2)
+    theme/                  #   Type, Theme (AppTheme(skin)) — Color.kt đã XÓA, palette Light đã gỡ hẳn
     preview/                #   @Preview composable (không chạy runtime)
   di/                       #   Hilt module: AppModule, FirebaseModule, NetworkModule, RepositoriesModule
   fcm/                      #   SnapgetMessagingService (@AndroidEntryPoint; onNewToken → POST /users/me/fcm-tokens)
-  model/                    #   User, Post, Message, Friendship, Setting, ThemeMode (+ auth/AuthState, AuthUser)
+  model/                    #   User, Post, Message, Friendship, Setting (+ auth/AuthState, AuthUser)
+  │                         #   — ThemeMode đã XÓA 2026-08-05 (gỡ giao diện Light)
   network/                  #   Retrofit api/ + dto/ + interceptor/ + ErrorMessages (xem mục 2.3)
-  ui/                       #   MainViewModel (currentUser + themeMode)
+  ui/                       #   MainViewModel (currentUser + **skin** + **touchEffect** — map id → object cho
+  │                         #   AppTheme và TouchEffectOverlay ở MainActivity)
   util/                     #   DatetimeUtils (relativeTimeShort "1d"), MainUtils (avatarOrDefault DiceBear),
   │                         #   EdgeToEdge, PaddingValues, MediaActions (Share FileProvider + Download MediaStore)
 
 feature/                    # Mỗi tính năng 1 package: screen + viewmodel + data riêng
+  appearance/               #   **(2026-08-05 — P3)** AppearanceScreen (3 tab Frames|Skins|Effects) +
+  │                         #   AppearanceViewModel (khoá theo sở hữu — lớp thứ 2 sau lớp UI)
+  gacha/                    #   **(2026-08-05 — G4/G6)** GachaScreen (quay x1/x10, popup Rule, nút `+` nạp),
+  │                         #   GachaResultSheet (overlay lật lần lượt + Skip), GachaRarity (4 màu bậc —
+  │                         #   CỐ Ý không nằm trong SkinColors), TopupSheet (popup gói nạp + banner chờ
+  │                         #   thanh toán + popup đã cộng), GachaViewModel (gồm cả state luồng nạp),
+  │                         #   data/GachaRepository + data/TopupRepository
   auth/                     #   LoginScreen (kèm Forgot Password), AuthViewModel, data/AuthRepository
   camera/                   #   CameraScreen (CameraX: chụp/quay nút center, pinch-zoom, lật cam, nút Co-op
   │                         #   mở popup chọn bạn gửi lời mời, vuốt lên mở feed, mirror selfie)
@@ -160,7 +176,11 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Quản lý nhóm chat (sheet ⋯ trên header, theo mẫu Messenger): đổi tên + đổi avatar nhóm (upload Cloudinary), mời bạn vào nhóm (≤20), xóa thành viên (chỉ người tạo), rời nhóm, mute thông báo (server bỏ qua khi push FCM) | ✅ |
 | Co-op capture **(redesign 2026-08-02)**: nút Co-op → popup chọn bạn → lời mời 5 phút → accept → màn chụp coop (nửa camera + nửa xám chờ, nút chụp/again/send) → server ghép → cả 2 vào luồng edit → đăng bài thường | ✅ |
 | Profile: streak thật, calendar moment, edit tên/avatar; profile người khác chỉ bạn bè xem | ✅ |
-| Daily Quest + bộ sưu tập khung (khóa = mờ + 🔒) | ✅ |
+| Daily Quest; thưởng 2/2 quest = **+60 Astrite**; banner mở màn Gacha (2026-08-05) | ✅ |
+| **Appearance** 3 tab: Frames (bộ sưu tập khung) · Skins (Default/Snow/Forest) · Effects (None + 5, ô demo chạy thật) — khoá theo sở hữu | ✅ |
+| **Hiệu ứng touch** toàn app (overlay bọc NavHost, không chặn nút/pager/giữ-quay-GIF) | ✅ |
+| **Gacha**: quay x1/x10, popup Rule sinh từ server, kết quả lật lần lượt + Skip, hoàn Astrite khi trùng | ✅ |
+| **Nạp Astrite** (PayOS — TIỀN THẬT): nút `+` cạnh số dư → popup gói nạp → Chrome Custom Tabs → app poll đơn → popup đã cộng | ✅ |
 | Settings hoạt động thật: theme Dark/Light/System, edit name/birthday, share/rate/MXH, Terms/Privacy, sign out | ✅ |
 | Widget Glance (moment mới nhất + streak, offline được) | ✅ |
 | UI tiếng Anh toàn bộ; avatar fallback DiceBear thống nhất; FCM đăng ký mỗi lần mở app | ✅ |
@@ -190,7 +210,9 @@ Route khai báo trong `navigation/Navigation.kt` (sealed class `Screen`). Bảng
 | `qr_scan` | `feature/friends/QrScanScreen.kt` | Quét QR kết bạn → dialog xác nhận |
 | `setting` | `feature/settings/SettingScreen.kt` | Dispatch theo SettingIds |
 | `legal/{docType}` | `feature/settings/LegalDocScreen.kt` | Terms/Privacy tĩnh; ẩn bottom bar |
-| `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Entry: nút 🏆 top bar feed; ẩn bottom bar |
+| `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Entry: nút 🏆 top bar feed; ẩn bottom bar. **(2026-08-05)** có banner Gacha ở trên cùng; bỏ lưới Frame collection |
+| `appearance` | `feature/appearance/AppearanceScreen.kt` | **(2026-08-05)** 3 tab Frames/Skins/Effects. Entry: mục **Appearance** trong Settings (thay mục Theme cũ); ẩn bottom bar |
+| `gacha` | `feature/gacha/GachaScreen.kt` | **(2026-08-05)** Quay x1/x10 + popup Rule + overlay kết quả + **popup nạp Astrite** (nút `+` cạnh số dư, G6). Entry: banner trên `daily_quest`; ẩn bottom bar. **Màn DUY NHẤT hiện số dư Astrite** |
 | `coop_capture?inviteId=&name=` | `feature/coop/CoopCaptureScreen.kt` | Màn chụp coop (chờ accept → chụp nửa ảnh → chờ ghép); entry: nút Co-op camera (inviter) / banner vàng feed (invitee); ẩn bottom bar |
 | `widget_settings` | `feature/widget/WidgetSettingsScreen.kt` | Preview + toggle + pin; ẩn bottom bar |
 | `how_to_add_widget` | `feature/widget/HowToAddWidgetScreen.kt` | Hướng dẫn 4 bước; ẩn bottom bar |
@@ -241,6 +263,27 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-05 — G6: nạp Astrite bằng TIỀN THẬT (PayOS)**. `core/network/dto/TopupDtos.kt` + `api/TopupApi.kt` + `feature/gacha/data/TopupRepository.kt`; `TopupSheet.kt` (popup gói nạp + dải "đang chờ thanh toán" + popup "đã cộng N Astrite"); `GachaViewModel` thêm `TopupUiState`. Nút `+` cạnh số dư Astrite **bật lại** (G4 tạm ẩn vì chưa có luồng nạp). Không thêm dependency nào — `androidx.browser` đã có sẵn trong `libs.versions.toml`.
+  - 💳 **App chỉ gửi `packageId`** — số tiền và số Astrite do server tra từ `topupPackages`. Gửi kèm số tiền là mở đường cho "tôi trả 1đ, cộng cho tôi 5 triệu Astrite".
+  - 🔎 **Nguồn sự thật là webhook PayOS → server, KHÔNG phải URL trình duyệt chuyển về**: người dùng sửa được thanh địa chỉ thành `?status=PAID`. App chỉ hỏi `GET /topup/orders/:orderCode` và chỉ tin khi server trả `PAID`.
+  - ⏱️ Poll đặt trong `repeatOnLifecycle(STARTED)`: lúc người dùng đang ở trang PayOS thì app ở background → **ngừng hỏi**; quay lại app là hỏi ngay, đúng lúc cần nhất. Trần 60 lần/lượt foreground (~3 phút) vì `getOrder` không tự chuyển đơn sang EXPIRED — không có trần sẽ poll mãi. Vào lại màn hình là số dư được đọc lại từ server nên không mất gì.
+  - 🔒 `orderCode` dùng **`Long`** (mili giây × 100), `Int` sẽ tràn.
+- **2026-08-05 — P3+P4+G4+P5+G5: màn Appearance · hiệu ứng touch · màn Gacha**. `feature/appearance/` (3 tab **Frames | Skins | Effects**, vào từ mục **Appearance** mới trong Settings) dùng chung component `CollectibleItem` — khác nhau chỉ ở tỉ lệ ô và số cột. `feature/gacha/` (`GachaScreen` + popup Rule + overlay kết quả lật lần lượt 250ms/ô có nút Skip), vào từ **banner trên trang Daily Quest**. `SkinRegistry` thêm **Snow (1)** và **Forest (2)** với bảng màu từ `Sources/skin-assets/README.md`.
+  - 🎯 **Hiệu ứng touch** (`core/designsystem/effect/`): overlay bọc ngoài `NavHost` nên viết 1 lần chạy mọi màn. Dùng `PointerEventPass.Initial` và **không `consume()`** — chỉ "nghe lỏm" nên nút/`VerticalPager`/giữ-để-quay-GIF/pinch-zoom bên dưới nhận đủ sự kiện như cũ. Một `rememberInfiniteTransition` chung cho MỌI hạt (chạm 20 phát liên tiếp không sinh 20 coroutine) + trần `MAX_LIVE_EMISSIONS = 8`. 5 hiệu ứng vẽ bằng Canvas (`CIRCLE/RING/SPARK/LEAF`) nên **chạy được trước khi có asset thật**; `particleAsset` để sẵn cho lúc cắm PNG.
+  - 🔒 **Khoá theo sở hữu (G5)** chặn ở **2 lớp**: UI hiện `alpha 0.35` + 🔒, và `AppearanceViewModel.applySkin/applyEffect` tự bỏ qua nếu chưa sở hữu. Ô hiệu ứng chưa sở hữu **vẫn chạm thử được** (để người dùng thấy có đáng quay không) nhưng bấm không áp dụng.
+  - 🎲 **App KHÔNG random gì cả** — mọi kết quả đến từ `POST /gacha/roll`. Astrite đổi được bằng tiền thật nên random ở client là lỗ hổng. `isRolling` chặn bấm kép: server có transaction nên không tiêu quá số dư, nhưng bấm 2 lần sẽ thành **2 lượt quay thật**. Sau mỗi lượt đọc lại `/gacha/state` thay vì tự trừ ở app (pity chỉ server biết).
+  - 📄 Popup Rule **sinh từ chính `/gacha/state`** → sửa tỉ lệ ở server là popup tự đúng theo, không phải sửa app. Hiện **tỉ lệ gốc** (đúng chuẩn công bố), và **chỉ hiện pity SSR** (user chốt).
+  - 🎨 4 màu phẩm chất (`GachaRarity`) **cố ý không nằm trong `SkinColors`** — là màu hệ thống của gacha, đổi skin mà SSR đổi màu thì mất nghĩa "cam = cực hiếm".
+  - 🧹 Trang Daily bỏ lưới "Frame collection" (đã có ở tab Frames) → `QuestViewModel` bớt 1 call mạng; `RewardBanner` đổi sang "+60 Astrite". Nút `+` cạnh số Astrite **tạm ẩn** cho tới khi xong G6 (chưa có luồng nạp).
+
+- **2026-08-05 — P0–P2: Skin engine + gom màu về token + gỡ hẳn giao diện Light** (SKIN_PLAN.md mục 2–4.4). Package mới `core/designsystem/skin/`: `AppSkin` (colors/icons/shapes/images) · `LocalAppSkin` + `SkinTheme` (cổng đọc, dùng như `MaterialTheme.colorScheme`) · `SkinIcon` (skin thiếu icon thì tự fallback về Material — thêm skin mới với 3 icon vẫn chạy được toàn app) · `SkinRegistry.find(id)` chịu được id lạ từ server (rơi về Default thay vì crash) · `DefaultSkin` (skin 0) **bằng đúng hex đang chạy** nên giao diện không xê dịch. `AppTheme(skin)` bơm song song `LocalAppSkin` + `MaterialTheme.colorScheme` để component M3 chưa refactor vẫn đổi màu theo skin. **≈305 điểm hardcode → token** (102 textPrimary · 50 accent · 30 shapes.image · 27 pill · 22 textSecondary…) trên 40 file.
+  - 🗑️ **Gỡ Light**: xóa `ThemeMode.kt`, `DarkBrownTheme.kt` (theme chết) và **cả `theme/Color.kt`** — palette Gray/SnapYellow/BackgroundPreview giờ là token trong `DefaultSkin`. `SettingsPreferences.themeMode` → `skinId` + `touchEffectId`; bỏ mục Theme + `ThemeDialog` trong Settings (mục **Appearance** thay thế ở P3). Prefs cũ `theme_mode` để lại vô hại, **không cần migration**.
+  - ⚠️ **Không đổi mù**: 68 chỗ `Color.White` CỐ Ý giữ — chữ/icon nằm đè lên **ảnh hoặc camera** của người dùng (CameraPreview, EditMedia, Coop, QrScan, ChatMediaViewer, SubmitPhoto, PostGrid, PageIndicator, InputCaptionPill…) phải trắng thật ở mọi skin, đổi theo token là skin nền sáng làm chữ chìm vào ảnh. Cả 12 file đó **đã ghi chú lý do ngay đầu file**. Tương tự: bảng màu bút doodle (`DOODLE_COLORS`) và `textColor` của chip caption (nằm trên gradient riêng) giữ hardcode.
+  - 📌 **Luật mới**: cấm hardcode màu mới trong `feature/`; cần màu mới thì **thêm token vào `SkinColors` trước**. Token thêm ở đợt này ngoài plan: `pillTranslucent` (nền pill mờ trên camera), `textSecondary`, `onAccent`.
+  - Shape gom 4 vai trò có token (`pill` 50 · `image` 20dp · `sheet` 24dp · `input` 16dp = 71 chỗ); các giá trị lẻ (8/12/14dp) giữ nguyên vì là bo góc cục bộ của từng component, không phải vai trò dùng chung.
+
+- **2026-08-05 — Đồng bộ contract G2: thưởng daily quest đổi sang Astrite**. `GET /quests/today` trả `rewardAstrite: Int?` thay `rewardFrameId: String?` → sửa `QuestDtos.kt`, `QuestUiState`, và `DailyQuestScreen`: `RewardBanner` giờ hiện "Daily quests complete! / +60 Astrite" (bỏ tham số `FrameDto`), `FrameItem` bỏ tham số `isNewReward` + nhãn "NEW" (không còn khung nào là "vừa được thưởng"), empty state đổi thành "roll the gacha to collect them!". Lưới **Frame collection giữ nguyên** — khung vẫn mở qua gacha/mốc streak. ⏭️ Đại tu màn Daily (thêm banner gacha, bỏ lưới khung) nằm ở phase G4 của `GACHA_PLAN.md`.
+- **2026-08-04 — Fix ảnh coop camera sau bị zoom ~3x ngay sau khi chụp**: 🐞 ảnh CameraX camera SAU lưu pixel NẰM NGANG + tag EXIF "xoay 90°"; nửa ảnh coop là chỗ duy nhất hiển thị file đó trực tiếp bằng Coil (`CoopCaptureScreen` → `AsyncImage` Crop) — tag không được áp → ảnh ngang 1280×720 crop vào ô dọc 1:2 chỉ thấy ~28% chiều rộng, trông như phóng to ~3 lần so với preview (luồng thường không dính vì `EditMediaScreen.decodeUprightBitmap` tự xử lý EXIF). Fix: `mirrorPhotoFile` (chỉ camera trước) đổi thành **`normalizeCapturedPhoto(file, mirror)`** trong `CameraPreview.kt` — bake EXIF rotation vào pixel cho MỌI ảnh chụp (camera trước lật ngang thêm), ảnh đã đúng chiều thì giữ nguyên file không re-encode. Bonus: ảnh upload coop lên server đã đúng chiều sẵn → hết phụ thuộc fix `.rotate()` sharp phía server (Render chưa deploy vẫn ghép đúng).
 - **2026-08-03 (4) — Fix 3 lỗi user test**: (1) 🐞🔐 **Đăng xuất kẹt lại + mọi API báo "Thieu token"**: `LoginScreen` trước đây dùng `hiltViewModel()` mặc định → tạo `AuthViewModel` RIÊNG (scope theo entry "login"); đăng nhập trong phiên chỉ đổi state instance riêng đó, instance chung mà `Navigation`/`SnapgetApp` quan sát vẫn `Unauthenticated` → lần Sign Out sau `StateFlow` không emit (giá trị y hệt) → không điều hướng về Login dù Firebase đã signOut. Fix: `Navigation` truyền `authViewModel` chung vào `LoginScreen` (giống SettingScreen) — logout luôn về màn Login, đồng thời `fetchCurrentUser()`/FCM/pending-invite chạy đúng khi re-login cùng phiên. (2) **Bạn mới kết không nhắn tin được**: màn Messages chỉ hiện `/messages/conversations` (cần ≥1 tin) → bạn vừa accept không có lối vào chat; `MessageViewModel.loadConversations()` giờ nối thêm bạn bè CHƯA có hội thoại vào cuối danh sách (preview "Say hi to your new friend! 👋", không hiện giờ) — bấm mở `chat/{uid}` như thường. (3) **Đổi tên xong logout/login lại bị mất**: `signInWithGoogle` trước đây MỖI lần re-login đều PATCH `fullName/avatar` theo profile Google/Firebase Auth, ghi đè tên user đã đổi trong app; giờ chỉ sync tên/avatar khi `additionalUserInfo.isNewUser` (lần tạo tài khoản), các lần sau chỉ `syncWithServer()` (ensureUser + FCM token).
 - **2026-08-03 (3) — Fix ảnh ghép xoay 90° + đăng bài chậm/timeout/đăng trùng**: server thêm `.rotate()` EXIF khi ghép (ảnh camera sau hết xoay 90°) + `POST /moments` trả nhanh (2 hook nặng chạy sau response); app truyền **`clientRequestId`** (UUID `remember` mỗi lần vào `SubmitPhotoScreen`, giữ nguyên khi bấm đăng lại) qua `submitPhoto` → `CreateMomentRequest` — retry sau timeout được server trả lại bài đã đăng thay vì tạo bản sao.
 - **2026-08-03 (2) — Rà soát coop toàn diện (độ mượt + chống race)**: (1) `CoopViewModel.preferNewer()` — response poll VỀ MUỘN không ghi đè được state mới hơn (trước đó GET đan xen với submit làm nửa ảnh vừa nộp "biến mất", nút chụp hiện lại, dễ nộp trùng); đã có `mergedMediaUrl` thì không bao giờ lùi. (2) **Rời màn chụp = HỦY phiên cho cả 2 bên** (BackHandler + nút back top bar): PENDING hủy thẳng, ACCEPTED hiện dialog xác nhận "Leave co-op capture?" — trước đó back chỉ pop, đối phương "waiting for X" vô hạn (server thêm decline-từ-ACCEPTED cùng đợt). (3) Poll đổi sang `repeatOnLifecycle(STARTED)` — app xuống background là NGỪNG poll, quay lại tự refresh; trạng thái kết thúc thì dừng hẳn. (4) `downloadToCacheFile` thêm timeout 10s/15s (URL.openStream mặc định KHÔNG timeout — mạng treo là kẹt "Merging photos" vô hạn). (5) Feed poll `loadPending` 10s/lần — banner lời mời (TTL 5 phút) hiện kịp mà không cần rời/vào lại feed. (6) Picker bạn bè hiện spinner khi đang tải (hết lóe "No friends yet").

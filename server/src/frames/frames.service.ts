@@ -46,7 +46,7 @@ export class FramesService {
 
   /** Admin them khung moi. */
   async create(dto: CreateFrameDto): Promise<Frame> {
-    const unlockType = dto.unlockType ?? 'QUEST_RANDOM';
+    const unlockType = dto.unlockType ?? 'GACHA';
     const unlockValue = this.assertUnlockRule(unlockType, dto.unlockValue);
     return this.repo.create({
       frameName: dto.frameName,
@@ -171,7 +171,7 @@ export class FramesService {
         }
         return value;
       default:
-        // QUEST_RANDOM / COOP_FIRST / DEFAULT khong co nguong
+        // GACHA / COOP_FIRST / DEFAULT khong co nguong
         return null;
     }
   }

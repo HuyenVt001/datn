@@ -28,10 +28,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.skin.SkinTheme
 
 data class IconSetting(
     val icon: ImageVector,
-    val tint: Color = Color.White,
+    /**
+     * `null` = theo token `textPrimary` cua skin dang dung (mac dinh).
+     *
+     * Phai la nullable chu khong dat thang `SkinTheme.colors.textPrimary` lam
+     * gia tri mac dinh: day la data class thuong, khong phai ham `@Composable`
+     * nen doc CompositionLocal o day khong duoc.
+     */
+    val tint: Color? = null,
     val contentDescription: String? = null,
 )
 
@@ -51,7 +59,7 @@ fun Circle(
     gap: Dp = 5.dp,
     backgroundColor: Color = Color.Gray,
     borderWidth: Dp = 2.dp,
-    borderColor: Color = Color.Yellow,
+    borderColor: Color = SkinTheme.colors.accent,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     iconSetting: IconSetting? = null,
@@ -120,7 +128,7 @@ fun Circle(
                     imageVector = iconSetting.icon,
                     contentDescription = iconSetting.contentDescription,
                     modifier = Modifier.size(innerSize.coerceAtLeast(0.dp)),
-                    tint = iconSetting.tint,
+                    tint = iconSetting.tint ?: SkinTheme.colors.textPrimary,
                 )
             }
 
@@ -140,7 +148,7 @@ fun Circle(
                 Box(
                     modifier = Modifier
                         .size(innerSize.coerceAtLeast(0.dp))
-                        .background(color = Color.White, shape = CircleShape),
+                        .background(color = SkinTheme.colors.textPrimary, shape = CircleShape),
                 )
             }
         }
@@ -158,29 +166,29 @@ fun CirclePreview() {
             Circle(
                 outerSize = 56.dp,
                 gap = 5.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
             )
 
             Circle(
                 outerSize = 40.dp,
                 gap = 4.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
             )
 
             Circle(
                 outerSize = 64.dp,
                 gap = 6.dp,
-                backgroundColor = Color(0xFF404137),
-                borderColor = Color(0xFFB8B8B8),
+                backgroundColor = SkinTheme.colors.pill,
+                borderColor = SkinTheme.colors.onSurfaceVariant,
                 onClick = {},
             )
 
             Circle(
                 outerSize = 56.dp,
                 gap = 10.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 iconSetting = IconSetting(
                     icon = Icons.AutoMirrored.Filled.Send,
@@ -191,7 +199,7 @@ fun CirclePreview() {
                 outerSize = 56.dp,
                 gap = 10.dp,
                 modifier = Modifier.rotate(-45f),
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 iconSetting = IconSetting(
                     icon = Icons.AutoMirrored.Filled.Send,
@@ -201,7 +209,7 @@ fun CirclePreview() {
             Circle(
                 outerSize = 56.dp,
                 gap = 5.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 imageSetting = ImageSetting(
                     imageUrl = "https://images.unsplash.com/photo-1710988238169-12c5c2474652?q=80&w=1329&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -212,7 +220,7 @@ fun CirclePreview() {
             Circle(
                 outerSize = 56.dp,
                 gap = 5.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 innerContent = {
                     AsyncImage(
@@ -227,7 +235,7 @@ fun CirclePreview() {
                 outerSize = 56.dp,
                 gap = 0.dp,
                 borderWidth = 10.dp,
-                backgroundColor = Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 innerContent = {
                     AsyncImage(
@@ -245,7 +253,7 @@ fun CirclePreview() {
                 backgroundColor = Color.DarkGray,
                 onClick = {},
                 innerContent = {
-                    androidx.compose.material3.Text("A", color = Color.White)
+                    androidx.compose.material3.Text("A", color = SkinTheme.colors.textPrimary)
                 },
             )
 
@@ -256,7 +264,7 @@ fun CirclePreview() {
                 modifier = Modifier.rotate(45f),
                 onClick = {},
                 innerContent = {
-                    androidx.compose.material3.Text("A", color = Color.White)
+                    androidx.compose.material3.Text("A", color = SkinTheme.colors.textPrimary)
                 },
             )
         }

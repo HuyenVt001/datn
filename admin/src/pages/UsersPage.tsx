@@ -91,6 +91,16 @@ export function UsersPage() {
         ),
     },
     {
+      title: 'Astrite',
+      dataIndex: 'astrite',
+      width: 110,
+      align: 'right',
+      sorter: (a, b) => a.astrite - b.astrite,
+      render: (astrite: number) => (
+        <Typography.Text strong={astrite > 0}>⭐ {astrite.toLocaleString('vi-VN')}</Typography.Text>
+      ),
+    },
+    {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       width: 165,

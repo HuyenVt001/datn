@@ -1,10 +1,14 @@
 import {
   CameraOutlined,
   DashboardOutlined,
+  DollarOutlined,
+  GiftOutlined,
   HistoryOutlined,
   LogoutOutlined,
   PictureOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +21,10 @@ const MENU_ITEMS = [
   { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
   { key: '/moments', icon: <CameraOutlined />, label: 'Bài đăng' },
   { key: '/frames', icon: <PictureOutlined />, label: 'Khung ảnh' },
+  { key: '/gacha', icon: <GiftOutlined />, label: 'Kho vật phẩm' },
+  { key: '/gacha-history', icon: <ThunderboltOutlined />, label: 'Lịch sử quay' },
+  { key: '/topup', icon: <WalletOutlined />, label: 'Gói nạp' },
+  { key: '/topup-history', icon: <DollarOutlined />, label: 'Lịch sử nạp' },
   { key: '/logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
 ];
 

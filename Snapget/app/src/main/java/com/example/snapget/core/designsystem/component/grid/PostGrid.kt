@@ -41,10 +41,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.data.SampleData
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.feature.profile.DayPostGroup
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 @Composable
 fun PostGrid(
@@ -106,7 +112,7 @@ fun PostGridItem(
             contentDescription = if (post.postType == PostType.VIDEO) "Post GIF" else "Post image",
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(SkinTheme.shapes.image)
                 .background(Color.Black),
             contentScale = ContentScale.Crop,
         )
@@ -119,7 +125,7 @@ fun PostGridItem(
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(20.dp)),
+                    .clip(SkinTheme.shapes.image),
             )
         }
 
@@ -154,7 +160,7 @@ fun PostGridItemWithBadge(
         badge = {
             if (dayPostGroup.hasMultiplePosts) {
                 Badge(
-                    containerColor = Color(0xFFFFD700),
+                    containerColor = SkinTheme.colors.accentGold,
                     contentColor = Color.Black,
                     modifier = Modifier.offset(x = (-4).dp, y = 4.dp),
                 ) {

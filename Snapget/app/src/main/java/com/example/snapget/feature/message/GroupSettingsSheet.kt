@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.constants.MAX_GROUP_SIZE
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDetailDto
 import com.example.snapget.core.network.dto.GroupMemberDto
@@ -124,7 +125,7 @@ fun GroupSettingsSheet(
                 if (busy) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(96.dp),
-                        color = Color.Yellow,
+                        color = SkinTheme.colors.accent,
                         strokeWidth = 2.dp,
                     )
                 }
@@ -276,8 +277,8 @@ fun GroupSettingsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF2C2C2C)),
+                    .clip(SkinTheme.shapes.image)
+                    .background(SkinTheme.colors.surfaceVariant),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -303,9 +304,9 @@ fun GroupSettingsSheet(
                         checked = muted,
                         onCheckedChange = { if (!busy) onMuteChange(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
+                            checkedThumbColor = SkinTheme.colors.textPrimary,
                             checkedTrackColor = Color(0xFF6E6E6E),
-                            uncheckedThumbColor = Color(0xFFB0B0B0),
+                            uncheckedThumbColor = SkinTheme.colors.textSecondary,
                             uncheckedTrackColor = Color(0xFF3A3A3A),
                         ),
                     )
@@ -362,14 +363,14 @@ fun GroupSettingsSheet(
         val memberName = member.fullName ?: "Snapget user"
         AlertDialog(
             onDismissRequest = { removeTarget = null },
-            containerColor = Color(0xFF2C2C2C),
+            containerColor = SkinTheme.colors.surfaceVariant,
             title = {
-                Text(text = "Remove member?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = "Remove member?", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
             },
             text = {
                 Text(
                     text = "$memberName will be removed from \"${detail.groupName}\".",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                 )
             },
             confirmButton = {
@@ -388,7 +389,7 @@ fun GroupSettingsSheet(
             },
             dismissButton = {
                 TextButton(onClick = { removeTarget = null }) {
-                    Text(text = "Cancel", color = Color.White)
+                    Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
                 }
             },
         )
@@ -397,14 +398,14 @@ fun GroupSettingsSheet(
     if (showLeaveConfirm) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirm = false },
-            containerColor = Color(0xFF2C2C2C),
+            containerColor = SkinTheme.colors.surfaceVariant,
             title = {
-                Text(text = "Leave group?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = "Leave group?", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
             },
             text = {
                 Text(
                     text = "You will no longer see messages from \"${detail.groupName}\".",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                 )
             },
             confirmButton = {
@@ -423,7 +424,7 @@ fun GroupSettingsSheet(
             },
             dismissButton = {
                 TextButton(onClick = { showLeaveConfirm = false }) {
-                    Text(text = "Cancel", color = Color.White)
+                    Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
                 }
             },
         )
@@ -442,7 +443,7 @@ private fun GroupAvatarCircle(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color(0xFF404137))
+            .background(SkinTheme.colors.pill)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -457,7 +458,7 @@ private fun GroupAvatarCircle(
             Icon(
                 imageVector = Icons.Default.Groups,
                 contentDescription = "Group photo",
-                tint = Color.Yellow,
+                tint = SkinTheme.colors.accent,
                 modifier = Modifier.size(iconSize),
             )
         }
@@ -471,7 +472,7 @@ private fun GroupMemberAvatar(avatar: String?, name: String) {
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(Color(0xFF404137)),
+            .background(SkinTheme.colors.pill),
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
@@ -494,9 +495,9 @@ private fun RenameGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2C2C2C),
+        containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Change group name", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Change group name", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
         },
         text = {
             OutlinedTextField(
@@ -512,12 +513,12 @@ private fun RenameGroupDialog(
                 onClick = { onConfirm(name.trim()) },
                 enabled = name.isNotBlank() && name.trim() != currentName,
             ) {
-                Text(text = "Save", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel", color = Color.White)
+                Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
             }
         },
     )
@@ -539,27 +540,27 @@ private fun InviteMembersDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2C2C2C),
+        containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Invite friends", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Invite friends", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
                 Text(
                     text = "${currentSize + selected.size}/$MAX_GROUP_SIZE members",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     style = MaterialTheme.typography.labelMedium,
                 )
                 when {
                     candidates.isEmpty() -> Text(
                         text = "All your friends are already in this group.",
-                        color = Color(0xFFB0B0B0),
+                        color = SkinTheme.colors.textSecondary,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
 
                     slotsLeft <= 0 -> Text(
                         text = "This group is full ($MAX_GROUP_SIZE members).",
-                        color = Color(0xFFB0B0B0),
+                        color = SkinTheme.colors.textSecondary,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
@@ -585,7 +586,7 @@ private fun InviteMembersDialog(
                             )
                             Text(
                                 text = friend.name,
-                                color = Color.White,
+                                color = SkinTheme.colors.textPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -599,12 +600,12 @@ private fun InviteMembersDialog(
                 onClick = { onConfirm(selected.toList()) },
                 enabled = selected.isNotEmpty(),
             ) {
-                Text(text = "Invite", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                Text(text = "Invite", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel", color = Color.White)
+                Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
             }
         },
     )

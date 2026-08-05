@@ -72,7 +72,7 @@ import com.example.snapget.core.designsystem.component.grid.PostGridItemWithBadg
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.UserProfileTopBar
-import com.example.snapget.core.designsystem.theme.GraySurface
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
@@ -455,8 +455,8 @@ private fun ProfileHeader(
         Circle(
             outerSize = 100.dp,
             gap = 5.dp,
-            backgroundColor = Color(0xFF404137),
-            borderColor = Color(0xFFFFD700),
+            backgroundColor = SkinTheme.colors.pill,
+            borderColor = SkinTheme.colors.accentGold,
             onClick = { onEditClick?.invoke() },
             imageSetting = ImageSetting(
                 imageUrl = avatarOrDefault(avatar, name),
@@ -490,9 +490,9 @@ private fun EditProfileDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
-        containerColor = GraySurface,
+        containerColor = SkinTheme.colors.surface,
         title = {
-            Text(text = "Edit profile", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Edit profile", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
         },
         text = {
             Column(
@@ -505,7 +505,7 @@ private fun EditProfileDialog(
                     modifier = Modifier
                         .size(96.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF404137))
+                        .background(SkinTheme.colors.pill)
                         .clickable(enabled = !isSaving) { pickImage.launch("image/*") },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -521,13 +521,13 @@ private fun EditProfileDialog(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Pick avatar",
-                            tint = Color.White,
+                            tint = SkinTheme.colors.textPrimary,
                         )
                     }
                 }
                 Text(
                     text = "Tap the photo to change your avatar",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     style = MaterialTheme.typography.labelSmall,
                 )
                 OutlinedTextField(
@@ -549,16 +549,16 @@ private fun EditProfileDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = Color.Yellow,
+                        color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text(text = "Cancel", color = Color.White)
+                Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
             }
         },
     )
@@ -573,10 +573,10 @@ private fun ProfileStats(
     modifier: Modifier = Modifier,
 ) {
     val goldColors = listOf(
-        Color(0xFFFFD700), // Gold
+        SkinTheme.colors.accentGold, // Gold
         Color(0xFFFFA500), // Orange Gold
         Color(0xFFFFE55C), // Light Gold
-        Color(0xFFFFD700), // Gold
+        SkinTheme.colors.accentGold, // Gold
     )
 
     Column(
@@ -594,7 +594,7 @@ private fun ProfileStats(
                     .border(
                         width = 2.dp,
                         brush = Brush.linearGradient(goldColors),
-                        shape = RoundedCornerShape(50),
+                        shape = SkinTheme.shapes.pill,
                     )
                     .background(
                         brush = Brush.linearGradient(
@@ -603,9 +603,9 @@ private fun ProfileStats(
                                 Color(0x20FFA500),
                             ),
                         ),
-                        shape = RoundedCornerShape(50),
+                        shape = SkinTheme.shapes.pill,
                     )
-                    .clip(RoundedCornerShape(50))
+                    .clip(SkinTheme.shapes.pill)
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -621,7 +621,7 @@ private fun ProfileStats(
                         )
 
                         VerticalDivider(
-                            color = GraySurface,
+                            color = SkinTheme.colors.surface,
                             modifier = Modifier.height(20.dp),
                         )
                     }
@@ -721,7 +721,7 @@ private fun MonthSection(
         }
 
         HorizontalDivider(
-            color = GraySurface,
+            color = SkinTheme.colors.surface,
             modifier = Modifier.height(10.dp),
         )
 
@@ -760,7 +760,7 @@ private fun MonthCalendarGrid(
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(20.dp),
+                shape = SkinTheme.shapes.image,
             )
             .padding(16.dp),
     ) {

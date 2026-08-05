@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +53,7 @@ import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheetD
 import com.example.snapget.core.designsystem.component.sheet.generalCaptions
 import com.example.snapget.core.designsystem.component.sheet.rememberCurrentTime
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
@@ -62,6 +62,11 @@ import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
 import java.io.File
 import kotlinx.coroutines.launch
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 val submitButtonSize = 80.dp
 
@@ -212,7 +217,7 @@ fun SubmitPhotoScreen(
                             source = photoPath,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(SkinTheme.shapes.image),
                         )
                     } else {
                         AsyncImage(
@@ -220,7 +225,7 @@ fun SubmitPhotoScreen(
                             contentDescription = "Captured photo",
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(SkinTheme.shapes.image),
                             contentScale = ContentScale.Crop,
                         )
                     }
@@ -233,7 +238,7 @@ fun SubmitPhotoScreen(
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(20.dp)),
+                                .clip(SkinTheme.shapes.image),
                         )
                     }
 
@@ -258,7 +263,7 @@ fun SubmitPhotoScreen(
                                 .fillMaxSize()
                                 .background(
                                     Color.Black.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = SkinTheme.shapes.image,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {

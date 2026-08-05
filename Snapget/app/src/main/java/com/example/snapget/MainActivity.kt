@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.config.statusBarConfig
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
+import com.example.snapget.core.designsystem.effect.TouchEffectOverlay
 import com.example.snapget.core.designsystem.theme.AppTheme
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
@@ -139,7 +140,8 @@ fun SnapgetApp(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val currentUser by mainViewModel.currentUser.collectAsState()
-    val themeMode by mainViewModel.themeMode.collectAsState()
+    val skin by mainViewModel.skin.collectAsState()
+    val touchEffect by mainViewModel.touchEffect.collectAsState()
     val inviteConfirm by friendsViewModel.inviteConfirm.collectAsState()
     val inviteConnectStatus by friendsViewModel.connectStatus.collectAsState()
     val context = LocalContext.current
@@ -188,12 +190,17 @@ fun SnapgetApp(
         }
     }
 
-    AppTheme(themeMode = themeMode) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Navigation(mainViewModel, authViewModel)
+    AppTheme(skin = skin) {
+        // Overlay hieu ung cham BOC NGOAI Navigation -> viet 1 lan, moi man deu co.
+        // Chi "nghe lom" su kien cham (khong consume) nen nut/pager/giu-quay-GIF
+        // ben duoi van chay y nhu cu — xem ghi chu trong TouchEffectOverlay.
+        TouchEffectOverlay(effect = touchEffect, modifier = Modifier.fillMaxSize()) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                Navigation(mainViewModel, authViewModel)
+            }
         }
 
         // Dialog xac nhan ket ban tu deep link — de len tren moi man hinh

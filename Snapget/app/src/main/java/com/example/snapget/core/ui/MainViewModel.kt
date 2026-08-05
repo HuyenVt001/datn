@@ -5,7 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.data.FirestoreRepository
 import com.example.snapget.core.data.SettingsPreferences
-import com.example.snapget.core.model.ThemeMode
+import com.example.snapget.core.designsystem.effect.TouchEffect
+import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
+import com.example.snapget.core.designsystem.skin.AppSkin
+import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.model.auth.AuthUser
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.unwrap
@@ -13,12 +16,15 @@ import com.example.snapget.feature.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel dung chung: user hien tai + theme mode.
+ * ViewModel dung chung: user hien tai + skin dang ap dung.
  * DA DON GOD-VM (2026-07-13): toan bo phan posts/friends/messages doc Firestore
  * truc tiep da xoa — cac feature doc qua API server (PostViewModel,
  * FriendsViewModel, MessageViewModel...).
@@ -34,8 +40,29 @@ class MainViewModel @Inject constructor(
     private val widgetRefresher: WidgetRefresher,
 ) : ViewModel() {
 
-    /** Che do giao dien hien tai — MainActivity doc de apply AppTheme. */
-    val themeMode: StateFlow<ThemeMode> = settingsPreferences.themeMode
+    /**
+     * Skin dang ap dung — MainActivity doc de bom vao AppTheme.
+     *
+     * Map id -> AppSkin ngay tai day: id la de server/prefs, con UI can object
+     * that. `SkinRegistry.find` chiu duoc id la (vat pham cua ban app moi hon)
+     * bang cach roi ve Default thay vi crash.
+     */
+    val skin: StateFlow<AppSkin> = settingsPreferences.skinId
+        .map { SkinRegistry.find(it) }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            SkinRegistry.find(settingsPreferences.skinId.value),
+        )
+
+    /** Hieu ung cham dang dung — MainActivity doc de bom vao TouchEffectOverlay. */
+    val touchEffect: StateFlow<TouchEffect> = settingsPreferences.touchEffectId
+        .map { TouchEffectRegistry.find(it) }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            TouchEffectRegistry.find(settingsPreferences.touchEffectId.value),
+        )
 
     // Current user StateFlow
     private val _currentUser = MutableStateFlow<AuthUser?>(null)

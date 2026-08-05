@@ -44,6 +44,10 @@ export interface TodayQuest extends DailyQuest {
 /** Ket qua GET /quests/today. */
 export interface TodayQuestsResult {
   quests: TodayQuest[];
-  /** frameId da thuong hom nay khi xong 2/2 quest (undefined = chua thuong / null = het khung). */
-  rewardFrameId?: string | null;
+  /**
+   * So Astrite da thuong hom nay khi xong 2/2 quest (doi tu `rewardFrameId`
+   * ngay 2026-08-05 — G2 cua GACHA_PLAN).
+   * undefined = chua xong 2/2 · number = da nhan · null = ngay cu (thuong khung).
+   */
+  rewardAstrite?: number | null;
 }

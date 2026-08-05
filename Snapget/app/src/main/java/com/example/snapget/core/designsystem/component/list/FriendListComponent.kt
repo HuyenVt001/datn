@@ -50,6 +50,7 @@ import com.example.snapget.core.designsystem.component.button.ShowMoreShowLessBu
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.container.BlurredContainer
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
@@ -122,7 +123,7 @@ fun <T> GenericCircleList(
 
                 Text(
                     text = trimUsername(itemToListItem(item).displayName),
-                    color = Color.White,
+                    color = SkinTheme.colors.textPrimary,
                 )
             }
         }
@@ -185,8 +186,8 @@ fun FriendItem(
     Circle(
         outerSize = 56.dp,
         gap = 5.dp,
-        backgroundColor = Color(0xFF404137),
-        borderColor = if (isSelected) Color.Yellow else Color(0xFFB8B8B8),
+        backgroundColor = SkinTheme.colors.pill,
+        borderColor = if (isSelected) SkinTheme.colors.accent else SkinTheme.colors.onSurfaceVariant,
         onClick = onClick,
         innerContent = {
             AsyncImage(
@@ -208,7 +209,7 @@ fun ThirdPartyAppItem(
         outerSize = 56.dp,
         gap = 1.dp,
         backgroundColor = Color.Gray,
-        borderColor = if (isSelected) Color.Yellow else Color(0xFF404137),
+        borderColor = if (isSelected) SkinTheme.colors.accent else SkinTheme.colors.pill,
         onClick = onClick,
         imageSetting = ImageSetting(
             imageUrl = app.imageUrl,
@@ -265,13 +266,13 @@ fun ExternalAppComponent() {
             Icon(
                 imageVector = Icons.Default.ZoomIn,
                 contentDescription = "More",
-                tint = Color.White,
+                tint = SkinTheme.colors.textPrimary,
                 modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
             )
 
             Text(
                 text = "Find Friend From other Apps",
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 fontSize = MaterialTheme.typography.titleMedium.fontSize,
                 fontWeight = FontWeight.Bold,
             )
@@ -315,13 +316,13 @@ fun YourFriendAppComponent(
             Icon(
                 imageVector = Icons.Default.Group,
                 contentDescription = "Friends",
-                tint = Color.White,
+                tint = SkinTheme.colors.textPrimary,
                 modifier = Modifier.size(30.dp),
             )
 
             Text(
                 text = "Your Friends",
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 fontSize = MaterialTheme.typography.titleMedium.fontSize,
                 fontWeight = FontWeight.Bold,
             )
@@ -337,7 +338,7 @@ fun YourFriendAppComponent(
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -345,7 +346,7 @@ fun YourFriendAppComponent(
             friends.isEmpty() -> {
                 Text(
                     text = "You don't have any friends yet",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = SkinTheme.colors.textPrimary.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
@@ -393,7 +394,7 @@ fun FriendListItem(
         Circle(
             outerSize = 56.dp,
             gap = 5.dp,
-            backgroundColor = Color(0xFF404137),
+            backgroundColor = SkinTheme.colors.pill,
             onClick = {},
             imageSetting = ImageSetting(
                 imageUrl = friend.avatar,
@@ -403,7 +404,7 @@ fun FriendListItem(
         // Friend's name
         Text(
             text = friend.name,
-            color = Color.White,
+            color = SkinTheme.colors.textPrimary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             maxLines = 1,
@@ -414,7 +415,7 @@ fun FriendListItem(
         if (friend.streak > 0) {
             Text(
                 text = "🔥 ${friend.streak}",
-                color = Color(0xFFFFD700),
+                color = SkinTheme.colors.accentGold,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -428,7 +429,7 @@ fun FriendListItem(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Remove Friend",
-                tint = Color.White,
+                tint = SkinTheme.colors.textPrimary,
             )
         }
     }
@@ -457,7 +458,7 @@ fun HorizontalShowMoreComponent() {
     ) {
         // line trái
         HorizontalDivider(
-            color = Color.White.copy(alpha = 0.3f),
+            color = SkinTheme.colors.textPrimary.copy(alpha = 0.3f),
             modifier = Modifier
                 .weight(1f)
                 .height(1.dp),
@@ -471,13 +472,13 @@ fun HorizontalShowMoreComponent() {
             modifier = Modifier
                 .background(
                     color = Color.DarkGray,
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                 )
                 .padding(horizontal = 16.dp, vertical = 6.dp),
         ) {
             Text(
                 text = "Show more",
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             )
         }
@@ -486,7 +487,7 @@ fun HorizontalShowMoreComponent() {
 
         // line phải
         HorizontalDivider(
-            color = Color.White.copy(alpha = 0.3f),
+            color = SkinTheme.colors.textPrimary.copy(alpha = 0.3f),
             modifier = Modifier
                 .weight(1f)
                 .height(1.dp),
@@ -520,13 +521,13 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
             Icon(
                 imageVector = Icons.Default.Upload,
                 contentDescription = "Friends",
-                tint = Color.White,
+                tint = SkinTheme.colors.textPrimary,
                 modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
             )
 
             Text(
                 text = "Share your Snapget link",
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 fontSize = MaterialTheme.typography.titleMedium.fontSize,
                 fontWeight = FontWeight.Bold,
             )
@@ -549,7 +550,7 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
                 Circle(
                     outerSize = 56.dp,
                     gap = 5.dp,
-                    backgroundColor = Color(0xFF404137),
+                    backgroundColor = SkinTheme.colors.pill,
                     borderColor = Color.Gray,
                     onClick = { shareLink() },
                     imageSetting = ImageSetting(
@@ -561,7 +562,7 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
                 // Username text with special handling for "Everyone" and "You"
                 Text(
                     text = item.name,
-                    color = Color.White,
+                    color = SkinTheme.colors.textPrimary,
                     fontWeight = FontWeight.Medium,
                     style = MaterialTheme.typography.titleMedium,
                 )
@@ -573,7 +574,7 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = "Select",
-                    tint = Color.White,
+                    tint = SkinTheme.colors.textPrimary,
                     modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
                 )
             }
@@ -601,14 +602,14 @@ fun GenericListExamples() {
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text("Friends List:", color = Color.White)
+        Text("Friends List:", color = SkinTheme.colors.textPrimary)
         FriendList(
             user = SampleData.users.firstOrNull { it.id == "kai_tanaka" },
             friends = SampleData.users.filter { it.id != "kai_tanaka" },
             selectedFriendId = "everyone",
         )
 
-        Text("Third Party Apps:", color = Color.White)
+        Text("Third Party Apps:", color = SkinTheme.colors.textPrimary)
         BlurredContainer {
             ThirdPartyAppList(
                 apps = listThirdPartyApp,
@@ -631,14 +632,14 @@ fun TotalFriendComponent(
     ) {
         Text(
             text = "$totalFriends out of $maxFriends friends",
-            color = Color.White,
+            color = SkinTheme.colors.textPrimary,
             fontWeight = FontWeight.Medium,
             style = MaterialTheme.typography.titleLarge,
         )
 
         Text(
             text = "Invite a friend to continue",
-            color = Color.White,
+            color = SkinTheme.colors.textPrimary,
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.titleSmall,
         )
@@ -646,7 +647,7 @@ fun TotalFriendComponent(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(SkinTheme.shapes.image)
                 .clickable { onAddFriendClick() },
             contentAlignment = Alignment.Center,
         ) {
@@ -670,12 +671,12 @@ fun TotalFriendComponent(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Friends",
-                        tint = Color.White,
+                        tint = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(30.dp),
                     )
                     Text(
                         text = "Add new friend",
-                        color = Color.White,
+                        color = SkinTheme.colors.textPrimary,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     )
                 }

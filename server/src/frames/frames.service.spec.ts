@@ -27,8 +27,8 @@ describe('FramesService', () => {
 
   it('listForUser: gan isUnlocked theo unlockedFrames cua user; khung DEFAULT luon mo', async () => {
     repo.list.mockResolvedValue([
-      { frameId: 'f1', frameName: 'Fire', unlockType: 'QUEST_RANDOM' },
-      { frameId: 'f2', frameName: 'Star', unlockType: 'QUEST_RANDOM' },
+      { frameId: 'f1', frameName: 'Fire', unlockType: 'GACHA' },
+      { frameId: 'f2', frameName: 'Star', unlockType: 'GACHA' },
       { frameId: 'f3', frameName: 'Basic', unlockType: 'DEFAULT' },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: ['f1'] } as never);
@@ -52,12 +52,12 @@ describe('FramesService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('create: mac dinh QUEST_RANDOM, giu milestone legacy dong bo', async () => {
+  it('create: mac dinh GACHA, giu milestone legacy dong bo', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
     const frame = await service.create({ frameName: 'Thuong' });
 
-    expect(frame.unlockType).toBe('QUEST_RANDOM');
+    expect(frame.unlockType).toBe('GACHA');
     expect(frame.milestone).toBeNull();
   });
 
@@ -148,7 +148,7 @@ describe('FramesService', () => {
   it('unlockCoopFrames: mo moi khung COOP_FIRST chua so huu', async () => {
     repo.list.mockResolvedValue([
       { frameId: 'coop1', frameName: 'Duo', unlockType: 'COOP_FIRST' },
-      { frameId: 'other', frameName: 'Khac', unlockType: 'QUEST_RANDOM' },
+      { frameId: 'other', frameName: 'Khac', unlockType: 'GACHA' },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: [] } as never);
 

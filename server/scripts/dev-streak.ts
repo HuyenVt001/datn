@@ -55,12 +55,13 @@ async function main(): Promise<void> {
 
   const userRef = db.collection('users').doc(uid);
   const framesSnap = await db.collection('frames').get();
-  // Suy unlockType nhu server repo (doc cu chi co milestone) — 2026-07-26
+  // Suy unlockType nhu server repo (doc cu chi co milestone / con QUEST_RANDOM) — 2026-08-05
   const frames = framesSnap.docs.map((d) => {
     const data = d.data();
     const milestone = typeof data.milestone === 'number' ? data.milestone : undefined;
+    const raw = data.unlockType as string | undefined;
     const unlockType =
-      (data.unlockType as string) ?? (milestone ? 'STREAK_MILESTONE' : 'QUEST_RANDOM');
+      raw === 'QUEST_RANDOM' ? 'GACHA' : (raw ?? (milestone ? 'STREAK_MILESTONE' : 'GACHA'));
     const unlockValue = typeof data.unlockValue === 'number' ? data.unlockValue : milestone;
     return {
       frameId: d.id,
@@ -117,10 +118,10 @@ async function main(): Promise<void> {
     FRIEND_COUNT: (n) => `[${n} ban]`,
     COOP_FIRST: () => '[co-op]',
     DEFAULT: () => '[mo san]',
-    QUEST_RANDOM: () => '[thuong]',
+    GACHA: () => '[gacha]',
   };
   for (const f of frames) {
-    const tag = (TAGS[f.unlockType] ?? TAGS.QUEST_RANDOM)(f.unlockValue);
+    const tag = (TAGS[f.unlockType] ?? TAGS.GACHA)(f.unlockValue);
     console.log(`  ${unlocked.has(f.frameId) ? '🔓' : '🔒'} ${tag} ${f.frameName} (${f.frameId})`);
   }
 }

@@ -95,12 +95,10 @@ fun SettingScreen(
 ) {
     val context = LocalContext.current
     val settings by settingsViewModel.settings.collectAsState()
-    val themeMode by settingsViewModel.themeMode.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val saveStatus by settingsViewModel.saveStatus.collectAsState()
     val inviteLink by settingsViewModel.inviteLink.collectAsState()
 
-    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showEditNameDialog by rememberSaveable { mutableStateOf(false) }
     var showBirthdayPicker by rememberSaveable { mutableStateOf(false) }
 
@@ -134,7 +132,7 @@ fun SettingScreen(
             when (setting.id) {
                 SettingIds.WIDGET_SETTINGS -> navController.navigate(Screen.WidgetSettings.route)
                 SettingIds.HOW_TO_ADD_WIDGET -> navController.navigate(Screen.HowToAddWidget.route)
-                SettingIds.THEME -> showThemeDialog = true
+                SettingIds.APPEARANCE -> navController.navigate(Screen.Appearance.route)
                 SettingIds.EDIT_NAME -> showEditNameDialog = true
                 SettingIds.EDIT_BIRTHDAY -> showBirthdayPicker = true
                 SettingIds.SHARE_SNAPGET -> {
@@ -158,17 +156,6 @@ fun SettingScreen(
             }
         },
     )
-
-    if (showThemeDialog) {
-        ThemeDialog(
-            currentMode = themeMode,
-            onSelect = { mode ->
-                settingsViewModel.setThemeMode(mode)
-                showThemeDialog = false
-            },
-            onDismiss = { showThemeDialog = false },
-        )
-    }
 
     if (showEditNameDialog) {
         EditNameDialog(
@@ -378,7 +365,7 @@ fun SettingItem(
 fun getSettingIcon(setting: Setting): ImageVector = when (setting.id) {
     SettingIds.WIDGET_SETTINGS -> Icons.Default.Widgets
     SettingIds.APP_ICON -> Icons.Default.Palette
-    SettingIds.THEME -> Icons.Default.Palette
+    SettingIds.APPEARANCE -> Icons.Default.Palette
     SettingIds.STREAK_ON_WIDGET -> Icons.Default.LocalFireDepartment
     SettingIds.EDIT_NAME -> Icons.Default.Badge
     SettingIds.EDIT_BIRTHDAY -> Icons.Default.Cake

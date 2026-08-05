@@ -50,6 +50,12 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.pill.extraReactionEmojis
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
+import com.example.snapget.core.designsystem.skin.SkinTheme
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /**
  * Xem media cua tin nhan FULL-SCREEN (bam anh trong chat):
@@ -183,7 +189,7 @@ fun ReactionPickerDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(SkinTheme.shapes.input)
                             .clickable { onReply() }
                             .padding(horizontal = 8.dp, vertical = 10.dp),
                     ) {

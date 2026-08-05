@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
+import { GachaService } from '../gacha/gacha.service';
 import { MomentsRepository } from '../moments/moments.repository';
 import { QuestsService } from '../quests/quests.service';
 import { AdminRepository } from './admin.repository';
@@ -22,6 +23,7 @@ describe('AdminService', () => {
   let adminRepo: jest.Mocked<AdminRepository>;
   let momentsRepo: jest.Mocked<MomentsRepository>;
   let questsService: jest.Mocked<QuestsService>;
+  let gachaService: jest.Mocked<GachaService>;
   let audit: jest.Mocked<AuditService>;
 
   const authUsers = [
@@ -61,6 +63,9 @@ describe('AdminService', () => {
     adminRepo = {
       getStats: jest.fn(),
       getAllFullNames: jest.fn().mockResolvedValue(new Map([['u1', 'Nguyen Van An']])),
+      getAllUserSummaries: jest
+        .fn()
+        .mockResolvedValue(new Map([['u1', { fullName: 'Nguyen Van An', astrite: 1600 }]])),
       countMomentsByDay: jest.fn(),
     } as unknown as jest.Mocked<AdminRepository>;
     momentsRepo = {
@@ -71,6 +76,9 @@ describe('AdminService', () => {
     questsService = {
       countCompletionsToday: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<QuestsService>;
+    gachaService = {
+      getRollCounts: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
+    } as unknown as jest.Mocked<GachaService>;
     audit = { log: jest.fn().mockResolvedValue(undefined) } as unknown as jest.Mocked<AuditService>;
 
     service = new AdminService(
@@ -78,18 +86,29 @@ describe('AdminService', () => {
       adminRepo,
       momentsRepo,
       questsService,
+      gachaService,
       audit,
     );
   });
 
-  it('getStats: gop thong ke chung + so luot hoan thanh quest hom nay', async () => {
+  it('getStats: gop thong ke chung + quest hom nay + so luot quay gacha', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 2, moments: 5 } as never);
     questsService.countCompletionsToday.mockResolvedValue(3);
+    gachaService.getRollCounts.mockResolvedValue({ today: 7, total: 42 });
 
     const result = await service.getStats();
 
     expect(result.users).toBe(2);
     expect(result.questCompletionsToday).toBe(3);
+    expect(result.gachaRollsToday).toBe(7);
+    expect(result.gachaRollsTotal).toBe(42);
+  });
+
+  it('listUsers: kem so du Astrite tu Firestore (user chua co field -> 0)', async () => {
+    const result = await service.listUsers({ page: 1, limit: 10 } as never);
+
+    expect(result.items.find((u) => u.uid === 'u1')?.astrite).toBe(1600);
+    expect(result.items.find((u) => u.uid === 'u2')?.astrite).toBe(0);
   });
 
   it('getDailyStats: gop so moment theo ngay + dem user moi theo creationTime', async () => {

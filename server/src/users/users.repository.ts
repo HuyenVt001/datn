@@ -7,6 +7,13 @@ import { PublicUser, User } from './entities/user.entity';
 /**
  * NOI DUY NHAT cham Firestore cho domain users.
  * Map Firestore doc <-> entity o day; khong ro ri kieu Firestore ra ngoai.
+ *
+ * ⚠️ NGOAI LE co chu y (2026-08-05): cac field VI TIEN nam tren user doc
+ * (`astrite`, `signupBonusClaimed`, `gachaPity`, `unlockedSkins/Effects`) do
+ * `AstriteRepository` / `GachaRepository` ghi, KHONG ghi tu day. Ly do: moi
+ * thay doi so du phai chay trong CUNG transaction voi so cai
+ * `astriteTransactions`, ma Firestore chi cho 1 callback runTransaction.
+ * Repository nay chi DOC chung ra entity (`toEntity`).
  */
 @Injectable()
 export class UsersRepository {
@@ -72,6 +79,23 @@ export class UsersRepository {
     return snap.docs.map((d) => this.toEntity(d.id, d.data()));
   }
 
+  /**
+   * Ten hien thi cua nhieu user cung luc (trang admin enrich uid -> ten).
+   * Dung `getAll` chu khong phai `where in` — `in` gioi han 10 phan tu.
+   */
+  async getFullNamesByUids(uids: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(uids)];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const snaps = await this.firebase.firestore().getAll(...unique.map((uid) => this.col.doc(uid)));
+    const result = new Map<string, string>();
+    snaps.forEach((snap, i) => {
+      result.set(unique[i], (snap.data()?.fullName as string | undefined) ?? '');
+    });
+    return result;
+  }
+
   private toEntity(uid: string, data: FirebaseFirestore.DocumentData): User {
     return {
       uid,
@@ -86,6 +110,16 @@ export class UsersRepository {
       inviteCodeExpiresAt: data.inviteCodeExpiresAt,
       unlockedFrames: data.unlockedFrames ?? [],
       fcmTokens: data.fcmTokens ?? [],
+      // Doc cu (truoc 2026-08-05) khong co cac field nay -> mac dinh an toan
+      astrite: data.astrite ?? 0,
+      unlockedSkins: data.unlockedSkins ?? [],
+      unlockedEffects: data.unlockedEffects ?? [],
+      gachaPity: {
+        R: data.gachaPity?.R ?? 0,
+        SR: data.gachaPity?.SR ?? 0,
+        SSR: data.gachaPity?.SSR ?? 0,
+      },
+      signupBonusClaimed: data.signupBonusClaimed ?? false,
     };
   }
 

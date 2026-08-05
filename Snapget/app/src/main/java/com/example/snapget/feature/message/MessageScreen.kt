@@ -64,6 +64,7 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDto
 import com.example.snapget.core.util.avatarOrDefault
@@ -259,7 +260,7 @@ private fun GroupItem(
             modifier = Modifier
                 .size(50.dp)
                 .clip(RoundedCornerShape(25.dp))
-                .background(Color(0xFF404137)),
+                .background(SkinTheme.colors.pill),
             contentAlignment = Alignment.Center,
         ) {
             if (!group.avatar.isNullOrBlank()) {
@@ -274,7 +275,7 @@ private fun GroupItem(
                 Icon(
                     imageVector = Icons.Default.Groups,
                     contentDescription = "Group",
-                    tint = Color.Yellow,
+                    tint = SkinTheme.colors.accent,
                     modifier = Modifier.size(28.dp),
                 )
             }
@@ -321,9 +322,9 @@ private fun CreateGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2C2C2C),
+        containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Create group chat", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Create group chat", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
@@ -337,13 +338,13 @@ private fun CreateGroupDialog(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Pick members (${selected.size})",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     style = MaterialTheme.typography.labelMedium,
                 )
                 if (friends.isEmpty()) {
                     Text(
                         text = "No friends yet — add a friend first!",
-                        color = Color(0xFFB0B0B0),
+                        color = SkinTheme.colors.textSecondary,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
                 }
@@ -370,7 +371,7 @@ private fun CreateGroupDialog(
                             )
                             Text(
                                 text = friend.name,
-                                color = Color.White,
+                                color = SkinTheme.colors.textPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -384,12 +385,12 @@ private fun CreateGroupDialog(
                 onClick = { onCreate(groupName.trim(), selected.toList()) },
                 enabled = groupName.isNotBlank() && selected.isNotEmpty(),
             ) {
-                Text(text = "Create", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                Text(text = "Create", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel", color = Color.White)
+                Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
             }
         },
     )
@@ -423,8 +424,8 @@ fun ConversationItem(
                 ),
                 gap = if (conversation.unread) 3.dp else 0.dp,
                 outerSize = 50.dp,
-                backgroundColor = Color(0xFF404137),
-                borderColor = if (conversation.unread) Color.Yellow else Color(0xFF404137),
+                backgroundColor = SkinTheme.colors.pill,
+                borderColor = if (conversation.unread) SkinTheme.colors.accent else SkinTheme.colors.pill,
                 onClick = onClick,
             )
 

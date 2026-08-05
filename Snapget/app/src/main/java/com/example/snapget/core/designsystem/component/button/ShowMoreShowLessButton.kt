@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinTheme
 
 @Composable
 fun ShowMoreShowLessButton(
@@ -41,7 +41,7 @@ fun ShowMoreShowLessButton(
     ) {
         // line trái
         HorizontalDivider(
-            color = Color.White.copy(alpha = 0.3f),
+            color = SkinTheme.colors.textPrimary.copy(alpha = 0.3f),
             modifier = Modifier
                 .weight(1f)
                 .height(1.dp),
@@ -56,13 +56,13 @@ fun ShowMoreShowLessButton(
                 .clickable(onClick = onToggle)
                 .background(
                     color = Color.DarkGray,
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                 )
                 .padding(horizontal = 16.dp, vertical = 6.dp),
         ) {
             Text(
                 text = if (showAll) "Show less" else "Show more",
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.padding(end = 4.dp),
             )
@@ -71,7 +71,7 @@ fun ShowMoreShowLessButton(
                 Icon(
                     imageVector = if (showAll) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = "Show more or less",
-                    tint = Color.White,
+                    tint = SkinTheme.colors.textPrimary,
                 )
             }
         }
@@ -80,7 +80,7 @@ fun ShowMoreShowLessButton(
 
         // line phải
         HorizontalDivider(
-            color = Color.White.copy(alpha = 0.3f),
+            color = SkinTheme.colors.textPrimary.copy(alpha = 0.3f),
             modifier = Modifier
                 .weight(1f)
                 .height(1.dp),

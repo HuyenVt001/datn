@@ -67,12 +67,18 @@ import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.downloadToCacheFile
 import com.example.snapget.navigation.Screen
 import java.io.File
 import kotlinx.coroutines.delay
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /**
  * Man CHUP COOP (redesign 2026-08-02) — ca 2 nguoi vao day sau khi loi moi
@@ -114,7 +120,8 @@ fun CoopCaptureScreen(
                 coopViewModel.refreshInvite(inviteId)
                 delay(2500)
                 val cur = coopViewModel.invite.value
-                if (cur?.status == "DECLINED" || cur?.status == "EXPIRED" ||
+                if (cur?.status == "DECLINED" ||
+                    cur?.status == "EXPIRED" ||
                     (cur?.status == "COMPLETED" && cur.mergedMediaUrl != null)
                 ) {
                     break
@@ -243,7 +250,7 @@ fun CoopCaptureScreen(
                 current.status == "PENDING" -> {
                     // Nguoi moi doi doi phuong chap nhan (nguoi nhan chi vao day sau accept)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = Color.Yellow)
+                        CircularProgressIndicator(color = SkinTheme.colors.accent)
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Waiting for $partnerName to accept…",
@@ -276,7 +283,7 @@ fun CoopCaptureScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f)
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(SkinTheme.shapes.image),
                     ) {
                         Row(modifier = Modifier.fillMaxSize()) {
                             // TRAI = nua nguoi moi, PHAI = nua nguoi nhan (khop server ghep)
@@ -343,7 +350,7 @@ fun CoopCaptureScreen(
                                         ) {
                                             Text(
                                                 text = "Taking too long? Tap to retry",
-                                                color = Color.Yellow,
+                                                color = SkinTheme.colors.accent,
                                                 fontWeight = FontWeight.Bold,
                                             )
                                         }
@@ -406,7 +413,7 @@ fun CoopCaptureScreen(
                                     outerSize = 80.dp,
                                     gap = 7.dp,
                                     backgroundColor = Color.Transparent,
-                                    borderColor = Color.Yellow,
+                                    borderColor = SkinTheme.colors.accent,
                                     borderWidth = 3.dp,
                                     onClick = { captureRequestId++ },
                                 )
@@ -416,7 +423,7 @@ fun CoopCaptureScreen(
                                     outerSize = 80.dp,
                                     gap = 20.dp,
                                     backgroundColor = Color.Transparent,
-                                    borderColor = Color.Yellow,
+                                    borderColor = SkinTheme.colors.accent,
                                     borderWidth = 3.dp,
                                     modifier = Modifier.rotate(-45F),
                                     iconSetting = IconSetting(
@@ -527,20 +534,20 @@ private fun CoopPartnerHalf(partnerUrl: String?, partnerName: String) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF2C2C2C)),
+                .background(SkinTheme.colors.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(36.dp),
                     strokeWidth = 2.dp,
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Waiting for\n$partnerName…",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -565,7 +572,7 @@ fun CoopFriendPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF2C2C2C),
+        containerColor = SkinTheme.colors.surfaceVariant,
         title = {
             Text(text = "Co-op capture", color = Color.White, fontWeight = FontWeight.Bold)
         },
@@ -573,7 +580,7 @@ fun CoopFriendPickerDialog(
             Column {
                 Text(
                     text = "Pick a friend to shoot with — invites expire after 5 minutes.",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -584,12 +591,12 @@ fun CoopFriendPickerDialog(
                                 .padding(vertical = 8.dp)
                                 .size(24.dp),
                             strokeWidth = 2.dp,
-                            color = Color(0xFFB0B0B0),
+                            color = SkinTheme.colors.textSecondary,
                         )
                     } else {
                         Text(
                             text = "No friends yet — add a friend first!",
-                            color = Color(0xFFB0B0B0),
+                            color = SkinTheme.colors.textSecondary,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
                     }
@@ -608,9 +615,9 @@ fun CoopFriendPickerDialog(
                             Circle(
                                 outerSize = 40.dp,
                                 gap = 0.dp,
-                                backgroundColor = Color(0xFF404137),
+                                backgroundColor = SkinTheme.colors.pill,
                                 // Vien VANG khi duoc chon (nhu FriendList man dang bai)
-                                borderColor = if (selected) Color.Yellow else Color(0xFF404137),
+                                borderColor = if (selected) SkinTheme.colors.accent else SkinTheme.colors.pill,
                                 onClick = { selectedId = friend.id },
                                 imageSetting = ImageSetting(
                                     imageUrl = avatarOrDefault(friend.avatar, friend.name),
@@ -637,7 +644,7 @@ fun CoopFriendPickerDialog(
             ) {
                 Text(
                     text = if (busy) "Sending…" else "Send invite",
-                    color = Color.Yellow,
+                    color = SkinTheme.colors.accent,
                     fontWeight = FontWeight.Bold,
                 )
             }

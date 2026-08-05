@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
+> **Cập nhật lần cuối:** 2026-08-05 — thêm **[mục 17 — Thanh toán PayOS & tiền tệ Astrite](#17-thanh-toán-payos--tiền-tệ-astrite)**: đây là phần đầu tiên của hệ thống đụng **tiền thật**, nên có mô hình đe doạ riêng (webhook giả mạo, cộng tiền 2 lần, client tự khai số tiền). Trước đó 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -75,11 +75,13 @@ Mọi tham chiếu code đều là **đường dẫn thật + số dòng**, bấ
 |---|---|---|---|
 | 1 | **Firebase service account key** | `server/` (dev), Render Secret Files (prod) | Toàn quyền Firestore + Auth + FCM, bỏ qua mọi rule → mất trắng dữ liệu người dùng |
 | 2 | **JWT_SECRET** | `server/.env` | Giả mạo JWT admin bất kỳ → chiếm toàn bộ quyền quản trị |
-| 3 | **Cloudinary API secret** | `server/.env` | Xóa/thay toàn bộ ảnh, video của người dùng |
-| 4 | **Ảnh/video riêng tư của user** | Cloudinary | Rò rỉ đời tư — tài sản nhạy cảm nhất với người dùng cuối |
-| 5 | **Nội dung tin nhắn** | Firestore `messages` | Rò rỉ đời tư |
-| 6 | **PII**: email, tên, ngày sinh, danh sách bạn bè | Firestore `users`, Firebase Auth | Rò rỉ định danh |
-| 7 | **Phiên admin** (JWT trong localStorage) | Trình duyệt admin | Chiếm quyền quản trị trong tối đa 24h |
+| 3 | **PAYOS_CHECKSUM_KEY** | `server/.env` (dev), Render env (prod) | Ký được webhook giả → **tự cộng Astrite cho mình mà không trả đồng nào**. Xem [17](#17-thanh-toán-payos--tiền-tệ-astrite) |
+| 4 | **PAYOS_API_KEY + PAYOS_CLIENT_ID** | như trên | Tạo/huỷ link thanh toán dưới danh nghĩa kênh "Snapget", đọc lịch sử giao dịch |
+| 5 | **Cloudinary API secret** | `server/.env` | Xóa/thay toàn bộ ảnh, video của người dùng |
+| 6 | **Ảnh/video riêng tư của user** | Cloudinary | Rò rỉ đời tư — tài sản nhạy cảm nhất với người dùng cuối |
+| 7 | **Nội dung tin nhắn** | Firestore `messages` | Rò rỉ đời tư |
+| 8 | **PII**: email, tên, ngày sinh, danh sách bạn bè | Firestore `users`, Firebase Auth | Rò rỉ định danh |
+| 9 | **Phiên admin** (JWT trong localStorage) | Trình duyệt admin | Chiếm quyền quản trị trong tối đa 24h |
 
 ### 2.2 Kẻ tấn công giả định
 
@@ -105,6 +107,9 @@ Mọi tham chiếu code đều là **đường dẫn thật + số dòng**, bấ
 | Trích xuất từ thiết bị | Firebase SDK giữ token; cần tắt backup | [8.1](#81-lưu-trữ-token--dữ-liệu-nhạy-cảm) |
 | XSS chiếm phiên admin | React auto-escape + cần CSP | [9.4](#94-xss--csp) |
 | Rò rỉ media | ⚠️ URL Cloudinary công khai | [7.3](#73-điểm-yếu-đã-biết-của-tầng-media) |
+| **Webhook thanh toán giả mạo** | Verify chữ ký HMAC bằng `PAYOS_CHECKSUM_KEY`, sai → 401 | [17.3](#173-webhook--bề-mặt-tấn-công-nguy-hiểm-nhất) |
+| **Cộng tiền 2 lần (replay webhook)** | Doc id = `orderCode` + transaction chỉ cộng khi chưa `PAID` | [17.4](#174-idempotent--không-bao-giờ-cộng-hai-lần) |
+| **Client tự khai số tiền** | Body chỉ nhận `packageId`; giá tra từ `topupPackages` ở server | [17.2](#172-luồng-tạo-đơn--server-là-nơi-định-giá) |
 
 ---
 
@@ -928,6 +933,7 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 | Client | Thay đổi cách lưu token, backup rules, ProGuard/R8, CSP, cert pinning |
 | Firebase | Sửa Firestore/Storage Rules, bật App Check, đổi password policy |
 | Audit | Thêm/bớt hành động được ghi log |
+| **Thanh toán / tiền tệ** | Sửa luồng nạp PayOS, đổi cách verify webhook, thêm nguồn cộng Astrite mới, đổi giá gói nạp — xem [mục 17](#17-thanh-toán-payos--tiền-tệ-astrite) |
 
 **Cách cập nhật:**
 1. Sửa đúng mục liên quan (đổi trạng thái ✅/⚠️/🔴, cập nhật đường dẫn + số dòng).
@@ -936,3 +942,95 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 4. Nếu phát hiện lỗ hổng mới → thêm vào [mục 14](#14-khoảng-trống-đã-biết--lộ-trình-ưu-tiên) với mức ưu tiên rõ ràng.
 
 **Tài liệu liên quan:** [Snapget/.claude/GUIDE.md](Snapget/.claude/GUIDE.md) · [server/GUIDE.md](server/GUIDE.md) · [admin/GUIDE.md](admin/GUIDE.md) · [DEPLOY.md](DEPLOY.md) — cả 3 GUIDE đều có rule trỏ về file này.
+
+---
+
+## 17. Thanh toán PayOS & tiền tệ Astrite
+
+> **Thêm 2026-08-05 (phase G6).** Đây là phần **đầu tiên và duy nhất** của hệ thống đụng **tiền thật** (PayOS production, không phải sandbox). Sai ở đây không còn là bug dữ liệu mà là **chênh lệch tiền thật ↔ Astrite đã phát**, và **không hoàn tác được**.
+
+### 17.1 Tài sản & bất biến
+
+| Bất biến | Vì sao sống còn | Enforce ở đâu |
+|---|---|---|
+| **Chỉ có 4 nguồn cộng Astrite**: tặng tân thủ · thưởng quest · hoàn khi quay trúng trùng · **webhook PayOS** | Thêm một nguồn thứ 5 mà quên guard = in tiền vô hạn | [server/src/astrite/astrite.service.ts](server/src/astrite/astrite.service.ts) · [server/src/topup/topup.service.ts](server/src/topup/topup.service.ts) |
+| **Không endpoint nào cộng Astrite theo yêu cầu của client** | Client không tin được | Toàn bộ module `topup` — không có route nào nhận số Astrite |
+| **Mọi thay đổi số dư đều ghi 1 dòng sổ cái `astriteTransactions`** | Đối soát: tổng sổ cái của 1 uid phải bằng `users.astrite` | `AstriteRepository.addEntryInTransaction` chạy trong **cùng transaction** với lệnh ghi số dư |
+| **Ba khoá `PAYOS_*` không bao giờ ra khỏi server** | Lộ checksum key = ký được webhook giả | `.env` (gitignored) + Render env; [PayosService](server/src/topup/payos.service.ts) chỉ log `orderCode`, không log config/lỗi thô |
+
+### 17.2 Luồng tạo đơn — server là nơi định giá
+
+```
+App  ──POST /topup/orders { packageId }──►  Server
+                                            ├─ tra topupPackages -> giá + số Astrite
+                                            ├─ ghi topupOrders/{orderCode}  (PENDING)   ← ghi TRƯỚC
+                                            └─ gọi PayOS tạo link                        ← gọi SAU
+App  ◄──{ orderCode, checkoutUrl }──────────┘
+```
+
+| Biện pháp | Chi tiết |
+|---|---|
+| ✅ Body chỉ có `packageId` | [CreateTopupOrderDto](server/src/topup/dto/create-order.dto.ts) — không có `amount`/`astrite`. `forbidNonWhitelisted` khiến mọi field lạ bị 400 |
+| ✅ Giá tra ở server | `TopupService.createOrder` đọc `topupPackages`; gói đang tắt → 400 |
+| ✅ Đơn chụp lại giá của chính nó | Admin đổi giá gói **không hồi tố** đơn đang trả dở |
+| ✅ Ghi đơn trước, gọi PayOS sau | Nếu làm ngược, có thể tồn tại link thanh toán mà không có đơn tương ứng → tiền vào mà không biết cộng cho ai |
+| ✅ `orderCode` sinh bằng `create()` | Firestore trả ALREADY_EXISTS nếu trùng → phát hiện ngay thay vì ghi đè đơn cũ |
+| ✅ Link có hạn | `expiredAt` = `TOPUP_ORDER_TTL_MINUTES` (30 phút) — PayOS tự từ chối thanh toán quá hạn |
+| ✅ Đọc đơn phải đúng chủ | `GET /topup/orders/:orderCode` so `order.uid` với `@CurrentUser()` → khác thì 403. `orderCode` là số **đoán được**, nên không thể dựa vào tính bí mật của nó |
+
+### 17.3 Webhook — bề mặt tấn công nguy hiểm nhất
+
+`POST /topup/webhook` là route `@Public()` **duy nhất chạm tới tiền**. Ai trên Internet cũng gọi được.
+
+| Rủi ro | Biện pháp | Trạng thái |
+|---|---|---|
+| Webhook giả mạo | Verify chữ ký HMAC bằng `PAYOS_CHECKSUM_KEY` (SDK `@payos/node`); sai chữ ký → **401, dừng ngay**, không đọc tới `orderCode` | ✅ |
+| Server chưa có khoá | Không có khoá thì **không phân biệt được thật/giả** → từ chối hẳn (401), không "tạm tin" | ✅ |
+| Giao dịch không thành công | SDK chỉ kiểm tra **toàn vẹn dữ liệu**, không kiểm tra kết quả — service tự đọc `data.code === '00'` | ✅ |
+| Số tiền báo về khác số tiền của đơn | Không cộng, giữ đơn `PENDING`, ghi `logger.error` để đối soát tay | ✅ 🧭 |
+| Payload thử lúc đăng ký webhook | `orderCode` không tồn tại → trả **200** (không phải 404), nếu không PayOS coi webhook hỏng và không lưu URL | ✅ 🧭 |
+| PayOS gọi lại liên tục | Chỉ trả lỗi khi chữ ký sai; mọi trường hợp còn lại trả 200 để PayOS không retry vô hạn | ✅ |
+| Rò khoá qua log | Không log body webhook (chứa chữ ký + thông tin giao dịch), không log object lỗi thô — chỉ `error.message` | ✅ |
+
+> 🧭 **Quyết định có chủ đích:** đơn `EXPIRED` **vẫn được cộng** nếu webhook thật báo đã trả. `EXPIRED` là phỏng đoán của server (hết TTL), còn webhook là sự thật từ PayOS — tiền đã vào tài khoản MB rồi. Thà cộng muộn còn hơn người dùng mất tiền mà không nhận được gì. Chỉ trạng thái `PAID` mới chặn.
+
+### 17.4 Idempotent — không bao giờ cộng hai lần
+
+PayOS **gọi lại webhook** khi timeout mạng. Nếu mỗi lần gọi cộng một lần thì trả 5.000đ có thể nhận Astrite gấp mấy lần.
+
+```
+doc id của topupOrders  ==  orderCode        ← 1 mã ⇒ đúng 1 doc, không thể sinh doc thứ hai
+       │
+       └─ transaction:  đọc đơn ─► status === 'PAID' ?  ─ có ─► trả ALREADY_PAID, KHÔNG ghi gì
+                                                        └ không ─► cộng số dư + ghi sổ cái + set PAID
+```
+
+Firestore **serialize** các transaction chạm cùng document, nên hai webhook đến đồng thời không thể cùng nhìn thấy `PENDING`.
+
+**Bài test bắt buộc trước khi bật production** (đã có trong [topup.service.spec.ts](server/src/topup/topup.service.spec.ts)): gọi webhook **3 lần cùng `orderCode`** → số dư tăng **đúng 1 lần**, `astriteTransactions` có **đúng 1 dòng**.
+
+### 17.5 Endpoint giả lập `/topup/simulate`
+
+| | |
+|---|---|
+| Vì sao có | Gói FREE-100 của PayOS chỉ cho **100 giao dịch thành công**, mỗi lần test thật tiêu 1 và không hoàn lại |
+| Chặn ở production | `NODE_ENV === 'production'` → **403**, không có ngoại lệ |
+| Có bỏ qua bảo mật không | Không: khi có khoá checksum, nó **ký payload rồi gọi đúng `handleWebhook`** — đi qua cả bước verify chữ ký lẫn transaction idempotent |
+| Đơn tạo ra | Gắn cờ `isSimulated: true`, trang admin hiện nhãn "Giả lập" để không nhầm với doanh thu thật |
+
+> ⚠️ **Checklist trước khi deploy production:** `NODE_ENV=production` phải được set trên Render. Thiếu biến này thì `/topup/simulate` **mở toang** — bất kỳ user đăng nhập nào cũng tự cộng Astrite cho mình được.
+
+### 17.6 Quản trị & truy vết
+
+- 3 hành động `TOPUP_PACKAGE_CREATE/UPDATE/DELETE` ghi `adminLogs` — đổi giá gói là thao tác đụng tiền, phải biết ai sửa lúc nào.
+- Trang **Lịch sử nạp** hiện `orderCode` + `payosReference` (mã giao dịch ngân hàng) để đối chiếu với dashboard PayOS.
+- Doanh thu chỉ tính đơn `PAID`.
+
+### 17.7 Khoảng trống đã biết
+
+| Vấn đề | Mức | Ghi chú |
+|---|---|---|
+| Không có rate limit riêng cho `/topup/orders` | ⚠️ | Đang dùng rate limit toàn cục 120 req/60s/IP. Spam tạo đơn không mất tiền (link chưa trả không tiêu giao dịch) nhưng làm rác `topupOrders` |
+| Dọn đơn quá hạn chạy cơ hội | 🧭 | Không dùng `@nestjs/schedule` (thêm dependency) — đơn `PENDING` được quét sang `EXPIRED` khi có người mở lịch sử nạp hoặc trang admin. Không ảnh hưởng tiền |
+| Chưa có đối soát tự động sổ cái ↔ PayOS | ⚠️ | Quy mô DATN đối soát tay qua trang Lịch sử nạp. Sản phẩm thật nên có job so tổng `paidRevenueVnd` với báo cáo PayOS |
+| Chênh lệch số tiền phải xử lý tay | 🧭 | `AMOUNT_MISMATCH` chỉ ghi log + giữ đơn `PENDING`. Cố tình không tự đoán: đây là tiền thật |

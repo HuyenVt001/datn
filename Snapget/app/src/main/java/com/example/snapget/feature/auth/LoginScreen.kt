@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.feature.auth.AuthViewModel
 
@@ -319,7 +320,7 @@ fun LoginScreenContent(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = SkinTheme.shapes.image,
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -477,7 +478,7 @@ fun LoginScreenContent(
                                     }
 
                                     TextButton(onClick = { authMode = AuthMode.REGISTER }) {
-                                        Text("Sign Up", color = Color(0xFFFFD700))
+                                        Text("Sign Up", color = SkinTheme.colors.accentGold)
                                     }
                                 }
                             }
@@ -532,7 +533,7 @@ fun LoginScreenContent(
                                     .height(56.dp),
                                 enabled = !uiState.isLoading && uiState.authState !is AuthState.Loading,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
+                                    containerColor = SkinTheme.colors.textPrimary,
                                     contentColor = Color.Black,
                                     disabledContainerColor = Color.Gray.copy(alpha = 0.3f),
                                 ),

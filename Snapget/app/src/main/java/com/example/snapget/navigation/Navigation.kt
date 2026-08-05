@@ -20,11 +20,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
+import com.example.snapget.feature.appearance.AppearanceScreen
 import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.auth.LoginScreen
 import com.example.snapget.feature.camera.CameraScreen
 import com.example.snapget.feature.coop.CoopCaptureScreen
 import com.example.snapget.feature.friends.QrScanScreen
+import com.example.snapget.feature.gacha.GachaScreen
 import com.example.snapget.feature.message.ChatScreen
 import com.example.snapget.feature.message.GroupChatScreen
 import com.example.snapget.feature.message.MessageScreen
@@ -54,6 +56,12 @@ sealed class Screen(val route: String) { // enum
     object CoopCapture : Screen("coop_capture")
     object WidgetSettings : Screen("widget_settings")
     object HowToAddWidget : Screen("how_to_add_widget")
+
+    /** Doi giao dien + hieu ung cham (thay muc "Theme" cu — SKIN_PLAN.md muc 4). */
+    object Appearance : Screen("appearance")
+
+    /** Man quay gacha — noi DUY NHAT hien so du Astrite (GACHA_PLAN.md muc 6.2). */
+    object Gacha : Screen("gacha")
 
     // Man van ban phap ly tinh: docType = "terms" | "privacy"
     object LegalDoc : Screen("legal/{docType}") {
@@ -88,6 +96,8 @@ fun Navigation(
         Screen.CoopCapture.route,
         Screen.WidgetSettings.route,
         Screen.HowToAddWidget.route,
+        Screen.Appearance.route,
+        Screen.Gacha.route,
         Screen.LegalDoc.route,
     )
 
@@ -298,6 +308,16 @@ fun Navigation(
             // Widget: huong dan them widget vao man hinh chinh
             composable(Screen.HowToAddWidget.route) {
                 HowToAddWidgetScreen(navController = navController)
+            }
+
+            // Doi giao dien (skin) + hieu ung cham + xem bo suu tap khung
+            composable(Screen.Appearance.route) {
+                AppearanceScreen(navController = navController)
+            }
+
+            // Quay gacha (vao tu banner tren trang Daily Quest)
+            composable(Screen.Gacha.route) {
+                GachaScreen(navController = navController)
             }
 
             // Chup chung (redesign 2026-08-02): man cho accept + chup nua anh + doi ghep

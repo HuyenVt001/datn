@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.snapget.core.designsystem.skin.SkinTheme
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /**
  * Pill nhap caption tren anh (asset: nen trang mo #80F0F0F0, CHU DEN 16sp — DESIGN.md muc 2).
@@ -47,7 +52,7 @@ fun InputCaptionPill(
                 .matchParentSize()
                 .background(
                     color = Color(0x80F0F0F0),
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                 )
                 .blur(10.dp), // chỉ làm mờ nền
         )

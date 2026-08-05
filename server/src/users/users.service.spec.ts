@@ -1,3 +1,4 @@
+import { AstriteService } from '../astrite/astrite.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UsersRepository } from './users.repository';
@@ -8,6 +9,7 @@ describe('UsersService', () => {
   let repo: jest.Mocked<UsersRepository>;
   let auth: { updateUser: jest.Mock };
   let messaging: { sendEachForMulticast: jest.Mock };
+  let astrite: { grantSignupBonusOnce: jest.Mock };
 
   beforeEach(() => {
     repo = {
@@ -21,7 +23,8 @@ describe('UsersService', () => {
       auth: jest.fn().mockReturnValue(auth),
       messaging: jest.fn().mockReturnValue(messaging),
     } as unknown as FirebaseService;
-    service = new UsersService(repo, firebase);
+    astrite = { grantSignupBonusOnce: jest.fn().mockResolvedValue(undefined) };
+    service = new UsersService(repo, firebase, astrite as unknown as AstriteService);
   });
 
   describe('ensureUser', () => {

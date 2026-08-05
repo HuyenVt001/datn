@@ -98,11 +98,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /**
  * Do dai TOI THIEU cua 1 "anh GIF" (ms). Nguong long-press cua Compose ~500ms nen
@@ -137,7 +143,7 @@ fun CameraPreviewWithZoom(
     val sizeModifier = modifier
         .height(height)
         .fillMaxWidth()
-        .clip(RoundedCornerShape(16.dp))
+        .clip(SkinTheme.shapes.input)
 
     var hasPermission by remember {
         mutableStateOf(
@@ -418,19 +424,13 @@ fun CameraPreviewWithZoom(
                         ContextCompat.getMainExecutor(context),
                         object : ImageCapture.OnImageSavedCallback {
                             override fun onImageSaved(result: ImageCapture.OutputFileResults) {
-                                if (fromFrontCamera) {
-                                    // Camera truoc: LAT NGANG anh cho khop voi preview
-                                    // (CameraX luu anh khong mirror -> chu/nguoi bi nguoc).
-                                    // Lat pixel that (khong dung EXIF flip) de moi noi
-                                    // (Coil/Cloudinary/sharp ghep coop) deu thay anh dung.
-                                    scope.launch(Dispatchers.IO) {
-                                        mirrorPhotoFile(photoFile)
-                                        withContext(Dispatchers.Main) {
-                                            onPhotoTaken(photoFile.absolutePath)
-                                        }
+                                // Bake EXIF rotation (+ mirror voi camera truoc) vao PIXEL
+                                // truoc khi tra callback — xem normalizeCapturedPhoto.
+                                scope.launch(Dispatchers.IO) {
+                                    normalizeCapturedPhoto(photoFile, mirror = fromFrontCamera)
+                                    withContext(Dispatchers.Main) {
+                                        onPhotoTaken(photoFile.absolutePath)
                                     }
-                                } else {
-                                    onPhotoTaken(photoFile.absolutePath)
                                 }
                             }
 
@@ -534,7 +534,7 @@ fun CameraPreviewWithZoom(
                             .scale(flashScale),
                         shape = CircleShape,
                         color = if (flashEnabled) {
-                            Color.Yellow.copy(alpha = 0.9f)
+                            SkinTheme.colors.accent.copy(alpha = 0.9f)
                         } else {
                             Color.Black.copy(
                                 alpha = 0.6f,
@@ -578,7 +578,7 @@ fun CameraPreviewWithZoom(
                             .align(Alignment.TopEnd),
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
+                            shape = SkinTheme.shapes.image,
                             color = Color.Black.copy(alpha = 0.8f),
                             shadowElevation = 4.dp,
                         ) {
@@ -738,7 +738,7 @@ fun CameraPreviewWithZoom(
                         ) {
                             Surface(
                                 modifier = Modifier.padding(32.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = SkinTheme.shapes.input,
                                 color = Color.White,
                                 shadowElevation = 8.dp,
                             ) {
@@ -792,7 +792,7 @@ fun CameraPreviewWithZoom(
         ) {
             Surface(
                 modifier = Modifier.padding(32.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = SkinTheme.shapes.input,
                 color = Color.White,
                 shadowElevation = 8.dp,
             ) {
@@ -836,14 +836,16 @@ fun CameraPreviewWithZoom(
 }
 
 /**
- * Lat ngang (mirror) anh vua chup tu camera TRUOC cho khop voi preview.
- * Doc EXIF rotation truoc roi bake ca xoay + lat vao pixel (re-encode se mat EXIF
- * nen khong the chi dua flag) — nho anh 1280x720 nen chi mat vai chuc ms tren IO.
+ * Chuan hoa anh vua chup ve pixel DUNG CHIEU: bake EXIF rotation vao pixel voi
+ * MOI camera; camera truoc lat ngang them cho khop preview. Phai bake vao pixel
+ * (khong de tag EXIF) vi moi noi tieu thu doc EXIF mot kieu: Coil hien nua anh
+ * coop ngay sau khi chup, Cloudinary luu, sharp ghep — anh camera SAU (pixel
+ * ngang + tag "xoay 90°") tung bi Coil hien khong xoay -> crop vao o doc 1:2
+ * chi thay ~28% chieu rong, trong nhu zoom ~3x (fix 2026-08-04). Anh da dung
+ * chieu va khong can lat -> giu nguyen file, khong re-encode mat chat luong.
  */
-private fun mirrorPhotoFile(file: File) {
+private fun normalizeCapturedPhoto(file: File, mirror: Boolean) {
     try {
-        val original = BitmapFactory.decodeFile(file.absolutePath) ?: return
-
         @Suppress("DEPRECATION")
         val exif = android.media.ExifInterface(file.absolutePath)
         val rotation = when (
@@ -857,21 +859,25 @@ private fun mirrorPhotoFile(file: File) {
             android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
             else -> 0f
         }
+        if (rotation == 0f && !mirror) return
 
-        // Xoay ve dung chieu truoc, roi lat ngang trong khong gian da dung chieu
+        val original = BitmapFactory.decodeFile(file.absolutePath) ?: return
+
+        // Xoay ve dung chieu truoc, roi (neu camera truoc) lat ngang trong
+        // khong gian da dung chieu
         val matrix = Matrix().apply {
             if (rotation != 0f) postRotate(rotation)
-            postScale(-1f, 1f)
+            if (mirror) postScale(-1f, 1f)
         }
-        val mirrored = Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
+        val upright = Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
         file.outputStream().use { out ->
-            mirrored.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            upright.compress(Bitmap.CompressFormat.JPEG, 92, out)
         }
-        if (mirrored !== original) original.recycle()
-        mirrored.recycle()
+        if (upright !== original) original.recycle()
+        upright.recycle()
     } catch (e: Exception) {
-        // Lat that bai -> giu anh goc (chua mirror), khong chan luong chup
-        Log.w("CameraPreview", "Khong lat duoc anh camera truoc: ${e.message}")
+        // Chuan hoa that bai -> giu anh goc, khong chan luong chup
+        Log.w("CameraPreview", "Khong chuan hoa duoc anh vua chup: ${e.message}")
     }
 }
 

@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
-import com.example.snapget.core.designsystem.theme.SnapYellow
+import com.example.snapget.core.designsystem.skin.SkinTheme
 
 /** Man huong dan them widget vao man hinh chinh (4 buoc) + nut pin tu dong. */
 @Composable
@@ -95,14 +95,14 @@ fun HowToAddWidgetScreen(
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
-                                .background(SnapYellow.copy(alpha = 0.15f), CircleShape),
+                                .background(SkinTheme.colors.accent.copy(alpha = 0.15f), CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = "${index + 1}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = SnapYellow,
+                                color = SkinTheme.colors.accent,
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -133,7 +133,7 @@ fun HowToAddWidgetScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.AddToHomeScreen,
                             contentDescription = null,
-                            tint = SnapYellow,
+                            tint = SkinTheme.colors.accent,
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(

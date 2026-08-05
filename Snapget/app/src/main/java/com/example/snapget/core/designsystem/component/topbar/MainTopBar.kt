@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ChatBubbleOutline
@@ -65,7 +64,7 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
-import com.example.snapget.core.designsystem.theme.BackgroundPreview
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.trimUsername
@@ -148,10 +147,10 @@ fun MainTopBar(
                     .height(avatarWidth)
                     .wrapContentWidth()
                     .background(
-                        color = BackgroundPreview,
-                        shape = RoundedCornerShape(50),
+                        color = SkinTheme.colors.pillTranslucent,
+                        shape = SkinTheme.shapes.pill,
                     )
-                    .clip(RoundedCornerShape(50))
+                    .clip(SkinTheme.shapes.pill)
                     .padding(horizontal = 12.dp, vertical = 6.dp)
                     .clickable { showFriendDropdown = true },
                 contentAlignment = Alignment.Center,
@@ -167,7 +166,7 @@ fun MainTopBar(
                 ) {
                     Text(
                         text = trimUsername(selectedFriend?.username ?: user?.username ?: title),
-                        color = Color.White,
+                        color = SkinTheme.colors.textPrimary,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 0.5.sp,
                         style = MaterialTheme.typography.titleMedium,
@@ -176,14 +175,14 @@ fun MainTopBar(
                     Icon(
                         imageVector = Icons.Filled.ExpandMore,
                         contentDescription = "Dropdown",
-                        tint = Color.White,
+                        tint = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(18.dp),
                     )
                 }
 
                 // Dropdown menu for friend selection
                 DropdownMenu(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = SkinTheme.shapes.sheet,
                     expanded = showFriendDropdown,
                     onDismissRequest = { showFriendDropdown = false },
                     offset = DpOffset(
@@ -195,8 +194,8 @@ fun MainTopBar(
                         .width(dropdownWidth)
                         .heightIn(max = 450.dp)
                         .background(
-                            color = BackgroundPreview,
-                            shape = RoundedCornerShape(24.dp),
+                            color = SkinTheme.colors.pillTranslucent,
+                            shape = SkinTheme.shapes.sheet,
                         ),
                 ) {
                     friendsList.forEachIndexed { index, friend ->
@@ -204,7 +203,7 @@ fun MainTopBar(
                             modifier = Modifier
                                 .padding(vertical = 5.dp)
                                 .background(
-                                    color = BackgroundPreview,
+                                    color = SkinTheme.colors.pillTranslucent,
                                 ),
                             text = {
                                 Row(
@@ -215,8 +214,8 @@ fun MainTopBar(
                                         Circle(
                                             outerSize = avatarWidth,
                                             gap = 10.dp,
-                                            backgroundColor = Color(0xFFB8B8B8),
-                                            borderColor = Color(0xFFB8B8B8),
+                                            backgroundColor = SkinTheme.colors.onSurfaceVariant,
+                                            borderColor = SkinTheme.colors.onSurfaceVariant,
                                             onClick = {},
                                             iconSetting = IconSetting(
                                                 icon = Icons.Filled.Group,
@@ -235,7 +234,7 @@ fun MainTopBar(
                                             modifier = Modifier
                                                 .size(avatarWidth)
                                                 .clip(CircleShape)
-                                                .background(Color.LightGray),
+                                                .background(SkinTheme.colors.surfaceVariant),
                                         ) {
                                             AsyncImage(
                                                 model = avatarOrDefault(friend.avatar, seedName),
@@ -255,7 +254,7 @@ fun MainTopBar(
                                             "you" -> "You"
                                             else -> trimUsername(friend.username, 20)
                                         },
-                                        color = Color.White,
+                                        color = SkinTheme.colors.textPrimary,
                                         fontWeight = FontWeight.Medium,
                                         style = MaterialTheme.typography.titleMedium,
                                     )
@@ -267,7 +266,7 @@ fun MainTopBar(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                                         contentDescription = "Select",
-                                        tint = Color.White,
+                                        tint = SkinTheme.colors.textPrimary,
                                         modifier = Modifier.size(16.dp),
                                     )
                                 }
@@ -282,7 +281,7 @@ fun MainTopBar(
                             HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
                                 thickness = 1.dp,
-                                color = Color.White.copy(alpha = 0.2f),
+                                color = SkinTheme.colors.textPrimary.copy(alpha = 0.2f),
                             )
                         }
                     }
@@ -292,12 +291,12 @@ fun MainTopBar(
                         HorizontalDivider(
                             modifier = Modifier.fillMaxWidth(),
                             thickness = 1.dp,
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = SkinTheme.colors.textPrimary.copy(alpha = 0.2f),
                         )
                         DropdownMenuItem(
                             modifier = Modifier
                                 .padding(vertical = 5.dp)
-                                .background(color = BackgroundPreview),
+                                .background(color = SkinTheme.colors.pillTranslucent),
                             text = {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -306,8 +305,8 @@ fun MainTopBar(
                                     Circle(
                                         outerSize = avatarWidth,
                                         gap = 10.dp,
-                                        backgroundColor = Color(0xFF404137),
-                                        borderColor = Color.Yellow,
+                                        backgroundColor = SkinTheme.colors.pill,
+                                        borderColor = SkinTheme.colors.accent,
                                         onClick = {},
                                         iconSetting = IconSetting(
                                             icon = Icons.Filled.PersonAdd,
@@ -319,7 +318,7 @@ fun MainTopBar(
 
                                     Text(
                                         text = "Add friends",
-                                        color = Color.White,
+                                        color = SkinTheme.colors.textPrimary,
                                         fontWeight = FontWeight.Medium,
                                         style = MaterialTheme.typography.titleMedium,
                                     )
@@ -329,7 +328,7 @@ fun MainTopBar(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                                         contentDescription = "Select",
-                                        tint = Color.White,
+                                        tint = SkinTheme.colors.textPrimary,
                                         modifier = Modifier.size(16.dp),
                                     )
                                 }
@@ -353,8 +352,8 @@ fun MainTopBar(
                 ),
                 gap = 0.dp,
                 outerSize = avatarWidth,
-                backgroundColor = BackgroundPreview,
-                borderColor = Color(0xFFB8B8B8),
+                backgroundColor = SkinTheme.colors.pillTranslucent,
+                borderColor = SkinTheme.colors.onSurfaceVariant,
                 onClick = onProfileClick,
             )
         },
@@ -364,7 +363,7 @@ fun MainTopBar(
                 Button(
                     onClick = onQuestClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF404137),
+                        containerColor = SkinTheme.colors.pill,
                     ),
                     modifier = Modifier.size(avatarWidth),
                     contentPadding = PaddingValues(0.dp),
@@ -373,7 +372,7 @@ fun MainTopBar(
                     Icon(
                         imageVector = Icons.Filled.EmojiEvents,
                         contentDescription = "Daily Quest",
-                        tint = Color(0xFFFFD700),
+                        tint = SkinTheme.colors.accentGold,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -395,8 +394,8 @@ fun MainTopBar(
                 badge = {
                     if (unreadMessages > 0) {
                         Badge(
-                            containerColor = Color(0xFFFFD700),
-                            contentColor = Color.Black,
+                            containerColor = SkinTheme.colors.accentGold,
+                            contentColor = SkinTheme.colors.onAccent,
                             modifier = Modifier
                                 .offset(x = 0.dp, y = (-4).dp)
                                 .then(badgeSize),
@@ -414,7 +413,7 @@ fun MainTopBar(
                 Button(
                     onClick = { onMessageClick() },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF404137),
+                        containerColor = SkinTheme.colors.pill,
                     ),
                     modifier = Modifier.size(avatarWidth),
                     contentPadding = PaddingValues(0.dp),
@@ -423,7 +422,7 @@ fun MainTopBar(
                     Icon(
                         imageVector = Icons.Filled.ChatBubbleOutline,
                         contentDescription = "Messages",
-                        tint = Color.White,
+                        tint = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(24.dp),
                     )
                 }

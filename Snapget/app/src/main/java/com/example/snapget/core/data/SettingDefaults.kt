@@ -10,7 +10,9 @@ import com.example.snapget.core.model.SettingType
 object SettingIds {
     const val WIDGET_SETTINGS = "widget_settings"
     const val APP_ICON = "app_icon"
-    const val THEME = "theme"
+
+    /** Thay cho "theme" cu (go giao dien Light 2026-08-05) — mo man Appearance. */
+    const val APPEARANCE = "appearance"
     const val STREAK_ON_WIDGET = "streak_on_widget"
     const val EDIT_NAME = "edit_name"
     const val EDIT_BIRTHDAY = "edit_birthday"
@@ -62,11 +64,11 @@ object SettingDefaults {
             description = "Choose from 12 beautiful app icons",
         ),
         Setting(
-            id = SettingIds.THEME,
+            id = SettingIds.APPEARANCE,
             type = SettingType.CUSTOMIZE,
-            title = "Theme",
+            title = "Appearance",
             icon = "ICON_THEME",
-            description = "Switch between light, dark, or auto mode",
+            description = "Change your skin, touch effect and see your frames",
         ),
         Setting(
             id = SettingIds.STREAK_ON_WIDGET,

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Icon
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.component.pill.UserPill
 import com.example.snapget.core.designsystem.component.pill.UserPillConfig
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 
 @Composable
@@ -33,7 +33,7 @@ fun MessageInputPill(
 //            .padding(8.dp)
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(24.dp),
+                shape = SkinTheme.shapes.sheet,
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -103,7 +103,7 @@ fun ReactionPill(
             .padding(8.dp)
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(24.dp),
+                shape = SkinTheme.shapes.sheet,
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {

@@ -1,13 +1,7 @@
 package com.example.snapget.feature.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -15,8 +9,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -25,76 +17,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.snapget.core.designsystem.theme.SnapYellow
-import com.example.snapget.core.model.ThemeMode
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-/**
- * Dialog chon che do giao dien (muc Theme trong Settings).
- * Chon radio la apply ngay (persist + toan app recompose) roi dong dialog.
- */
-@Composable
-fun ThemeDialog(
-    currentMode: ThemeMode,
-    onSelect: (ThemeMode) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val options = listOf(
-        ThemeMode.DARK to "Dark",
-        ThemeMode.LIGHT to "Light",
-        ThemeMode.SYSTEM to "Follow system",
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = {
-            Text(
-                text = "Theme",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-            )
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                options.forEach { (mode, label) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(mode) }
-                            .padding(vertical = 4.dp),
-                    ) {
-                        RadioButton(
-                            selected = mode == currentMode,
-                            onClick = { onSelect(mode) },
-                            colors = RadioButtonDefaults.colors(selectedColor = SnapYellow),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = label,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "Close", color = MaterialTheme.colorScheme.onSurface)
-            }
-        },
-    )
-}
+// ThemeDialog da XOA (2026-08-05 — SKIN_PLAN.md muc 4.4): giao dien Light bi go
+// han, nguoi dung chon SKIN o man Appearance thay vi chon sang/toi o day.
 
 /**
  * Dialog doi ten hien thi — ban rut gon cua EditProfileDialog (feature/profile),
@@ -138,10 +72,10 @@ fun EditNameDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = SnapYellow,
+                        color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = SnapYellow, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -185,10 +119,10 @@ fun BirthdayPickerDialog(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = SnapYellow,
+                        color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = SnapYellow, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
                 }
             }
         },

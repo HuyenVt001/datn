@@ -3,7 +3,6 @@ package com.example.snapget.feature.quest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
-import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.core.network.dto.TodayQuestDto
 import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.quest.data.QuestRepository
@@ -20,9 +19,8 @@ import kotlinx.coroutines.launch
 data class QuestUiState(
     val status: LoadStatus = LoadStatus.Init(),
     val quests: List<TodayQuestDto> = emptyList(),
-    /** Khung vua duoc thuong hom nay (de highlight); null = chua co. */
-    val rewardFrameId: String? = null,
-    val frames: List<FrameDto> = emptyList(),
+    /** So Astrite vua duoc thuong hom nay (xong 2/2 quest); null = chua co. */
+    val rewardAstrite: Int? = null,
     val personalStreak: Int = 0,
 ) {
     val completedCount: Int get() = quests.count { it.completed }
@@ -36,20 +34,23 @@ class QuestViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(QuestUiState())
     val uiState: StateFlow<QuestUiState> = _uiState.asStateFlow()
 
-    /** Tai quest hom nay + catalog khung + streak (3 call song song). */
+    /**
+     * Tai quest hom nay + streak (2 call song song).
+     *
+     * Bo suu tap khung KHONG tai o day nua (2026-08-05): luoi "Frame collection"
+     * da chuyen sang man Appearance tab Frames.
+     */
     fun load() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(status = LoadStatus.Loading())
             try {
                 coroutineScope {
                     val today = async { repository.getTodayQuests() }
-                    val frames = async { repository.getFrames() }
                     val streak = async { repository.getMyStreak() }
                     _uiState.value = QuestUiState(
                         status = LoadStatus.Success(),
                         quests = today.await().quests,
-                        rewardFrameId = today.await().rewardFrameId,
-                        frames = frames.await(),
+                        rewardAstrite = today.await().rewardAstrite,
                         personalStreak = streak.await(),
                     )
                 }

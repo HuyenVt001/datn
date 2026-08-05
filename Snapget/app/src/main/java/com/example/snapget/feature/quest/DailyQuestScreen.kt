@@ -2,12 +2,12 @@ package com.example.snapget.feature.quest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
@@ -34,24 +33,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
-import com.example.snapget.core.network.dto.FrameDto
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.TodayQuestDto
+import com.example.snapget.navigation.Screen
 
-// Vang gamification (streak/quest/badge) — theo DESIGN.md muc 2, khong them hex vang khac
-private val SnapGold = Color(0xFFFFD700)
-private val SubtleGray = Color(0xFFB0B0B0)
-private val PillOlive = Color(0xFF404137)
+// Mau lay tu token cua skin (SkinTheme.colors.*) — 3 hang so mau cuc bo cu
+// (SnapGold / SubtleGray / PillOlive) da bo 2026-08-05: hardcode o day thi doi
+// skin se sot dung man nay.
 
 /**
  * Man Daily Quest: 2 quest co dinh cua ngay (server tu hoan thanh) + bo suu tap khung.
@@ -79,7 +75,7 @@ fun DailyQuestScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(color = SnapGold)
+                    CircularProgressIndicator(color = SkinTheme.colors.accentGold)
                 }
             }
 
@@ -91,18 +87,19 @@ fun DailyQuestScreen(
                 ) {
                     Text(
                         text = uiState.status.description,
-                        color = SubtleGray,
+                        color = SkinTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp),
                     )
                     TextButton(onClick = { viewModel.load() }) {
-                        Text(text = "Retry", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(text = "Retry", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             else -> QuestContent(
                 uiState = uiState,
+                onGachaClick = { navController.navigate(Screen.Gacha.route) },
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         }
@@ -110,12 +107,19 @@ fun DailyQuestScreen(
 }
 
 @Composable
-private fun QuestContent(uiState: QuestUiState, modifier: Modifier = Modifier) {
+private fun QuestContent(
+    uiState: QuestUiState,
+    onGachaClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // Banner gacha o TREN CUNG — day la loi vao duy nhat cua man Gacha
+        item { GachaBanner(onClick = onGachaClick) }
+
         item { StreakBanner(streak = uiState.personalStreak) }
 
         item {
@@ -125,14 +129,14 @@ private fun QuestContent(uiState: QuestUiState, modifier: Modifier = Modifier) {
             ) {
                 Text(
                     text = "Today's quests",
-                    color = Color.White,
+                    color = SkinTheme.colors.textPrimary,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = "${uiState.completedCount}/${uiState.quests.size}",
-                    color = SnapGold,
+                    color = SkinTheme.colors.accentGold,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyLarge,
                 )
@@ -143,48 +147,43 @@ private fun QuestContent(uiState: QuestUiState, modifier: Modifier = Modifier) {
             QuestCard(quest = uiState.quests[index])
         }
 
-        // Banner khung vua duoc thuong hom nay (xong 2/2 quest)
-        val rewardFrame = uiState.frames.find { it.frameId == uiState.rewardFrameId }
-        if (rewardFrame != null) {
-            item { RewardBanner(frame = rewardFrame) }
+        // Banner Astrite vua duoc thuong hom nay (xong 2/2 quest)
+        uiState.rewardAstrite?.let { amount ->
+            item { RewardBanner(astrite = amount) }
         }
 
-        item {
+        // Luoi "Frame collection" da CHUYEN sang man Appearance tab Frames
+        // (2026-08-05 — GACHA_PLAN.md muc 6.1): trang nay giu dung viec cua no
+        // la quest + streak, bo suu tap xem o mot cho duy nhat.
+    }
+}
+
+/** Banner mo man Gacha — anh nen hardcode trong APK (user chot 2026-08-05). */
+@Composable
+private fun GachaBanner(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(SkinTheme.shapes.image)
+            .background(SkinTheme.colors.surface)
+            .border(1.dp, SkinTheme.colors.accent, SkinTheme.shapes.image)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "🎲", fontSize = 30.sp)
             Text(
-                text = "Frame collection",
-                color = Color.White,
+                text = "Gacha",
+                color = SkinTheme.colors.accent,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 8.dp),
             )
-        }
-
-        if (uiState.frames.isEmpty()) {
-            item {
-                Text(
-                    text = "No frames yet — complete quests to earn them!",
-                    color = SubtleGray,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        } else {
-            // Luoi 3 cot: chia frames thanh tung hang de nam trong LazyColumn
-            items(uiState.frames.chunked(3).size) { rowIndex ->
-                val rowFrames = uiState.frames.chunked(3)[rowIndex]
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    rowFrames.forEach { frame ->
-                        FrameItem(
-                            frame = frame,
-                            isNewReward = frame.frameId == uiState.rewardFrameId,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    // Bu cho o trong de hang cuoi khong gian ra
-                    repeat(3 - rowFrames.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
+            Text(
+                text = "Roll for skins, effects and frames",
+                color = SkinTheme.colors.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
@@ -195,9 +194,9 @@ private fun StreakBanner(streak: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(SkinTheme.shapes.image)
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, SnapGold.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+            .border(1.dp, SkinTheme.colors.accentGold.copy(alpha = 0.4f), SkinTheme.shapes.image)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -206,20 +205,20 @@ private fun StreakBanner(streak: Int) {
         Column {
             Text(
                 text = "$streak",
-                color = SnapGold,
+                color = SkinTheme.colors.accentGold,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 text = if (streak == 1) "day streak" else "days streak",
-                color = SubtleGray,
+                color = SkinTheme.colors.textSecondary,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = "Reach 3 · 7 · 14 · 30\nto unlock frames",
-            color = SubtleGray,
+            color = SkinTheme.colors.textSecondary,
             fontSize = 12.sp,
             textAlign = TextAlign.End,
             lineHeight = 16.sp,
@@ -233,7 +232,7 @@ private fun QuestCard(quest: TodayQuestDto) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(SkinTheme.shapes.image)
             .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -242,7 +241,7 @@ private fun QuestCard(quest: TodayQuestDto) {
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(PillOlive),
+                .background(SkinTheme.colors.pill),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -254,20 +253,20 @@ private fun QuestCard(quest: TodayQuestDto) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = quest.content,
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
                 text = if (quest.completed) "Done today" else "Not done yet",
-                color = if (quest.completed) SnapGold else SubtleGray,
+                color = if (quest.completed) SkinTheme.colors.accentGold else SkinTheme.colors.textSecondary,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
         Icon(
             imageVector = if (quest.completed) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
             contentDescription = if (quest.completed) "Completed" else "Not completed",
-            tint = if (quest.completed) SnapGold else SubtleGray,
+            tint = if (quest.completed) SkinTheme.colors.accentGold else SkinTheme.colors.textSecondary,
             modifier = Modifier.size(28.dp),
         )
     }
@@ -275,13 +274,13 @@ private fun QuestCard(quest: TodayQuestDto) {
 
 /** Banner "vua mo khoa khung moi" khi xong 2/2 quest hom nay. */
 @Composable
-private fun RewardBanner(frame: FrameDto) {
+private fun RewardBanner(astrite: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(SkinTheme.shapes.image)
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, SnapGold, RoundedCornerShape(20.dp))
+            .border(1.dp, SkinTheme.colors.accentGold, SkinTheme.shapes.image)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -289,91 +288,19 @@ private fun RewardBanner(frame: FrameDto) {
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "New frame unlocked!",
-                color = Color.White,
+                text = "Daily quests complete!",
+                color = SkinTheme.colors.textPrimary,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                text = frame.frameName,
-                color = SnapGold,
+                text = "+$astrite Astrite",
+                color = SkinTheme.colors.accentGold,
                 style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        if (frame.imageUrl != null) {
-            AsyncImage(
-                model = frame.imageUrl,
-                contentDescription = frame.frameName,
-                modifier = Modifier.size(48.dp),
             )
         }
     }
 }
 
-/** 1 o khung trong bo suu tap: khoa = mo + 🔒, moc streak = nhan 🔥. */
-@Composable
-private fun FrameItem(
-    frame: FrameDto,
-    isNewReward: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            if (frame.imageUrl != null) {
-                AsyncImage(
-                    model = frame.imageUrl,
-                    contentDescription = frame.frameName,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(6.dp)
-                        .alpha(if (frame.isUnlocked) 1f else 0.35f),
-                )
-            }
-            if (!frame.isUnlocked) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = "🔒", fontSize = 22.sp)
-                }
-            }
-            if (isNewReward) {
-                Text(
-                    text = "NEW",
-                    color = Color.Black,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(SnapGold)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = frame.frameName,
-            color = if (frame.isUnlocked) Color.White else SubtleGray,
-            fontSize = 12.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
-        if (frame.milestone != null) {
-            Text(
-                text = "🔥 ${frame.milestone}d",
-                color = SnapGold,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
-}
+// FrameItem da CHUYEN sang man Appearance tab Frames (2026-08-05) — dung chung
+// component `CollectibleItem` voi tab Skins/Effects thay vi ve rieng o day.

@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
@@ -58,11 +57,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /**
  * Man quet QR ket ban: camera sau + ML Kit doc ma QR chua invite link/ma moi,
@@ -191,11 +196,11 @@ fun QrScanScreen(
                 Box(
                     modifier = Modifier
                         .size(260.dp)
-                        .border(3.dp, Color.Yellow, RoundedCornerShape(24.dp)),
+                        .border(3.dp, SkinTheme.colors.accent, SkinTheme.shapes.sheet),
                 )
                 Spacer(modifier = Modifier.height(20.dp))
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                     color = Color.Black.copy(alpha = 0.6f),
                 ) {
                     Text(
@@ -224,7 +229,7 @@ fun QrScanScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = Color.Black,
@@ -272,7 +277,7 @@ fun QrScanScreen(
                     .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = Color.Yellow)
+                CircularProgressIndicator(color = SkinTheme.colors.accent)
             }
         }
     }

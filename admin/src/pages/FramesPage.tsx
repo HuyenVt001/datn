@@ -60,11 +60,11 @@ const UNLOCK_META: Record<
   UnlockType,
   { label: string; color: string; tag: (n?: number | null) => string; hint: string }
 > = {
-  QUEST_RANDOM: {
-    label: 'Thưởng quest ngẫu nhiên',
+  GACHA: {
+    label: 'Quay gacha',
     color: 'gold',
-    tag: () => '🎁 Thưởng quest',
-    hint: 'Vào pool thưởng ngẫu nhiên khi user hoàn thành 2/2 quest/ngày.',
+    tag: () => '🎲 Gacha',
+    hint: 'Vào kho vật phẩm gacha (phẩm chất R) — user quay trúng thì mở khóa.',
   },
   STREAK_MILESTONE: {
     label: 'Mốc streak cá nhân',
@@ -139,13 +139,13 @@ export function FramesPage() {
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [form] = Form.useForm<FrameForm>();
-  const unlockType = Form.useWatch('unlockType', form) ?? 'QUEST_RANDOM';
+  const unlockType = Form.useWatch('unlockType', form) ?? 'GACHA';
 
   const openCreate = () => {
     setEditing(null);
     setImageUrl(undefined);
     form.resetFields();
-    form.setFieldsValue({ unlockType: 'QUEST_RANDOM' });
+    form.setFieldsValue({ unlockType: 'GACHA' });
     setModalOpen(true);
   };
 

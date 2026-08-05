@@ -7,7 +7,6 @@ import com.example.snapget.core.data.SettingDefaults
 import com.example.snapget.core.data.SettingIds
 import com.example.snapget.core.data.SettingsPreferences
 import com.example.snapget.core.model.Setting
-import com.example.snapget.core.model.ThemeMode
 import com.example.snapget.core.network.dto.InviteLinkDto
 import com.example.snapget.core.network.dto.UserDto
 import com.example.snapget.core.network.serverMessage
@@ -22,7 +21,10 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel cua man Settings: danh sach setting (tinh + toggle local),
- * theme mode, ho so (prefill dialog Edit Name/Birthday) va invite link (Share).
+ * ho so (prefill dialog Edit Name/Birthday) va invite link (Share).
+ *
+ * Giao dien KHONG con quan ly o day (2026-08-05): Light da xoa, viec chon skin
+ * va hieu ung touch chuyen sang man Appearance rieng.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -33,9 +35,6 @@ class SettingsViewModel @Inject constructor(
 
     private val _settings = MutableStateFlow<List<Setting>>(emptyList())
     val settings: StateFlow<List<Setting>> = _settings.asStateFlow()
-
-    /** Che do giao dien hien tai (doc chung StateFlow voi MainActivity). */
-    val themeMode: StateFlow<ThemeMode> = settingsPreferences.themeMode
 
     /** Ho so cua minh — prefill dialog; null khi chua tai xong / loi mang. */
     private val _profile = MutableStateFlow<UserDto?>(null)
@@ -86,11 +85,6 @@ class SettingsViewModel @Inject constructor(
             // Widget doc toggle live tu prefs — chi can ve lai, khong can mang
             viewModelScope.launch { widgetRefresher.updateWidgets() }
         }
-    }
-
-    /** Doi che do giao dien — persist + toan app recompose ngay. */
-    fun setThemeMode(mode: ThemeMode) {
-        settingsPreferences.setThemeMode(mode)
     }
 
     fun saveName(name: String) {

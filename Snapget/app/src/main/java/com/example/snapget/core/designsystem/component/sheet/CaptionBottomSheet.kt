@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Celebration
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,6 +61,10 @@ data class CaptionItem(
     val iconVector: ImageVector? = null,
     val iconString: String? = null,
     val backgroundBrush: Brush,
+    /**
+     * Chu nam tren CHINH `backgroundBrush` cua chip (gradient mau) chu khong
+     * tren nen cua app -> giu trang that, khong theo token skin.
+     */
     val textColor: Color = Color.White,
 ) {
     fun hasVectorIcon() = iconVector != null
@@ -225,7 +229,7 @@ fun CaptionBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
         dragHandle = { Box(Modifier.padding(vertical = 8.dp)) },
-        containerColor = Color(0xFF121212),
+        containerColor = SkinTheme.colors.background,
     ) {
         Column(
             modifier = Modifier
@@ -233,7 +237,7 @@ fun CaptionBottomSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             HorizontalDivider(
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 thickness = 3.dp,
                 modifier = Modifier
                     .width(40.dp)
@@ -282,7 +286,7 @@ fun CaptionPill(
         modifier = Modifier
             .background(
                 brush = item.backgroundBrush,
-                shape = RoundedCornerShape(50),
+                shape = SkinTheme.shapes.pill,
             )
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .then(

@@ -18,6 +18,14 @@ const ACTION_META: Record<AdminAction, { label: string; color: string }> = {
   FRAME_DELETE: { label: 'Xóa khung', color: 'magenta' },
   FRAME_GRANT: { label: 'Cấp khung', color: 'cyan' },
   MOMENT_DELETE: { label: 'Xóa bài đăng', color: 'purple' },
+  GACHA_ITEM_CREATE: { label: 'Thêm vật phẩm gacha', color: 'blue' },
+  GACHA_ITEM_UPDATE: { label: 'Sửa vật phẩm gacha', color: 'geekblue' },
+  GACHA_ITEM_DELETE: { label: 'Xóa vật phẩm gacha', color: 'magenta' },
+  // Gói nạp đụng tiền thật — 3 hành động này là thứ cần soát lại đầu tiên khi
+  // có tranh chấp "sao tôi trả từng này mà nhận được từng kia".
+  TOPUP_PACKAGE_CREATE: { label: 'Thêm gói nạp', color: 'green' },
+  TOPUP_PACKAGE_UPDATE: { label: 'Sửa gói nạp', color: 'gold' },
+  TOPUP_PACKAGE_DELETE: { label: 'Xóa gói nạp', color: 'volcano' },
 };
 
 function actionMeta(action: AdminAction) {

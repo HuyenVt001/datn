@@ -9,7 +9,7 @@ import {
   UserQuest,
 } from './entities/quest.entity';
 
-/** Doc danh dau "da thuong khung cua ngay" — luu chung collection userQuests. */
+/** Doc danh dau "da xet thuong cua ngay" — luu chung collection userQuests. */
 const DAILY_REWARD_TYPE = 'DAILY_REWARD';
 
 /** NOI DUY NHAT cham Firestore cho daily quests + user quests. */
@@ -99,21 +99,24 @@ export class QuestsRepository {
   }
 
   /**
-   * Khung da thuong cho user trong ngay:
-   * undefined = chua xet thuong · null = da xet nhung het khung · string = frameId da thuong.
+   * So Astrite da thuong cho user trong ngay:
+   * undefined = chua xet thuong · null = da xet nhung chua cong xong · number = so Astrite da cong.
+   *
+   * Doc CU (truoc 2026-08-05) giu `frameId` thay vi `astrite` — doc do tra ve
+   * null (da xet thuong roi), dung y nghia: hom do da nhan thuong (khung) roi.
    */
-  async getDailyReward(date: string, uid: string): Promise<string | null | undefined> {
+  async getDailyReward(date: string, uid: string): Promise<number | null | undefined> {
     const snap = await this.userQuests.doc(this.rewardId(date, uid)).get();
     if (!snap.exists) {
       return undefined;
     }
-    return (snap.data()?.frameId as string | undefined) ?? null;
+    return (snap.data()?.astrite as number | undefined) ?? null;
   }
 
   /**
    * CLAIM quyen xet thuong cua ngay bang create() ATOMIC — 2 luong hoan thanh
    * quest dong thoi (LOGIN + POST_MOMENT cung luc) thi chi 1 luong claim duoc,
-   * tranh thuong 2 khung cho 1 ngay. Tra ve false neu ngay nay da claim roi.
+   * tranh cong thuong 2 lan cho 1 ngay. Tra ve false neu ngay nay da claim roi.
    */
   async tryClaimDailyReward(date: string, uid: string): Promise<boolean> {
     try {
@@ -121,7 +124,7 @@ export class QuestsRepository {
         userId: uid,
         releaseDate: date,
         type: DAILY_REWARD_TYPE,
-        frameId: null,
+        astrite: null,
         createdAt: new Date().toISOString(),
       });
       return true;
@@ -134,9 +137,9 @@ export class QuestsRepository {
     }
   }
 
-  /** Ghi frameId da thuong sau khi claim (null = het khung de thuong). */
-  async setDailyRewardFrame(date: string, uid: string, frameId: string | null): Promise<void> {
-    await this.userQuests.doc(this.rewardId(date, uid)).set({ frameId }, { merge: true });
+  /** Ghi so Astrite da thuong sau khi cong vao vi thanh cong. */
+  async setDailyRewardAstrite(date: string, uid: string, amount: number): Promise<void> {
+    await this.userQuests.doc(this.rewardId(date, uid)).set({ astrite: amount }, { merge: true });
   }
 
   /** Xoa doc claim — dung de TRA LAI quyen xet thuong khi buoc thuong fail giua chung. */

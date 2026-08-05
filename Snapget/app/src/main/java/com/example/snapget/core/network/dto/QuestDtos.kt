@@ -16,6 +16,10 @@ data class TodayQuestDto(
 /** Ket qua GET /quests/today. */
 data class TodayQuestsDto(
     val quests: List<TodayQuestDto> = emptyList(),
-    /** frameId vua duoc thuong hom nay khi xong 2/2 quest (null = chua thuong/het khung). */
-    val rewardFrameId: String? = null,
+    /**
+     * So Astrite duoc thuong hom nay khi xong 2/2 quest (doi tu `rewardFrameId`
+     * ngay 2026-08-05 — thuong quest gio la tien te, khung mo qua gacha).
+     * null = chua xong 2/2 quest.
+     */
+    val rewardAstrite: Int? = null,
 )

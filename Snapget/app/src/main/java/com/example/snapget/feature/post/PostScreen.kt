@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -75,6 +74,7 @@ import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
@@ -454,7 +454,7 @@ fun PostScreen(
                             outerSize = 80.dp,
                             gap = 7.dp,
                             backgroundColor = Color.Transparent,
-                            borderColor = Color.Yellow,
+                            borderColor = SkinTheme.colors.accent,
                             borderWidth = 3.dp,
                             onClick = goBackToCamera,
                         )
@@ -518,8 +518,8 @@ fun PostScreen(
             // Loi moi chup chung — cham de mo dialog Accept/Decline (redesign 2026-08-02)
             pendingInvites.firstOrNull()?.let { invite ->
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.Yellow,
+                    shape = SkinTheme.shapes.image,
+                    color = SkinTheme.colors.accent,
                     shadowElevation = 6.dp,
                     modifier = Modifier.clickable { coopInviteToRespond = invite },
                 ) {
@@ -544,8 +544,8 @@ fun PostScreen(
             // Hien ca khi app dang mo (FCM chi bao khi o ngoai app) — fix 2026-07-27
             friendRequests.firstOrNull()?.let { request ->
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.Yellow,
+                    shape = SkinTheme.shapes.image,
+                    color = SkinTheme.colors.accent,
                     shadowElevation = 6.dp,
                     modifier = Modifier.clickable {
                         friendsViewModel.loadFriends()

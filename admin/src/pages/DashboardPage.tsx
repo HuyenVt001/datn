@@ -1,9 +1,11 @@
 import {
   CameraOutlined,
   FireOutlined,
+  GiftOutlined,
   HeartOutlined,
   MessageOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
   TrophyOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons';
@@ -208,6 +210,9 @@ export function DashboardPage() {
       value: data?.questCompletionsToday,
       icon: <TrophyOutlined />,
     },
+    // Quay x10 tinh la 1 luot (khop cach server luu gachaRolls)
+    { title: 'Lượt quay hôm nay', value: data?.gachaRollsToday, icon: <ThunderboltOutlined /> },
+    { title: 'Tổng lượt quay', value: data?.gachaRollsTotal, icon: <GiftOutlined /> },
   ];
 
   return (

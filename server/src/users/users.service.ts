@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { AstriteService } from '../astrite/astrite.service';
 import { dateKey, INVITE_LINK_TTL_DAYS } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PublicUser, User } from './entities/user.entity';
+import { emptyPity, PublicUser, User } from './entities/user.entity';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class UsersService {
   constructor(
     private readonly usersRepo: UsersRepository,
     private readonly firebase: FirebaseService,
+    private readonly astrite: AstriteService,
   ) {}
 
   /**
@@ -50,8 +52,17 @@ export class UsersService {
       // Doc stub da co unlockedFrames/fcmTokens -> khong dinh vao de khoi ghi de
       patch.unlockedFrames = [];
       patch.fcmTokens = [];
+      patch.unlockedSkins = [];
+      patch.unlockedEffects = [];
+      patch.gachaPity = emptyPity();
     }
     await this.usersRepo.update(authUser.uid, patch);
+
+    // Thuong tan thu 1600 Astrite — chay SAU khi doc user da ton tai, va tu no
+    // idempotent qua co `signupBonusClaimed` nen goi lai nhieu lan van an toan.
+    // KHONG gop vao `patch` o tren: moi thay doi so du phai di qua AstriteService
+    // de con ghi so cai (astriteTransactions).
+    await this.astrite.grantSignupBonusOnce(authUser.uid);
 
     const base: User = existing ?? {
       uid: authUser.uid,
@@ -61,8 +72,15 @@ export class UsersService {
       personalStreak: 0,
       unlockedFrames: [],
       fcmTokens: [],
+      astrite: 0,
+      unlockedSkins: [],
+      unlockedEffects: [],
+      gachaPity: emptyPity(),
+      signupBonusClaimed: false,
     };
-    return { ...base, ...patch, uid: authUser.uid };
+    // Doc lai de tra ve so du + signupBonusClaimed sau khi tang thuong tan thu
+    const fresh = await this.usersRepo.findByUid(authUser.uid);
+    return fresh ?? { ...base, ...patch, uid: authUser.uid };
   }
 
   /** Lay ho so cua chinh minh (tu tao neu chua co). */

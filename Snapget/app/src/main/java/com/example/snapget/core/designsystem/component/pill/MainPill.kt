@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
@@ -28,8 +27,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.snapget.core.designsystem.component.topbar.avatarWidth
-import com.example.snapget.core.designsystem.theme.BackgroundPreview
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.util.trimUsername
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 @Composable
 fun PillIcon(
@@ -39,8 +43,8 @@ fun PillIcon(
     Box(
         modifier = modifier
             .size(avatarWidth)
-            .clip(RoundedCornerShape(50))
-            .background(Color(0xFF404137)),
+            .clip(SkinTheme.shapes.pill)
+            .background(SkinTheme.colors.pill),
         contentAlignment = Alignment.Center,
     ) {
         icon()
@@ -62,10 +66,10 @@ fun Pill(
             .height(avatarWidth)
             .wrapContentWidth()
             .background(
-                color = BackgroundPreview,
-                shape = RoundedCornerShape(50),
+                color = SkinTheme.colors.pillTranslucent,
+                shape = SkinTheme.shapes.pill,
             )
-            .clip(RoundedCornerShape(50))
+            .clip(SkinTheme.shapes.pill)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -108,7 +112,7 @@ fun PillPreview() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .padding(paddingValues)
-                .background(Color(0xFF1A1A1A)) // Dark background for the column
+                .background(SkinTheme.colors.surface) // Dark background for the column
                 .padding(16.dp),
         ) {
             Pill(data = "Sample Data", endIcon = {

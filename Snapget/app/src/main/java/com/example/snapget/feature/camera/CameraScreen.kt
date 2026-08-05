@@ -42,6 +42,7 @@ import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.takePhotoBar
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
@@ -49,6 +50,11 @@ import com.example.snapget.feature.coop.CoopFriendPickerDialog
 import com.example.snapget.feature.coop.CoopViewModel
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 // Vuot len qua nguong nay (tinh tu man camera) thi mo feed
 private val SWIPE_UP_TO_FEED_THRESHOLD = 120.dp
@@ -194,7 +200,7 @@ fun CameraScreen(
 
             // Nut CHUP CHUNG (co-op): mo popup chon ban + gui loi moi (TTL 5 phut)
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = SkinTheme.shapes.sheet,
                 color = Color.Black.copy(alpha = 0.6f),
                 modifier = Modifier.clickable {
                     friendsViewModel.loadFriends()

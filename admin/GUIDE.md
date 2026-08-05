@@ -9,13 +9,13 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
-> Cập nhật lần cuối: **2026-07-28**.
+> Cập nhật lần cuối: **2026-08-05**.
 
 ---
 
 ## 0. Trạng thái tổng quát
 
-- 🟢 **Admin hoàn chỉnh 6 trang** (Login / Tổng quan / Người dùng / Bài đăng / Khung ảnh / Nhật ký) — build + lint sạch.
+- 🟢 **Admin hoàn chỉnh 10 trang** (Login / Tổng quan / Người dùng / Bài đăng / Khung ảnh / **Kho vật phẩm** / **Lịch sử quay** / **Gói nạp** / **Lịch sử nạp** / Nhật ký) — build + lint sạch.
 - Deploy đích: Firebase Hosting site riêng (`snapget-admin-d8693.web.app`), server trên Render — xem `../DEPLOY.md`.
 - ⬜ Còn lại: **test end-to-end** (seed admin + đăng nhập thật + thao tác từng trang).
 
@@ -64,12 +64,16 @@ Server re-check quyền admin + disabled **mỗi request** → bị thu quyền/
 ```
 /login                    ── public (LoginPage)
 <RequireAuth>             ── chưa có JWT → redirect /login
-  └── / (AdminLayout: Sider menu 5 mục + Header email/đăng xuất + <Outlet/>)
-        ├── /        DashboardPage   (stats + 2 biểu đồ cột 7 ngày)
-        ├── /users   UsersPage       (khóa/mở, cấp/thu admin)
-        ├── /moments MomentsPage     (kiểm duyệt bài đăng)
-        ├── /frames  FramesPage      (CRUD khung + grant + owners)
-        └── /logs    LogsPage        (audit log admin)
+  └── / (AdminLayout: Sider menu 9 mục + Header email/đăng xuất + <Outlet/>)
+        ├── /               DashboardPage     (stats + 2 biểu đồ cột 7 ngày)
+        ├── /users          UsersPage         (khóa/mở, cấp/thu admin, cột Astrite)
+        ├── /moments        MomentsPage       (kiểm duyệt bài đăng)
+        ├── /frames         FramesPage        (CRUD khung + grant + owners)
+        ├── /gacha          GachaItemsPage    (kho vật phẩm quay)
+        ├── /gacha-history  GachaHistoryPage  (lịch sử quay toàn hệ thống)
+        ├── /topup          TopupPackagesPage (CRUD gói nạp — TIỀN THẬT)
+        ├── /topup-history  TopupHistoryPage  (lịch sử nạp + doanh thu)
+        └── /logs           LogsPage          (audit log admin)
 ```
 
 ### 1.6 Triển khai
@@ -102,30 +106,41 @@ admin/
 ├── GUIDE.md               # file này
 ├── src/
 │   ├── main.tsx           # bootstrap: ConfigProvider viVN + theme sáng (#8C6239), react-query, router
-│   ├── App.tsx            # router: /login public; RequireAuth → AdminLayout → 5 trang; errorElement chống white-screen
+│   ├── App.tsx            # router: /login public; RequireAuth → AdminLayout → 7 trang; errorElement chống white-screen
 │   ├── api/
 │   │   ├── client.ts      # axios instance: baseURL từ env, Bearer JWT, bóc envelope, 401 → logout
 │   │   ├── auth.api.ts    # adminLogin(idToken) → POST /auth/admin/login (trả kèm uid)
 │   │   ├── admin.api.ts   # listUsers / getStats / getDailyStats / setUserDisabled / grantAdmin / revokeAdmin
 │   │   │                  #   + listMoments / deleteMoment / listLogs (kiểm duyệt + audit log)
 │   │   ├── frames.api.ts  # listFrames / createFrame / updateFrame (unlockType+unlockValue) / deleteFrame / grantFrame / listFrameOwners
+│   │   ├── gacha.api.ts   # (2026-08-05) listGachaItems / createGachaItem / updateGachaItem / deleteGachaItem / listGachaRolls
 │   │   └── upload.api.ts  # uploadImage(file) → POST /upload/admin (multipart, Admin JWT)
 │   ├── auth/
 │   │   ├── firebase.ts    # init Firebase web app từ VITE_FIREBASE_*
 │   │   ├── AuthContext.tsx# giữ JWT + email + uid (localStorage) + login()/logout(); uid fallback decode từ payload JWT
 │   │   └── RequireAuth.tsx# guard route, chưa đăng nhập → /login
-│   ├── layouts/AdminLayout.tsx  # Sider menu 5 mục + Header (email admin, đăng xuất) + <Outlet/>
+│   ├── layouts/AdminLayout.tsx  # Sider menu 7 mục + Header (email admin, đăng xuất) + <Outlet/>
 │   ├── pages/
 │   │   ├── LoginPage.tsx      # form email/password → Firebase → đổi JWT; fail → signOut Firebase
 │   │   ├── DashboardPage.tsx  # thẻ thống kê GET /admin/stats + 2 biểu đồ cột 7 ngày (SVG thuần DailyBarChart,
 │   │   │                      #   màu #A85A1E / #0C7BB3 đã validate dataviz light+dark)
-│   │   ├── UsersPage.tsx      # bảng user: search, phân trang server-side, cột Vai trò/Đăng nhập cuối,
+│   │   ├── UsersPage.tsx      # bảng user: search, phân trang server-side, cột Vai trò/Đăng nhập cuối/**Astrite** (sort được),
 │   │   │                      #   khóa/mở, cấp + THU quyền admin, chặn thao tác lên chính mình (tag "Bạn")
 │   │   ├── MomentsPage.tsx    # KIỂM DUYỆT: lưới bài mọi user (ảnh/video, tác giả, caption) + xóa bài vi phạm
 │   │   ├── FramesPage.tsx     # grid khung: thêm/sửa (6 điều kiện mở khóa + ngưỡng N, reset ngưỡng khi đổi loại),
 │   │   │                      #   xóa, cấp cho user (search debounce 300ms), drawer 👥 "Ai đang sở hữu?"
+│   │   ├── GachaItemsPage.tsx # (2026-08-05) KHO VẬT PHẨM gacha: lọc theo loại, thêm khung (chọn từ catalog, ẩn khung đã có),
+│   │   │                      #   sửa tên/phẩm chất/ảnh/thứ tự, công tắc bật-tắt tại chỗ, xóa. Skin/hiệu ứng CHỈ sửa
+│   │   ├── GachaHistoryPage.tsx # (2026-08-05) LỊCH SỬ QUAY toàn hệ thống: lọc uid/bậc/ngày, 4 ô tổng hợp + đếm theo bậc
+│   │   │                      #   (tính trên đúng tập đang lọc); 1 dòng = 1 lượt bấm nút, x10 hiện 10 thẻ kết quả
+│   │   ├── TopupPackagesPage.tsx # (2026-08-05 — G6) GÓI NẠP: CRUD, công tắc hiện-trong-app, cột "Astrite / 1.000đ"
+│   │   │                      #   để so gói to có đáng tiền hơn gói nhỏ không; banner cảnh báo TIỀN THẬT
+│   │   ├── TopupHistoryPage.tsx  # (2026-08-05 — G6) LỊCH SỬ NẠP: lọc uid/trạng thái/ngày, 4 ô doanh thu + theo ngày;
+│   │   │                      #   hiện orderCode + mã giao dịch ngân hàng để đối soát với dashboard PayOS
 │   │   └── LogsPage.tsx       # NHẬT KÝ admin: bảng audit log từ GET /admin/logs
-│   ├── types/index.ts     # AdminUser, AdminStats, DailyStat, Frame, FrameOwner, AdminMoment, AdminLog, Paginated<T>… khớp DTO server
+│   ├── types/index.ts     # AdminUser, AdminStats, DailyStat, Frame, FrameOwner, AdminMoment, AdminLog, Paginated<T>,
+│   │                      #   GachaItem, AdminRoll, ItemType/ItemRarity/RollTier,
+│   │                      #   TopupPackage, AdminTopupOrder, TopupOrderStatus, TopupRevenueSummary… khớp DTO server
 │   └── components/        # (trống — chỉ thêm khi dùng lại ≥2 trang)
 ├── .env.example / .env.production.example
 ├── firebase.json / .firebaserc    # deploy Hosting site admin (xem ../DEPLOY.md)
@@ -138,12 +153,17 @@ admin/
 |---|---|---|
 | Scaffold Vite + React + TS + AntD (viVN, #8C6239) | ✅ | |
 | Auth 2 bước Firebase → JWT + AuthContext + RequireAuth + 401 auto-logout | ✅ | |
-| AdminLayout + router 5 trang + errorElement | ✅ | |
+| AdminLayout + router 7 trang + errorElement | ✅ | |
 | DashboardPage: stats + 2 biểu đồ cột 7 ngày (SVG thuần) | ✅ | |
 | UsersPage: search/phân trang/khóa/cấp + thu admin/chặn tự thao tác | ✅ | |
 | FramesPage: CRUD + 6 điều kiện mở khóa + grant + drawer owners | ✅ | |
 | MomentsPage: kiểm duyệt + xóa bài vi phạm | ✅ | |
 | LogsPage: audit log | ✅ | |
+| **GachaItemsPage**: kho vật phẩm (lọc loại, thêm khung, sửa, bật-tắt, xóa) | ✅ | 2026-08-05 — G3. Skin/hiệu ứng chỉ sửa (asset trong APK) |
+| **GachaHistoryPage**: lịch sử quay + lọc uid/bậc/ngày + tổng hợp | ✅ | 2026-08-05 — G3 |
+| UsersPage cột Astrite · Dashboard ô lượt quay | ✅ | 2026-08-05 — G3 |
+| **TopupPackagesPage**: CRUD gói nạp + bật-tắt hiện trong app | ✅ | 2026-08-05 — G6. Sửa giá KHÔNG hồi tố đơn đã tạo |
+| **TopupHistoryPage**: lịch sử nạp + doanh thu (tổng · theo ngày) | ✅ | 2026-08-05 — G6. Doanh thu tính trên toàn bộ tập đã lọc |
 | Alert khi query GET lỗi (cả 4 trang list) | ✅ | |
 | Deploy Firebase Hosting (site riêng) | ✅ config | file sẵn, cần chạy lệnh deploy (../DEPLOY.md) |
 | **Test end-to-end** (seed admin → đăng nhập → thao tác từng trang) | ⬜ | key đã có; còn chạy `npm run seed:admin` + login thử |
@@ -157,6 +177,10 @@ admin/
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-05 — G6: 2 trang nạp tiền (PayOS — TIỀN THẬT)**. `TopupPackagesPage` (`/topup`) CRUD gói nạp + công tắc "hiện trong app" ngay trong bảng; có cột tính sẵn **"Astrite / 1.000đ"** để soi xem gói to có thực sự đáng tiền hơn gói nhỏ không (không thì không ai mua gói to), và banner cảnh báo sửa giá ở đây **đổi ngay số tiền người dùng phải trả** cho đơn tạo từ lúc đó — đơn đã tạo giữ giá của chính nó nên không hồi tố. `TopupHistoryPage` (`/topup-history`) lọc uid/trạng thái/ngày, 4 ô doanh thu + bảng theo ngày, hiện `orderCode` **và mã giao dịch ngân hàng** (`payosReference`) để đối soát với dashboard PayOS; đơn do `/topup/simulate` sinh có nhãn **"Giả lập"** để không lẫn vào doanh thu thật. `LogsPage` thêm 3 nhãn `TOPUP_PACKAGE_*`.
+  - 🧭 **Doanh thu tính trên toàn bộ tập đã lọc**, không phải trên số dòng đang hiển thị — đặt `limit` nhỏ không được làm doanh thu tụt (server trả `{rows, summary}` riêng vì lý do này).
+- **2026-08-05 — G3: 2 trang gacha + Astrite trên trang có sẵn**. `GachaItemsPage` (`/gacha`) quản lý kho vật phẩm: lọc theo loại, thêm khung (chọn từ catalog `/frames/admin`, **ẩn khung đã nằm trong kho** — server cũng chặn trùng vì 1 khung 2 lần = tỉ lệ nổ gấp đôi), sửa tên/phẩm chất/ảnh/thứ tự, công tắc bật-tắt ngay trong bảng, xóa (kèm cảnh báo người đã sở hữu vẫn giữ). Skin/hiệu ứng **chỉ sửa** — asset nằm trong APK, tạo mới sẽ ra vật phẩm app không hiển thị được. `GachaHistoryPage` (`/gacha-history`) lọc theo uid/bậc/ngày + 4 ô tổng hợp và đếm theo bậc **tính trên đúng tập đang lọc**. `UsersPage` thêm cột Astrite (sort được), `DashboardPage` thêm 2 ô lượt quay, `LogsPage` thêm 3 nhãn `GACHA_ITEM_*`. **Bỏ `GachaBannerPage`** — user chốt hardcode banner trong APK.
+- **2026-08-05 — Đồng bộ contract G2 (gacha)**: `UnlockType` bỏ `QUEST_RANDOM`, thêm `GACHA`; `FramesPage` đổi nhãn điều kiện thành "Quay gacha" (tag 🎲, mô tả "vào kho vật phẩm gacha phẩm chất R") và dùng `GACHA` làm mặc định khi thêm khung. Lý do: thưởng "xong 2/2 quest" ở server đổi sang **+60 Astrite**, khung giờ mở khóa qua gacha. Doc khung cũ được server map sang `GACHA` khi đọc nên trang không cần xử lý gì thêm. ⏭️ 5 trang gacha/nạp (mục 7 của `Snapget/.claude/GACHA_PLAN.md`) làm ở phase G3.
 - **2026-07-26 — Đợt hoàn thiện**: thêm 2 trang MomentsPage (kiểm duyệt, `/moments`) + LogsPage (audit log, `/logs`); Sider 5 mục; API mới `listMoments/deleteMoment/listLogs`.
 - **2026-07-26 — Vá lỗi sau review**: uid fallback decode từ JWT; form khung reset ngưỡng N khi đổi loại; errorElement router; xóa khung đóng drawer + invalidate; search grant debounce; Alert lỗi GET; login fail signOut Firebase.
 - **2026-07-26 — Đại tu 4 trang**: Users thêm cột Vai trò/Đăng nhập cuối + thu quyền + chặn tự thao tác; Frames 6 điều kiện mở khóa + drawer owners; Dashboard 2 biểu đồ 7 ngày.

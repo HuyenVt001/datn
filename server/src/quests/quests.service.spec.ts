@@ -1,6 +1,7 @@
+import { AstriteService } from '../astrite/astrite.service';
+import { QUEST_DAILY_ASTRITE } from '../common/constants';
 import { FramesRepository } from '../frames/frames.repository';
 import { FramesService } from '../frames/frames.service';
-import { UsersRepository } from '../users/users.repository';
 import { QuestType, UserQuest } from './entities/quest.entity';
 import { QuestsRepository } from './quests.repository';
 import { QuestsService } from './quests.service';
@@ -8,7 +9,7 @@ import { QuestsService } from './quests.service';
 describe('QuestsService', () => {
   let service: QuestsService;
   let repo: jest.Mocked<QuestsRepository>;
-  let usersRepo: jest.Mocked<UsersRepository>;
+  let astrite: jest.Mocked<AstriteService>;
   let framesService: jest.Mocked<FramesService>;
   let framesRepo: jest.Mocked<FramesRepository>;
 
@@ -45,12 +46,13 @@ describe('QuestsService', () => {
       completeUserQuest: jest.fn().mockResolvedValue(true),
       getDailyReward: jest.fn().mockResolvedValue(undefined),
       tryClaimDailyReward: jest.fn().mockResolvedValue(true),
-      setDailyRewardFrame: jest.fn().mockResolvedValue(undefined),
+      setDailyRewardAstrite: jest.fn().mockResolvedValue(undefined),
+      deleteDailyReward: jest.fn().mockResolvedValue(undefined),
       countCompletionsByDate: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<QuestsRepository>;
-    usersRepo = {
-      findByUid: jest.fn().mockResolvedValue({ uid: 'me', unlockedFrames: [] }),
-    } as unknown as jest.Mocked<UsersRepository>;
+    astrite = {
+      credit: jest.fn().mockResolvedValue(QUEST_DAILY_ASTRITE),
+    } as unknown as jest.Mocked<AstriteService>;
     framesService = {
       unlockForUser: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<FramesService>;
@@ -58,7 +60,7 @@ describe('QuestsService', () => {
       list: jest.fn().mockResolvedValue([]),
     } as unknown as jest.Mocked<FramesRepository>;
 
-    service = new QuestsService(repo, usersRepo, framesService, framesRepo);
+    service = new QuestsService(repo, astrite, framesService, framesRepo);
   });
 
   describe('getTodayQuests', () => {
@@ -81,32 +83,19 @@ describe('QuestsService', () => {
       expect(repo.completeUserQuest).toHaveBeenCalledWith(today, 'me', 'POST_MOMENT');
     });
 
-    it('xong 2/2 quest -> thuong ngau nhien 1 khung chua so huu (khong tinh khung moc)', async () => {
+    it('xong 2/2 quest -> cong 60 Astrite (khong mo khung nua)', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
           ['POST_MOMENT', userQuest('POST_MOMENT')],
         ]),
       );
-      framesRepo.list.mockResolvedValue([
-        { frameId: 'f1', frameName: 'Thuong', unlockType: 'QUEST_RANDOM', createdAt: '' },
-        // khong duoc chon — khung moc streak
-        {
-          frameId: 'f2',
-          frameName: 'Moc 7',
-          unlockType: 'STREAK_MILESTONE',
-          unlockValue: 7,
-          milestone: 7,
-          createdAt: '',
-        },
-        { frameId: 'f3', frameName: 'Da co', unlockType: 'QUEST_RANDOM', createdAt: '' },
-      ]);
-      usersRepo.findByUid.mockResolvedValue({ uid: 'me', unlockedFrames: ['f3'] } as never);
 
       await service.registerMomentPosted('me', 1);
 
-      expect(framesService.unlockForUser).toHaveBeenCalledWith('me', 'f1');
-      expect(repo.setDailyRewardFrame).toHaveBeenCalledWith(today, 'me', 'f1');
+      expect(astrite.credit).toHaveBeenCalledWith('me', QUEST_DAILY_ASTRITE, 'QUEST_REWARD', today);
+      expect(repo.setDailyRewardAstrite).toHaveBeenCalledWith(today, 'me', QUEST_DAILY_ASTRITE);
+      expect(framesService.unlockForUser).not.toHaveBeenCalled();
     });
 
     it('da thuong hom nay roi thi khong thuong lai (claim atomic tra ve false)', async () => {
@@ -120,25 +109,36 @@ describe('QuestsService', () => {
 
       await service.registerMomentPosted('me', 1);
 
-      expect(framesService.unlockForUser).not.toHaveBeenCalled();
-      expect(repo.setDailyRewardFrame).not.toHaveBeenCalled();
+      expect(astrite.credit).not.toHaveBeenCalled();
+      expect(repo.setDailyRewardAstrite).not.toHaveBeenCalled();
     });
 
-    it('het khung de thuong -> claim van ghi dau da xet (frameId null tu claim)', async () => {
+    it('cong Astrite FAIL -> tra lai claim de lan sau thu lai duoc', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
           ['POST_MOMENT', userQuest('POST_MOMENT')],
         ]),
       );
-      framesRepo.list.mockResolvedValue([]);
+      astrite.credit.mockRejectedValue(new Error('mat mang'));
+
+      await expect(service.registerMomentPosted('me', 1)).rejects.toThrow('mat mang');
+      expect(repo.deleteDailyReward).toHaveBeenCalledWith(today, 'me');
+    });
+
+    it('cong Astrite XONG nhung ghi moc thuong fail -> GIU claim (khong cong 2 lan)', async () => {
+      repo.getUserQuests.mockResolvedValue(
+        new Map([
+          ['LOGIN', userQuest('LOGIN')],
+          ['POST_MOMENT', userQuest('POST_MOMENT')],
+        ]),
+      );
+      repo.setDailyRewardAstrite.mockRejectedValue(new Error('ghi loi'));
 
       await service.registerMomentPosted('me', 1);
 
-      expect(repo.tryClaimDailyReward).toHaveBeenCalledWith(today, 'me');
-      expect(framesService.unlockForUser).not.toHaveBeenCalled();
-      // claim da ghi doc voi frameId null — khong can setDailyRewardFrame nua
-      expect(repo.setDailyRewardFrame).not.toHaveBeenCalled();
+      // Tien da vao vi — xoa claim la lan goi sau cong them 60 nua
+      expect(repo.deleteDailyReward).not.toHaveBeenCalled();
     });
 
     it('quest da hoan thanh truoc do (isFirstTime=false) -> khong xet thuong lai', async () => {

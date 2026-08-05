@@ -45,15 +45,20 @@ export class FramesRepository {
   }
 
   /**
-   * Map doc -> entity. Doc CU (truoc 2026-07-26) chi co `milestone`:
-   * co milestone -> STREAK_MILESTONE, khong -> QUEST_RANDOM (dung logic thuong cu).
+   * Map doc -> entity, chiu duoc 2 the he doc cu (KHONG can migration):
+   * - Doc truoc 2026-07-26 chi co `milestone`: co milestone -> STREAK_MILESTONE, khong -> GACHA.
+   * - Doc truoc 2026-08-05 con `unlockType='QUEST_RANDOM'` (thuong quest cu) -> GACHA,
+   *   vi thuong quest da doi sang +60 Astrite nen cac khung do gio thuoc pool gacha.
    * `milestone` xuat ra luon dong bo voi unlockType de app cu doc khong sai.
    */
   private toEntity(frameId: string, data: FirebaseFirestore.DocumentData): Frame {
     const legacyMilestone = typeof data.milestone === 'number' ? data.milestone : undefined;
-    const unlockType =
-      (data.unlockType as Frame['unlockType']) ??
-      (legacyMilestone ? 'STREAK_MILESTONE' : 'QUEST_RANDOM');
+    const rawUnlockType = data.unlockType as string | undefined;
+    const unlockType: Frame['unlockType'] =
+      rawUnlockType === 'QUEST_RANDOM'
+        ? 'GACHA'
+        : ((rawUnlockType as Frame['unlockType'] | undefined) ??
+          (legacyMilestone ? 'STREAK_MILESTONE' : 'GACHA'));
     const unlockValue =
       typeof data.unlockValue === 'number' ? data.unlockValue : (legacyMilestone ?? null);
     return {

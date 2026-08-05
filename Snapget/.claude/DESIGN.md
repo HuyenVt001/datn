@@ -18,30 +18,41 @@
 
 ## 2. Bảng màu (token ↔ code ↔ chỗ dùng trong ảnh)
 
-### Nền & bề mặt (đã có trong `Color.kt`)
-| Token code | Hex | Dùng cho (theo ảnh) |
+> ### 🎨 CẬP NHẬT 2026-08-05 — màu đã TOKEN HÓA (P0–P2, `SKIN_PLAN.md`)
+> Không còn `Color.kt` (đã xóa) và **không còn giao diện Light**. Mọi màu đọc qua
+> **`SkinTheme.colors.xxx`** (`core/designsystem/skin/`); giá trị cụ thể của giao diện đen
+> hiện tại nằm trong **`skins/DefaultSkin.kt`** — **hex giữ nguyên y hệt bảng dưới**, chỉ đổi tên.
+>
+> **Cần màu mới → thêm TOKEN vào `SkinColors` trước, cấm hardcode trong `feature/`.**
+> Lý do: đổi skin phải đồng bộ — khai `accent` xanh thì *cả 50 chỗ* vàng đổi cùng lúc, không sót.
+
+### Nền & bề mặt
+| Token | Hex (DefaultSkin) | Tên cũ | Dùng cho (theo ảnh) |
+|---|---|---|---|
+| `colors.background` | `#121212` | `GrayBackground` | Nền mọi màn hình (feed, chat, settings…) |
+| `colors.surface` | `#1A1A1A` | `GraySurface` | Card đăng nhập, item settings, bottom sheet |
+| `colors.surfaceVariant` | `#2C2C2C` | `GraySurfaceVariant` | Bubble chat đến, input "Send message…", chip caption mặc định, panel dropdown bạn bè |
+| `colors.textPrimary` | `#FFFFFF` | `Color.White` | Chữ/icon chính (tên, tiêu đề) — **Bold** |
+| `colors.textSecondary` | `#B0B0B0` | `GrayOnSurfaceVariant` | Chữ phụ (subtitle, "Now", preview tin nhắn, placeholder) |
+| `colors.onSurfaceVariant` | `#B0B0B0` | `GrayOnSurfaceVariant` | Viền avatar, chữ trên bề mặt phụ |
+| `colors.error` | `#CF6679` | `GrayError` | Lỗi |
+
+### Accent vàng — 2 vai trò, đừng gộp làm một
+| Token | Hex | Dùng ở đâu |
 |---|---|---|
-| `GrayBackground` | `#121212` | Nền mọi màn hình (feed, chat, settings…) |
-| `GraySurface` | `#1A1A1A` | Card đăng nhập, item settings, bottom sheet |
-| `GraySurfaceVariant` | `#2C2C2C` | Pill "Everyone", bubble chat đến, input "Send message…", chip caption mặc định, panel dropdown bạn bè |
-| `GrayOnBackground` | `#FFFFFF` | Chữ chính (tên, tiêu đề) — **Bold** |
-| `GrayOnSurfaceVariant` | `#B0B0B0` | Chữ phụ (subtitle, "Now", preview tin nhắn, placeholder) |
-| `GrayError` | `#CF6679` | Lỗi |
+| `colors.accent` | `#FFFF00` | Viền nút chụp giữa bottom bar (`MainBottomBar`+`CircleComponent`, border 3dp), viền avatar **đang chọn** trong `FriendList`, flash bật (`CameraPreview`) |
+| `colors.accentGold` | `#FFD700` | Link "Sign Up" (`LoginScreen`), chữ + viền pill Gold (`UserProfileTopBar`), viền avatar profile, stat pill Lockets/streak, nút cúp Daily Quest |
+| Gradient gold `#FFD700 → #FFA500 → #FFE55C` và `#FFD700 → #FFF380 → #FFD700` | — | Viền avatar profile + viền pill "Get Gold" (`Brush.linearGradient`) — **chưa token hóa** |
 
-### Accent vàng — GIÁ TRỊ THẬT đang dùng trong code (chưa token hóa — khi refactor gom về `Color.kt`)
-| Giá trị trong code | Dùng ở đâu (đã xác minh trong code) |
-|---|---|
-| `Color.Yellow` (`#FFFF00`) | Viền nút chụp giữa bottom bar (`MainBottomBar`+`CircleComponent`, border 3dp), viền avatar **đang chọn** trong `FriendList`, flash bật (`CameraPreview`) |
-| `Color(0xFFFFD700)` (Gold) | Link "Sign Up" (`LoginScreen:477`), chữ + viền pill Gold (`UserProfileTopBar`), viền avatar profile, stat pill Lockets/streak (`UserProfileScreen`) |
-| Gradient gold `#FFD700 → #FFA500 → #FFE55C` và `#FFD700 → #FFF380 → #FFD700` | Viền avatar profile + viền pill "Get Gold" (`Brush.linearGradient`) |
-
-> Token đề xuất khi dọn: `SnapYellow = Color.Yellow` (selection/capture) và `SnapGold = #FFD700` (gamification). Đừng thêm hex vàng thứ 3.
+> Vì sao tách 2: trong giao diện đen chúng là 2 sắc thái khác nhau (chọn/chụp vs gamification).
+> Skin mới chỉ cần khai 2 giá trị **cùng hệ màu** là vẫn "đổi đồng bộ" đúng ý. **Đừng thêm hex vàng thứ 3.**
 
 ### Màu "chìm" đặc trưng khác (THẬT trong code — dễ đoán nhầm từ ảnh)
-| Giá trị | Dùng ở đâu |
+| Token / Giá trị | Dùng ở đâu |
 |---|---|
-| `Color(0xFF404137)` (xám ô liu tối) | **Nền pill "Everyone"** (`MainPill`), nền avatar `FriendList`, viền avatar không chọn (biến thể 2) |
-| `Color(0xFFB8B8B8)` | Viền avatar **không** chọn trong `FriendList` |
+| `colors.pill` = `#404137` (xám ô liu tối) | **Nền pill "Everyone"** (`MainPill`), nền avatar `FriendList`, nút top bar |
+| `colors.pillTranslucent` = `#424242` @50% | Nền pill **mờ trên camera/ảnh** (top bar) — tên cũ `BackgroundPreview` |
+| `colors.onSurfaceVariant` (trước là `#B8B8B8`) | Viền avatar **không** chọn trong `FriendList` |
 | `Color(0x80F0F0F0)` (trắng mờ 50%) | Nền `InputCaptionPill` — caption nhập trên ảnh, **chữ ĐEN 16sp** |
 | `Color.Black.copy(alpha = 0.5f–0.6f)` | Caption hiển thị trên ảnh (bo 24dp), overlay play video 72dp (`PostDetailScreen`) |
 | Gradient `#CC424242 → #CC616161` + `blur(16dp)` | `BlurredContainer` (panel mờ, bo 20dp) |
@@ -73,12 +84,17 @@ Xanh dương `#4FC3F7→#0288D1` (Weather) · Xanh lá `#81C784→#388E3C` (Part
 
 ## 4. Hình khối & bo góc (shape scale)
 
-Giá trị THẬT trong code (đối chiếu 2026-07-12):
+Giá trị THẬT trong code (đối chiếu 2026-07-12).
+
+> **2026-08-05:** 4 bo góc **dùng chung** đã token hóa — dùng token thay vì gõ lại số:
+> `shapes.pill` = 50 (tròn) · `shapes.image` = 20dp · `shapes.sheet` = 24dp · `shapes.input` = 16dp.
+> Các giá trị lẻ dưới đây (8/10/12/14dp…) **giữ nguyên hardcode**: đó là bo góc cục bộ của
+> từng component, gom vào token sẽ làm mất sắc thái.
 
 | Thành phần | Bo góc thật | File |
 |---|---|---|
-| Pill "Everyone", `MainPill`, `InputCaptionPill` | `RoundedCornerShape(50)` (tròn hoàn toàn) | `MainPill.kt`, `MainTopBar.kt` |
-| Ảnh feed grid + ảnh post detail | **20dp** | `PostGrid.kt:93`, `PostDetailScreen.kt:125` |
+| Pill "Everyone", `MainPill`, `InputCaptionPill` | `shapes.pill` (tròn hoàn toàn) | `MainPill.kt`, `MainTopBar.kt` |
+| Ảnh feed grid + ảnh post detail | `shapes.image` (**20dp**) | `PostGrid.kt`, `PostDetailScreen.kt` |
 | Camera preview | clip **50dp** (CameraScreen bọc ngoài) | `CameraScreen.kt` |
 | Panel dropdown bạn bè (topbar) | **24dp**, maxHeight 450dp | `MainTopBar.kt:180` |
 | Thanh "Send message…" + caption hiển thị | **24dp** (không tròn hẳn) | `Frame.kt`, `MessagePill.kt`, `PostDetailScreen.kt:158` |
@@ -93,8 +109,8 @@ Giá trị THẬT trong code (đối chiếu 2026-07-12):
 | Avatar | `CircleShape` tuyệt đối | mọi nơi |
 
 **Kích thước chuẩn (thật trong code):**
-- Nút chụp/Send giữa bottom bar: **80dp** (`customSizeCenter`), viền **3dp `Color.Yellow`** khi không icon, gap 7dp (Camera) / 20dp + rotate -45° (Send) — `MainBottomBar.kt`
-- `Circle` mặc định: outer 56dp, viền 2dp `Color.Yellow` — `CircleComponent.kt`
+- Nút chụp/Send giữa bottom bar: **80dp** (`customSizeCenter`), viền **3dp `colors.accent`** khi không icon, gap 7dp (Camera) / 20dp + rotate -45° (Send) — `MainBottomBar.kt`
+- `Circle` mặc định: outer 56dp, viền 2dp `colors.accent` — `CircleComponent.kt`
 - Nút shutter trong `CameraPreview`: 72dp (⚠️ chưa viền vàng — xem mục 9)
 - Avatar: topbar/list = `avatarWidth` **40dp** (`MainTopBar.kt:76`) · overlay play video 72dp · icon trong settings 40dp · icon nhỏ 16–20dp
 - Pill "Everyone": height 40dp, padding trong h12/v6, chevron 18dp

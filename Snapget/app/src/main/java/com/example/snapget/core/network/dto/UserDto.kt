@@ -12,6 +12,13 @@ data class UserDto(
     val inviteCode: String?,
     val unlockedFrames: List<String> = emptyList(),
     val fcmTokens: List<String> = emptyList(),
+    // ==== Gacha (2026-08-05) ====
+    /** So du Astrite. */
+    val astrite: Int = 0,
+    /** skinId da so huu — skin 0 (Default) KHONG nam trong day, luon co san. */
+    val unlockedSkins: List<Int> = emptyList(),
+    /** effectId da so huu — effect 0 (None) KHONG nam trong day, luon co san. */
+    val unlockedEffects: List<Int> = emptyList(),
 )
 
 /**

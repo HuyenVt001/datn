@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -49,9 +48,7 @@ import com.example.snapget.core.designsystem.component.list.ExternalAppComponent
 import com.example.snapget.core.designsystem.component.list.ShareYourLinkComponent
 import com.example.snapget.core.designsystem.component.list.TotalFriendComponent
 import com.example.snapget.core.designsystem.component.list.YourFriendAppComponent
-import com.example.snapget.core.designsystem.theme.GrayError
-import com.example.snapget.core.designsystem.theme.GrayOnSurfaceVariant
-import com.example.snapget.core.designsystem.theme.GraySurface
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.util.avatarOrDefault
 
@@ -92,15 +89,15 @@ fun UserDetailBottomSheet(
         dragHandle = {
             // Simple drag handle without excessive padding
             HorizontalDivider(
-                color = Color.White,
+                color = SkinTheme.colors.textPrimary,
                 thickness = 3.dp,
                 modifier = Modifier
                     .padding(vertical = 8.dp)
-                    .background(Color(0xFF121212))
+                    .background(SkinTheme.colors.background)
                     .width(40.dp),
             )
         },
-        containerColor = Color(0xFF121212),
+        containerColor = SkinTheme.colors.background,
     ) { sheetData ->
         // Dialog QR (pill "Add new friend") + dialog xac nhan xoa ban
         var showQrDialog by remember { mutableStateOf(false) }
@@ -110,7 +107,7 @@ fun UserDetailBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.93f) // Limit height to 90% of the screen
-                .background(Color(0xFF121212))
+                .background(SkinTheme.colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 16.dp), // Add bottom padding for scroll end
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -159,11 +156,11 @@ fun UserDetailBottomSheet(
         friendPendingRemove?.let { friend ->
             AlertDialog(
                 onDismissRequest = { friendPendingRemove = null },
-                containerColor = GraySurface,
+                containerColor = SkinTheme.colors.surface,
                 title = {
                     Text(
                         text = "Remove friend?",
-                        color = Color.White,
+                        color = SkinTheme.colors.textPrimary,
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -171,7 +168,7 @@ fun UserDetailBottomSheet(
                     Text(
                         text = "Remove ${friend.name} from your friends? " +
                             "Your shared streak will be lost and you'll need to scan QR to reconnect.",
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = SkinTheme.colors.textPrimary.copy(alpha = 0.8f),
                     )
                 },
                 confirmButton = {
@@ -181,12 +178,12 @@ fun UserDetailBottomSheet(
                             friendPendingRemove = null
                         },
                     ) {
-                        Text(text = "Remove", color = GrayError, fontWeight = FontWeight.Bold)
+                        Text(text = "Remove", color = SkinTheme.colors.error, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { friendPendingRemove = null }) {
-                        Text(text = "Cancel", color = Color.White)
+                        Text(text = "Cancel", color = SkinTheme.colors.textPrimary)
                     }
                 },
             )
@@ -196,7 +193,7 @@ fun UserDetailBottomSheet(
 
 /**
  * Section "Lời mời kết bạn": moi loi moi 1 hang avatar + ten + nut ✓ chap nhan
- * (trang) / ✕ tu choi (do GrayError). Chi hien khi co loi moi dang cho.
+ * (trang) / ✕ tu choi (do SkinTheme.colors.error). Chi hien khi co loi moi dang cho.
  */
 @Composable
 private fun FriendRequestsSection(
@@ -211,14 +208,14 @@ private fun FriendRequestsSection(
     ) {
         Text(
             text = "💌 Friend requests",
-            color = Color.White,
+            color = SkinTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
             modifier = Modifier.padding(bottom = 8.dp),
         )
         Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = GraySurface,
+            shape = SkinTheme.shapes.input,
+            color = SkinTheme.colors.surface,
         ) {
             Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 requests.forEach { request ->
@@ -240,19 +237,19 @@ private fun FriendRequestsSection(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = request.name,
-                                color = Color.White,
+                                color = SkinTheme.colors.textPrimary,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = "wants to be your friend",
-                                color = GrayOnSurfaceVariant,
+                                color = SkinTheme.colors.onSurfaceVariant,
                                 fontSize = 12.sp,
                             )
                         }
                         // ✓ chap nhan — nut tron trang (hanh dong chinh)
-                        Surface(shape = CircleShape, color = Color.White) {
+                        Surface(shape = CircleShape, color = SkinTheme.colors.textPrimary) {
                             IconButton(
                                 onClick = { onAccept(request) },
                                 modifier = Modifier.size(36.dp),
@@ -274,7 +271,7 @@ private fun FriendRequestsSection(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Decline ${request.name}",
-                                tint = GrayError,
+                                tint = SkinTheme.colors.error,
                             )
                         }
                     }

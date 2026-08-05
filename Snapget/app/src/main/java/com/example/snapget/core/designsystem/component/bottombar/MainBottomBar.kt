@@ -45,6 +45,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.navigation.Screen
 
 data class BottomNavItem(
@@ -95,7 +96,7 @@ fun MainBottomBar(
     onItemClick: (BottomNavItem) -> Unit = { },
     // Mau icon 2 ben: man overlay len camera giu trang; man nen theme (feed grid)
     // truyen mau theo theme de khong "trang tren trang" o Light mode (2026-07-26)
-    iconTint: Color = Color.White,
+    iconTint: Color = SkinTheme.colors.textPrimary,
 ) {
     // Use provided items or determine items based on current route
     val (orderedItems, centerItem) = normalizeItems(items)
@@ -124,7 +125,7 @@ fun MainBottomBar(
                         borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
                             Color.Gray
                         } else {
-                            Color.Yellow
+                            SkinTheme.colors.accent
                         },
                         borderWidth = 3.dp,
                         onClick = {
@@ -146,13 +147,13 @@ fun MainBottomBar(
                         iconSetting = when {
                             centerItem.selectedIcon != null -> IconSetting(
                                 icon = centerItem.selectedIcon!!,
-                                tint = Color.White,
+                                tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
                             )
 
                             centerItem.unselectedIcon != null -> IconSetting(
                                 icon = centerItem.unselectedIcon!!,
-                                tint = Color.White,
+                                tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
                             )
 
@@ -171,7 +172,7 @@ fun MainBottomBar(
                         borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
                             Color.Gray
                         } else {
-                            Color.Yellow
+                            SkinTheme.colors.accent
                         },
                         modifier = Modifier.rotate(-45F),
                         borderWidth = 3.dp,
@@ -191,13 +192,13 @@ fun MainBottomBar(
                         iconSetting = when {
                             centerItem.selectedIcon != null -> IconSetting(
                                 icon = centerItem.selectedIcon!!,
-                                tint = Color.White,
+                                tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
                             )
 
                             centerItem.unselectedIcon != null -> IconSetting(
                                 icon = centerItem.unselectedIcon!!,
-                                tint = Color.White,
+                                tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
                             )
 

@@ -1,8 +1,8 @@
 package com.example.snapget.core.data
 
 import android.content.Context
+import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.model.Setting
-import com.example.snapget.core.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,26 +41,40 @@ class SettingsPreferences @Inject constructor(
     /** Doc truc tiep trang thai toggle 1 setting (widget doc live, khong qua list). */
     fun isToggled(settingId: String, default: Boolean): Boolean = prefs.getBoolean(settingId, default)
 
-    private val _themeMode = MutableStateFlow(readThemeMode())
+    // ==== Skin + hieu ung touch (2026-08-05 — thay cho themeMode da xoa) ====
+    // Hai lua chon DOC LAP nhau: nguoi dung tron tu do (skin xanh + hieu ung lua).
+    // StateFlow tren singleton nay la cau noi giua AppearanceViewModel (ghi) va
+    // MainActivity/MainViewModel (doc) — khong can DI them.
+    //
+    // Prefs cu `theme_mode` con nam lai cung vo hai: khong doc nua, khong can migration.
 
-    /**
-     * Che do giao dien hien tai. StateFlow tren singleton nay la cau noi giua
-     * SettingsViewModel (ghi) va MainActivity/MainViewModel (doc) — khong can DI them.
-     */
-    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+    private val _skinId = MutableStateFlow(prefs.getInt(KEY_SKIN_ID, SkinRegistry.DEFAULT_ID))
 
-    /** Doi che do giao dien: persist + emit de toan app recompose ngay. */
-    fun setThemeMode(mode: ThemeMode) {
-        prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
-        _themeMode.value = mode
+    /** Id skin dang dung. 0 = Default (giao dien den). */
+    val skinId: StateFlow<Int> = _skinId.asStateFlow()
+
+    /** Doi skin: persist + emit de toan app ve lai ngay, khong can restart. */
+    fun setSkinId(id: Int) {
+        prefs.edit().putInt(KEY_SKIN_ID, id).apply()
+        _skinId.value = id
     }
 
-    private fun readThemeMode(): ThemeMode = runCatching {
-        ThemeMode.valueOf(prefs.getString(KEY_THEME_MODE, ThemeMode.DARK.name)!!)
-    }.getOrDefault(ThemeMode.DARK)
+    private val _touchEffectId = MutableStateFlow(prefs.getInt(KEY_TOUCH_EFFECT_ID, NO_EFFECT_ID))
+
+    /** Id hieu ung touch dang dung. 0 = None (khong hieu ung). */
+    val touchEffectId: StateFlow<Int> = _touchEffectId.asStateFlow()
+
+    fun setTouchEffectId(id: Int) {
+        prefs.edit().putInt(KEY_TOUCH_EFFECT_ID, id).apply()
+        _touchEffectId.value = id
+    }
 
     companion object {
         private const val PREFS_NAME = "snapget_settings"
-        private const val KEY_THEME_MODE = "theme_mode"
+        private const val KEY_SKIN_ID = "skin_id"
+        private const val KEY_TOUCH_EFFECT_ID = "touch_effect_id"
+
+        /** Hieu ung "None" — luon so huu, mac dinh. */
+        const val NO_EFFECT_ID = 0
     }
 }

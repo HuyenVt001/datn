@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,8 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
-import com.example.snapget.core.designsystem.theme.GrayOnSurfaceVariant
-import com.example.snapget.core.designsystem.theme.GraySurface
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.InviteInfoDto
 import com.example.snapget.core.util.avatarOrDefault
 
@@ -51,8 +49,8 @@ fun InviteConfirmDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = GraySurface,
+            shape = SkinTheme.shapes.image,
+            color = SkinTheme.colors.surface,
         ) {
             Column(
                 modifier = Modifier
@@ -64,23 +62,23 @@ fun InviteConfirmDialog(
                     error != null -> {
                         Text(
                             text = "Couldn't connect",
-                            color = Color.White,
+                            color = SkinTheme.colors.textPrimary,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = error,
-                            color = GrayOnSurfaceVariant,
+                            color = SkinTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(20.dp))
                         Button(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(50),
+                            shape = SkinTheme.shapes.pill,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
+                                containerColor = SkinTheme.colors.textPrimary,
                                 contentColor = Color.Black,
                             ),
                             modifier = Modifier
@@ -92,11 +90,11 @@ fun InviteConfirmDialog(
                     }
 
                     info == null -> {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
+                        CircularProgressIndicator(color = SkinTheme.colors.textPrimary, modifier = Modifier.size(32.dp))
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Reading invite...",
-                            color = GrayOnSurfaceVariant,
+                            color = SkinTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
                         )
                     }
@@ -113,7 +111,7 @@ fun InviteConfirmDialog(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Add ${info.fullName ?: "Snapget user"} as a friend?",
-                            color = Color.White,
+                            color = SkinTheme.colors.textPrimary,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center,
@@ -121,7 +119,7 @@ fun InviteConfirmDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Once ${info.fullName ?: "your friend"} confirms, you'll see each other's moments and start a friend streak together.",
-                            color = GrayOnSurfaceVariant,
+                            color = SkinTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -129,16 +127,16 @@ fun InviteConfirmDialog(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Invite valid until $expiry",
-                                color = GrayOnSurfaceVariant,
+                                color = SkinTheme.colors.onSurfaceVariant,
                                 fontSize = 12.sp,
                             )
                         }
                         Spacer(modifier = Modifier.height(20.dp))
                         Button(
                             onClick = onConfirm,
-                            shape = RoundedCornerShape(50),
+                            shape = SkinTheme.shapes.pill,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
+                                containerColor = SkinTheme.colors.textPrimary,
                                 contentColor = Color.Black,
                             ),
                             modifier = Modifier
@@ -153,7 +151,7 @@ fun InviteConfirmDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         TextButton(onClick = onDismiss) {
-                            Text(text = "Cancel", color = GrayOnSurfaceVariant)
+                            Text(text = "Cancel", color = SkinTheme.colors.onSurfaceVariant)
                         }
                     }
                 }

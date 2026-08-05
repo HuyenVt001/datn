@@ -3,6 +3,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
 import { FirebaseService } from '../firebase/firebase.service';
+import { GachaService } from '../gacha/gacha.service';
 import { MomentsRepository } from '../moments/moments.repository';
 import { QuestsService } from '../quests/quests.service';
 import { AdminRepository, AdminStats, DailyStat } from './admin.repository';
@@ -18,6 +19,8 @@ export interface AdminUserRow {
   admin: boolean;
   createdAt: string;
   lastSignInAt?: string;
+  /** **(2026-08-05)** So du Astrite (doc Firestore; user chua co field = 0). */
+  astrite: number;
 }
 
 /** 1 dong trong danh sach bai dang cua trang admin kiem duyet. */
@@ -39,6 +42,7 @@ export class AdminService {
     private readonly adminRepo: AdminRepository,
     private readonly momentsRepo: MomentsRepository,
     private readonly questsService: QuestsService,
+    private readonly gachaService: GachaService,
     private readonly audit: AuditService,
   ) {}
 
@@ -50,18 +54,19 @@ export class AdminService {
    * displayName cua Auth (user doi ten trong app khong sync len Auth).
    */
   async listUsers(query: ListUsersDto): Promise<PaginatedResult<AdminUserRow>> {
-    const [result, names] = await Promise.all([
+    const [result, summaries] = await Promise.all([
       this.firebase.auth().listUsers(1000),
-      this.adminRepo.getAllFullNames(),
+      this.adminRepo.getAllUserSummaries(),
     ]);
     let users: AdminUserRow[] = result.users.map((u) => ({
       uid: u.uid,
       email: u.email,
-      fullName: names.get(u.uid) || u.displayName || '',
+      fullName: summaries.get(u.uid)?.fullName || u.displayName || '',
       disabled: u.disabled,
       admin: u.customClaims?.admin === true,
       createdAt: u.metadata.creationTime,
       lastSignInAt: u.metadata.lastSignInTime,
+      astrite: summaries.get(u.uid)?.astrite ?? 0,
     }));
 
     if (query.search) {
@@ -76,13 +81,19 @@ export class AdminService {
     return { items: users.slice(start, start + limit), page, limit, total: users.length };
   }
 
-  /** Thong ke tong quan cho dashboard (kem so luot hoan thanh quest hom nay). */
+  /** Thong ke tong quan cho dashboard (kem quest hom nay + so luot quay gacha). */
   async getStats(): Promise<AdminStats> {
-    const [stats, questCompletionsToday] = await Promise.all([
+    const [stats, questCompletionsToday, rolls] = await Promise.all([
       this.adminRepo.getStats(),
       this.questsService.countCompletionsToday(),
+      this.gachaService.getRollCounts(),
     ]);
-    return { ...stats, questCompletionsToday };
+    return {
+      ...stats,
+      questCompletionsToday,
+      gachaRollsToday: rolls.today,
+      gachaRollsTotal: rolls.total,
+    };
   }
 
   /**

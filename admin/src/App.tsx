@@ -4,9 +4,13 @@ import { RequireAuth } from './auth/RequireAuth';
 import { AdminLayout } from './layouts/AdminLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { FramesPage } from './pages/FramesPage';
+import { GachaHistoryPage } from './pages/GachaHistoryPage';
+import { GachaItemsPage } from './pages/GachaItemsPage';
 import { LoginPage } from './pages/LoginPage';
 import { LogsPage } from './pages/LogsPage';
 import { MomentsPage } from './pages/MomentsPage';
+import { TopupHistoryPage } from './pages/TopupHistoryPage';
+import { TopupPackagesPage } from './pages/TopupPackagesPage';
 import { UsersPage } from './pages/UsersPage';
 
 /** Man hinh loi chung — tranh "trang trang" khi 1 trang render loi (errorElement). */
@@ -42,6 +46,10 @@ const router = createBrowserRouter([
           { path: 'users', element: <UsersPage /> },
           { path: 'moments', element: <MomentsPage /> },
           { path: 'frames', element: <FramesPage /> },
+          { path: 'gacha', element: <GachaItemsPage /> },
+          { path: 'gacha-history', element: <GachaHistoryPage /> },
+          { path: 'topup', element: <TopupPackagesPage /> },
+          { path: 'topup-history', element: <TopupHistoryPage /> },
           { path: 'logs', element: <LogsPage /> },
         ],
       },

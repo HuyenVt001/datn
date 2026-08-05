@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -31,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.data.SampleData
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
 
@@ -92,9 +92,9 @@ fun UserPill(
                 .border(
                     width = 1.dp,
                     color = config.borderColor ?: MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(50),
+                    shape = SkinTheme.shapes.pill,
                 )
-                .clip(RoundedCornerShape(50))
+                .clip(SkinTheme.shapes.pill)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {

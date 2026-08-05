@@ -78,6 +78,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.copyUriToCacheFile
@@ -475,7 +476,7 @@ fun ChatInputPill(
                     .padding(horizontal = 15.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = SkinTheme.shapes.input,
                     )
                     .padding(horizontal = 14.dp, vertical = 8.dp),
             ) {
@@ -532,7 +533,7 @@ fun ChatInputPill(
                     .padding(horizontal = 15.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(20.dp),
+                        shape = SkinTheme.shapes.image,
                     )
                     .padding(12.dp)
                     .horizontalScroll(rememberScrollState()),
@@ -559,7 +560,7 @@ fun ChatInputPill(
                 .padding(15.dp)
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = SkinTheme.shapes.sheet,
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -642,7 +643,7 @@ fun ChatInputPill(
                                 imageVector = Icons.Default.EmojiEmotions,
                                 contentDescription = "Sticker",
                                 tint = if (showStickers) {
-                                    Color.Yellow
+                                    SkinTheme.colors.accent
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
@@ -805,7 +806,7 @@ fun MessageBubble(
                         modifier = Modifier
                             .offset(y = 6.dp)
                             .size(120.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(SkinTheme.shapes.input)
                             .alpha(0.75f)
                             .combinedClickable(
                                 onClick = {
@@ -827,7 +828,7 @@ fun MessageBubble(
                         modifier = Modifier
                             .offset(y = 6.dp)
                             .widthIn(max = 260.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(SkinTheme.shapes.input)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                             .padding(bottom = 6.dp),
@@ -842,7 +843,7 @@ fun MessageBubble(
                 Box(
                     modifier = Modifier
                         .size(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(SkinTheme.shapes.input)
                         .combinedClickable(
                             onClick = { onMediaClick?.invoke(attachUrl, attachIsVideo) },
                             onLongClick = onLongPress,
@@ -871,7 +872,7 @@ fun MessageBubble(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Play video",
-                                tint = Color.White,
+                                tint = SkinTheme.colors.textPrimary,
                             )
                         }
                     }
@@ -996,7 +997,7 @@ private fun MessageActionRow(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = SkinTheme.shapes.image,
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier,
     ) {

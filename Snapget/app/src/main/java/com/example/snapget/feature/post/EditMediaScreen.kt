@@ -78,7 +78,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
-import com.example.snapget.core.designsystem.theme.SnapYellow
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.navigation.Screen
 import java.io.File
@@ -87,6 +87,11 @@ import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 // Vang selection/capture theo DESIGN.md (accent duy nhat)
 
@@ -140,6 +145,11 @@ data class DoodleStroke(
     val points: List<Offset>,
 )
 
+/**
+ * Bang mau but ve doodle — **CO Y hardcode, khong dung token skin**: day la mau
+ * MUC nguoi dung chon de ve len anh, phai giu nguyen o moi skin (net vang da ve
+ * ma doi skin lai thanh xanh thi hong anh da dang).
+ */
 private val DOODLE_COLORS = listOf(
     Color.White,
     Color.Black,
@@ -259,7 +269,7 @@ fun EditMediaScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(SkinTheme.shapes.image)
                     .background(Color.Black)
                     .onGloballyPositioned { previewSizePx = it.size.width },
             ) {
@@ -378,12 +388,12 @@ fun EditMediaScreen(
                     // Nut bat/tat ve tay
                     Surface(
                         shape = CircleShape,
-                        color = Color(0xFF404137),
+                        color = SkinTheme.colors.pill,
                         modifier = Modifier
                             .size(40.dp)
                             .then(
                                 if (doodleMode) {
-                                    Modifier.border(2.dp, SnapYellow, CircleShape)
+                                    Modifier.border(2.dp, SkinTheme.colors.accent, CircleShape)
                                 } else {
                                     Modifier
                                 },
@@ -393,7 +403,7 @@ fun EditMediaScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Draw",
-                                tint = if (doodleMode) SnapYellow else Color.White,
+                                tint = if (doodleMode) SkinTheme.colors.accent else Color.White,
                                 modifier = Modifier.size(20.dp),
                             )
                         }
@@ -410,7 +420,7 @@ fun EditMediaScreen(
                                     .border(
                                         width = if (doodleColor == color) 3.dp else 1.dp,
                                         color = if (doodleColor == color) {
-                                            SnapYellow
+                                            SkinTheme.colors.accent
                                         } else {
                                             Color.White.copy(alpha = 0.4f)
                                         },
@@ -429,7 +439,7 @@ fun EditMediaScreen(
                                     .border(
                                         width = if (doodleWidth == width) 2.dp else 1.dp,
                                         color = if (doodleWidth == width) {
-                                            SnapYellow
+                                            SkinTheme.colors.accent
                                         } else {
                                             Color.White.copy(alpha = 0.4f)
                                         },
@@ -482,7 +492,7 @@ fun EditMediaScreen(
                                     .border(
                                         width = if (selectedFilter == filter) 2.dp else 0.dp,
                                         color = if (selectedFilter == filter) {
-                                            SnapYellow
+                                            SkinTheme.colors.accent
                                         } else {
                                             Color.Transparent
                                         },
@@ -504,7 +514,7 @@ fun EditMediaScreen(
                             }
                             Text(
                                 text = filter.name,
-                                color = if (selectedFilter == filter) SnapYellow else Color.White,
+                                color = if (selectedFilter == filter) SkinTheme.colors.accent else Color.White,
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
@@ -520,7 +530,7 @@ fun EditMediaScreen(
             if (unlockedFrames.isEmpty()) {
                 Text(
                     text = "Complete daily quests to unlock frames!",
-                    color = Color(0xFFB0B0B0),
+                    color = SkinTheme.colors.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
@@ -567,7 +577,7 @@ fun EditMediaScreen(
                     color = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier
                         .size(80.dp)
-                        .border(3.dp, SnapYellow, CircleShape),
+                        .border(3.dp, SkinTheme.colors.accent, CircleShape),
                 ) {
                     IconButton(onClick = { goNext() }, modifier = Modifier.fillMaxSize()) {
                         Icon(
@@ -612,10 +622,10 @@ private fun FrameThumb(
             modifier = Modifier
                 .size(64.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF2C2C2C))
+                .background(SkinTheme.colors.surfaceVariant)
                 .border(
                     width = if (selected) 2.dp else 0.dp,
-                    color = if (selected) SnapYellow else Color.Transparent,
+                    color = if (selected) SkinTheme.colors.accent else Color.Transparent,
                     shape = RoundedCornerShape(14.dp),
                 )
                 .clickable { onClick() },
@@ -635,7 +645,7 @@ private fun FrameThumb(
         }
         Text(
             text = label,
-            color = if (selected) SnapYellow else Color.White,
+            color = if (selected) SkinTheme.colors.accent else Color.White,
             fontSize = 11.sp,
             maxLines = 1,
             modifier = Modifier

@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,7 +12,9 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinTheme
 
 val BlurStyle1 = Brush.verticalGradient(
     colors = listOf(
@@ -25,7 +26,7 @@ val BlurStyle1 = Brush.verticalGradient(
 @Composable
 fun BlurredContainer(
     modifier: Modifier = Modifier,
-    blurShape: RoundedCornerShape = RoundedCornerShape(20.dp),
+    blurShape: Shape = SkinTheme.shapes.image,
     brush: Brush = BlurStyle1,
     content: @Composable () -> Unit,
 ) {
@@ -59,7 +60,7 @@ fun BlurredContainer(
 fun NotBlurredContainer(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color(0xCC424242),
-    blurShape: RoundedCornerShape = RoundedCornerShape(20.dp),
+    blurShape: Shape = SkinTheme.shapes.image,
     content: @Composable () -> Unit,
 ) {
     Box(

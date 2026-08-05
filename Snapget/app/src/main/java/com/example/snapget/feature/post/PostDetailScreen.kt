@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -67,6 +66,7 @@ import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
@@ -78,6 +78,11 @@ import com.example.snapget.core.util.relativeTimeShort
 import com.example.snapget.navigation.Screen
 import kotlin.random.Random
 import kotlinx.coroutines.launch
+
+// ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
+// chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
+// that o MOI skin. Doi theo `SkinTheme.colors.textPrimary` thi skin nen sang
+// se lam chung chim vao anh. Mau cua NEN app trong file nay van dung token.
 
 /** 1 emoji dang "bay" len sau khi tha reaction (xoa khoi list khi bay xong). */
 data class FlyingEmoji(
@@ -157,7 +162,7 @@ fun PostDetailContent(
                         source = imageUrl,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(SkinTheme.shapes.image),
                     )
                 } else {
                     AsyncImage(
@@ -165,7 +170,7 @@ fun PostDetailContent(
                         contentDescription = "Post image",
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(SkinTheme.shapes.image),
                         contentScale = ContentScale.Crop,
                     )
                 }
@@ -178,7 +183,7 @@ fun PostDetailContent(
                         contentScale = ContentScale.FillBounds,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(20.dp)),
+                            .clip(SkinTheme.shapes.image),
                     )
                 }
 
@@ -192,7 +197,7 @@ fun PostDetailContent(
                             .padding(bottom = 24.dp) // Add padding to move it up from bottom
                             .background(
                                 Color.Black.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(24.dp),
+                                shape = SkinTheme.shapes.sheet,
                             )
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                     ) {
@@ -456,7 +461,7 @@ fun PostDetailScreen(
                     outerSize = 80.dp,
                     gap = 7.dp,
                     backgroundColor = Color.Transparent,
-                    borderColor = Color.Yellow,
+                    borderColor = SkinTheme.colors.accent,
                     borderWidth = 3.dp,
                     onClick = goBackToCamera,
                 )

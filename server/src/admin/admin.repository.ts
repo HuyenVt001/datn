@@ -12,6 +12,9 @@ export interface AdminStats {
   chatGroups: number;
   /** So luot hoan thanh quest hom nay (them boi AdminService, khong dem o day). */
   questCompletionsToday?: number;
+  /** **(2026-08-05)** So luot BAM NUT quay gacha (x10 tinh la 1) — AdminService dien tu GachaService. */
+  gachaRollsToday?: number;
+  gachaRollsTotal?: number;
 }
 
 /** 1 diem du lieu cua bieu do thong ke theo ngay tren dashboard. */
@@ -96,11 +99,22 @@ export class AdminRepository {
    * trong app chi ghi Firestore, khong sync displayName len Auth).
    */
   async getAllFullNames(): Promise<Map<string, string>> {
+    return new Map([...(await this.getAllUserSummaries())].map(([uid, s]) => [uid, s.fullName]));
+  }
+
+  /**
+   * **(2026-08-05)** Ten + so du Astrite cua TOAN BO user — 1 query ca
+   * collection, dung cho danh sach user cua trang admin (khong doc 2 lan).
+   */
+  async getAllUserSummaries(): Promise<Map<string, { fullName: string; astrite: number }>> {
     const snap = await this.col(Collections.USERS).get();
-    const result = new Map<string, string>();
+    const result = new Map<string, { fullName: string; astrite: number }>();
     for (const doc of snap.docs) {
       const data = doc.data();
-      result.set(doc.id, data.fullName ?? data.name ?? '');
+      result.set(doc.id, {
+        fullName: data.fullName ?? data.name ?? '',
+        astrite: typeof data.astrite === 'number' ? data.astrite : 0,
+      });
     }
     return result;
   }
