@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import com.example.snapget.R
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinColors
+import com.example.snapget.core.designsystem.skin.SkinIcons
+import com.example.snapget.core.designsystem.skin.SkinImages
 
 /**
  * Skin 1 — **Snow** (den · xanh lam dam · trang).
@@ -11,14 +13,32 @@ import com.example.snapget.core.designsystem.skin.SkinColors
  * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Vat pham **SSR** cua
  * gacha; mo khoa qua `users.unlockedSkins`.
  *
- * Da cam `thumbnail` (tab Skins, 9:16). Icon/nut rieng chua cam — [AppSkin.icons]
- * va [AppSkin.images] de trong nen tu dung ban Material + shape mac dinh. Doi mau
- * da chay day du: khai `accent` xanh la MOI cho vang trong app thanh xanh cung luc.
+ * Da cam DU bo asset rieng (2026-08-06): `thumbnail`, `captureButton` va 12 icon
+ * ([AppSkin.icons]). ⚠️ Noi dung hien tai la **PLACEHOLDER** (icon ve giong het
+ * ban Material fallback, nut chup la vong tron accent) — muc dich la de duong
+ * ong chay san: co thiet ke that thi **ghi de file cung ten** trong
+ * `res/drawable/skin1_ic_*.xml` (vector) va `res/drawable-nodpi/skin1_btn_capture.webp`,
+ * KHONG can sua dong code nao.
  */
 val SnowSkin = AppSkin(
     id = 1,
     displayName = "Snow",
     thumbnail = R.drawable.skin1_thumb,
+    images = SkinImages(captureButton = R.drawable.skin1_btn_capture),
+    icons = SkinIcons(
+        camera = R.drawable.skin1_ic_camera,
+        send = R.drawable.skin1_ic_send,
+        gallery = R.drawable.skin1_ic_gallery,
+        flipCamera = R.drawable.skin1_ic_flip_camera,
+        close = R.drawable.skin1_ic_close,
+        captions = R.drawable.skin1_ic_captions,
+        grid = R.drawable.skin1_ic_grid,
+        more = R.drawable.skin1_ic_more,
+        chat = R.drawable.skin1_ic_chat,
+        chevronDown = R.drawable.skin1_ic_chevron_down,
+        chevronRight = R.drawable.skin1_ic_chevron_right,
+        back = R.drawable.skin1_ic_back,
+    ),
     colors = SkinColors(
         background = Color(0xFF0B0F1A),
         surface = Color(0xFF10192B),

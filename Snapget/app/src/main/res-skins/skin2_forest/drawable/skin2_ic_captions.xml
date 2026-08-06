@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!--PLACEHOLDER skin2 · captions · thay bang thiet ke that, giu nguyen ten file-->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.9"
+        android:pathData="M2.8,12 a9.2,9.2 0 1 0 18.4,0 a9.2,9.2 0 1 0 -18.4,0 Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12 6.6 15.9 17h-2.1l-.8-2.3H9l-.8 2.3H6.1L12 6.6zm-2.4 6.4h4.8L12 9.4l-2.4 3.6z"/>
+</vector>

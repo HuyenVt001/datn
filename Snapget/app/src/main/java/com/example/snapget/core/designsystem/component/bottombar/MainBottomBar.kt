@@ -1,6 +1,8 @@
 package com.example.snapget.core.designsystem.component.bottombar
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,14 @@ data class BottomNavItem(
     // GIU nut center (long-press) + THA tay — CameraScreen dung de quay video <=5s
     val onLongPress: (() -> Unit)? = null,
     val onPressRelease: (() -> Unit)? = null,
+    /**
+     * Icon RIENG cua skin cho item nay (P5) — lambda chon field tu [SkinIcons]
+     * cua skin DANG dung, vd `{ it.gallery }`. La lambda chu khong phai id
+     * drawable cung: item khai bao 1 lan (top-level val) nhung skin doi luc
+     * runtime. `null` (hoac skin chua ve icon do) -> dung [selectedIcon]/
+     * [unselectedIcon] Material nhu cu — khong man nao vo vi thieu asset.
+     */
+    val skinIcon: ((com.example.snapget.core.designsystem.skin.SkinIcons) -> Int?)? = null,
 )
 
 private fun normalizeItems(original: List<BottomNavItem>): Pair<List<BottomNavItem>, BottomNavItem?> {
@@ -114,52 +125,83 @@ fun MainBottomBar(
             if (item == centerItem) {
                 // center special button (vd: camera)
                 if (item.title == "Camera" || item.title == "Take a picture") {
-                    Circle(
-                        outerSize = centerItem.customSizeCenter,
-                        gap = 7.dp,
-                        backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                            Color.Gray
-                        } else {
-                            Color.Transparent
-                        },
-                        borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                            Color.Gray
-                        } else {
-                            SkinTheme.colors.accent
-                        },
-                        borderWidth = 3.dp,
-                        onClick = {
-                            // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
-                            // onItemClick -> nut Send tren SubmitPhotoScreen chet)
-                            onItemClick(item)
-                            // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
-                            // roi moi fallback navigate theo route
-                            val customClick = centerItem.onClick
-                            if (customClick != null) {
-                                customClick()
-                            } else if (centerIconNavigation.isNotEmpty()) {
-                                navController.navigate(centerIconNavigation)
-                            }
-                        },
-                        // GIU = quay video / THA = dung (CameraScreen truyen vao)
-                        onLongPress = centerItem.onLongPress,
-                        onPressRelease = centerItem.onPressRelease,
-                        iconSetting = when {
-                            centerItem.selectedIcon != null -> IconSetting(
-                                icon = centerItem.selectedIcon!!,
-                                tint = SkinTheme.colors.textPrimary,
-                                contentDescription = item.title,
-                            )
+                    val centerClick = {
+                        // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi
+                        // onItemClick -> nut Send tren SubmitPhotoScreen chet)
+                        onItemClick(item)
+                        // Uu tien callback rieng cua item (vd nut chup that tren CameraScreen)
+                        // roi moi fallback navigate theo route
+                        val customClick = centerItem.onClick
+                        if (customClick != null) {
+                            customClick()
+                        } else if (centerIconNavigation.isNotEmpty()) {
+                            navController.navigate(centerIconNavigation)
+                        }
+                    }
+                    // Nut chup RIENG cua skin (P5 — `SkinImages.captureButton`):
+                    // anh ve toan bo hinh nut (vien + ruot) nen Circle chi con
+                    // lam khung bat cham, khong ve vien/nen gi them. Chi ap cho
+                    // nut chup "tron" (khong icon); nut co icon (vd "Camera" o
+                    // bar thuong) giu nguyen.
+                    val captureImage = SkinTheme.images.captureButton
+                    if (captureImage != null &&
+                        centerItem.selectedIcon == null &&
+                        centerItem.unselectedIcon == null
+                    ) {
+                        Circle(
+                            outerSize = centerItem.customSizeCenter,
+                            gap = 0.dp,
+                            backgroundColor = Color.Transparent,
+                            borderWidth = 0.dp,
+                            borderColor = Color.Transparent,
+                            onClick = centerClick,
+                            // GIU = quay video / THA = dung (CameraScreen truyen vao)
+                            onLongPress = centerItem.onLongPress,
+                            onPressRelease = centerItem.onPressRelease,
+                            innerContent = {
+                                Image(
+                                    painter = painterResource(captureImage),
+                                    contentDescription = item.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            },
+                        )
+                    } else {
+                        Circle(
+                            outerSize = centerItem.customSizeCenter,
+                            gap = 7.dp,
+                            backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                                Color.Gray
+                            } else {
+                                Color.Transparent
+                            },
+                            borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
+                                Color.Gray
+                            } else {
+                                SkinTheme.colors.accent
+                            },
+                            borderWidth = 3.dp,
+                            onClick = centerClick,
+                            // GIU = quay video / THA = dung (CameraScreen truyen vao)
+                            onLongPress = centerItem.onLongPress,
+                            onPressRelease = centerItem.onPressRelease,
+                            iconSetting = when {
+                                centerItem.selectedIcon != null -> IconSetting(
+                                    icon = centerItem.selectedIcon!!,
+                                    tint = SkinTheme.colors.textPrimary,
+                                    contentDescription = item.title,
+                                )
 
-                            centerItem.unselectedIcon != null -> IconSetting(
-                                icon = centerItem.unselectedIcon!!,
-                                tint = SkinTheme.colors.textPrimary,
-                                contentDescription = item.title,
-                            )
+                                centerItem.unselectedIcon != null -> IconSetting(
+                                    icon = centerItem.unselectedIcon!!,
+                                    tint = SkinTheme.colors.textPrimary,
+                                    contentDescription = item.title,
+                                )
 
-                            else -> null
-                        },
-                    )
+                                else -> null
+                            },
+                        )
+                    }
                 } else if (item.title == "Send") {
                     Circle(
                         outerSize = centerItem.customSizeCenter,
@@ -209,7 +251,17 @@ fun MainBottomBar(
             } else if (item.title != null) {
                 NavigationBarItem(
                     icon = {
-                        if (item.selectedIcon != null || item.unselectedIcon != null) {
+                        // Icon RIENG cua skin (P5) di truoc; skin chua ve icon nay
+                        // (hoac item khong khai `skinIcon`) thi roi ve Material.
+                        val skinIconRes = item.skinIcon?.invoke(SkinTheme.icons)
+                        if (skinIconRes != null) {
+                            Icon(
+                                painter = painterResource(skinIconRes),
+                                contentDescription = item.title,
+                                tint = iconTint,
+                                modifier = Modifier.size(40.dp),
+                            )
+                        } else if (item.selectedIcon != null || item.unselectedIcon != null) {
                             // Determine which icon to use, defaulting to whichever is not null
                             val iconToUse = when {
                                 item.unselectedIcon != null -> item.unselectedIcon
@@ -333,6 +385,7 @@ val takePhotoBar = listOf(
         selectedIcon = Icons.Filled.PhotoLibrary,
         unselectedIcon = Icons.Outlined.PhotoLibrary,
         route = Screen.Post.route,
+        skinIcon = { it.gallery },
     ),
     BottomNavItem(
         title = "Take a picture",
@@ -349,6 +402,7 @@ val takePhotoBar = listOf(
         selectedIcon = Icons.Filled.Cached,
         unselectedIcon = Icons.Outlined.Cached,
         route = "",
+        skinIcon = { it.flipCamera },
     ),
 )
 
@@ -358,6 +412,7 @@ val submitPhotoBar = listOf(
         selectedIcon = Icons.Filled.Close,
         unselectedIcon = Icons.Outlined.Close,
         route = Screen.Post.route,
+        skinIcon = { it.close },
     ),
     BottomNavItem(
         title = "Send",
@@ -372,6 +427,7 @@ val submitPhotoBar = listOf(
         selectedIcon = Icons.Filled.MotionPhotosAuto,
         unselectedIcon = Icons.Outlined.MotionPhotosAuto,
         route = "",
+        skinIcon = { it.captions },
     ),
 )
 
