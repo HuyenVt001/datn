@@ -140,7 +140,9 @@ fun GachaResultOverlay(
 
             Spacer(Modifier.height(20.dp))
 
-            if (outcome.refundTotal > 0) {
+            // Tong hoan + so du chi hien khi DA lat het: hien tu dau la nhin
+            // tong hoan tien doan duoc so la trung truoc ca khi lat.
+            if (allRevealed && outcome.refundTotal > 0) {
                 Text(
                     text = "+%,d Astrite returned".format(outcome.refundTotal),
                     color = SkinTheme.colors.accentGold,
@@ -148,11 +150,13 @@ fun GachaResultOverlay(
                 )
                 Spacer(Modifier.height(4.dp))
             }
-            Text(
-                text = "Balance: %,d Astrite".format(outcome.astriteAfter),
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 13.sp,
-            )
+            if (allRevealed) {
+                Text(
+                    text = "Balance: %,d Astrite".format(outcome.astriteAfter),
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 13.sp,
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -236,7 +240,6 @@ private fun ResultCardGrid(
                             entry = results[i],
                             revealed = i < revealed,
                             width = cardWidth,
-                            single = single,
                         )
                     }
                 }
@@ -256,7 +259,6 @@ private fun ResultCard(
     entry: RollResultDto,
     revealed: Boolean,
     width: Dp,
-    single: Boolean,
 ) {
     val density = LocalDensity.current
     val rotation by animateFloatAsState(
@@ -299,7 +301,9 @@ private fun ResultCard(
             modifier = Modifier.fillMaxWidth().height(width * CAPTION_RATIO),
             contentAlignment = Alignment.TopCenter,
         ) {
-            CardCaption(entry = entry, revealed = revealed, width = width)
+            // Ten hien khi MAT TRUOC da lo ra (qua nua cu lat), khong phai khi
+            // bat dau lat — hien som la lo ket qua truoc ca khi thay la bai.
+            CardCaption(entry = entry, revealed = rotation > 90f, width = width)
         }
     }
 }

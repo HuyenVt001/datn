@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -177,7 +178,7 @@ fun GachaScreen(
 
             else -> GachaContent(
                 state = uiState.state,
-                isRolling = uiState.isRolling,
+                rollingTimes = uiState.rollingTimes,
                 isAwaitingPayment = pendingOrderCode != null,
                 onBack = { navController.popBackStack() },
                 onShowRules = { showRules = true },
@@ -219,7 +220,7 @@ fun GachaScreen(
 @Composable
 private fun GachaContent(
     state: GachaStateDto,
-    isRolling: Boolean,
+    rollingTimes: Int?,
     isAwaitingPayment: Boolean,
     onBack: () -> Unit,
     onShowRules: () -> Unit,
@@ -228,6 +229,7 @@ private fun GachaContent(
     onCancelPayment: () -> Unit,
 ) {
     val density = LocalDensity.current
+    val isRolling = rollingTimes != null
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val bg = remember(constraints.maxWidth, constraints.maxHeight, density) {
@@ -258,33 +260,30 @@ private fun GachaContent(
         )
 
         // ==== Hang header — neo theo TOA DO TRONG ANH NEN ====
+        // GlassIconButton/AstriteBar tu no rong vung cham ra toi thieu 48dp
+        // quanh TAM duoc truyen vao — phan ve giu nguyen kich thuoc.
         GlassIconButton(
             icon = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
+            centerX = bg.x(BACK_CENTER_X),
+            centerY = bg.y(BAR_CENTER_Y),
             diameter = bg.len(ICON_DIAMETER),
             onClick = onBack,
-            modifier = Modifier.offset(
-                x = bg.x(BACK_CENTER_X - ICON_DIAMETER / 2f),
-                y = bg.y(BAR_CENTER_Y - ICON_DIAMETER / 2f),
-            ),
         )
 
         GlassIconButton(
             icon = Icons.AutoMirrored.Filled.HelpOutline,
             contentDescription = "Gacha rules",
+            centerX = bg.x(RULES_CENTER_X),
+            centerY = bg.y(BAR_CENTER_Y),
             diameter = bg.len(ICON_DIAMETER),
             onClick = onShowRules,
-            modifier = Modifier.offset(
-                x = bg.x(RULES_CENTER_X - ICON_DIAMETER / 2f),
-                y = bg.y(BAR_CENTER_Y - ICON_DIAMETER / 2f),
-            ),
         )
 
         AstriteBar(
             astrite = state.astrite,
             bg = bg,
             onTopup = onTopup,
-            modifier = Modifier.offset(x = bg.x(BAR_LEFT), y = bg.y(BAR_TOP)),
         )
 
         if (isAwaitingPayment) {
@@ -328,12 +327,14 @@ private fun GachaContent(
                     .padding(horizontal = bg.len(ROLL_BTN_LEFT)),
                 horizontalArrangement = Arrangement.spacedBy(bg.len(ROLL_BTN_GAP)),
             ) {
+                // Spinner chi hien tren DUNG nut vua bam (`rollingTimes`), nut
+                // con lai mo di — hai spinner cung quay nhin nhu app treo.
                 RollButton(
                     background = R.drawable.gacha_1rollbutton,
                     times = 1,
                     cost = state.costSingle,
                     enabled = !isRolling && state.astrite >= state.costSingle,
-                    loading = isRolling,
+                    loading = rollingTimes == 1,
                     modifier = Modifier.weight(1f),
                     onClick = { onRoll(1) },
                 )
@@ -342,7 +343,7 @@ private fun GachaContent(
                     times = state.tenTimes,
                     cost = state.costTen,
                     enabled = !isRolling && state.astrite >= state.costTen,
-                    loading = isRolling,
+                    loading = rollingTimes != null && rollingTimes != 1,
                     modifier = Modifier.weight(1f),
                     onClick = { onRoll(state.tenTimes) },
                 )
@@ -366,19 +367,26 @@ private fun GachaContent(
  * khung (user chot vi tri).
  *
  * Ca thanh bam duoc chu khong rieng dau `+`: vung cham cua dau `+` chi ~24dp,
- * qua nho de bam trung.
+ * qua nho de bam trung. Vung cham keo cao toi thieu 48dp (khung ve san chi cao
+ * ~24dp — duoi chuan cham cua Material) nhung phan VE van bam dung khung.
  */
 @Composable
 private fun AstriteBar(
     astrite: Int,
     bg: BgAnchor,
     onTopup: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
+    val barHeight = bg.len(BAR_BOTTOM - BAR_TOP)
+    val touchHeight = max(barHeight, 48.dp)
+
     Box(
-        modifier = modifier
+        modifier = Modifier
+            .offset(
+                x = bg.x(BAR_LEFT),
+                y = bg.y(BAR_CENTER_Y) - touchHeight / 2,
+            )
             .width(bg.len(BAR_RIGHT - BAR_LEFT + PLUS_DIAMETER / 2f))
-            .height(bg.len(BAR_BOTTOM - BAR_TOP))
+            .height(touchHeight)
             .clip(SkinTheme.shapes.pill)
             .clickable(onClick = onTopup),
     ) {
@@ -405,41 +413,59 @@ private fun AstriteBar(
                 .width(bg.len(BAR_RIGHT - BAR_TEXT_LEFT - PLUS_DIAMETER / 2f - 6f)),
         )
 
+        // Tam dau `+` dat DUNG mep phai khung (x = BAR_RIGHT) — nua trong nua
+        // ngoai vien pill, kieu nut nap cua cac game gacha. Vi the o chu ben
+        // trai chi duoc keo toi `BAR_RIGHT - PLUS/2 - 6` la dung mep trai icon.
         Icon(
             imageVector = Icons.Filled.AddCircle,
             contentDescription = "Top up Astrite",
             tint = Color.White,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .offset(x = -bg.len(PLUS_DIAMETER / 2f))
                 .size(bg.len(PLUS_DIAMETER)),
         )
     }
 }
 
-/** Icon tron nen kinh mo — de doc tren moi vung cua anh nen. */
+/**
+ * Icon tron nen kinh mo — de doc tren moi vung cua anh nen.
+ *
+ * Nhan TAM (theo toa do anh nen da quy doi) thay vi goc trai tren: vung cham
+ * duoc rong ra toi thieu 48dp quanh tam do (chuan Material), con hinh tron VE
+ * van dung [diameter] — 2 kich thuoc doc lap nhau.
+ */
 @Composable
 private fun GlassIconButton(
     icon: ImageVector,
     contentDescription: String,
+    centerX: Dp,
+    centerY: Dp,
     diameter: Dp,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
+    val touch = max(diameter, 48.dp)
     Box(
-        modifier = modifier
-            .size(diameter)
+        modifier = Modifier
+            .offset(x = centerX - touch / 2, y = centerY - touch / 2)
+            .size(touch)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.35f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier.size(diameter * 0.55f),
-        )
+        Box(
+            modifier = Modifier
+                .size(diameter)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.35f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = Color.White,
+                modifier = Modifier.size(diameter * 0.55f),
+            )
+        }
     }
 }
 
@@ -467,7 +493,9 @@ private fun RollButton(
         modifier = modifier
             .aspectRatio(ROLL_BTN_W / ROLL_BTN_H)
             .clip(RoundedCornerShape(percent = 50))
-            .alpha(if (enabled) 1f else 0.45f)
+            // Nut DANG quay van sang binh thuong (spinner da noi "cho ti") —
+            // chi mo khi bi khoa vi ly do khac (het tien / nut kia dang quay)
+            .alpha(if (enabled || loading) 1f else 0.45f)
             .clickable(enabled = enabled && !loading, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -562,9 +590,9 @@ private fun GachaRulesDialog(state: GachaStateDto, onDismiss: () -> Unit) {
                     color = SkinTheme.colors.textSecondary,
                     fontWeight = FontWeight.Bold,
                 )
-                RuleRow("Duplicate SSR", "+${state.refunds.SSR} ⭐", GachaRarity.SSR)
-                RuleRow("Duplicate SR", "+${state.refunds.SR} ⭐", GachaRarity.SR)
-                RuleRow("Duplicate R", "+${state.refunds.R} ⭐", GachaRarity.R)
+                RuleRow("Duplicate SSR", "+${state.refunds.SSR}", GachaRarity.SSR, astriteIcon = true)
+                RuleRow("Duplicate SR", "+${state.refunds.SR}", GachaRarity.SR, astriteIcon = true)
+                RuleRow("Duplicate R", "+${state.refunds.R}", GachaRarity.R, astriteIcon = true)
 
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -587,9 +615,9 @@ private fun GachaRulesDialog(state: GachaStateDto, onDismiss: () -> Unit) {
     )
 }
 
-/** Hang thong tin trong popup Rule. */
+/** Hang thong tin trong popup Rule. [astriteIcon] = them icon Astrite sau gia tri. */
 @Composable
-private fun RuleRow(label: String, value: String, color: Color) {
+private fun RuleRow(label: String, value: String, color: Color, astriteIcon: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -597,6 +625,14 @@ private fun RuleRow(label: String, value: String, color: Color) {
         Text(text = label, color = color, fontWeight = FontWeight.Bold)
         Spacer(Modifier.weight(1f))
         Text(text = value, color = SkinTheme.colors.textPrimary)
+        if (astriteIcon) {
+            Spacer(Modifier.width(4.dp))
+            Image(
+                painter = painterResource(R.drawable.ic_astrite),
+                contentDescription = "Astrite",
+                modifier = Modifier.size(14.dp),
+            )
+        }
     }
 }
 

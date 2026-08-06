@@ -20,8 +20,12 @@ import kotlinx.coroutines.launch
 data class GachaUiState(
     val status: LoadStatus = LoadStatus.Init(),
     val state: GachaStateDto = GachaStateDto(),
-    /** Dang goi POST /gacha/roll — khoa 2 nut de khong bam kep. */
-    val isRolling: Boolean = false,
+    /**
+     * So lan cua luot quay DANG chay (1/10), null = khong quay. Giu so lan chu
+     * khong phai Boolean de man hinh chi hien spinner tren dung nut vua bam —
+     * nut kia chi mo di.
+     */
+    val rollingTimes: Int? = null,
     /** Ket qua vua quay; khac null = dang hien man ket qua. */
     val outcome: RollOutcomeDto? = null,
     /** Loi cua rieng thao tac quay (khong thay the man bang man loi). */
@@ -29,6 +33,8 @@ data class GachaUiState(
     /** Trang thai luong nap Astrite (G6). */
     val topup: TopupUiState = TopupUiState(),
 ) {
+    val isRolling: Boolean get() = rollingTimes != null
+
     fun canAfford(cost: Int): Boolean = state.astrite >= cost
 }
 
@@ -87,7 +93,7 @@ class GachaViewModel @Inject constructor(
     fun roll(times: Int) {
         if (_uiState.value.isRolling) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRolling = true, rollError = null)
+            _uiState.value = _uiState.value.copy(rollingTimes = times, rollError = null)
             try {
                 val outcome = repository.roll(times)
                 // So du + pity doi sau moi lan quay -> doc lai tu server thay vi
@@ -100,7 +106,7 @@ class GachaViewModel @Inject constructor(
                 // (lan `load()` sau se dung lai) — con ket qua quay VAN phai hien.
                 val state = runCatching { repository.getState() }.getOrNull()
                 _uiState.value = _uiState.value.copy(
-                    isRolling = false,
+                    rollingTimes = null,
                     outcome = outcome,
                     state = state ?: _uiState.value.state,
                 )
@@ -109,7 +115,7 @@ class GachaViewModel @Inject constructor(
                 // state de so du/pity tren man hinh khong bi lech voi thuc te.
                 val state = runCatching { repository.getState() }.getOrNull()
                 _uiState.value = _uiState.value.copy(
-                    isRolling = false,
+                    rollingTimes = null,
                     state = state ?: _uiState.value.state,
                     rollError = e.serverMessage("Roll failed. Please try again."),
                 )
