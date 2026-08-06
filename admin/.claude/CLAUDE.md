@@ -110,3 +110,10 @@ Lệnh chạy dự án: GUIDE.md mục 2.
 ---
 
 > **Nhắc lại:** còn phân vân → **hỏi user**. Sửa code (dù nhỏ) → **cập nhật `admin/GUIDE.md`** (+ `SECURITY.md` nếu đụng bảo mật).
+
+
+
+sau khi sửa admin:
+
+cd admin && npm run build && npx firebase-tools deploy --only hosting:admin
+

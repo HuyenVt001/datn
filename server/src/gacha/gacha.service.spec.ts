@@ -214,6 +214,20 @@ describe('GachaService', () => {
       expect(out.results[0].tier).toBe('N');
       expect(out.results[0].astriteAmount).toBe(42);
     });
+
+    it('bậc bị ẩn hết mà đang chạm pity -> GIỮ NGUYÊN bộ đếm (bảo hiểm chưa bị tiêu)', async () => {
+      // Admin ẩn toàn bộ SSR trong lúc người chơi đã quay 99 lần không ra SSR
+      repo.listActiveItems.mockResolvedValue(POOL.filter((i) => i.rarity !== 'SSR'));
+      state = makeState({ pity: { R: 0, SR: 0, SSR: GACHA_PITY_SSR - 1 } });
+      service.floats = [0.99]; // random ra N, nhung pity ep thanh SSR
+
+      const out = await service.roll('u1', 1);
+
+      expect(out.results[0].tier).toBe('N'); // khong co SSR de phat -> tra Astrite
+      // Bo dem phai la 100 (99 + lan quay nay), KHONG duoc ve 0: mo lai vat pham
+      // la nguoi choi doi thuong SSR ngay lan quay sau.
+      expect(written?.pity.SSR).toBe(GACHA_PITY_SSR);
+    });
   });
 
   describe('quay x10', () => {

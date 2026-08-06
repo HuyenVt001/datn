@@ -1,7 +1,9 @@
 package com.example.snapget.feature.gacha
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,13 +35,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
+import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.RollOutcomeDto
 import com.example.snapget.core.network.dto.RollResultDto
@@ -150,10 +156,34 @@ fun GachaResultOverlay(
     }
 }
 
+/**
+ * Anh dai dien nam TRONG APK cua 1 vat pham, tra theo `(itemType, refId)`.
+ *
+ * Khung anh co `imageUrl` tren Cloudinary, con **skin va hieu ung thi khong** —
+ * asset cua chung dong goi trong APK (dung tinh than "admin khong sua duoc vat
+ * pham nay"). Khong co ham nay thi quay trung skin/hieu ung chi hien moi chu
+ * "SSR"/"SR" tren the ket qua.
+ *
+ * `find`/`firstOrNull` chiu duoc refId la (vat pham cua ban server moi hon ban
+ * app dang cai) bang cach tra `null` -> the ket qua roi ve hien bac nhu cu.
+ */
+@DrawableRes
+private fun localItemAsset(itemType: String?, refId: String?): Int? {
+    val id = refId?.toIntOrNull() ?: return null
+    return when (itemType) {
+        "SKIN" -> SkinRegistry.all.firstOrNull { it.id == id }?.thumbnail
+        "EFFECT" -> TouchEffectRegistry.all.firstOrNull { it.id == id }?.particleAsset
+        else -> null
+    }
+}
+
 /** 1 the ket qua — to theo mau pham chat, bac N hien thang so Astrite. */
 @Composable
 private fun ResultCard(entry: RollResultDto, revealed: Boolean) {
     val tierColor = GachaRarity.color(entry.tier)
+    val localAsset = remember(entry.itemType, entry.refId) {
+        localItemAsset(entry.itemType, entry.refId)
+    }
     val scale by animateFloatAsState(
         targetValue = if (revealed) 1f else 0.8f,
         animationSpec = tween(200),
@@ -186,6 +216,24 @@ private fun ResultCard(entry: RollResultDto, revealed: Boolean) {
                         color = tierColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
+                    )
+                }
+
+                // Skin/hieu ung: anh nam TRONG APK nen uu tien anh noi bo, khong
+                // cho `imageUrl` cua server (server khong co — xem [localItemAsset]).
+                localAsset != null -> {
+                    Image(
+                        painter = painterResource(localAsset),
+                        contentDescription = entry.itemName,
+                        contentScale = ContentScale.Fit,
+                        // Anh hat la PNG TRANG tren nen trong -> khong to thi chim
+                        // luon vao nen the. Anh thumbnail cua skin thi de nguyen.
+                        colorFilter = if (entry.itemType == "EFFECT") {
+                            ColorFilter.tint(tierColor)
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.fillMaxSize().padding(if (entry.itemType == "EFFECT") 18.dp else 6.dp),
                     )
                 }
 

@@ -4,28 +4,34 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -35,9 +41,13 @@ import kotlin.random.Random
  */
 private const val MAX_LIVE_EMISSIONS = 8
 
-/** 1 lan cham -> 1 cum hat, tu bien mat khi het vong doi. */
-private data class Emission(
-    val id: Long,
+/**
+ * 1 lan cham -> 1 cum hat, tu bien mat khi het vong doi.
+ *
+ * KHONG phai `data class`: [seeds] la mang, `equals`/`hashCode` sinh tu dong se
+ * so sanh theo tham chieu — vo nghia va gay hieu nham.
+ */
+private class Emission(
     val origin: Offset,
     /**
      * Moc bat dau, don vi ms, lay tu **dong ho don dieu khong lap vong**
@@ -45,11 +55,41 @@ private data class Emission(
      * cum cham cu **phat lai** moi 10 giay khi man hinh de yen — xem [nowMs].
      */
     val startMs: Long,
-    val seeds: List<Float>,
+    /** `FloatArray` chu khong `List<Float>`: khong boxing khi doc lai moi frame. */
+    val seeds: FloatArray,
 )
 
 /** Moc thoi gian don dieu, CUNG goc voi `withFrameMillis` tren Android. */
 private fun nowMs(): Long = System.nanoTime() / 1_000_000L
+
+/**
+ * Anh hat + bo loc mau da dung san.
+ *
+ * Tinh MOT LAN o composition roi dung lai cho moi frame: `ColorFilter.tint()`
+ * cap phat doi tuong moi, goi trong vong lap ve se sinh hang nghin object/giay.
+ */
+@Immutable
+internal class ParticleStyle(
+    val image: ImageBitmap?,
+    val tint: ColorFilter?,
+    /** Mau ve hinh tron du phong khi hieu ung chua co [TouchEffect.particleAsset]. */
+    val color: Color,
+)
+
+/** Nap anh hat (co cache theo resource id) + dung bo loc mau theo skin dang dung. */
+@Composable
+internal fun rememberParticleStyle(effect: TouchEffect): ParticleStyle {
+    val color = if (effect.useSkinAccent) SkinTheme.colors.accent else Color.White
+    val asset = effect.particleAsset
+    val image = if (asset == null) null else ImageBitmap.imageResource(asset)
+    return remember(image, color, effect.useSkinAccent) {
+        ParticleStyle(
+            image = image,
+            tint = if (effect.useSkinAccent) ColorFilter.tint(color) else null,
+            color = color,
+        )
+    }
+}
 
 /**
  * Lop phu bat cham toan man va ve hieu ung tai diem cham (SKIN_PLAN.md muc 2.5).
@@ -63,7 +103,7 @@ private fun nowMs(): Long = System.nanoTime() / 1_000_000L
  *
  * @param enabled `false` = tat cung. Ngoai ra con tat MEM theo ngu canh qua
  *   [LocalTouchEffectController] — man camera bat co do trong luc quay GIF.
- *   Tat thi khong dang ky `pointerInput` va khong ve Canvas, khong ton gi.
+ *   Tat thi khong ve Canvas va bo qua su kien cham, khong ton gi.
  */
 @Composable
 fun TouchEffectOverlay(
@@ -75,7 +115,10 @@ fun TouchEffectOverlay(
     // Doc co "tam ngung" NGAY TAI DAY chu khong o MainActivity: chi rieng overlay
     // recompose khi bat/tat quay GIF, khong keo ca cay UI recompose theo.
     val suppressed = LocalTouchEffectController.current.suppressed.value
-    val active = enabled && !suppressed && effect.id != TouchEffectRegistry.NONE_ID
+    val active = enabled &&
+        !suppressed &&
+        effect.id != TouchEffectRegistry.NONE_ID &&
+        effect.particleCount > 0
 
     val emissions = remember { mutableStateListOf<Emission>() }
     // Tang moi lan cham — dung lam khoa khoi dong lai dong ho. KHONG dung
@@ -84,29 +127,41 @@ fun TouchEffectOverlay(
     var emissionSeq by remember { mutableIntStateOf(0) }
     var frameMs by remember { mutableLongStateOf(0L) }
 
-    val density = LocalDensity.current
-    val accent = SkinTheme.colors.accent
-    val color = if (effect.useSkinAccent) accent else Color.White
+    val style = rememberParticleStyle(effect)
+    val density = LocalDensity.current.density
 
-    // Tat hieu ung giua chung -> bo cum dang bay, khong de treo lai tren man hinh.
-    LaunchedEffect(active) {
-        if (!active) {
-            emissions.clear()
-        }
-    }
+    /*
+     * Doc trong `pointerInput` ma KHONG lam key doi -> bo bat su kien KHONG bi
+     * huy/tao lai moi lan doi hieu ung. Truoc day key la `effect.id`: bam nhanh
+     * qua nhieu o trong tab Effects lam detector bi dung lai lien tuc, cham
+     * dang do bi nuot -> cam giac "do, giat".
+     */
+    val liveEffect by rememberUpdatedState(effect)
+    val liveActive by rememberUpdatedState(active)
+
+    /*
+     * Doi hieu ung (hoac tat hieu ung) -> bo cum dang bay.
+     *
+     * Khong bo thi cum sinh boi hieu ung cu se duoc ve tiep bang ANH + tham so
+     * cua hieu ung moi — bam nhanh qua vai o la thay hat doi hinh giua chung.
+     */
+    LaunchedEffect(active, effect.id) { emissions.clear() }
 
     /*
      * Dong ho CHI chay khi con cum dang bay (truoc day la `rememberInfiniteTransition`
      * chay suot vong doi app — ve lai moi frame ke ca khi khong co gi de ve).
      * Het cum thi vong lap thoat, khong ton frame nao nua.
      *
-     * `emissions.clear()` nam o day — trong coroutine, KHONG phai luc compose.
+     * ⚠️ `lastOrNull()` chu khong `last()`: `withFrameMillis` la diem treo, trong
+     * luc cho frame thi `LaunchedEffect(active, effect.id)` o tren co the da
+     * `clear()` danh sach -> `last()` nem `NoSuchElementException` lam **sap app**.
+     * Dung la kich ban "bam lien tuc vao tab Effects roi bam None".
      */
     LaunchedEffect(emissionSeq) {
         while (emissions.isNotEmpty()) {
             withFrameMillis { frameMs = it }
-            val newest = emissions.last().startMs
-            if (frameMs - newest > effect.durationMs) {
+            val newest = emissions.lastOrNull() ?: break
+            if (frameMs - newest.startMs > effect.durationMs) {
                 emissions.clear()
             }
         }
@@ -118,32 +173,31 @@ fun TouchEffectOverlay(
      * hieu ung lam Compose huy va dung lai ca cay ben duoi -> `rememberNavController`
      * trong `Navigation()` sinh lai -> nguoi dung bi nem ve man hinh dau tien ngay
      * khi vua chon hieu ung trong man Appearance.
+     *
+     * Cung ly do: `pointerInput` gan CO DINH (key `Unit`), khong nhanh bat/tat theo
+     * `active` — no chi "nghe lom" nen khi tat thi bo qua su kien, khong ton gi.
      */
     Box(
-        modifier = if (!active) {
-            modifier
-        } else {
-            modifier.pointerInput(effect.id) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        val down = event.changes.firstOrNull { it.pressed && !it.previousPressed }
-                        if (down != null) {
-                            if (emissions.size >= MAX_LIVE_EMISSIONS) {
-                                emissions.removeAt(0)
-                            }
-                            emissions.add(
-                                Emission(
-                                    id = down.id.value,
-                                    origin = down.position,
-                                    startMs = nowMs(),
-                                    seeds = List(effect.particleCount) { Random.nextFloat() },
-                                ),
-                            )
-                            emissionSeq++
-                        }
-                        // TUYET DOI khong consume(): consume la nut/scroll ben duoi chet
+        modifier = modifier.pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (!liveActive) continue
+                    val down = event.changes.firstOrNull { it.pressed && !it.previousPressed }
+                        ?: continue
+                    val current = liveEffect
+                    if (emissions.size >= MAX_LIVE_EMISSIONS) {
+                        emissions.removeAt(0)
                     }
+                    emissions.add(
+                        Emission(
+                            origin = down.position,
+                            startMs = nowMs(),
+                            seeds = FloatArray(current.particleCount) { Random.nextFloat() },
+                        ),
+                    )
+                    emissionSeq++
+                    // TUYET DOI khong consume(): consume la nut/scroll ben duoi chet
                 }
             }
         },
@@ -151,25 +205,32 @@ fun TouchEffectOverlay(
         content()
 
         if (active) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val scale = density.density
-                val sizePx = effect.sizeDp * scale
-                val distancePx = effect.distanceDp * scale
-                val swayPx = effect.swayDp * scale
+            /*
+             * `graphicsLayer()` = Canvas nay co RenderNode RIENG. Khong co no,
+             * moi frame hat bay se lam ban vung ve cua CA cay UI ben duoi (feed
+             * anh, camera preview...) va Compose phai ghi lai toan bo display
+             * list -> chinh la doan "lag" khi hat dang bay.
+             */
+            Canvas(modifier = Modifier.fillMaxSize().graphicsLayer()) {
+                val sizePx = effect.sizeDp * density
+                val distancePx = effect.distanceDp * density
+                val swayPx = effect.swayDp * density
+                val durationMs = effect.durationMs.coerceAtLeast(1)
 
                 emissions.forEach { emission ->
-                    val progress = (frameMs - emission.startMs).toFloat() / effect.durationMs
+                    val progress = (frameMs - emission.startMs).toFloat() / durationMs
                     // progress < 0: frame dau tien sau khi cham, dong ho chua kip
                     // tick lan nao -> bo qua 1 frame thay vi ve o vi tri sai.
                     if (progress < 0f || progress > 1f) return@forEach
 
-                    emission.seeds.forEachIndexed { index, seed ->
+                    for (index in emission.seeds.indices) {
                         drawParticle(
                             effect = effect,
-                            color = color,
+                            style = style,
                             origin = emission.origin,
                             index = index,
-                            seed = seed,
+                            total = emission.seeds.size,
+                            seed = emission.seeds[index],
                             progress = progress,
                             sizePx = sizePx,
                             distancePx = distancePx,
@@ -182,12 +243,22 @@ fun TouchEffectOverlay(
     }
 }
 
+/**
+ * Ve 1 hat.
+ *
+ * Tu 2026-08-06 ve **anh that** (`effect.particleAsset`) thay vi hinh hoc tu ve:
+ * bong tuyet 6 canh co nhanh, la co gan, sao 8 canh... dung y anh trong
+ * `Sources/skin-assets/effects/`. Ngoai chuyen giong thiet ke, cach nay con
+ * NHANH HON HAN: ban cu cap phat 1 `Path` moi cho MOI hat MOI frame
+ * (~80 object/frame = ~4.800 object/giay) nen GC chay lien tuc gay giat.
+ */
 @Suppress("LongParameterList")
 private fun DrawScope.drawParticle(
     effect: TouchEffect,
-    color: Color,
+    style: ParticleStyle,
     origin: Offset,
     index: Int,
+    total: Int,
     seed: Float,
     progress: Float,
     sizePx: Float,
@@ -196,7 +267,7 @@ private fun DrawScope.drawParticle(
 ) {
     // Goc phat: chia deu quanh vong tron roi lech nhe theo seed -> khong bi deu
     // tam tap nhu hinh sao 8 canh
-    val baseAngle = (index.toFloat() / effect.particleCount) * 2f * PI.toFloat()
+    val baseAngle = (index.toFloat() / total) * 2f * PI.toFloat()
     val angle = baseAngle + (seed - 0.5f) * 0.6f
     val travel = distancePx * (0.7f + seed * 0.6f)
 
@@ -224,83 +295,62 @@ private fun DrawScope.drawParticle(
     }
 
     val scale = effect.scaleFrom + (effect.scaleTo - effect.scaleFrom) * progress
+    // coerce: `fadeStart = 1f` se chia cho 0 -> alpha NaN/-Infinity
+    val fadeSpan = (1f - effect.fadeStart).coerceAtLeast(0.001f)
     val alpha = if (progress < effect.fadeStart) {
         1f
     } else {
-        1f - (progress - effect.fadeStart) / (1f - effect.fadeStart)
+        1f - (progress - effect.fadeStart) / fadeSpan
     }
     if (alpha <= 0f) return
 
     val center = origin + offset
-    val radius = sizePx * scale / 2f
-    val spin = effect.spinDegPerSec * (progress * effect.durationMs / 1000f) + seed * 360f
+    val side = sizePx * scale
+    // Duoi 1px thi ve cung khong ai thay, bo qua cho re
+    if (side < 1f) return
 
-    rotate(degrees = spin, pivot = center) {
-        when (effect.shape) {
-            ParticleShape.CIRCLE -> drawCircle(color, radius, center, alpha)
-
-            ParticleShape.RING -> {
-                drawCircle(color, radius, center, alpha * 0.7f, Stroke(width = radius * 0.22f))
-                // Cham sang lech tam — cho ra chat "bong bong" thay vi vong tron tron
-                drawCircle(
-                    color,
-                    radius * 0.18f,
-                    center + Offset(-radius * 0.35f, -radius * 0.35f),
-                    alpha,
-                )
-            }
-
-            ParticleShape.SPARK -> {
-                val arm = radius
-                val thin = radius * 0.16f
-                drawPath(sparkPath(center, arm, thin), color, alpha)
-            }
-
-            ParticleShape.LEAF -> drawPath(leafPath(center, radius), color, alpha)
-        }
+    val image = style.image
+    if (image == null) {
+        drawCircle(style.color, side / 2f, center, alpha)
+        return
     }
-}
 
-/** Tia 4 canh: 2 hinh thoi long nhau. */
-private fun sparkPath(center: Offset, arm: Float, thin: Float): Path = Path().apply {
-    moveTo(center.x, center.y - arm)
-    lineTo(center.x + thin, center.y)
-    lineTo(center.x, center.y + arm)
-    lineTo(center.x - thin, center.y)
-    close()
-    moveTo(center.x - arm, center.y)
-    lineTo(center.x, center.y - thin)
-    lineTo(center.x + arm, center.y)
-    lineTo(center.x, center.y + thin)
-    close()
-}
+    val sidePx = side.roundToInt()
+    val dstSize = IntSize(sidePx, sidePx)
+    val dstOffset = IntOffset(
+        (center.x - side / 2f).roundToInt(),
+        (center.y - side / 2f).roundToInt(),
+    )
 
-/** Hinh la: 2 duong cong doi xung gap nhau o 2 dau. */
-private fun leafPath(center: Offset, radius: Float): Path = Path().apply {
-    val top = Offset(center.x, center.y - radius)
-    val bottom = Offset(center.x, center.y + radius)
-    moveTo(top.x, top.y)
-    quadraticTo(center.x + radius, center.y, bottom.x, bottom.y)
-    quadraticTo(center.x - radius, center.y, top.x, top.y)
-    close()
+    // Khong xoay (vd Bubble) -> bo luon `rotate`, tiet kiem 1 cap save/restore moi hat
+    if (effect.spinDegPerSec == 0f) {
+        drawImage(image, dstOffset = dstOffset, dstSize = dstSize, alpha = alpha, colorFilter = style.tint)
+        return
+    }
+
+    val spin = effect.spinDegPerSec * (progress * effect.durationMs / 1000f) + seed * 360f
+    rotate(degrees = spin, pivot = center) {
+        drawImage(image, dstOffset = dstOffset, dstSize = dstSize, alpha = alpha, colorFilter = style.tint)
+    }
 }
 
 /** Ve hat len Canvas co san (dung cho o demo trong tab Effects). */
 internal fun DrawScope.drawEmission(
     effect: TouchEffect,
-    color: Color,
+    style: ParticleStyle,
     origin: Offset,
     progress: Float,
-    seeds: List<Float>,
+    seeds: FloatArray,
     density: Float,
 ) {
-    seeds.forEachIndexed { index, seed ->
+    for (index in seeds.indices) {
         drawParticle(
             effect = effect,
-            color = color,
+            style = style,
             origin = origin,
             index = index,
-            seed = seed,
+            total = seeds.size,
+            seed = seeds[index],
             progress = progress,
             sizePx = effect.sizeDp * density,
             distancePx = effect.distanceDp * density,
@@ -308,6 +358,3 @@ internal fun DrawScope.drawEmission(
         )
     }
 }
-
-/** Kich thuoc mac dinh cua o demo (tab Effects ve o giua o vuong). */
-internal fun Size.center(): Offset = Offset(width / 2f, height / 2f)

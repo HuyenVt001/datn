@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-04**.
+> Cập nhật lần cuối: **2026-08-06**.
 
 ---
 
@@ -113,8 +113,10 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
     │                       #   empty/ frame/ grid/ indicator/ input/ list/ pill/ sheet/ topbar/
     collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung cho cả 3 tab Appearance
     effect/                 #   **(2026-08-05 — P4)** HIỆU ỨNG TOUCH: TouchEffect (model) + TouchEffectRegistry
-    │                       #   (None + 5 hiệu ứng) + TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume;
-    │                       #   đồng hồ withFrameMillis CHỈ chạy khi còn cụm đang bay)
+    │                       #   (None + 5 hiệu ứng, mỗi hiệu ứng cắm 1 PNG trong drawable-nodpi) +
+    │                       #   TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume; đồng hồ
+    │                       #   withFrameMillis CHỈ chạy khi còn cụm đang bay; hạt vẽ bằng drawImage +
+    │                       #   ColorFilter.tint — 2026-08-06 bỏ hẳn vẽ Path, xem Changelog)
     │                       #   + TouchEffectController (tắt tạm theo ngữ cảnh — màn camera bật cờ lúc quay GIF)
     skin/                   #   **(2026-08-05 — P0/P1)** ENGINE SKIN: AppSkin + SkinColors/Icons/Shapes/Images,
     │                       #   LocalAppSkin + `SkinTheme` (cổng đọc token), SkinIcon (fallback Material),
@@ -266,7 +268,14 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
-- **2026-08-06 — P5 một phần: cắm asset gacha + thumbnail skin, cân lại màn Gacha**. Copy từ `Sources/skin-assets/` vào `res/drawable-nodpi/`: `gacha_bg` (nền toàn màn Gacha), `gacha_banner` (banner trang Daily — giữ đúng tỉ lệ 1080×608 thay vì cao cố định, chữ đè trên dải mờ gradient), `ic_astrite` (thay ⭐ emoji ở pill số dư, nút quay, popup nạp), `skin1_thumb`/`skin2_thumb` (tab Skins — `SkinThumbnail` tự ưu tiên ảnh khi `AppSkin.thumbnail != null`). Màn Gacha đại tu: pill Astrite đặt giữa header, tiêu đề kéo lên ~1/3 màn, chip **SSR pity** chuyển xuống ngay trên 2 nút quay (đúng ngữ cảnh trước khi bấm), dải gradient chân màn cho nút/chữ đọc được. ⚠️ Chữ trong màn Gacha giờ nằm ĐÈ LÊN ảnh nền không đổi theo skin → dùng trắng cố định (quy tắc "trắng vì nằm trên ảnh"). Còn lại của P5: icon vector + nút chụp theo skin, PNG hạt hiệu ứng.
+- **2026-08-06 — Hiệu ứng chạm vẽ bằng ẢNH THẬT + vá crash/lag khi bấm liên tục**. Copy 5 PNG `Sources/skin-assets/effects/effectN_particle.png` → `res/drawable-nodpi/`, `TouchEffect.particleAsset` được cắm cho cả 5 hiệu ứng. **Xoá hẳn** `ParticleShape` + 2 hàm dựng `Path`. Thêm 6 unit test (`TouchEffectRegistryTest`) khoá bất biến "hiệu ung quay ra được thì phải có ảnh hạt". Tham số Ember chỉnh lại đúng phiếu `EFFECTS.md` (10 hạt, scale→0.4, fade 0.55).
+  - 🎨 **Hạt không giống ảnh gốc.** Cả 5 hiệu ứng đang vẽ tay bằng `Canvas` (`CIRCLE/RING/SPARK/LEAF`) nên bông tuyết 6 cánh và ember hình thoi đều ra **hình tròn**. Nay vẽ thẳng ảnh bằng `drawImage` + `ColorFilter.tint` (ăn màu skin y như cũ).
+  - 🔴 **Bấm liên tục ở tab Effects → sập app.** `LaunchedEffect(emissionSeq)` gọi `emissions.last()` NGAY SAU `withFrameMillis`; trong lúc chờ frame, nhánh `LaunchedEffect(active)` có thể vừa `clear()` danh sách → `NoSuchElementException`. Kịch bản thật: bấm nhanh vài ô rồi bấm **None**. Nay dùng `lastOrNull() ?: break`.
+  - 🟠 **Bấm nhiều → ô demo tắt ngúm.** `EffectDemoCell` cho `round` tăng vô hạn rồi `animateFloatAsState` chạy đuổi theo; bấm 10 phát/giây làm `cycle = progress - (round-1)` âm cả chục → không vẽ gì. Đổi sang `Animatable` + `snapTo(0)`: luôn đúng 1 animation sống.
+  - ⚡ **Lag khi hạt đang bay.** (1) `sparkPath()`/`leafPath()` cấp phát `Path` mới cho **mỗi hạt mỗi frame** (~4.800 object/giây → GC liên tục) — nay không còn Path nào; (2) Canvas hạt thêm `graphicsLayer()` để có RenderNode riêng, không bắt cả cây UI ghi lại display list mỗi frame; (3) `pointerInput` đổi key `effect.id` → `Unit` (đọc qua `rememberUpdatedState`) nên đổi hiệu ứng không huỷ/dựng lại bộ bắt sự kiện; (4) `seeds` đổi `List<Float>` → `FloatArray` (hết boxing); (5) `applyEffect` bỏ qua khi bấm lại đúng ô đang dùng — trước đó mỗi lần bấm đều ghi SharedPreferences + bắn StateFlow toàn app.
+  - 🎁 **Quay trúng skin/hiệu ứng chỉ hiện chữ "SR".** Server không có `imageUrl` cho SKIN/EFFECT (asset nằm trong APK). `GachaResultSheet.localItemAsset(itemType, refId)` tra ảnh nội bộ từ `SkinRegistry`/`TouchEffectRegistry`; hạt (PNG trắng) được tô theo màu phẩm chất để không chìm vào nền thẻ.
+  - 🛡️ **Quay xong mất luôn màn kết quả.** `GachaViewModel.roll` gọi `repository.getState()` **ngoài** `runCatching`, nên chỉ cần bước đọc lại số dư lỗi mạng là cả lượt quay rơi vào `catch` → người dùng đã trả Astrite, đã nhận vật phẩm mà chỉ thấy "Roll failed". Nay kết quả luôn được hiện; lỗi quay thật thì đọc lại state để số dư/pity không lệch.
+- **2026-08-06 — P5 một phần: cắm asset gacha + thumbnail skin, cân lại màn Gacha**. Copy từ `Sources/skin-assets/` vào `res/drawable-nodpi/`: `gacha_bg` (nền toàn màn Gacha), `gacha_banner` (banner trang Daily — giữ đúng tỉ lệ 1080×608 thay vì cao cố định, chữ đè trên dải mờ gradient), `ic_astrite` (thay ⭐ emoji ở pill số dư, nút quay, popup nạp), `skin1_thumb`/`skin2_thumb` (tab Skins — `SkinThumbnail` tự ưu tiên ảnh khi `AppSkin.thumbnail != null`). Màn Gacha đại tu: pill Astrite đặt giữa header, tiêu đề kéo lên ~1/3 màn, chip **SSR pity** chuyển xuống ngay trên 2 nút quay (đúng ngữ cảnh trước khi bấm), dải gradient chân màn cho nút/chữ đọc được. ⚠️ Chữ trong màn Gacha giờ nằm ĐÈ LÊN ảnh nền không đổi theo skin → dùng trắng cố định (quy tắc "trắng vì nằm trên ảnh"). Còn lại của P5: icon vector + nút chụp theo skin (PNG hạt hiệu ứng đã cắm ngày 2026-08-06 — xem mục trên).
 - **2026-08-05 — Soát lại luồng mới: vá 4 lỗi ở overlay hiệu ứng, đăng xuất và poll đơn nạp**.
   - 🔴 **Chọn hiệu ứng xong bị văng về màn camera.** `TouchEffectOverlay` có nhánh `if (!active) { Box { content() }; return }` riêng, nên bật/tắt hiệu ứng làm Compose huỷ và dựng lại cả cây bên dưới → `rememberNavController` trong `Navigation()` sinh lại → back stack mất. Nay `content()` **luôn ở đúng một vị trí gọi**, chỉ modifier và Canvas đổi theo `active`.
   - 🔴 **Cụm hạt tự phát lại mỗi 10 giây.** Mốc thời gian lấy từ đồng hồ `rememberInfiniteTransition` chạy vòng 10s; sau đúng 1 vòng, `tick - startMs` quay về ~0 nên cụm cũ vẽ lại từ đầu. Nay mốc lấy từ `System.nanoTime()` (không lặp vòng), và đồng hồ đổi sang `withFrameMillis` **chỉ chạy khi còn cụm đang bay** — trước đây nó vẽ lại mỗi frame suốt vòng đời app dù không có gì để vẽ.

@@ -1,11 +1,14 @@
 package com.example.snapget.core.designsystem.effect
 
+import com.example.snapget.R
+
 /**
  * Danh sach hieu ung touch dong goi trong APK. Server chi giu ID
  * (`users.unlockedEffects[]`) — day la nguon su that duy nhat ve "hieu ung chay
  * nhu the nao".
  *
- * Tham so lay tu phieu `Sources/skin-assets/effects/EFFECTS.md`.
+ * Tham so lay tu phieu `Sources/skin-assets/effects/EFFECTS.md`; anh hat lay
+ * dung file trong phieu do (`res/drawable-nodpi/effectN_particle.png`).
  */
 object TouchEffectRegistry {
 
@@ -32,7 +35,7 @@ object TouchEffectRegistry {
         scaleFrom = 1f,
         scaleTo = 0.7f,
         fadeStart = 0.6f,
-        shape = ParticleShape.CIRCLE,
+        particleAsset = R.drawable.effect1_particle,
     )
 
     val Leaf = TouchEffect(
@@ -48,7 +51,7 @@ object TouchEffectRegistry {
         scaleFrom = 1f,
         scaleTo = 0.8f,
         fadeStart = 0.65f,
-        shape = ParticleShape.LEAF,
+        particleAsset = R.drawable.effect2_particle,
     )
 
     val Sparkle = TouchEffect(
@@ -63,7 +66,7 @@ object TouchEffectRegistry {
         scaleFrom = 1f,
         scaleTo = 0.3f,
         fadeStart = 0.5f,
-        shape = ParticleShape.SPARK,
+        particleAsset = R.drawable.effect3_particle,
     )
 
     val Bubble = TouchEffect(
@@ -79,22 +82,22 @@ object TouchEffectRegistry {
         scaleFrom = 0.6f,
         scaleTo = 1.1f, // phong dan roi vo
         fadeStart = 0.7f,
-        shape = ParticleShape.RING,
+        particleAsset = R.drawable.effect4_particle,
     )
 
     val Ember = TouchEffect(
         id = 5,
         displayName = "Ember",
-        particleCount = 9,
+        particleCount = 10,
         durationMs = 900,
         sizeDp = 18f,
         distanceDp = 70f,
         direction = EmitDirection.BURST_FALL,
         spinDegPerSec = 90f,
         scaleFrom = 1f,
-        scaleTo = 0.2f,
-        fadeStart = 0.45f,
-        shape = ParticleShape.CIRCLE,
+        scaleTo = 0.4f,
+        fadeStart = 0.55f,
+        particleAsset = R.drawable.effect5_particle,
     )
 
     /** Thu tu trong list = thu tu hien o tab Effects; None luon dung dau. */

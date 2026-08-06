@@ -88,13 +88,22 @@ class AppearanceViewModel @Inject constructor(
 
     /** Ap dung skin. Bo qua neu chua so huu (UI cung da khoa — chan ca 2 lop). */
     fun applySkin(id: Int) {
+        if (id == _uiState.value.currentSkinId) return
         if (!_uiState.value.ownsSkin(id)) return
         settingsPreferences.setSkinId(id)
         _uiState.value = _uiState.value.copy(currentSkinId = id)
     }
 
-    /** Ap dung hieu ung cham. */
+    /**
+     * Ap dung hieu ung cham.
+     *
+     * Bam LAI dung o dang dung -> thoat luon: o tab Effects, bam o cung la
+     * "chay lai demo" nen nguoi dung bam lien tuc chuc lan la binh thuong. Khong
+     * chan thi moi lan bam deu ghi SharedPreferences (ghi dia that) + ban tin
+     * ra StateFlow toan app.
+     */
     fun applyEffect(id: Int) {
+        if (id == _uiState.value.currentEffectId) return
         if (!_uiState.value.ownsEffect(id)) return
         settingsPreferences.setTouchEffectId(id)
         _uiState.value = _uiState.value.copy(currentEffectId = id)

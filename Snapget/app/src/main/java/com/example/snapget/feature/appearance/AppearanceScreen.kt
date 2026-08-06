@@ -1,6 +1,7 @@
 package com.example.snapget.feature.appearance
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -33,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +52,7 @@ import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.effect.TouchEffect
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
 import com.example.snapget.core.designsystem.effect.drawEmission
+import com.example.snapget.core.designsystem.effect.rememberParticleStyle
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
@@ -305,31 +309,50 @@ private fun EffectDemoCell(effect: TouchEffect, replay: Int) {
         return
     }
 
-    var round by remember { mutableIntStateOf(0) }
-    val seeds = remember(round) { List(effect.particleCount) { Random.nextFloat() } }
-    val progress by animateFloatAsState(
-        targetValue = round.toFloat(),
-        animationSpec = tween(effect.durationMs),
-        label = "effect-demo",
-    )
+    /*
+     * `Animatable` + `snapTo(0)` chu KHONG phai `animateFloatAsState` toi mot
+     * `round` tang mai.
+     *
+     * Ban cu: moi lan bam thi `round++` va animation chay toi gia tri moi. Bam
+     * 10 phat trong 1 giay -> `round = 10` trong khi `progress` moi toi ~1.3,
+     * `cycle = progress - (round - 1)` am ca chuc -> **o demo tat ngum** cho toi
+     * khi animation duoi kip. Nhin y het "bam nhieu qua thi lag/dung hinh".
+     *
+     * Ban moi: moi lan bam la ve 0 roi chay lai — luon dung 1 animation song,
+     * bam bao nhieu lan cung the.
+     */
+    val progress = remember { Animatable(0f) }
+    val seeds = remember(replay, effect.id) {
+        FloatArray(effect.particleCount) { Random.nextFloat() }
+    }
+    val style = rememberParticleStyle(effect)
     val density = LocalDensity.current.density
-    val accent = SkinTheme.colors.accent
 
     // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay ca 6 o cung dien;
-    // moi lan bam o (replay doi) thi chay them 1 vong nua.
-    LaunchedEffect(replay) { round++ }
+    // moi lan bam o (replay doi) thi chay lai tu dau.
+    LaunchedEffect(replay, effect.id) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(effect.durationMs.coerceAtLeast(1), easing = LinearEasing),
+        )
+    }
 
     Box(
         modifier = Modifier.fillMaxSize().clip(SkinTheme.shapes.input),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val cycle = progress - (round - 1)
-            if (cycle in 0f..1f) {
+        // graphicsLayer: o demo tu ve tren RenderNode rieng, hat chay khong lam
+        // ban va bat `LazyVerticalGrid` ghi lai display list moi frame.
+        Canvas(modifier = Modifier.fillMaxSize().graphicsLayer()) {
+            // Doc `progress.value` TRONG lambda ve -> chi pha ban khau ve,
+            // khong keo theo recomposition.
+            val cycle = progress.value
+            if (cycle > 0f && cycle < 1f) {
                 // Hat bay trong o nho nen thu nho quang duong lai cho vua khung
                 drawEmission(
                     effect = effect,
-                    color = accent,
-                    origin = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                    style = style,
+                    origin = Offset(size.width / 2f, size.height / 2f),
                     progress = cycle,
                     seeds = seeds,
                     density = density * 0.55f,

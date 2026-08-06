@@ -224,7 +224,9 @@ fun CirclePreview() {
                 onClick = {},
                 innerContent = {
                     AsyncImage(
-                        model = R.drawable.avatar,
+                        // Anh mau cua preview. `avatar.jpg` da bi xoa khoi res/ nen
+                        // dung tam icon co san — preview chi can "co anh trong vong tron".
+                        model = R.drawable.ic_launcher_foreground,
                         contentDescription = "Avatar",
                         contentScale = ContentScale.Crop,
                     )

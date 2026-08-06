@@ -60,26 +60,12 @@ data class TouchEffect(
      */
     val useSkinAccent: Boolean = true,
     /**
-     * Anh hat (PNG trang co alpha, 192×192). `null` = ve bang Canvas thuan.
+     * Anh hat that (PNG trang co alpha, 192×192) trong `res/drawable-nodpi/`,
+     * copy tu `Sources/skin-assets/effects/`. Day la **nguon su that ve hinh
+     * dang hat** — truoc 2026-08-06 hat duoc ve tay bang `Canvas` nen bong tuyet
+     * ra hinh tron, ember ra hinh tron... khong giong anh goc.
      *
-     * P5 se cam asset that tu `Sources/skin-assets/effects/`; tu gio toi luc do
-     * ca 5 hieu ung deu ve bang hinh hoc nen VAN CHAY DUOC, chi khac hinh dang.
+     * `null` = chua co anh -> ve tam hinh tron (khong bao gio de hat vo hinh).
      */
     @DrawableRes val particleAsset: Int? = null,
-    /** Hinh ve khi chua co [particleAsset]. */
-    val shape: ParticleShape = ParticleShape.CIRCLE,
 )
-
-/** Hinh hat ve bang Canvas khi chua co asset that. */
-enum class ParticleShape {
-    CIRCLE,
-
-    /** Bong bong: vong tron rong + cham sang nho. */
-    RING,
-
-    /** Tia 4 canh (lap lanh). */
-    SPARK,
-
-    /** Hinh giot/la. */
-    LEAF,
-}

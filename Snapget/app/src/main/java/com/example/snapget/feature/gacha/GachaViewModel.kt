@@ -90,16 +90,27 @@ class GachaViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isRolling = true, rollError = null)
             try {
                 val outcome = repository.roll(times)
+                // So du + pity doi sau moi lan quay -> doc lai tu server thay vi
+                // tu tru o app (pity chi server biet).
+                //
+                // ⚠️ `runCatching`: lan quay DA tinh tien va DA phat vat pham roi.
+                // Neu de loi cua rieng buoc doc lai state nem ra ngoai thi ca cum
+                // roi vao `catch` -> nguoi dung mat tien, mat luon man ket qua va
+                // chi thay "Roll failed". Doc state that bai thi giu so du cu
+                // (lan `load()` sau se dung lai) — con ket qua quay VAN phai hien.
+                val state = runCatching { repository.getState() }.getOrNull()
                 _uiState.value = _uiState.value.copy(
                     isRolling = false,
                     outcome = outcome,
-                    // So du + pity doi sau moi lan quay -> doc lai tu server thay vi
-                    // tu tru o app (pity chi server biet)
-                    state = repository.getState(),
+                    state = state ?: _uiState.value.state,
                 )
             } catch (e: Exception) {
+                // Quay hong: co the server da tru tien roi moi dut mang. Doc lai
+                // state de so du/pity tren man hinh khong bi lech voi thuc te.
+                val state = runCatching { repository.getState() }.getOrNull()
                 _uiState.value = _uiState.value.copy(
                     isRolling = false,
+                    state = state ?: _uiState.value.state,
                     rollError = e.serverMessage("Roll failed. Please try again."),
                 )
             }

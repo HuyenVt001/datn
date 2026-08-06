@@ -109,30 +109,19 @@ export class GachaService {
    * SR. Chi bac VUA TRUNG duoc reset bo dem (dung spec) — nen sau khi trung SSR
    * o lan thu 100, bo dem R van giu nguyen va co the ep ra R ngay lan sau.
    *
-   * `pity` bi SUA TAI CHO (da tang truoc khi goi, reset sau khi chon).
+   * CHI chon bac — **khong dung vao `pity`**. Bo dem chi duoc reset khi vat pham
+   * that su den tay nguoi choi (xem [roll]); neu reset ngay tai day thi truong
+   * hop "bac do dang bi admin an het" se an mat bao hiem: cham moc 100 lan quay,
+   * nhan Astrite thay vat pham, ma bo dem van ve 0.
    */
   private pickTier(pity: GachaPity, rnd: number): RollTier {
-    let tier: RollTier;
-    if (pity.SSR >= PITY_LIMIT.SSR) {
-      tier = 'SSR';
-    } else if (pity.SR >= PITY_LIMIT.SR) {
-      tier = 'SR';
-    } else if (pity.R >= PITY_LIMIT.R) {
-      tier = 'R';
-    } else if (rnd < TIER_THRESHOLD_SSR) {
-      tier = 'SSR';
-    } else if (rnd < TIER_THRESHOLD_SR) {
-      tier = 'SR';
-    } else if (rnd < TIER_THRESHOLD_R) {
-      tier = 'R';
-    } else {
-      tier = 'N';
-    }
-
-    if (tier !== 'N') {
-      pity[tier] = 0;
-    }
-    return tier;
+    if (pity.SSR >= PITY_LIMIT.SSR) return 'SSR';
+    if (pity.SR >= PITY_LIMIT.SR) return 'SR';
+    if (pity.R >= PITY_LIMIT.R) return 'R';
+    if (rnd < TIER_THRESHOLD_SSR) return 'SSR';
+    if (rnd < TIER_THRESHOLD_SR) return 'SR';
+    if (rnd < TIER_THRESHOLD_R) return 'R';
+    return 'N';
   }
 
   /** Tap vat pham da so huu tuong ung voi loai vat pham. */
@@ -226,7 +215,9 @@ export class GachaService {
           continue;
         }
 
-        // Bac khong co vat pham nao dang bat -> ha ve N de nguoi choi khong mat trang
+        // Bac khong co vat pham nao dang bat (admin an het) -> ha ve N de nguoi
+        // choi khong mat trang. GIU NGUYEN bo dem pity: chua nhan duoc vat pham
+        // thi bao hiem chua duoc tieu — mo lai vat pham la doi thuong ngay.
         if (!pool.some((p) => p.rarity === tier)) {
           const amount = this.randomAstrite();
           refundTotal += amount;
@@ -235,6 +226,8 @@ export class GachaService {
           continue;
         }
 
+        // Chi tieu bao hiem khi CHAC CHAN co vat pham de phat
+        state.pity[tier] = 0;
         const entry = this.drawItem(tier, pool, state);
         refundTotal += entry.refundAstrite;
         results.push(entry);
