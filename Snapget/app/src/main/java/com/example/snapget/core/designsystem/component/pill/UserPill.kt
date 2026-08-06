@@ -57,10 +57,10 @@ data class UserPillConfig(
 
 @Composable
 fun UserPill(
+    modifier: Modifier = Modifier,
     user: User? = null,
     isEveryoneOption: Boolean = false,
     config: UserPillConfig = UserPillConfig(),
-    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -125,9 +125,9 @@ fun UserPill(
 // Convenience composables using the main UserPill with different configurations
 @Composable
 fun UserPillWithIcon(
+    modifier: Modifier = Modifier,
     user: User? = null,
     isEveryoneOption: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     UserPill(
         user = user,
@@ -148,9 +148,9 @@ fun UserPillWithIcon(
 
 @Composable
 fun UserPillWithArrow(
+    modifier: Modifier = Modifier,
     user: User? = null,
     isEveryoneOption: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     UserPill(
         user = user,
@@ -162,9 +162,9 @@ fun UserPillWithArrow(
 
 @Composable
 fun UserPillNoTrailing(
+    modifier: Modifier = Modifier,
     user: User? = null,
     isEveryoneOption: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     UserPill(
         user = user,
@@ -177,9 +177,9 @@ fun UserPillNoTrailing(
 @Composable
 fun UserList(
     users: List<User>,
+    modifier: Modifier = Modifier,
     showEveryone: Boolean = false,
     config: UserPillConfig = UserPillConfig(),
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
         if (showEveryone) {
@@ -202,8 +202,8 @@ fun UserList(
 @Composable
 fun UserListWithArrows(
     users: List<User>,
-    showEveryone: Boolean = false,
     modifier: Modifier = Modifier,
+    showEveryone: Boolean = false,
 ) {
     UserList(
         users = users,
@@ -216,8 +216,8 @@ fun UserListWithArrows(
 @Composable
 fun UserListWithIcons(
     users: List<User>,
-    showEveryone: Boolean = false,
     modifier: Modifier = Modifier,
+    showEveryone: Boolean = false,
 ) {
     UserList(
         users = users,
@@ -238,8 +238,8 @@ fun UserListWithIcons(
 @Composable
 fun UserListNoTrailing(
     users: List<User>,
-    showEveryone: Boolean = false,
     modifier: Modifier = Modifier,
+    showEveryone: Boolean = false,
 ) {
     UserList(
         users = users,

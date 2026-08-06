@@ -621,9 +621,11 @@ fun GenericListExamples() {
 @Composable
 fun TotalFriendComponent(
     totalFriends: Int,
+    // `modifier` phai la tham so TUY CHON DAU TIEN (quy uoc Compose) — de nguoi
+    // goi truyen duoc theo vi tri ma khong phai dat ten moi tham so truoc no
+    modifier: Modifier = Modifier,
     maxFriends: Int = 20,
     onAddFriendClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,

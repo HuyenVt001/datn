@@ -1,6 +1,7 @@
 package com.example.snapget.feature.friends.data
 
 import android.content.Context
+import androidx.core.content.edit
 
 /**
  * Luu ma moi ket ban khi user bam deep link luc CHUA dang nhap: giu lai ma
@@ -15,9 +16,7 @@ object PendingInviteStore {
     /** Luu ma moi cho xu ly sau khi dang nhap. */
     fun save(context: Context, inviteCode: String) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_CODE, inviteCode)
-            .apply()
+            .edit { putString(KEY_CODE, inviteCode) }
     }
 
     /** Lay ma dang cho va XOA luon (moi ma chi xu ly 1 lan). */
@@ -25,7 +24,7 @@ object PendingInviteStore {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val code = prefs.getString(KEY_CODE, null)
         if (code != null) {
-            prefs.edit().remove(KEY_CODE).apply()
+            prefs.edit { remove(KEY_CODE) }
         }
         return code
     }

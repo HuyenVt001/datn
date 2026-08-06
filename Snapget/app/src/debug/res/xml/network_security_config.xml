@@ -8,11 +8,18 @@
 
     Ban RELEASE dung src/main/res/xml/network_security_config.xml (cam ca hai).
 -->
-<network-security-config>
+<!--
+    tools:ignore — lint canh bao 2 muc nay "nguy hiem o ban release", nhung file
+    nay nam trong `src/debug/` nen KHONG BAO GIO vao ban release: AGP chi tron
+    source set `debug` cho buildType debug. Ban release lay file cung ten o
+    `src/main/` (cam ca cleartext lan CA cua user).
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="InsecureBaseConfiguration">
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
+            <certificates src="user" tools:ignore="AcceptsUserCertificates" />
         </trust-anchors>
     </base-config>
 </network-security-config>

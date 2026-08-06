@@ -1,6 +1,5 @@
 package com.example.snapget.feature.gacha
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.browser.customtabs.CustomTabsIntent
@@ -58,6 +57,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -119,7 +119,7 @@ fun GachaScreen(
     LaunchedEffect(uiState.topup.checkoutUrl) {
         uiState.topup.checkoutUrl?.let { url ->
             runCatching {
-                CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+                CustomTabsIntent.Builder().build().launchUrl(context, url.toUri())
             }.onFailure {
                 Toast.makeText(context, "No browser to open the payment page.", Toast.LENGTH_LONG)
                     .show()

@@ -56,6 +56,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -119,10 +120,15 @@ fun BoxScope.FlyingEmojiOverlay(flyingEmojis: SnapshotStateList<FlyingEmoji>) {
                 fontSize = 34.sp,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(
-                        x = flying.xOffsetDp.dp,
-                        y = (-160).dp - (280.dp * progress.value),
-                    )
+                    // Ban lambda: emoji bay chay animation MOI FRAME — ban
+                    // `offset(x, y)` bat recompose lai Text moi frame, ban nay
+                    // chi chay lai khau dat vi tri.
+                    .offset {
+                        IntOffset(
+                            flying.xOffsetDp.dp.roundToPx(),
+                            ((-160).dp - (280.dp * progress.value)).roundToPx(),
+                        )
+                    }
                     .alpha(1f - progress.value * progress.value),
             )
         }

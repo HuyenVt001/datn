@@ -46,8 +46,15 @@ class SnapgetMessagingService : FirebaseMessagingService() {
 
         /**
          * Create the default notification channel (Android O+). Call once at app start.
+         *
+         * ⚠️ Phai rao SDK: class `NotificationChannel` chi ton tai tu API 26.
+         * Thieu rao la app SAP NGAY LUC MO (NoClassDefFoundError) tren Android
+         * 7.0/7.1 — minSdk 24 van ho tro 2 ban nay. Duoi 26 khong co khai niem
+         * channel, notification van hien binh thuong.
          */
         fun createDefaultChannel(context: Context) {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return
+
             val channel = android.app.NotificationChannel(
                 CHANNEL_ID,
                 "Snapget",

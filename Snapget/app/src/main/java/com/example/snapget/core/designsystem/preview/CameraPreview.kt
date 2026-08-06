@@ -93,15 +93,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
 import com.example.snapget.core.designsystem.effect.LocalTouchEffectController
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.io.File
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -595,7 +598,7 @@ fun CameraPreviewWithZoom(
                             shadowElevation = 4.dp,
                         ) {
                             Text(
-                                text = "${String.format("%.1f", zoomRatio)}x",
+                                text = "${String.format(Locale.US, "%.1f", zoomRatio)}x",
                                 color = Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
@@ -645,7 +648,7 @@ fun CameraPreviewWithZoom(
                                         )
 
                                         Text(
-                                            text = "${String.format("%.1f", zoomRatio)}x",
+                                            text = "${String.format(Locale.US, "%.1f", zoomRatio)}x",
                                             color = Color.White,
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Medium,
@@ -676,10 +679,16 @@ fun CameraPreviewWithZoom(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .offset(
-                                            x = (focusPoint.first - 40).dp,
-                                            y = (focusPoint.second - 40).dp,
-                                        )
+                                        // Ban lambda: `focusPoint` la state, ban
+                                        // `offset(x, y)` se recompose lai ca cum
+                                        // moi lan cham, ban nay chi chay lai khau
+                                        // dat vi tri.
+                                        .offset {
+                                            IntOffset(
+                                                (focusPoint.first - 40).dp.roundToPx(),
+                                                (focusPoint.second - 40).dp.roundToPx(),
+                                            )
+                                        }
                                         .size(80.dp)
                                         .clip(CircleShape)
                                         .background(Color.Transparent)
@@ -858,17 +867,18 @@ fun CameraPreviewWithZoom(
  */
 private fun normalizeCapturedPhoto(file: File, mirror: Boolean) {
     try {
-        @Suppress("DEPRECATION")
-        val exif = android.media.ExifInterface(file.absolutePath)
+        // androidx.exifinterface chu KHONG phai android.media: ban androidx doc
+        // duoc tag tren moi ban Android va khong bi deprecate.
+        val exif = ExifInterface(file.absolutePath)
         val rotation = when (
             exif.getAttributeInt(
-                android.media.ExifInterface.TAG_ORIENTATION,
-                android.media.ExifInterface.ORIENTATION_NORMAL,
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
             )
         ) {
-            android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
             else -> 0f
         }
         if (rotation == 0f && !mirror) return

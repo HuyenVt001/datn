@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.createBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -707,7 +708,7 @@ private fun bakeImage(
     val y = (source.height - squareSize) / 2
     val square = Bitmap.createBitmap(source, x, y, squareSize, squareSize)
 
-    val output = Bitmap.createBitmap(squareSize, squareSize, Bitmap.Config.ARGB_8888)
+    val output = createBitmap(squareSize, squareSize)
     val canvas = android.graphics.Canvas(output)
 
     val photoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

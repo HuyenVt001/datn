@@ -2,5 +2,7 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
   <background android:drawable="@mipmap/ic_launcher_background"/>
   <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-  <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
+  <!-- monochrome tro thang vao foreground: 5 file ic_launcher_monochrome.png
+       tung la BAN SAO Y HET foreground (lint IconDuplicates) -> xoa, do nhe APK -->
+  <monochrome android:drawable="@mipmap/ic_launcher_foreground"/>
 </adaptive-icon>

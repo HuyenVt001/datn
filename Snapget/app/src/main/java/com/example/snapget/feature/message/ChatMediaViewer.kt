@@ -63,6 +63,8 @@ import com.example.snapget.core.designsystem.skin.SkinTheme
  * - Video (attachment tin reply bai dang): phat ExoPlayer lap lai.
  * Dong bang nut X hoac back.
  */
+// RESIZE_MODE_FIT cua media3 con gan nhan UnstableApi — opt-in co chu dich
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun MediaViewerDialog(
     url: String,

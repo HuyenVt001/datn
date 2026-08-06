@@ -89,10 +89,43 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // Asset RIENG cua tung skin gom vao 1 thu muc/skin (res-skins/skin1_snow,
+    // res-skins/skin2_forest — cau truc ben trong van la drawable/,
+    // drawable-nodpi/ chuan). Khai o day de AAPT gop chung voi res/ luc build;
+    // designer thay skin nao chi dung dung thu muc skin do.
+    sourceSets {
+        getByName("main") {
+            res.srcDirs(
+                "src/main/res",
+                "src/main/res-skins/skin1_snow",
+                "src/main/res-skins/skin2_forest",
+            )
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    lint {
+        // Lint phai SACH truoc khi xuat APK: `./gradlew :app:lintDebug` = 0 error,
+        // 0 warning (dot don 2026-08-06). Co canh bao moi thi sua, dung de don.
+        warningsAsErrors = true
+        abortOnError = true
+
+        // ==== 3 luat CO Y tat, khong phai bo qua cho tien ====
+        disable +=
+            setOf(
+                // "Co ban thu vien moi hon" — 116 canh bao. Phien ban duoc CHOT trong
+                // gradle/libs.versions.toml va bo nay da chay on dinh; nang version
+                // hang loat ngay truoc khi bao ve DATN la rui ro thuan tuy, khong doi
+                // lai chuc nang nao. Nang co chu dich thi sua TOML, khong phai vi lint giuc.
+                "GradleDependency",
+                "SimilarGradleDependency",
+                "AndroidGradlePluginVersion",
+            )
     }
 }
 
@@ -170,7 +203,7 @@ dependencies {
 
     // Guava — provides com.google.common.util.concurrent.ListenableFuture on the
     // COMPILE classpath, which CameraX exposes in its public API.
-    implementation("com.google.guava:guava:32.1.3-android")
+    implementation(libs.guava)
 
     // Firebase (BOM manages versions of the modules below)
     implementation(platform(libs.firebase.bom))

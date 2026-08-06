@@ -16,9 +16,13 @@ import com.example.snapget.core.designsystem.skin.SkinImages
  * Da cam DU bo asset rieng (2026-08-06): `thumbnail`, `captureButton` va 12 icon
  * ([AppSkin.icons]). ⚠️ Noi dung hien tai la **PLACEHOLDER** (icon ve giong het
  * ban Material fallback, nut chup la vong tron accent) — muc dich la de duong
- * ong chay san: co thiet ke that thi **ghi de file cung ten** trong
- * `res/drawable/skin1_ic_*.xml` (vector) va `res/drawable-nodpi/skin1_btn_capture.webp`,
- * KHONG can sua dong code nao.
+ * ong chay san.
+ *
+ * TOAN BO asset cua skin nay nam trong **`app/src/main/res-skins/skin1_snow/`**
+ * (user chot cach gom theo skin; da khai `res.srcDirs` trong build.gradle.kts):
+ * icon vector o `drawable/skin1_ic_*.xml`, nut chup + thumbnail o
+ * `drawable-nodpi/`. Co thiet ke that thi **ghi de file cung ten** trong thu
+ * muc do, KHONG can sua dong code nao.
  */
 val SnowSkin = AppSkin(
     id = 1,

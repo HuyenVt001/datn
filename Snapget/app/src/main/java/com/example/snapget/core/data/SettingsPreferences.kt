@@ -1,6 +1,7 @@
 package com.example.snapget.core.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.model.Setting
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -35,7 +36,7 @@ class SettingsPreferences @Inject constructor(
 
     /** Luu trang thai toggle moi cho 1 setting. */
     fun setToggle(settingId: String, isToggled: Boolean) {
-        prefs.edit().putBoolean(settingId, isToggled).apply()
+        prefs.edit { putBoolean(settingId, isToggled) }
     }
 
     /** Doc truc tiep trang thai toggle 1 setting (widget doc live, khong qua list). */
@@ -55,7 +56,7 @@ class SettingsPreferences @Inject constructor(
 
     /** Doi skin: persist + emit de toan app ve lai ngay, khong can restart. */
     fun setSkinId(id: Int) {
-        prefs.edit().putInt(KEY_SKIN_ID, id).apply()
+        prefs.edit { putInt(KEY_SKIN_ID, id) }
         _skinId.value = id
     }
 
@@ -65,7 +66,7 @@ class SettingsPreferences @Inject constructor(
     val touchEffectId: StateFlow<Int> = _touchEffectId.asStateFlow()
 
     fun setTouchEffectId(id: Int) {
-        prefs.edit().putInt(KEY_TOUCH_EFFECT_ID, id).apply()
+        prefs.edit { putInt(KEY_TOUCH_EFFECT_ID, id) }
         _touchEffectId.value = id
     }
 
@@ -77,7 +78,10 @@ class SettingsPreferences @Inject constructor(
      * cung may duoc dung mien phi do cua tai khoan truoc.
      */
     fun resetAppearance() {
-        prefs.edit().remove(KEY_SKIN_ID).remove(KEY_TOUCH_EFFECT_ID).apply()
+        prefs.edit {
+            remove(KEY_SKIN_ID)
+            remove(KEY_TOUCH_EFFECT_ID)
+        }
         _skinId.value = SkinRegistry.DEFAULT_ID
         _touchEffectId.value = NO_EFFECT_ID
     }

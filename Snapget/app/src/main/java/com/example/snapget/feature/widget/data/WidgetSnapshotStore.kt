@@ -1,6 +1,7 @@
 package com.example.snapget.feature.widget.data
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -31,18 +32,18 @@ class WidgetSnapshotStore @Inject constructor(
     }
 
     fun save(snapshot: WidgetSnapshot) {
-        prefs.edit()
-            .putString(KEY_STATE, snapshot.kind.name)
-            .putInt(KEY_STREAK, snapshot.streak)
-            .putString(KEY_MOMENT_ID, snapshot.momentId)
-            .putString(KEY_IMAGE_PATH, snapshot.imagePath)
-            .putLong(KEY_UPDATED_AT, snapshot.updatedAt)
-            .apply()
+        prefs.edit {
+            putString(KEY_STATE, snapshot.kind.name)
+            putInt(KEY_STREAK, snapshot.streak)
+            putString(KEY_MOMENT_ID, snapshot.momentId)
+            putString(KEY_IMAGE_PATH, snapshot.imagePath)
+            putLong(KEY_UPDATED_AT, snapshot.updatedAt)
+        }
     }
 
     /** Xoa snapshot + file anh (goi khi logout). */
     fun clear() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
         imageFile().delete()
     }
 

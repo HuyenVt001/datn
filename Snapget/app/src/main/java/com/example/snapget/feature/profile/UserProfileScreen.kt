@@ -397,8 +397,8 @@ private fun ProfileHeader(
     name: String,
     email: String?,
     avatar: String,
-    onEditClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onEditClick: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,

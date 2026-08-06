@@ -14,8 +14,8 @@ import com.example.snapget.core.designsystem.skin.SkinImages
  * gacha; mo khoa qua `users.unlockedSkins`.
  *
  * Bo asset rieng da cam du nhung noi dung con la **PLACEHOLDER** — thay bang
- * thiet ke that = ghi de file cung ten `res/drawable/skin2_ic_*.xml` +
- * `res/drawable-nodpi/skin2_btn_capture.webp` (xem ghi chu o [SnowSkin]).
+ * thiet ke that = ghi de file cung ten trong
+ * `app/src/main/res-skins/skin2_forest/` (xem ghi chu o [SnowSkin]).
  */
 val ForestSkin = AppSkin(
     id = 2,

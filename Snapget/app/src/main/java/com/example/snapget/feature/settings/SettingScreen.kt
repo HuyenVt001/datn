@@ -3,7 +3,6 @@ package com.example.snapget.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -390,7 +390,7 @@ fun getSettingIcon(setting: Setting): ImageVector = when (setting.id) {
 /** Mo URL trong browser; khong co browser thi bao toast (khong crash). */
 private fun openUrl(context: Context, url: String) {
     try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
     } catch (_: ActivityNotFoundException) {
         Toast.makeText(context, "No browser available on this device", Toast.LENGTH_SHORT).show()
     }
@@ -399,11 +399,11 @@ private fun openUrl(context: Context, url: String) {
 /** Mo trang app tren Play Store: uu tien app store, fallback web, cuoi cung toast. */
 private fun openPlayStore(context: Context) {
     try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")))
+        context.startActivity(Intent(Intent.ACTION_VIEW, "market://details?id=${context.packageName}".toUri()))
     } catch (_: ActivityNotFoundException) {
         try {
             context.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")),
+                Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=${context.packageName}".toUri()),
             )
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(context, "Play Store is not available on this device", Toast.LENGTH_SHORT).show()

@@ -2,6 +2,7 @@ package com.example.snapget.core.util
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.core.graphics.createBitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -19,7 +20,7 @@ fun generateQrBitmap(content: String, size: Int = 512): Bitmap? = try {
             pixels[y * size + x] = if (matrix[x, y]) Color.BLACK else Color.WHITE
         }
     }
-    Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565).apply {
+    createBitmap(size, size, Bitmap.Config.RGB_565).apply {
         setPixels(pixels, 0, size, 0, 0, size, size)
     }
 } catch (_: Exception) {

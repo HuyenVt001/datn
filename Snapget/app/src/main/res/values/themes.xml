@@ -8,8 +8,10 @@
     <item name="windowSplashScreenIconBackgroundColor">@android:color/black</item>
 </style>
 
-<style name="Theme.MVVM.SplashTheme" parent="Theme.SplashScreen.IconBackground">
-    <item name="windowSplashScreenBackground">#FFF</item>
-    <item name="postSplashScreenTheme">@style/Theme.MVVM</item>
-</style>
+<!--
+    `Theme.MVVM.SplashTheme` da XOA 2026-08-06: manifest khai `Theme.MVVM` cho ca
+    application lan MainActivity, khong cho nao tro toi style nay (lint bao
+    UnusedResources). Splash van chay binh thuong qua `installSplashScreen()` +
+    `windowSplashScreenIconBackgroundColor` o `Theme.MVVM` ben tren.
+-->
 </resources>

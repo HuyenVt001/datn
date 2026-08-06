@@ -77,6 +77,8 @@ val dropdownWidth = 250.dp
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainTopBar(
+    // `modifier` la tham so TUY CHON DAU TIEN — quy uoc Compose (lint ModifierParameter)
+    modifier: Modifier = Modifier,
     navController: NavController? = null,
     title: String = "Snapget",
     user: User? = null,
@@ -95,7 +97,6 @@ fun MainTopBar(
     onAddFriendsClick: (() -> Unit)? = null,
     // Truyen callback nay de hien nut cup 🏆 (mo man Daily Quest)
     onQuestClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     var titleWidth by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current.density

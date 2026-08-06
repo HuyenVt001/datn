@@ -223,10 +223,10 @@ fun CirclePreview() {
                 backgroundColor = SkinTheme.colors.pill,
                 onClick = {},
                 innerContent = {
+                    // Anh mau cua preview — `avatar.jpg` da bi xoa khoi res/,
+                    // dung icon co san; preview chi can "co anh trong vong tron".
                     AsyncImage(
-                        // Anh mau cua preview. `avatar.jpg` da bi xoa khoi res/ nen
-                        // dung tam icon co san — preview chi can "co anh trong vong tron".
-                        model = R.drawable.ic_launcher_foreground,
+                        model = R.mipmap.ic_launcher,
                         contentDescription = "Avatar",
                         contentScale = ContentScale.Crop,
                     )
@@ -241,7 +241,7 @@ fun CirclePreview() {
                 onClick = {},
                 innerContent = {
                     AsyncImage(
-                        model = R.drawable.ic_launcher_background,
+                        model = R.mipmap.ic_launcher,
                         contentDescription = "Avatar",
                         contentScale = ContentScale.Crop,
                     )

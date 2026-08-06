@@ -4,6 +4,7 @@
      Cac attr targetCell*/maxResize*/description chi co tu API 31 — duoi do bi bo qua,
      minWidth/minHeight 110dp dinh co ~2x2 cho launcher cu (minSdk 24). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:minWidth="110dp"
     android:minHeight="110dp"
     android:targetCellWidth="2"
@@ -11,6 +12,7 @@
     android:maxResizeWidth="330dp"
     android:maxResizeHeight="330dp"
     android:resizeMode="horizontal|vertical"
+    tools:ignore="UnusedAttribute"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:previewImage="@mipmap/ic_launcher"

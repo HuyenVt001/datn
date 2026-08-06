@@ -1,12 +1,12 @@
 package com.example.snapget.core.designsystem.component.video
 
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -22,6 +22,9 @@ import java.io.File
  * [source] = URL http(s) (moment tren Cloudinary) HOAC duong dan file local
  * (clip vua quay, chua upload).
  */
+// RESIZE_MODE_ZOOM cua media3 con gan nhan UnstableApi — opt-in co chu dich,
+// khong co API on dinh nao thay the cho che do crop nay
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun GifVideoPlayer(
     source: String,
@@ -32,9 +35,9 @@ fun GifVideoPlayer(
     val exoPlayer = remember(source) {
         ExoPlayer.Builder(context).build().apply {
             val uri = if (source.startsWith("http")) {
-                Uri.parse(source)
+                source.toUri()
             } else {
-                Uri.fromFile(File(source))
+                File(source).toUri()
             }
             setMediaItem(MediaItem.fromUri(uri))
             repeatMode = Player.REPEAT_MODE_ONE // lap vo han nhu GIF

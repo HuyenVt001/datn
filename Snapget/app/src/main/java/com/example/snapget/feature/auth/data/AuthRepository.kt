@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.NoCredentialException
+import com.example.snapget.core.common.AppException
 import com.example.snapget.core.model.auth.AuthUser
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.dto.FcmTokenRequest
@@ -92,11 +94,26 @@ class AuthRepository @Inject constructor(
      * Gradle plugin generates from `google-services.json` once Google sign-in
      * is enabled in the Firebase console. [activity] must be an Activity context.
      */
+    @Suppress("CredentialManagerSignInWithGoogle")
     suspend fun signInWithGoogle(activity: Context): AuthUser? {
+        // @Suppress o tren: lint doi "dung :googleid thi phai dung
+        // GoogleIdTokenCredential" — ma ham nay DUNG ca 2 cho
+        // (`TYPE_GOOGLE_ID_TOKEN_CREDENTIAL` + `createFrom`) ngay ben duoi, nen
+        // day la bao nham.
+        //
+        // Ghi chu cho sau: Google khuyen dung `GetSignInWithGoogleOption` cho
+        // luong bam-nut (thay `GetGoogleIdOption` von danh cho one-tap tu bung).
+        // Doi la doi luong dang nhap that -> can chay lai toan bo kich ban auth,
+        // khong lam ke lich bao ve DATN.
         Log.d(tag, "Starting Google sign-in via Credential Manager")
 
         // Resolved at runtime so the app still compiles before Google sign-in is
         // enabled in the Firebase console (which is what generates this resource).
+        // @Suppress: lint khuyen tra resource bang R.string.xxx, nhung o day CO Y
+        // tra theo ten — resource nay do plugin google-services sinh ra tu
+        // google-services.json, tro thang R.string.default_web_client_id la
+        // KHONG BUILD DUOC tren may chua bat Google sign-in trong Firebase console.
+        @Suppress("DiscouragedApi")
         val clientIdRes = activity.resources.getIdentifier(
             "default_web_client_id",
             "string",
@@ -118,7 +135,18 @@ class AuthRepository @Inject constructor(
             .addCredentialOption(googleIdOption)
             .build()
 
-        val response = credentialManager.getCredential(activity, request)
+        // NoCredentialException = may CHUA co tai khoan Google nao, hoac user da
+        // tat luu credential. Khong bat rieng thi no roi vao catch chung o
+        // AuthViewModel va hien "Google sign-in failed: <stack trace ky thuat>" —
+        // trong nhu app hong trong khi that ra chi la chua them tai khoan.
+        val response = try {
+            credentialManager.getCredential(activity, request)
+        } catch (e: NoCredentialException) {
+            Log.w(tag, "Khong co tai khoan Google nao tren may: ${e.message}")
+            throw AppException.UnexpectedException(
+                "No Google account on this device. Add one in Settings, then try again.",
+            )
+        }
         val credential = response.credential
 
         if (credential is CustomCredential &&
