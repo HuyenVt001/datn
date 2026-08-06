@@ -2,32 +2,35 @@ package com.example.snapget.feature.gacha
 
 import android.net.Uri
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,14 +42,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -201,6 +209,13 @@ fun GachaScreen(
     }
 }
 
+/**
+ * Bo cuc bam theo **ban thiet ke goc** `Sources/skin-assets/gacha/PreviewGachaScreen.png`:
+ * khung so Astrite da duoc ve san trong `gacha_bg`, 2 nut quay la asset rieng.
+ *
+ * ⚠️ Chu/icon trong man nay nam DE LEN anh nen (khong doi theo skin) nen dung
+ * mau trang co dinh — dung quy tac "trang vi nam tren anh".
+ */
 @Composable
 private fun GachaContent(
     state: GachaStateDto,
@@ -212,133 +227,110 @@ private fun GachaContent(
     onTopup: () -> Unit,
     onCancelPayment: () -> Unit,
 ) {
-    // ⚠️ Chu/icon trong man nay nam DE LEN anh nen `gacha_bg` (khong doi theo
-    // skin) nen dung mau trang co dinh — dung quy tac "trang vi nam tren anh".
-    Box(modifier = Modifier.fillMaxSize()) {
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val bg = remember(constraints.maxWidth, constraints.maxHeight, density) {
+            BgAnchor(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat(), density)
+        }
+
         Image(
             painter = painterResource(R.drawable.gacha_bg),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            // TopCenter chu khong Center: hang header (khung so Astrite ve san
+            // trong anh) phai luon dinh mep tren, khong duoc cat mat.
+            alignment = Alignment.TopCenter,
             modifier = Modifier.fillMaxSize(),
         )
-        // Dai mo duoi chan man de nut + chu chan doc duoc du anh nen sang
+
+        // Dai mo duoi chan man de chu canh bao / chip pity doc duoc tren art sang
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(180.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
                     ),
                 ),
         )
 
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                    )
-                }
+        // ==== Hang header — neo theo TOA DO TRONG ANH NEN ====
+        GlassIconButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            diameter = bg.len(ICON_DIAMETER),
+            onClick = onBack,
+            modifier = Modifier.offset(
+                x = bg.x(BACK_CENTER_X - ICON_DIAMETER / 2f),
+                y = bg.y(BAR_CENTER_Y - ICON_DIAMETER / 2f),
+            ),
+        )
 
-                Spacer(Modifier.weight(1f))
+        GlassIconButton(
+            icon = Icons.AutoMirrored.Filled.HelpOutline,
+            contentDescription = "Gacha rules",
+            diameter = bg.len(ICON_DIAMETER),
+            onClick = onShowRules,
+            modifier = Modifier.offset(
+                x = bg.x(RULES_CENTER_X - ICON_DIAMETER / 2f),
+                y = bg.y(BAR_CENTER_Y - ICON_DIAMETER / 2f),
+            ),
+        )
 
-                // O Astrite + nut `+` mo popup nap — dat GIUA cho can voi 2 icon
-                // hai ben. Ca cum bam duoc, khong chi rieng dau `+` (vung cham
-                // 24dp qua nho de bam trung).
-                Row(
-                    modifier = Modifier
-                        .clip(SkinTheme.shapes.pill)
-                        .background(Color.Black.copy(alpha = 0.45f))
-                        .clickable(onClick = onTopup)
-                        .padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_astrite),
-                        contentDescription = "Astrite",
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "%,d".format(state.astrite),
-                        color = SkinTheme.colors.accentGold,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Top up Astrite",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+        AstriteBar(
+            astrite = state.astrite,
+            bg = bg,
+            onTopup = onTopup,
+            modifier = Modifier.offset(x = bg.x(BAR_LEFT), y = bg.y(BAR_TOP)),
+        )
 
-                Spacer(Modifier.weight(1f))
-
-                IconButton(onClick = onShowRules) {
-                    Icon(
-                        imageVector = Icons.Filled.HelpOutline,
-                        contentDescription = "Gacha rules",
-                        tint = Color.White,
-                    )
-                }
-            }
-
-            if (isAwaitingPayment) {
-                PendingPaymentBanner(
-                    onCancel = onCancelPayment,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-            }
-
-            // Tieu de keo len ~1/3 tren man thay vi giua man — phan duoi de
-            // tho cho art cua anh nen
-            Spacer(Modifier.weight(0.55f))
-
-            Text(
-                text = "Snapget Gacha",
-                color = Color.White,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
+        if (isAwaitingPayment) {
+            PendingPaymentBanner(
+                onCancel = onCancelPayment,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = bg.y(BAR_BOTTOM + 30f))
+                    .padding(horizontal = 16.dp),
             )
-            Text(
-                text = "Skins · touch effects · frames",
-                color = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                textAlign = TextAlign.Center,
-            )
+        }
 
-            Spacer(Modifier.weight(1f))
-
-            // Chip pity SSR dat ngay tren nut quay — dung ngu canh "con bao
-            // nhieu luot nua chac chan ra SSR" truoc khi bam (CHI hien SSR,
-            // user chot 2026-08-05)
+        // ==== 2 nut quay — neo theo DAY MAN HINH ====
+        // Khong neo theo anh: may ti le thap hon 19.5:9 bi cat mat phan duoi anh,
+        // neo theo anh la nut nam duoi day man hinh, bam khong toi.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(bottom = bg.len(ROLL_BTN_BOTTOM)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Chip pity SSR ngay tren nut quay — dung ngu canh "con bao nhieu
+            // luot nua chac chan ra SSR" truoc khi bam (CHI hien SSR, user chot)
             Text(
                 text = "SSR pity ${state.pity.SSR}/${state.pityLimit.SSR}",
-                color = Color.White.copy(alpha = 0.9f),
+                color = Color.White.copy(alpha = 0.92f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
                     .clip(SkinTheme.shapes.pill)
                     .background(Color.Black.copy(alpha = 0.45f))
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = bg.len(ROLL_BTN_LEFT)),
+                horizontalArrangement = Arrangement.spacedBy(bg.len(ROLL_BTN_GAP)),
             ) {
                 RollButton(
-                    label = "Roll x1",
+                    background = R.drawable.gacha_1rollbutton,
+                    times = 1,
                     cost = state.costSingle,
                     enabled = !isRolling && state.astrite >= state.costSingle,
                     loading = isRolling,
@@ -346,7 +338,8 @@ private fun GachaContent(
                     onClick = { onRoll(1) },
                 )
                 RollButton(
-                    label = "Roll x${state.tenTimes}",
+                    background = R.drawable.gacha_10rollbutton,
+                    times = state.tenTimes,
                     cost = state.costTen,
                     enabled = !isRolling && state.astrite >= state.costTen,
                     loading = isRolling,
@@ -358,54 +351,162 @@ private fun GachaContent(
             if (state.astrite < state.costSingle) {
                 Text(
                     text = "Not enough Astrite — finish your daily quests, or tap the balance to top up.",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 24.dp, end = 24.dp),
                 )
             }
         }
     }
 }
 
+/**
+ * So Astrite ve DE LEN khung da co san trong `gacha_bg`, kem nut `+` o mep phai
+ * khung (user chot vi tri).
+ *
+ * Ca thanh bam duoc chu khong rieng dau `+`: vung cham cua dau `+` chi ~24dp,
+ * qua nho de bam trung.
+ */
+@Composable
+private fun AstriteBar(
+    astrite: Int,
+    bg: BgAnchor,
+    onTopup: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .width(bg.len(BAR_RIGHT - BAR_LEFT + PLUS_DIAMETER / 2f))
+            .height(bg.len(BAR_BOTTOM - BAR_TOP))
+            .clip(SkinTheme.shapes.pill)
+            .clickable(onClick = onTopup),
+    ) {
+        val label = "%,d".format(astrite)
+        Text(
+            text = label,
+            color = Color.White,
+            // Be ngang con lai giua vien pha le (ve san) va nut `+` chi ~145px
+            // trong he anh nen. Co chu giam dan theo do dai de so tien to (goi
+            // nap 5.201.314) khong bi cat mat chu so.
+            fontSize = when {
+                label.length <= 6 -> 15.sp
+                label.length <= 8 -> 12.sp
+                label.length <= 10 -> 10.sp
+                else -> 8.sp
+            },
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(x = bg.len(BAR_TEXT_LEFT - BAR_LEFT))
+                .width(bg.len(BAR_RIGHT - BAR_TEXT_LEFT - PLUS_DIAMETER / 2f - 6f)),
+        )
+
+        Icon(
+            imageVector = Icons.Filled.AddCircle,
+            contentDescription = "Top up Astrite",
+            tint = Color.White,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = -bg.len(PLUS_DIAMETER / 2f))
+                .size(bg.len(PLUS_DIAMETER)),
+        )
+    }
+}
+
+/** Icon tron nen kinh mo — de doc tren moi vung cua anh nen. */
+@Composable
+private fun GlassIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    diameter: Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(diameter)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.35f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(diameter * 0.55f),
+        )
+    }
+}
+
+/**
+ * Nut quay — nen la asset that (`gacha_1rollbutton` / `gacha_10rollbutton`),
+ * chu do code ve len vi asset la pill TRON khong co chu.
+ *
+ * `FillBounds` chu khong `Fit`: file SVG goc co transform lam anh cao hon ti le
+ * cua bitmap nhung trong; giu dung khung 386×139 cua ban thiet ke moi ra dung
+ * hinh dang trong `PreviewGachaScreen.png`.
+ */
 @Composable
 private fun RollButton(
-    label: String,
+    @DrawableRes background: Int,
+    times: Int,
     cost: Int,
     enabled: Boolean,
     loading: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.height(56.dp),
-        shape = SkinTheme.shapes.pill,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = SkinTheme.colors.accent,
-            contentColor = SkinTheme.colors.onAccent,
-            disabledContainerColor = SkinTheme.colors.surfaceVariant,
-            disabledContentColor = SkinTheme.colors.textSecondary,
-        ),
+    val shadow = Shadow(color = Color.Black.copy(alpha = 0.6f), blurRadius = 8f)
+
+    Box(
+        modifier = modifier
+            .aspectRatio(ROLL_BTN_W / ROLL_BTN_H)
+            .clip(RoundedCornerShape(percent = 50))
+            .alpha(if (enabled) 1f else 0.45f)
+            .clickable(enabled = enabled && !loading, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
+        Image(
+            painter = painterResource(background),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize(),
+        )
+
         if (loading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
                 strokeWidth = 2.dp,
-                color = SkinTheme.colors.onAccent,
+                color = Color.White,
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = label, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "x$times",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = LocalTextStyle.current.copy(shadow = shadow),
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(R.drawable.ic_astrite),
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(13.dp),
                     )
-                    Spacer(Modifier.width(3.dp))
-                    Text(text = "$cost", fontSize = 11.sp)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "%,d".format(cost),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = LocalTextStyle.current.copy(shadow = shadow),
+                    )
                 }
             }
         }
@@ -486,13 +587,19 @@ private fun GachaRulesDialog(state: GachaStateDto, onDismiss: () -> Unit) {
     )
 }
 
-/** Vien mo trang tri — giu de sau nay cam anh nen gacha that (P5). */
+/** Hang thong tin trong popup Rule. */
 @Composable
-internal fun GachaBackdropPlaceholder(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(SkinTheme.shapes.card)
-            .background(SkinTheme.colors.surface)
-            .border(1.dp, SkinTheme.colors.accent.copy(alpha = 0.4f), SkinTheme.shapes.card),
-    )
+private fun RuleRow(label: String, value: String, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, color = color, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.weight(1f))
+        Text(text = value, color = SkinTheme.colors.textPrimary)
+    }
 }
+
+// `GachaBackdropPlaceholder` da XOA (2026-08-06): no chi la vien mo giu cho
+// trong luc cho anh nen gacha that. Gio `gacha_bg.png` da vao APK nen khong con
+// cho nao goi toi.

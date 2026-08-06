@@ -5,10 +5,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,9 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -32,18 +31,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.snapget.R
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
 import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -51,14 +52,51 @@ import com.example.snapget.core.network.dto.RollOutcomeDto
 import com.example.snapget.core.network.dto.RollResultDto
 import kotlinx.coroutines.delay
 
-/** Khoang cach giua 2 the lat lien tiep (GACHA_PLAN.md muc 6.5). */
+/** Khoang cach giua 2 la lat lien tiep. */
 private const val FLIP_INTERVAL_MS = 250L
+
+/** Thoi gian 1 la xoay tu mat sau sang mat truoc. */
+private const val FLIP_DURATION_MS = 380
+
+/**
+ * Chieu cao dong chu duoi la bai, tinh theo BE NGANG la bai.
+ *
+ * Co dinh chu khong bo theo noi dung: neu de tu gian thi luc la bai lat xong,
+ * ten hien ra se day ca hang tut xuong — nhin nhu luoi bi giat.
+ */
+private const val CAPTION_RATIO = 0.44f
+
+/** Anh mat truoc (co khung + chu bac ve san, giua de trong cho anh vat pham). */
+@DrawableRes
+private fun cardFrontAsset(tier: String): Int = when (tier) {
+    "SSR" -> R.drawable.gacha_frontssrcard
+    "SR" -> R.drawable.gacha_frontsrcard
+    "R" -> R.drawable.gacha_frontrcard
+    else -> R.drawable.gacha_frontncard
+}
+
+/**
+ * Anh mat sau. **Mau mat sau da bao bac** — nguoi choi thay vien vang la biet
+ * sap ra SSR truoc khi la bai lat. Day la y do cua bo asset (co du 4 mat sau
+ * cho 4 bac, khong co mat sau trung tinh nao).
+ */
+@DrawableRes
+private fun cardBackAsset(tier: String): Int = when (tier) {
+    "SSR" -> R.drawable.gacha_backsidessrcard
+    "SR" -> R.drawable.gacha_backsidesrcard
+    "R" -> R.drawable.gacha_backsidercard
+    else -> R.drawable.gacha_backsidencard
+}
 
 /**
  * Man ket qua quay (GACHA_PLAN.md muc 6.5).
  *
- * - x1: 1 the o giua
- * - x10: luoi 5×2, **lat lan luot** ~250ms/o, co nut **Skip** hien thang ca luoi
+ * - x1: 1 la bai to o giua
+ * - x10: bo cuc **2–3–3–2** theo ban thiet ke `PreviewGachaScreen_Gachax10.png`,
+ *   **lat lan luot** ~250ms/la, co nut **Skip** lat thang het
+ *
+ * Lop phu de mo chu khong dac: art cua man gacha ben duoi van thay duoc, dung
+ * nhu ban thiet ke.
  *
  * Animation bang Compose thuan — khong them dependency (thong nhat SKIN_PLAN).
  */
@@ -68,7 +106,7 @@ fun GachaResultOverlay(
     onDismiss: () -> Unit,
 ) {
     val results = outcome.results
-    var revealed by remember(outcome.rollId) { mutableIntStateOf(if (results.size == 1) 1 else 0) }
+    var revealed by remember(outcome.rollId) { mutableIntStateOf(0) }
     val allRevealed = revealed >= results.size
 
     // Lat lan luot; bam Skip thi nhay thang toi het
@@ -82,55 +120,41 @@ fun GachaResultOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SkinTheme.colors.overlay.copy(alpha = 0.92f))
+            .background(Color.Black.copy(alpha = 0.62f))
             // Chan cham xuyen xuong man ben duoi
             .clickable(enabled = false) {},
-        contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = if (results.size == 1) "Result" else "Results",
-                color = SkinTheme.colors.textPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+            ResultCardGrid(
+                results = results,
+                revealed = revealed,
+                // weight: luoi nhan DUNG phan chieu cao con lai sau khi tru phan
+                // chan man, roi tu thu nho la bai cho vua — 10 la + ten cao ~730dp
+                // o co goc, may man nho se bi cat mat hang duoi neu khong co buoc nay.
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
             )
-            Spacer(Modifier.height(16.dp))
-
-            if (results.size == 1) {
-                Box(modifier = Modifier.fillMaxWidth(0.55f)) {
-                    ResultCard(entry = results[0], revealed = true)
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    itemsIndexed(results) { index, entry ->
-                        ResultCard(entry = entry, revealed = index < revealed)
-                    }
-                }
-            }
 
             Spacer(Modifier.height(20.dp))
 
             if (outcome.refundTotal > 0) {
                 Text(
-                    text = "+${outcome.refundTotal} Astrite returned",
+                    text = "+%,d Astrite returned".format(outcome.refundTotal),
                     color = SkinTheme.colors.accentGold,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(4.dp))
             }
             Text(
-                text = "Balance: ${outcome.astriteAfter} Astrite",
-                color = SkinTheme.colors.textSecondary,
+                text = "Balance: %,d Astrite".format(outcome.astriteAfter),
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp,
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             if (allRevealed) {
                 Button(
@@ -147,7 +171,7 @@ fun GachaResultOverlay(
                 TextButton(onClick = { revealed = results.size }) {
                     Text(
                         text = "Skip",
-                        color = SkinTheme.colors.textSecondary,
+                        color = Color.White.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -157,15 +181,251 @@ fun GachaResultOverlay(
 }
 
 /**
+ * Luoi la bai.
+ *
+ * Ban thiet ke ve cum 10 la **lech trai ~15px**; o day dung `Row` bo goi noi
+ * dung + `horizontalAlignment = CenterHorizontally` nen moi hang tu can giua
+ * tuyet doi theo be ngang man hinh (user chot).
+ */
+@Composable
+private fun ResultCardGrid(
+    results: List<RollResultDto>,
+    revealed: Int,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier = modifier) {
+        val single = results.size <= 1
+
+        var from = 0
+        val rows = cardRows(results.size).mapNotNull { count ->
+            if (from >= results.size) {
+                null
+            } else {
+                val to = minOf(from + count, results.size)
+                val slice = (from until to).toList()
+                from = to
+                slice
+            }
+        }
+
+        // x1 dung la bai to hon han cho ra chat "mo qua"; x10 giu dung ti le
+        // 217/1080 cua ban thiet ke.
+        val wantWidth = if (single) maxWidth * 0.46f else maxWidth * (CARD_W / BG_W)
+        val wantColGap = maxWidth * ((CARD_COL_PITCH - CARD_W) / BG_W)
+        val wantRowGap = maxWidth * ((CARD_ROW_PITCH - CARD_H) / BG_W)
+
+        // Neu chieu cao khong du thi thu nho DEU ca cum (la bai + khe + dong ten)
+        // thay vi de hang cuoi bi cat.
+        val wantRowHeight = wantWidth * (CARD_H / CARD_W) + wantWidth * CAPTION_RATIO
+        val wantHeight = wantRowHeight * rows.size + wantRowGap * (rows.size - 1)
+        val shrink = if (wantHeight > maxHeight) maxHeight / wantHeight else 1f
+
+        val cardWidth = wantWidth * shrink
+        val colGap = wantColGap * shrink
+        val rowGap = wantRowGap * shrink
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(rowGap),
+        ) {
+            rows.forEach { indices ->
+                Row(horizontalArrangement = Arrangement.spacedBy(colGap)) {
+                    indices.forEach { i ->
+                        ResultCard(
+                            entry = results[i],
+                            revealed = i < revealed,
+                            width = cardWidth,
+                            single = single,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 1 la bai: lat 3D tu mat sau sang mat truoc.
+ *
+ * Ten vat pham nam **duoi la bai, ngoai khung** (user chot) — mat truoc da co
+ * khung + chu bac ve san, khong con cho de chen ten ma khong de len art.
+ */
+@Composable
+private fun ResultCard(
+    entry: RollResultDto,
+    revealed: Boolean,
+    width: Dp,
+    single: Boolean,
+) {
+    val density = LocalDensity.current
+    val rotation by animateFloatAsState(
+        targetValue = if (revealed) 180f else 0f,
+        animationSpec = tween(FLIP_DURATION_MS),
+        label = "card-flip",
+    )
+
+    Column(
+        modifier = Modifier.width(width),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(CARD_W / CARD_H)
+                .graphicsLayer {
+                    rotationY = rotation
+                    // Khong dat cameraDistance thi goc nhin qua gan, la bai
+                    // phinh to meo mo o giua chung khi xoay.
+                    cameraDistance = 14f * density.density
+                },
+        ) {
+            if (rotation <= 90f) {
+                Image(
+                    painter = painterResource(cardBackAsset(entry.tier)),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                // Nua sau cua cu lat: lat nguoc lai 180° cho mat truoc khong bi soi guong
+                Box(modifier = Modifier.fillMaxSize().graphicsLayer { rotationY = 180f }) {
+                    CardFront(entry = entry)
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier.fillMaxWidth().height(width * CAPTION_RATIO),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            CardCaption(entry = entry, revealed = revealed, width = width)
+        }
+    }
+}
+
+/** Mat truoc: khung asset + anh vat pham dat vao o trong o giua khung. */
+@Composable
+private fun CardFront(entry: RollResultDto) {
+    val localAsset = remember(entry.itemType, entry.refId) {
+        localItemAsset(entry.itemType, entry.refId)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(cardFrontAsset(entry.tier)),
+            contentDescription = entry.itemName,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Bac N: vien pha le Astrite DA duoc ve san trong asset, so luong hien
+        // o dong chu duoi la bai -> khong ve gi them vao o.
+        if (entry.tier == "N") return@Box
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val slotW = maxWidth * CARD_SLOT_W_RATIO
+            val slotH = maxHeight * CARD_SLOT_H_RATIO
+            val slotTop = maxHeight * CARD_SLOT_CENTER_Y_RATIO - slotH / 2f
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = slotTop)
+                    .width(slotW)
+                    .height(slotH),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    localAsset != null -> Image(
+                        painter = painterResource(localAsset),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        // Anh hat hieu ung la PNG TRANG tren nen trong -> khong
+                        // to thi chim vao nen den cua la bai.
+                        colorFilter = if (entry.itemType == "EFFECT") {
+                            ColorFilter.tint(GachaRarity.color(entry.tier))
+                        } else {
+                            null
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    entry.imageUrl != null -> AsyncImage(
+                        model = entry.imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dong chu duoi la bai: ten vat pham (hoac so Astrite voi bac N) + nhan trung.
+ *
+ * Co chu tinh theo BE NGANG la bai chu khong co dinh — luoi 10 la co the bi thu
+ * nho tren may man be, chu co dinh se tran ra ngoai o da danh san.
+ */
+@Composable
+private fun CardCaption(entry: RollResultDto, revealed: Boolean, width: Dp) {
+    if (!revealed) return
+
+    val nameSp = (width.value * 0.115f).coerceIn(8f, 18f).sp
+    val badgeSp = (width.value * 0.10f).coerceIn(7f, 14f).sp
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = when (entry.tier) {
+                "N" -> "+%,d Astrite".format(entry.astriteAmount ?: 0)
+                else -> entry.itemName.orEmpty()
+            },
+            color = Color.White,
+            fontSize = nameSp,
+            lineHeight = nameSp * 1.2f,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        when {
+            entry.isDuplicate && entry.refundAstrite > 0 -> Text(
+                text = "Duplicate +%,d".format(entry.refundAstrite),
+                color = SkinTheme.colors.accentGold,
+                fontSize = badgeSp,
+                lineHeight = badgeSp * 1.2f,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            entry.tier != "N" -> Text(
+                text = "NEW",
+                color = GachaRarity.color(entry.tier),
+                fontSize = badgeSp,
+                lineHeight = badgeSp * 1.2f,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
  * Anh dai dien nam TRONG APK cua 1 vat pham, tra theo `(itemType, refId)`.
  *
  * Khung anh co `imageUrl` tren Cloudinary, con **skin va hieu ung thi khong** —
  * asset cua chung dong goi trong APK (dung tinh than "admin khong sua duoc vat
- * pham nay"). Khong co ham nay thi quay trung skin/hieu ung chi hien moi chu
- * "SSR"/"SR" tren the ket qua.
+ * pham nay"). Khong co ham nay thi quay trung skin/hieu ung chi hien mot o trong.
  *
- * `find`/`firstOrNull` chiu duoc refId la (vat pham cua ban server moi hon ban
- * app dang cai) bang cach tra `null` -> the ket qua roi ve hien bac nhu cu.
+ * `firstOrNull` chiu duoc refId la (vat pham cua ban server moi hon ban app dang
+ * cai) bang cach tra `null` -> o trong, la bai van hien dung bac.
  */
 @DrawableRes
 private fun localItemAsset(itemType: String?, refId: String?): Int? {
@@ -174,134 +434,5 @@ private fun localItemAsset(itemType: String?, refId: String?): Int? {
         "SKIN" -> SkinRegistry.all.firstOrNull { it.id == id }?.thumbnail
         "EFFECT" -> TouchEffectRegistry.all.firstOrNull { it.id == id }?.particleAsset
         else -> null
-    }
-}
-
-/** 1 the ket qua — to theo mau pham chat, bac N hien thang so Astrite. */
-@Composable
-private fun ResultCard(entry: RollResultDto, revealed: Boolean) {
-    val tierColor = GachaRarity.color(entry.tier)
-    val localAsset = remember(entry.itemType, entry.refId) {
-        localItemAsset(entry.itemType, entry.refId)
-    }
-    val scale by animateFloatAsState(
-        targetValue = if (revealed) 1f else 0.8f,
-        animationSpec = tween(200),
-        label = "card-reveal",
-    )
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.72f)
-                .scale(scale)
-                .alpha(if (revealed) 1f else 0.25f)
-                .clip(SkinTheme.shapes.input)
-                .background(SkinTheme.colors.surfaceVariant)
-                .border(
-                    // SSR day vien nhat — nhin phat biet ngay trung to
-                    width = if (entry.tier == "SSR") 3.dp else 2.dp,
-                    color = tierColor,
-                    shape = SkinTheme.shapes.input,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (!revealed) return@Box
-
-            when {
-                entry.tier == "N" -> {
-                    Text(
-                        text = "+${entry.astriteAmount ?: 0}",
-                        color = tierColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                    )
-                }
-
-                // Skin/hieu ung: anh nam TRONG APK nen uu tien anh noi bo, khong
-                // cho `imageUrl` cua server (server khong co — xem [localItemAsset]).
-                localAsset != null -> {
-                    Image(
-                        painter = painterResource(localAsset),
-                        contentDescription = entry.itemName,
-                        contentScale = ContentScale.Fit,
-                        // Anh hat la PNG TRANG tren nen trong -> khong to thi chim
-                        // luon vao nen the. Anh thumbnail cua skin thi de nguyen.
-                        colorFilter = if (entry.itemType == "EFFECT") {
-                            ColorFilter.tint(tierColor)
-                        } else {
-                            null
-                        },
-                        modifier = Modifier.fillMaxSize().padding(if (entry.itemType == "EFFECT") 18.dp else 6.dp),
-                    )
-                }
-
-                entry.imageUrl != null -> {
-                    AsyncImage(
-                        model = entry.imageUrl,
-                        contentDescription = entry.itemName,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize().padding(6.dp),
-                    )
-                }
-
-                else -> {
-                    // Vat pham chua co anh dai dien (admin chua upload) -> hien bac
-                    Text(
-                        text = entry.tier,
-                        color = tierColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                    )
-                }
-            }
-
-            Text(
-                text = GachaRarity.label(entry.tier),
-                color = SkinTheme.colors.onAccent,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(4.dp)
-                    .clip(SkinTheme.shapes.pill)
-                    .background(tierColor)
-                    .padding(horizontal = 5.dp, vertical = 1.dp),
-            )
-        }
-
-        if (revealed) {
-            Text(
-                text = when {
-                    entry.tier == "N" -> "Astrite"
-                    entry.isDuplicate -> "Dup +${entry.refundAstrite}"
-                    else -> entry.itemName ?: "?"
-                },
-                color = if (entry.isDuplicate) {
-                    SkinTheme.colors.textSecondary
-                } else {
-                    SkinTheme.colors.textPrimary
-                },
-                fontSize = 10.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-    }
-}
-
-/** Hang thong tin trong popup Rule. */
-@Composable
-internal fun RuleRow(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label, color = color, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.weight(1f))
-        Text(text = value, color = SkinTheme.colors.textPrimary)
     }
 }

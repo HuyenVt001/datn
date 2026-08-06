@@ -138,10 +138,13 @@ feature/                    # Mỗi tính năng 1 package: screen + viewmodel + 
   appearance/               #   **(2026-08-05 — P3)** AppearanceScreen (3 tab Frames|Skins|Effects) +
   │                         #   AppearanceViewModel (khoá theo sở hữu — lớp thứ 2 sau lớp UI)
   gacha/                    #   **(2026-08-05 — G4/G6)** GachaScreen (quay x1/x10, popup Rule, nút `+` nạp),
-  │                         #   GachaResultSheet (overlay lật lần lượt + Skip), GachaRarity (4 màu bậc —
+  │                         #   GachaResultSheet (overlay lá bài lật lần lượt + Skip), GachaRarity (4 màu bậc —
   │                         #   CỐ Ý không nằm trong SkinColors), TopupSheet (popup gói nạp + banner chờ
   │                         #   thanh toán + popup đã cộng), GachaViewModel (gồm cả state luồng nạp),
   │                         #   data/GachaRepository + data/TopupRepository
+  │                         #   GachaLayout.kt **(2026-08-06)** = TOÀN BỘ toạ độ bám theo ảnh nền
+  │                         #   (khung Astrite vẽ sẵn, 2 nút quay, lưới lá bài 2-3-3-2) + lớp BgAnchor
+  │                         #   đổi toạ độ-trong-ảnh → toạ độ-màn-hình. Sửa vị trí UI chỉ đụng file này.
   auth/                     #   LoginScreen (kèm Forgot Password), AuthViewModel, data/AuthRepository
   camera/                   #   CameraScreen (CameraX: chụp/quay nút center, pinch-zoom, lật cam, nút Co-op
   │                         #   mở popup chọn bạn gửi lời mời, vuốt lên mở feed, mirror selfie)
@@ -267,6 +270,13 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-06 — Màn Gacha dựng lại theo bộ asset thật (2 nút quay + 8 lá bài)**. User cấp `gacha_bg`/`gacha_banner` bản mới, `gacha_1rollbutton`/`gacha_10rollbutton` (SVG → PNG, xem dưới), 8 lá bài `gacha_front{n,r,sr,ssr}card` + `gacha_backside{n,r,sr,ssr}card` (217×364), kèm 2 ảnh preview làm chuẩn bố cục. Toạ độ trong file mới gom vào [GachaLayout.kt](Snapget/app/src/main/java/com/example/snapget/feature/gacha/GachaLayout.kt) — sửa vị trí chỉ đụng 1 file.
+  - 📐 **`BgAnchor` — neo UI theo toạ độ TRONG ảnh nền, không theo % màn hình.** `gacha_bg` **đã vẽ sẵn khung số Astrite** ở góc phải trên; ảnh vẽ bằng `ContentScale.Crop` nên máy tỉ lệ khác 19.5:9 sẽ phóng to rồi cắt bớt — neo theo % màn hình là số Astrite trượt ra ngoài khung vẽ sẵn. `BgAnchor` lặp lại đúng phép biến đổi của `Crop` + **`Alignment.TopCenter`** (cắt đều 2 bên, giữ nguyên mép trên) nên hàng header không bao giờ bị cắt. Riêng 2 nút quay neo theo **đáy màn hình**: máy 16:9 bị cắt phần dưới ảnh, neo theo ảnh là nút nằm ngoài màn.
+  - 🎛️ Nút back + icon luật đặt cùng hàng với khung Astrite (user chọn), dấu `+` nạp tiền đặt đúng mép phải khung. Cỡ chữ số dư **giảm dần theo độ dài** — bề ngang còn lại giữa viên pha lê vẽ sẵn và dấu `+` chỉ ~145px, gói test 5.201.314 để cỡ cố định là mất chữ số.
+  - 🃏 **Màn kết quả dùng lá bài thật**: mặt sau **màu theo bậc** (bộ asset không có mặt sau trung tính → thấy viền vàng là biết sắp ra SSR), lật 3D bằng `graphicsLayer{rotationY}` + `cameraDistance` (thiếu `cameraDistance` thì lá bài phình méo giữa chừng). Ảnh vật phẩm đặt vào ô trống giữa khung (đo từ tâm lá bài ra: x 22..193, y 55..270); tên vật phẩm nằm **dưới lá bài** (user chọn) trong ô cao cố định để lá bài không giật vị trí lúc lật xong.
+  - 🎯 Bố cục x10 giữ **2–3–3–2** như bản thiết kế nhưng **căn giữa tuyệt đối** — bản gốc lệch trái ~15px (user chỉ ra). Cụm 10 lá + tên cao ~730dp ở cỡ gốc nên có bước **tự thu nhỏ đều** khi chiều cao còn lại không đủ, thay vì để hàng cuối bị cắt.
+  - ⚠️ **2 nút quay là SVG nhưng ruột là bitmap 1024×351 nhúng base64** (Android không đọc SVG) → đã tách ra PNG. Vẽ bằng `FillBounds` vào khung 386×139 chứ không `Fit`: file SVG có transform làm ảnh cao hơn tỉ lệ bitmap, chỉ `FillBounds` mới ra đúng hình dạng trong ảnh preview. Nút là **pill trơn không có chữ** nên "x1 / x10" + giá do code vẽ đè.
 
 - **2026-08-06 — Hiệu ứng chạm vẽ bằng ẢNH THẬT + vá crash/lag khi bấm liên tục**. Copy 5 PNG `Sources/skin-assets/effects/effectN_particle.png` → `res/drawable-nodpi/`, `TouchEffect.particleAsset` được cắm cho cả 5 hiệu ứng. **Xoá hẳn** `ParticleShape` + 2 hàm dựng `Path`. Thêm 6 unit test (`TouchEffectRegistryTest`) khoá bất biến "hiệu ung quay ra được thì phải có ảnh hạt". Tham số Ember chỉnh lại đúng phiếu `EFFECTS.md` (10 hạt, scale→0.4, fade 0.55).
   - 🎨 **Hạt không giống ảnh gốc.** Cả 5 hiệu ứng đang vẽ tay bằng `Canvas` (`CIRCLE/RING/SPARK/LEAF`) nên bông tuyết 6 cánh và ember hình thoi đều ra **hình tròn**. Nay vẽ thẳng ảnh bằng `drawImage` + `ColorFilter.tint` (ăn màu skin y như cũ).
