@@ -35,13 +35,22 @@ const SKINS: SeedItem[] = [
   { itemName: 'Forest', itemType: 'SKIN', rarity: 'SSR', refId: '2', sortOrder: 11 },
 ];
 
-/** Hieu ung touch bundled trong APK — khop TouchEffectRegistry. */
+/**
+ * Hieu ung touch bundled trong APK — khop TouchEffectRegistry.
+ *
+ * ⚠️ Doi 2026-08-11: app xoa het 5 hieu ung particle cu (Snowfall / Leaf /
+ * Sparkle / Bubble / Ember) va lam lai bang spritesheet, hien chi con `Flower`
+ * (refId 1). User bo sung dan, **toi da 10**.
+ *
+ * Script nay CHI THEM item con thieu, khong sua/xoa item da co (xem vong lap
+ * duoi, `seen` bo qua key da ton tai). Nen voi Firestore da seed ban cu:
+ *  - item refId '1' van con ten 'Snowfall' -> doi ten thanh 'Flower' o trang admin.
+ *  - item refId '2'..'5' tro toi hieu ung **khong con trong app** -> phai
+ *    `isActive = false` o trang admin, khong thi quay ra se nhan duoc mot hieu
+ *    ung khong hien thi duoc gi (app fallback ve None).
+ */
 const EFFECTS: SeedItem[] = [
-  { itemName: 'Snowfall', itemType: 'EFFECT', rarity: 'SR', refId: '1', sortOrder: 20 },
-  { itemName: 'Leaf', itemType: 'EFFECT', rarity: 'SR', refId: '2', sortOrder: 21 },
-  { itemName: 'Sparkle', itemType: 'EFFECT', rarity: 'SR', refId: '3', sortOrder: 22 },
-  { itemName: 'Bubble', itemType: 'EFFECT', rarity: 'SR', refId: '4', sortOrder: 23 },
-  { itemName: 'Ember', itemType: 'EFFECT', rarity: 'SR', refId: '5', sortOrder: 24 },
+  { itemName: 'Flower', itemType: 'EFFECT', rarity: 'SR', refId: '1', sortOrder: 20 },
 ];
 
 async function main(): Promise<void> {

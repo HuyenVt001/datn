@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
-> Cập nhật lần cuối: **2026-08-05**.
+> Cập nhật lần cuối: **2026-08-11**.
 
 ---
 
@@ -130,8 +130,9 @@ admin/
 │   │   ├── MomentsPage.tsx    # KIỂM DUYỆT: lưới bài mọi user (ảnh/video, tác giả, caption) + xóa bài vi phạm
 │   │   ├── FramesPage.tsx     # grid khung: thêm/sửa (6 điều kiện mở khóa + ngưỡng N, reset ngưỡng khi đổi loại),
 │   │   │                      #   xóa, cấp cho user (search debounce 300ms), drawer 👥 "Ai đang sở hữu?"
-│   │   ├── GachaItemsPage.tsx # (2026-08-05) KHO VẬT PHẨM gacha: lọc theo loại, thêm khung (chọn từ catalog, ẩn khung đã có),
-│   │   │                      #   sửa tên/phẩm chất/ảnh/thứ tự, công tắc bật-tắt tại chỗ, xóa. Skin/hiệu ứng CHỈ sửa
+│   │   ├── GachaItemsPage.tsx # (2026-08-05) KHO VẬT PHẨM gacha: lọc theo loại, sửa tên/phẩm chất/ảnh/thứ tự, công tắc
+│   │   │                      #   bật-tắt tại chỗ, xóa, tặng, owners. (2026-08-11) BỎ nút thêm khung — server tự đồng bộ
+│   │   │                      #   khung GACHA vào/ra kho theo điều kiện mở khóa (quản lý ở FramesPage)
 │   │   ├── GachaHistoryPage.tsx # (2026-08-05) LỊCH SỬ QUAY toàn hệ thống: lọc uid/bậc/ngày, 4 ô tổng hợp + đếm theo bậc
 │   │   │                      #   (tính trên đúng tập đang lọc); 1 dòng = 1 lượt bấm nút, x10 hiện 10 thẻ kết quả
 │   │   ├── TopupPackagesPage.tsx # (2026-08-05 — G6) GÓI NẠP: CRUD, công tắc hiện-trong-app, cột "Astrite / 1.000đ"
@@ -160,7 +161,7 @@ admin/
 | FramesPage: CRUD + 6 điều kiện mở khóa + grant + drawer owners | ✅ | |
 | MomentsPage: kiểm duyệt + xóa bài vi phạm | ✅ | |
 | LogsPage: audit log | ✅ | |
-| **GachaItemsPage**: kho vật phẩm (lọc loại, thêm khung, sửa, bật-tắt, xóa) | ✅ | 2026-08-05 — G3. Skin/hiệu ứng chỉ sửa (asset trong APK) |
+| **GachaItemsPage**: kho vật phẩm (lọc loại, sửa, bật-tắt, xóa, tặng, owners) | ✅ | 2026-08-05 — G3. Skin/hiệu ứng chỉ sửa (asset trong APK). 2026-08-11: bỏ nút thêm khung — server tự đồng bộ theo điều kiện mở khóa |
 | **GachaHistoryPage**: lịch sử quay + lọc uid/bậc/ngày + tổng hợp | ✅ | 2026-08-05 — G3 |
 | UsersPage cột Astrite · Dashboard ô lượt quay | ✅ | 2026-08-05 — G3 |
 | **TopupPackagesPage**: CRUD gói nạp + bật-tắt hiện trong app | ✅ | 2026-08-05 — G6. Sửa giá KHÔNG hồi tố đơn đã tạo |
@@ -178,7 +179,7 @@ admin/
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
-- **2026-08-06 — Kho thưởng trên trang Kho vật phẩm**. Mỗi vật phẩm thêm 2 nút: 🎁 **Tặng** (modal tìm user theo email/tên, debounce 300ms — tặng thẳng vào tài khoản, idempotent, KHÔNG cộng Astrite) và 👥 **Ai đang sở hữu?** (drawer). `LogsPage` thêm nhãn `GACHA_ITEM_GRANT`. Nhắc lại đúng phân công: **sửa** vật phẩm chỉ là metadata (tên/ảnh/phẩm chất) — asset thật của skin/hiệu ứng nằm trong APK, ẩn thì dùng công tắc `isActive`.
+- **2026-08-11 — Bỏ nút "Thêm khung vào kho" ở `GachaItemsPage`**. Server (`FramesService.syncGachaPool`) giờ TỰ đồng bộ kho gacha theo điều kiện mở khóa: khung `GACHA` tự vào kho khi tạo/sửa ở `FramesPage`, đổi sang điều kiện khác (hoặc xóa khung) thì tự rút khỏi kho — luồng thêm tay thành thừa và dễ lệch. Modal của trang chỉ còn chế độ SỬA (bỏ Select chọn khung từ catalog, bỏ query `frames`, page không còn import `createGachaItem` — hàm vẫn giữ trong `gacha.api.ts` vì endpoint server còn sống); cập nhật mô tả trang + hint loại FRAME; hint điều kiện "Quay gacha" ở `FramesPage` ghi rõ hành vi tự đồng bộ. Mỗi vật phẩm thêm 2 nút: 🎁 **Tặng** (modal tìm user theo email/tên, debounce 300ms — tặng thẳng vào tài khoản, idempotent, KHÔNG cộng Astrite) và 👥 **Ai đang sở hữu?** (drawer). `LogsPage` thêm nhãn `GACHA_ITEM_GRANT`. Nhắc lại đúng phân công: **sửa** vật phẩm chỉ là metadata (tên/ảnh/phẩm chất) — asset thật của skin/hiệu ứng nằm trong APK, ẩn thì dùng công tắc `isActive`.
 - **2026-08-05 — G6: 2 trang nạp tiền (PayOS — TIỀN THẬT)**. `TopupPackagesPage` (`/topup`) CRUD gói nạp + công tắc "hiện trong app" ngay trong bảng; có cột tính sẵn **"Astrite / 1.000đ"** để soi xem gói to có thực sự đáng tiền hơn gói nhỏ không (không thì không ai mua gói to), và banner cảnh báo sửa giá ở đây **đổi ngay số tiền người dùng phải trả** cho đơn tạo từ lúc đó — đơn đã tạo giữ giá của chính nó nên không hồi tố. `TopupHistoryPage` (`/topup-history`) lọc uid/trạng thái/ngày, 4 ô doanh thu + bảng theo ngày, hiện `orderCode` **và mã giao dịch ngân hàng** (`payosReference`) để đối soát với dashboard PayOS; đơn do `/topup/simulate` sinh có nhãn **"Giả lập"** để không lẫn vào doanh thu thật. `LogsPage` thêm 3 nhãn `TOPUP_PACKAGE_*`.
   - 🧭 **Doanh thu tính trên toàn bộ tập đã lọc**, không phải trên số dòng đang hiển thị — đặt `limit` nhỏ không được làm doanh thu tụt (server trả `{rows, summary}` riêng vì lý do này).
 - **2026-08-05 — G3: 2 trang gacha + Astrite trên trang có sẵn**. `GachaItemsPage` (`/gacha`) quản lý kho vật phẩm: lọc theo loại, thêm khung (chọn từ catalog `/frames/admin`, **ẩn khung đã nằm trong kho** — server cũng chặn trùng vì 1 khung 2 lần = tỉ lệ nổ gấp đôi), sửa tên/phẩm chất/ảnh/thứ tự, công tắc bật-tắt ngay trong bảng, xóa (kèm cảnh báo người đã sở hữu vẫn giữ). Skin/hiệu ứng **chỉ sửa** — asset nằm trong APK, tạo mới sẽ ra vật phẩm app không hiển thị được. `GachaHistoryPage` (`/gacha-history`) lọc theo uid/bậc/ngày + 4 ô tổng hợp và đếm theo bậc **tính trên đúng tập đang lọc**. `UsersPage` thêm cột Astrite (sort được), `DashboardPage` thêm 2 ô lượt quay, `LogsPage` thêm 3 nhãn `GACHA_ITEM_*`. **Bỏ `GachaBannerPage`** — user chốt hardcode banner trong APK.

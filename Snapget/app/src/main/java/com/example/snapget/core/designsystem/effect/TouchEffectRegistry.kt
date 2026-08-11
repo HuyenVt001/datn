@@ -7,8 +7,13 @@ import com.example.snapget.R
  * (`users.unlockedEffects[]`) — day la nguon su that duy nhat ve "hieu ung chay
  * nhu the nao".
  *
- * Tham so lay tu phieu `Sources/skin-assets/effects/EFFECTS.md`; anh hat lay
- * dung file trong phieu do (`res/drawable-nodpi/effectN_particle.png`).
+ * ### Them 1 hieu ung moi (toi da id 10 — user chot 2026-08-11)
+ * 1. Bo sheet vao `res/drawable-nodpi/effectN_sheet.png` (PNG-32 alpha, luoi deu,
+ *    frame vuong, khong padding/trim).
+ * 2. Them 1 `val` o day + nhoi vao [all]; `frameCount`/`columns` phai khop luoi
+ *    that cua anh, `playbackMs` khong duoc vuot `durationMs`.
+ * 3. Them item EFFECT `refId = "N"` vao `server/scripts/seed-gacha.ts` roi chay
+ *    lai script — thieu buoc nay thi **quay gacha khong bao gio ra** hieu ung moi.
  */
 object TouchEffectRegistry {
 
@@ -18,90 +23,30 @@ object TouchEffectRegistry {
     val None = TouchEffect(
         id = NONE_ID,
         displayName = "None",
-        particleCount = 0,
-        durationMs = 0,
     )
 
-    val Snowfall = TouchEffect(
+    /**
+     * Hoa no tu diem cham (sheet 768×384 = 4 cot × 2 hang, frame 192×192).
+     *
+     * `fadeStart = 0.6f` vi sheet **khong tu tan**: frame 7 la frame dac nhat
+     * (hoa no het co). Frame chay xong o moc 444/800ms, giu nguyen mot chut roi
+     * mo dan tu moc 480ms den het.
+     */
+    val Flower = TouchEffect(
         id = 1,
-        displayName = "Snowfall",
-        particleCount = 8,
-        durationMs = 1200,
-        sizeDp = 22f,
-        distanceDp = 90f,
-        direction = EmitDirection.FALL_SWAY,
-        swayDp = 12f,
-        spinDegPerSec = 60f,
-        scaleFrom = 1f,
-        scaleTo = 0.7f,
+        displayName = "Flower",
+        sheet = R.drawable.effect1_sheet,
+        frameCount = 8,
+        columns = 4,
+        fps = 18,
+        durationMs = 800,
+        sizeDp = 120f,
         fadeStart = 0.6f,
-        particleAsset = R.drawable.effect1_particle,
-    )
-
-    val Leaf = TouchEffect(
-        id = 2,
-        displayName = "Leaf",
-        particleCount = 6,
-        durationMs = 1400,
-        sizeDp = 26f,
-        distanceDp = 100f,
-        direction = EmitDirection.FALL_SWAY,
-        swayDp = 20f,
-        spinDegPerSec = 120f,
-        scaleFrom = 1f,
-        scaleTo = 0.8f,
-        fadeStart = 0.65f,
-        particleAsset = R.drawable.effect2_particle,
-    )
-
-    val Sparkle = TouchEffect(
-        id = 3,
-        displayName = "Sparkle",
-        particleCount = 10,
-        durationMs = 600,
-        sizeDp = 20f,
-        distanceDp = 55f,
-        direction = EmitDirection.RADIAL,
-        spinDegPerSec = 180f,
-        scaleFrom = 1f,
-        scaleTo = 0.3f,
-        fadeStart = 0.5f,
-        particleAsset = R.drawable.effect3_particle,
-    )
-
-    val Bubble = TouchEffect(
-        id = 4,
-        displayName = "Bubble",
-        particleCount = 7,
-        durationMs = 1100,
-        sizeDp = 28f,
-        distanceDp = 80f,
-        direction = EmitDirection.RISE_SWAY,
-        swayDp = 10f,
-        spinDegPerSec = 0f,
-        scaleFrom = 0.6f,
-        scaleTo = 1.1f, // phong dan roi vo
-        fadeStart = 0.7f,
-        particleAsset = R.drawable.effect4_particle,
-    )
-
-    val Ember = TouchEffect(
-        id = 5,
-        displayName = "Ember",
-        particleCount = 10,
-        durationMs = 900,
-        sizeDp = 18f,
-        distanceDp = 70f,
-        direction = EmitDirection.BURST_FALL,
-        spinDegPerSec = 90f,
-        scaleFrom = 1f,
-        scaleTo = 0.4f,
-        fadeStart = 0.55f,
-        particleAsset = R.drawable.effect5_particle,
+        thumbFrame = 7,
     )
 
     /** Thu tu trong list = thu tu hien o tab Effects; None luon dung dau. */
-    val all: List<TouchEffect> = listOf(None, Snowfall, Leaf, Sparkle, Bubble, Ember)
+    val all: List<TouchEffect> = listOf(None, Flower)
 
     /**
      * Tim hieu ung theo id, KHONG BAO GIO nem loi — ban app cu co the nhan id

@@ -2,7 +2,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   GiftOutlined,
-  PlusOutlined,
   TeamOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
@@ -33,9 +32,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useRef, useState } from 'react';
 import { listUsers } from '../api/admin.api';
-import { listFrames } from '../api/frames.api';
 import {
-  createGachaItem,
   deleteGachaItem,
   grantGachaItem,
   listGachaItemOwners,
@@ -56,7 +53,7 @@ const TYPE_META: Record<ItemType, { label: string; color: string; hint: string }
   FRAME: {
     label: 'Khung ảnh',
     color: 'gold',
-    hint: 'Trỏ tới một khung trong trang Khung ảnh. Thêm/xoá thoải mái.',
+    hint: 'Tự đồng bộ từ trang Khung ảnh: điều kiện mở khóa "Quay gacha" là vào kho.',
   },
   EFFECT: {
     label: 'Hiệu ứng chạm',
@@ -73,7 +70,6 @@ const TYPE_META: Record<ItemType, { label: string; color: string; hint: string }
 interface ItemForm {
   itemName: string;
   rarity: ItemRarity;
-  refId?: string;
   isActive: boolean;
   sortOrder?: number;
 }
@@ -81,10 +77,11 @@ interface ItemForm {
 /**
  * Trang quản lý kho vật phẩm gacha.
  *
- * Chỉ **thêm mới được khung ảnh**: skin và hiệu ứng chạm có asset nằm trong APK
- * và khớp với app qua `refId`, tạo mới từ đây sẽ ra vật phẩm quay trúng được
- * nhưng app không có gì để hiển thị (server cũng chặn). Với 2 loại đó chỉ sửa
- * được tên / phẩm chất / ảnh đại diện / bật-tắt.
+ * KHÔNG có nút thêm mới (bỏ 2026-08-11): khung ảnh được server TỰ ĐỘNG thêm vào
+ * kho khi tạo/sửa khung với điều kiện mở khóa "Quay gacha" (và tự rút khỏi kho
+ * khi đổi sang điều kiện khác) — quản lý ở trang Khung ảnh. Skin và hiệu ứng
+ * chạm có asset nằm trong APK, khớp qua `refId`. Ở đây chỉ sửa tên / phẩm chất
+ * / ảnh đại diện / bật-tắt.
  */
 export function GachaItemsPage() {
   const { message } = AntApp.useApp();
@@ -95,23 +92,13 @@ export function GachaItemsPage() {
     queryKey: ['gacha-items'],
     queryFn: listGachaItems,
   });
-  // Chỉ cần khi thêm khung mới — chọn refId từ danh sách thay vì gõ tay id
-  const { data: frames } = useQuery({ queryKey: ['frames'], queryFn: listFrames });
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['gacha-items'] });
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<GachaItem | null>(null); // null = đang thêm mới
+  const [editing, setEditing] = useState<GachaItem | null>(null); // vật phẩm đang sửa (giữ để modal đóng mượt)
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [form] = Form.useForm<ItemForm>();
-
-  /** Khung đã nằm trong kho rồi thì không cho chọn lại (server cũng chặn trùng). */
-  const availableFrames = useMemo(() => {
-    const used = new Set(
-      (items ?? []).filter((i) => i.itemType === 'FRAME').map((i) => i.refId),
-    );
-    return (frames ?? []).filter((f) => !used.has(f.frameId));
-  }, [frames, items]);
 
   const shown = useMemo(
     () => (items ?? []).filter((i) => typeFilter === 'ALL' || i.itemType === typeFilter),
@@ -119,28 +106,16 @@ export function GachaItemsPage() {
   );
 
   const saveMutation = useMutation({
-    mutationFn: async (values: ItemForm) => {
-      if (editing) {
-        return updateGachaItem(editing.itemId, {
-          itemName: values.itemName,
-          rarity: values.rarity,
-          imageUrl,
-          isActive: values.isActive,
-          sortOrder: values.sortOrder,
-        });
-      }
-      return createGachaItem({
+    mutationFn: (values: ItemForm) =>
+      updateGachaItem(editing!.itemId, {
         itemName: values.itemName,
-        itemType: 'FRAME',
         rarity: values.rarity,
-        refId: values.refId!,
         imageUrl,
         isActive: values.isActive,
         sortOrder: values.sortOrder,
-      });
-    },
+      }),
     onSuccess: () => {
-      message.success(editing ? 'Đã cập nhật vật phẩm.' : 'Đã thêm vật phẩm vào kho quay.');
+      message.success('Đã cập nhật vật phẩm.');
       setModalOpen(false);
       void invalidate();
     },
@@ -211,14 +186,6 @@ export function GachaItemsPage() {
     queryFn: () => listGachaItemOwners(ownersTarget!.itemId),
     enabled: ownersTarget !== null,
   });
-
-  const openCreate = () => {
-    setEditing(null);
-    setImageUrl(undefined);
-    form.resetFields();
-    form.setFieldsValue({ rarity: 'R', isActive: true, sortOrder: 0 });
-    setModalOpen(true);
-  };
 
   const openEdit = (item: GachaItem) => {
     setEditing(item);
@@ -331,8 +298,10 @@ export function GachaItemsPage() {
         Kho vật phẩm gacha
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 760 }}>
-        Vật phẩm đang bật mới nằm trong kho quay. <b>Chỉ thêm mới được khung ảnh</b> — giao diện và
-        hiệu ứng chạm có sẵn trong app, ở đây chỉ sửa tên / phẩm chất / ảnh đại diện / bật-tắt.
+        Vật phẩm đang bật mới nằm trong kho quay. <b>Khung ảnh được tự động đồng bộ</b> từ trang
+        Khung ảnh: khung có điều kiện mở khóa &quot;Quay gacha&quot; tự vào kho, đổi sang điều kiện
+        khác thì tự rút khỏi kho. Giao diện và hiệu ứng chạm có sẵn trong app. Ở đây chỉ sửa tên /
+        phẩm chất / ảnh đại diện / bật-tắt.
       </Typography.Paragraph>
       {error && (
         <Alert
@@ -354,9 +323,6 @@ export function GachaItemsPage() {
             { value: 'EFFECT', label: 'Hiệu ứng chạm' },
           ]}
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Thêm khung vào kho
-        </Button>
       </Space>
       <Table<GachaItem>
         rowKey="itemId"
@@ -367,12 +333,12 @@ export function GachaItemsPage() {
       />
 
       <Modal
-        title={editing ? `Sửa: ${editing.itemName}` : 'Thêm khung ảnh vào kho quay'}
+        title={editing ? `Sửa: ${editing.itemName}` : 'Sửa vật phẩm'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => void form.submit()}
         confirmLoading={saveMutation.isPending}
-        okText={editing ? 'Lưu' : 'Thêm'}
+        okText="Lưu"
         cancelText="Hủy"
         destroyOnClose
       >
@@ -404,32 +370,6 @@ export function GachaItemsPage() {
           >
             <Input placeholder="VD: Khung Giáng Sinh" maxLength={100} />
           </Form.Item>
-
-          {!editing && (
-            <Form.Item
-              name="refId"
-              label="Khung ảnh"
-              rules={[{ required: true, message: 'Chọn khung ảnh.' }]}
-              extra={
-                availableFrames.length === 0
-                  ? 'Mọi khung trong catalog đều đã có trong kho quay rồi.'
-                  : 'Chỉ hiện khung chưa nằm trong kho quay.'
-              }
-            >
-              <Select
-                placeholder="Chọn khung từ catalog"
-                options={availableFrames.map((f) => ({ value: f.frameId, label: f.frameName }))}
-                onChange={(frameId: string) => {
-                  const frame = availableFrames.find((f) => f.frameId === frameId);
-                  // Điền sẵn cho nhanh — vẫn sửa lại được
-                  if (frame) {
-                    form.setFieldsValue({ itemName: frame.frameName });
-                    setImageUrl(frame.imageUrl);
-                  }
-                }}
-              />
-            </Form.Item>
-          )}
 
           <Form.Item
             name="rarity"

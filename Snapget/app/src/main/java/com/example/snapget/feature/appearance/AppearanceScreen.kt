@@ -37,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,12 +50,11 @@ import com.example.snapget.core.designsystem.component.collectible.CollectibleSt
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.effect.TouchEffect
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
-import com.example.snapget.core.designsystem.effect.drawEmission
-import com.example.snapget.core.designsystem.effect.rememberParticleStyle
+import com.example.snapget.core.designsystem.effect.drawTouchEffectFrame
+import com.example.snapget.core.designsystem.effect.rememberEffectSheet
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
-import kotlin.random.Random
 
 private val TABS = listOf("Frames", "Skins", "Effects")
 
@@ -322,13 +320,9 @@ private fun EffectDemoCell(effect: TouchEffect, replay: Int) {
      * bam bao nhieu lan cung the.
      */
     val progress = remember { Animatable(0f) }
-    val seeds = remember(replay, effect.id) {
-        FloatArray(effect.particleCount) { Random.nextFloat() }
-    }
-    val style = rememberParticleStyle(effect)
-    val density = LocalDensity.current.density
+    val sheet = rememberEffectSheet(effect)
 
-    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay ca 6 o cung dien;
+    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay moi o cung dien;
     // moi lan bam o (replay doi) thi chay lai tu dau.
     LaunchedEffect(replay, effect.id) {
         progress.snapTo(0f)
@@ -341,21 +335,24 @@ private fun EffectDemoCell(effect: TouchEffect, replay: Int) {
     Box(
         modifier = Modifier.fillMaxSize().clip(SkinTheme.shapes.input),
     ) {
-        // graphicsLayer: o demo tu ve tren RenderNode rieng, hat chay khong lam
-        // ban va bat `LazyVerticalGrid` ghi lai display list moi frame.
+        // graphicsLayer: o demo tu ve tren RenderNode rieng, animation chay khong
+        // lam ban va bat `LazyVerticalGrid` ghi lai display list moi frame.
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer()) {
             // Doc `progress.value` TRONG lambda ve -> chi pha ban khau ve,
             // khong keo theo recomposition.
             val cycle = progress.value
-            if (cycle > 0f && cycle < 1f) {
-                // Hat bay trong o nho nen thu nho quang duong lai cho vua khung
-                drawEmission(
+            if (sheet != null && cycle > 0f && cycle < 1f) {
+                /*
+                 * Co ve tinh theo O DEMO chu khong theo `effect.sizeDp`: o trong
+                 * luoi nho hon nhieu so voi co hieu ung chay that tren man hinh,
+                 * lay dung `sizeDp` la animation tran ra ngoai o va bi `clip` cat.
+                 */
+                drawTouchEffectFrame(
                     effect = effect,
-                    style = style,
+                    sheet = sheet,
                     origin = Offset(size.width / 2f, size.height / 2f),
                     progress = cycle,
-                    seeds = seeds,
-                    density = density * 0.55f,
+                    sizePx = minOf(size.width, size.height) * 0.9f,
                 )
             }
         }

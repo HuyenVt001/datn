@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-06**.
+> Cập nhật lần cuối: **2026-08-11**.
 
 ---
 
@@ -112,11 +112,13 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
     component/              #   UI tái sử dụng theo loại: bottombar/ button/ circle/ common/ container/
     │                       #   empty/ frame/ grid/ indicator/ input/ list/ pill/ sheet/ topbar/
     collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung cho cả 3 tab Appearance
-    effect/                 #   **(2026-08-05 — P4)** HIỆU ỨNG TOUCH: TouchEffect (model) + TouchEffectRegistry
-    │                       #   (None + 5 hiệu ứng, mỗi hiệu ứng cắm 1 PNG trong drawable-nodpi) +
+    effect/                 #   **(2026-08-05 — P4; 2026-08-11 làm lại bằng SPRITESHEET)** HIỆU ỨNG TOUCH:
+    │                       #   TouchEffect (model: sheet/frameCount/columns/fps/durationMs/sizeDp/
+    │                       #   fadeStart/thumbFrame + rows & playbackMs suy ra) + TouchEffectRegistry
+    │                       #   (None + Flower; tối đa 10 hiệu ứng, sheet ở drawable-nodpi/effectN_sheet.png) +
     │                       #   TouchEffectOverlay (bọc NavHost, Initial pass KHÔNG consume; đồng hồ
-    │                       #   withFrameMillis CHỈ chạy khi còn cụm đang bay; hạt vẽ bằng drawImage +
-    │                       #   ColorFilter.tint — 2026-08-06 bỏ hẳn vẽ Path, xem Changelog)
+    │                       #   withFrameMillis CHỈ chạy khi còn animation; drawTouchEffectFrame cắt frame
+    │                       #   bằng drawImage srcOffset/srcSize — KHÔNG còn particle system, xem Changelog)
     │                       #   + TouchEffectController (tắt tạm theo ngữ cảnh — màn camera bật cờ lúc quay GIF)
     skin/                   #   **(2026-08-05 — P0/P1)** ENGINE SKIN: AppSkin + SkinColors/Icons/Shapes/Images,
     │                       #   LocalAppSkin + `SkinTheme` (cổng đọc token), SkinIcon (fallback Material),
@@ -270,6 +272,13 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-11 — Hiệu ứng chạm làm lại bằng SPRITESHEET one-shot; xoá hẳn particle system (user chốt)**. User xoá 5 PNG hạt cũ khỏi `res/drawable-nodpi/` (app không build được vì `R.drawable.effectN_particle` mất) và cấp sheet mới `effect1_sheet.png` — **Flower, id 1**. Mô hình mới: **1 lần chạm = 1 animation tại điểm chạm**, chuyển động do ART quyết định chứ không do code.
+  - 🗑️ **Xoá khỏi `TouchEffect`**: `particleCount`, `distanceDp`, `swayDp`, `spinDegPerSec`, `scaleFrom/To`, `useSkinAccent`, `particleAsset` và **cả enum `EmitDirection`**. Xoá `ParticleStyle` + `rememberParticleStyle` + `drawEmission`; `drawParticle` (vòng lặp hạt + `sin/cos` tính quỹ đạo + `rotate` từng hạt) thay bằng `drawTouchEffectFrame` cắt frame bằng `drawImage(srcOffset, srcSize)`. Thêm: `sheet`, `frameCount`, `columns`, `fps`, `sizeDp` (cỡ cả animation, không phải 1 hạt), `thumbFrame` + 2 thuộc tính suy ra `rows`/`playbackMs`.
+  - ⏱️ **`durationMs` giờ là TỔNG vòng đời, dài hơn thời gian chạy frame**: frame index suy trực tiếp từ `fps` rồi ép trần về frame cuối, nên "giữ frame cuối" không cần nhánh xử lý riêng. Cần vậy vì sheet `Flower` **không tự tan** (frame 7 là frame đặc nhất) → `fadeStart = 0.6f` cho code fade hộ, nếu không hoa biến mất đột ngột. Test khoá `playbackMs <= durationMs` (không thì animation bị cắt đuôi) + `rows × columns >= frameCount` (không thì frame cuối nằm ngoài lưới).
+  - 🎁 **Ảnh đại diện gacha**: vẽ cả sheet bằng `painterResource` sẽ ra một cái lưới 8 ô → `localItemAsset` tách thành `localSkinThumbnail` (vẫn drawable đơn) + `localEffect` (trả `TouchEffect`) và thêm `EffectThumbnail` cắt đúng `thumbFrame`. **Bỏ `ColorFilter.tint` theo màu bậc** cho EFFECT — sheet đã có màu sẵn, tint là bẹt cả bó hoa nhiều màu thành một khối.
+  - 🖼️ Ô demo tab Effects lấy cỡ vẽ theo **kích thước ô** (`minOf(w,h) * 0.9f`) thay cho hack `density * 0.55f` cũ.
+  - ⚠️ **Server còn nợ**: gacha Firestore vẫn có item EFFECT `refId '2'..'5'` trỏ tới hiệu ứng **không còn trong app** → phải `isActive = false` qua trang admin, và đổi tên item `refId '1'` từ `Snowfall` thành `Flower`. [seed-gacha.ts](server/scripts/seed-gacha.ts) đã sửa nhưng script **chỉ thêm item thiếu, không sửa item đã có**.
 
 - **2026-08-07 — Dọn sạch 175 lint warning → `0 errors, 0 warnings`; bật `warningsAsErrors`**. Từ nay `./gradlew :app:lintDebug` **fail nếu có bất kỳ warning nào** — có cảnh báo mới thì sửa, không để dồn.
   - ⚡ **2 lỗi hiệu năng thật**: `Modifier.offset(x, y)` với giá trị state ở overlay emoji bay (`PostDetailScreen`, chạy animation mỗi frame) và vòng lấy nét camera (`CameraPreview`) → đổi sang **bản lambda** `offset { IntOffset(...) }`, chỉ chạy lại khâu đặt vị trí thay vì recompose cả composable mỗi frame.

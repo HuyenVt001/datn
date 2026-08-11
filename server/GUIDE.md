@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-08-06**.
+> Cập nhật lần cuối: **2026-08-11**.
 
 ---
 
@@ -18,7 +18,7 @@
 | | |
 |---|---|
 | Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, astrite, gacha, topup, admin, audit) |
-| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **11 suite / 199 test pass** (astrite 8 + gacha 29 + **topup 21**) · e2e smoke **10 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
+| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **11 suite / 207 test pass** (astrite 8 + gacha 29 + topup 21 + **frames 21**) · e2e smoke **10 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
 | Deploy | Đã chạy trên Render: `https://datn-8810.onrender.com/api` (gói free ngủ sau 15 phút — gọi `/api/health` để đánh thức trước demo). Hướng dẫn: `../DEPLOY.md` |
 | Việc kế tiếp | **Gacha + Astrite + PayOS xong toàn bộ G0–G6** (kế hoạch: `Snapget/.claude/GACHA_PLAN.md`). Còn lại là **việc của user, không phải việc code**: điền 3 khoá `PAYOS_*` vào `.env` → deploy lại Render → đăng ký webhook `https://<server>/api/topup/webhook` trên my.payos.vn (GACHA_PLAN mục 12). Song song: test end-to-end app + server (co-op, chat nhóm, reply, deep link) |
 | Blocker | ⚠️ Luồng nạp tiền TẮT cho tới khi có 3 khoá `PAYOS_*` trong `.env` — `POST /topup/orders` trả 503. Toàn bộ phần còn lại của server chạy bình thường |
@@ -91,7 +91,7 @@ helmet (security headers, CSP off cho Swagger)
 | `upload` | Multipart ≤25MB → Cloudinary; enforce ảnh GIF ≤3s từ metadata; route riêng cho admin | cloudinary |
 | `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal+friend streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
-| `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin | users, audit |
+| `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-08-11)** tự đồng bộ kho gacha khi CRUD khung (GACHA ⇒ có mặt trong `gachaItems`, khác/xóa ⇒ rút khỏi kho) | users, audit, gacha (forwardRef) |
 | `quests` | 2 quest cố định/ngày (LOGIN + POST_MOMENT), lazy tạo, tự hoàn thành; **(2026-08-05)** thưởng 2/2 quest = **+60 Astrite** (trước là khung ngẫu nhiên); mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames |
 | `astrite` | **(2026-08-05)** Ví Astrite: `credit`/`debit`/`grantSignupBonusOnce` — MỌI thay đổi số dư đi qua đây để sổ cái luôn khớp | firebase |
 | `gacha` | **(2026-08-05)** Catalog `gachaItems` + quay 1/x10: pity ưu tiên bậc cao & chỉ reset bậc trúng, SR/SSR không trùng khi chưa full, random ở SERVER; **G3**: CRUD kho vật phẩm + lịch sử toàn hệ thống cho admin | astrite, auth, frames, users, audit |
@@ -288,9 +288,9 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | GET | `/api/frames` | Catalog khung + `isUnlocked` của mình (kèm `unlockType`/`unlockValue`) | Firebase |
 | GET | `/api/frames/admin` | [Admin] Toàn bộ catalog khung | Admin JWT |
 | GET | `/api/frames/:id/owners` | [Admin] User đang sở hữu khung (`{frame, owners[]}`) | Admin JWT |
-| POST | `/api/frames` | [Admin] Thêm khung (`frameName/imageUrl/unlockType/unlockValue`) | Admin JWT |
-| PATCH | `/api/frames/:id` | [Admin] Sửa khung (đổi loại cần gửi kèm ngưỡng mới) | Admin JWT |
-| DELETE | `/api/frames/:id` | [Admin] Xóa khung | Admin JWT |
+| POST | `/api/frames` | [Admin] Thêm khung (`frameName/imageUrl/unlockType/unlockValue`); khung GACHA **tự vào kho gacha** | Admin JWT |
+| PATCH | `/api/frames/:id` | [Admin] Sửa khung (đổi loại cần gửi kèm ngưỡng mới); đổi sang/khỏi GACHA → **tự thêm/rút kho gacha** | Admin JWT |
+| DELETE | `/api/frames/:id` | [Admin] Xóa khung (đang trong kho gacha thì rút luôn) | Admin JWT |
 | POST | `/api/frames/:id/grant/:uid` | [Admin] Mở khóa khung cho user | Admin JWT |
 | GET | `/api/admin/users` | Danh sách user (`?search&page&limit`; kèm `admin`, `lastSignInAt`, **`astrite`**) | Admin JWT |
 | GET | `/api/admin/stats` | Thống kê tổng (users/moments/messages/friendships/groups + momentsToday + questCompletionsToday + **gachaRollsToday/Total**) | Admin JWT |
@@ -318,6 +318,7 @@ Swagger: `http://localhost:3000/docs`.
 - ✅ Quyền admin: Firebase custom claims `{admin: true}`; admin đầu tiên seed bằng `npm run seed:admin -- <email>` (mặc định viethoang5301314@gmail.com).
 - ✅ Role 2 cấp user/admin: cấp + THU quyền qua trang admin; chặn tự khóa/tự thu quyền (⇒ luôn còn ≥1 admin); `AdminJwtGuard` re-check claim + disabled mỗi request (đánh đổi 1 read Auth/request — chấp nhận).
 - ✅ Điều kiện mở khóa khung: 6 loại `unlockType` — **GACHA** / STREAK_MILESTONE (3/7/14/30) / POST_COUNT / FRIEND_COUNT / COOP_FIRST / DEFAULT. `QUEST_RANDOM` đã bỏ (2026-08-05); `FramesRepository.toEntity` map doc cũ (`QUEST_RANDOM` hoặc chỉ có `milestone`) sang loại mới khi đọc → **không cần migration, không cần chờ chạy seed**.
+- ✅ **(2026-08-11)** Kho gacha đồng bộ TỰ ĐỘNG theo `unlockType` của khung: `FramesService.syncGachaPool` (best-effort, idempotent) — tạo/sửa khung thành GACHA ⇒ thêm vật phẩm FRAME (phẩm chất R, đang bật) vào `gachaItems`; đổi khỏi GACHA hoặc xóa khung ⇒ rút vật phẩm khỏi kho (ai đã sở hữu vẫn giữ). Admin bỏ nút "Thêm khung vào kho"; `POST /gacha/items` vẫn giữ (idempotent-check trùng refId như cũ).
 - ✅ Daily Quest: 2 quest cố định/ngày (LOGIN + POST_MOMENT), sinh lazy, hoàn thành tự động. Thưởng 2/2 quest = **+60 Astrite** (2026-08-05, trước là khung ngẫu nhiên — khung giờ mở qua gacha). Thiết kế gốc **3 quest/ngày** (quest thứ 3 do AI tạo) — AI hoãn nên tạm giữ `DAILY_QUESTS_PER_DAY=2`; làm AI thì nâng lên 3.
 - ✅ Service account key: env `FIREBASE_SERVICE_ACCOUNT` → file json (đã có, gitignore).
 - ⏳ Tên collection Moment: giữ `posts` (tương thích app cũ) — muốn đổi thì sửa `Collections.POSTS`.
@@ -343,7 +344,11 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
-- **2026-08-06 — Bảo hiểm pity không bị tiêu khi bậc đó đang bị ẩn hết**. `pickTier` nay **chỉ chọn bậc**, không tự reset bộ đếm; `roll` chỉ `state.pity[tier] = 0` sau khi chắc chắn có vật phẩm để phát. Trước đó: admin tắt hết vật phẩm SSR (tính năng "ẩn" của kho thưởng vừa thêm) → người chơi chạm mốc 100 lượt, nhận Astrite thay vật phẩm nhưng **bộ đếm vẫn về 0** ⇒ mất trắng bảo hiểm đã quay 100 lần mới có. Nay mở lại vật phẩm là đổi thưởng ngay lượt sau. 1 test mới (**199 test pass**, 11 suite).
+- **2026-08-11 — App làm lại hiệu ứng touch bằng spritesheet ⇒ danh mục EFFECT trong `seed-gacha.ts` co từ 5 xuống 1**. App xoá 5 hiệu ứng particle cũ (Snowfall/Leaf/Sparkle/Bubble/Ember), hiện chỉ còn `Flower` = `refId '1'`; user bổ sung dần, **trần 10** (xem `Snapget/.claude/GUIDE.md` cùng ngày). Server **không đổi contract** — `refId` của EFFECT vẫn là số dạng chuỗi, khớp `TouchEffectRegistry` trong APK.
+  - ⚠️ **Việc phải làm tay trên Firestore đã seed** (script chỉ *thêm* item còn thiếu, không sửa/xoá item đã có): đổi `itemName` của item EFFECT `refId '1'` từ `Snowfall` → `Flower`, và đặt `isActive = false` cho `refId '2'..'5'` qua trang admin. Bỏ bước này thì người chơi quay ra một hiệu ứng **không còn tồn tại trong app** — `TouchEffectRegistry.find()` fallback về `None` nên không crash, nhưng coi như mất lượt SR.
+  - Thêm hiệu ứng mới về sau: thêm 1 dòng vào `EFFECTS` trong `scripts/seed-gacha.ts` rồi chạy lại `npm run seed:gacha` (idempotent theo `itemType:refId`).
+
+- **2026-08-11 — Kho gacha tự đồng bộ theo điều kiện mở khóa khung**. `FramesService` thêm `syncGachaPool` (inject `GachaRepository`, `FramesModule` ↔ `GachaModule` nối bằng `forwardRef`): tạo/sửa khung với `unlockType=GACHA` ⇒ tự thêm vật phẩm FRAME (R, đang bật, idempotent theo `itemType:refId`) vào `gachaItems`; đổi khỏi GACHA hoặc xóa khung ⇒ tự rút vật phẩm khỏi kho. Best-effort: lỗi đồng bộ chỉ ghi log, không fail CRUD khung — lần sửa kế tiếp tự kéo về đúng. 8 test mới (**207 test pass**, 11 suite). Admin đã sync: bỏ nút "Thêm khung vào kho" ở `GachaItemsPage` (xem `admin/GUIDE.md`); `POST /gacha/items` giữ nguyên contract. `pickTier` nay **chỉ chọn bậc**, không tự reset bộ đếm; `roll` chỉ `state.pity[tier] = 0` sau khi chắc chắn có vật phẩm để phát. Trước đó: admin tắt hết vật phẩm SSR (tính năng "ẩn" của kho thưởng vừa thêm) → người chơi chạm mốc 100 lượt, nhận Astrite thay vật phẩm nhưng **bộ đếm vẫn về 0** ⇒ mất trắng bảo hiểm đã quay 100 lần mới có. Nay mở lại vật phẩm là đổi thưởng ngay lượt sau. 1 test mới (**199 test pass**, 11 suite).
 - **2026-08-06 — Kho thưởng: tặng vật phẩm + owners; seed dữ liệu lần đầu**. `POST /gacha/items/:id/grant/:uid` (tặng thẳng vào tài khoản — demo/đền bù; KHÔNG liên quan Astrite, không ghi sổ cái) + `GET /gacha/items/:id/owners`; audit action mới `GACHA_ITEM_GRANT`. `UsersRepository` thêm `unlockCollectible`/`listByCollectible` dùng chung 3 mảng sở hữu. 4 test mới (**198 test pass**). Đã chạy `seed:gacha` (10 vật phẩm: 3 khung + 5 hiệu ứng + 2 skin; 3 khung `QUEST_RANDOM` cũ chuẩn hoá về `GACHA`) và `seed:topup` (5 gói nạp) — trước đó kho trống nên app quay báo "Kho vật phẩm đang trống" và popup nạp rỗng.
  - ⚠️ **SKIN/EFFECT tặng bằng SỐ, FRAME bằng chuỗi** — app so id kiểu Int với `SkinRegistry`/`TouchEffectRegistry`; tặng dạng chuỗi là app không nhận ra vật phẩm đã mở (đã khoá bằng test).
 - **2026-08-05 — Soát lại luồng G6: vá 3 đường cộng tiền 2 lần**. Rà toàn bộ module `topup` sau khi hoàn thành; 4 test mới (**194 test pass**).

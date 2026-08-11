@@ -1,5 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { MAX_FRIENDS, STREAK_MILESTONES } from '../common/constants';
+import { DEFAULT_RARITY_BY_TYPE } from '../gacha/entities/gacha-item.entity';
+import { GachaRepository } from '../gacha/gacha.repository';
 import { UsersRepository } from '../users/users.repository';
 import { CreateFrameDto } from './dto/create-frame.dto';
 import { UpdateFrameDto } from './dto/update-frame.dto';
@@ -8,9 +10,12 @@ import { FramesRepository } from './frames.repository';
 
 @Injectable()
 export class FramesService {
+  private readonly logger = new Logger(FramesService.name);
+
   constructor(
     private readonly repo: FramesRepository,
     private readonly usersRepo: UsersRepository,
+    private readonly gachaRepo: GachaRepository,
   ) {}
 
   /** Catalog khung anh + trang thai da mo khoa cua user hien tai (DEFAULT = mo san). */
@@ -44,11 +49,11 @@ export class FramesService {
     return { frame, owners };
   }
 
-  /** Admin them khung moi. */
+  /** Admin them khung moi. Khung GACHA duoc TU DONG them vao kho vat pham gacha. */
   async create(dto: CreateFrameDto): Promise<Frame> {
     const unlockType = dto.unlockType ?? 'GACHA';
     const unlockValue = this.assertUnlockRule(unlockType, dto.unlockValue);
-    return this.repo.create({
+    const frame = await this.repo.create({
       frameName: dto.frameName,
       imageUrl: dto.imageUrl,
       unlockType,
@@ -57,12 +62,18 @@ export class FramesService {
       milestone: unlockType === 'STREAK_MILESTONE' ? unlockValue : null,
       createdAt: new Date().toISOString(),
     });
+    if (unlockType === 'GACHA') {
+      await this.syncGachaPool(frame, true);
+    }
+    return frame;
   }
 
   /**
    * Admin sua khung (ten / anh / dieu kien mo khoa).
    * Doi unlockType -> nguong lay tu dto (KHONG mang nguong loai cu sang loai moi);
    * giu nguyen loai -> khong gui unlockValue thi giu nguong cu.
+   * Sau khi sua, kho gacha duoc dong bo theo dieu kien moi: GACHA -> co mat
+   * trong kho, khac GACHA -> rut khoi kho.
    */
   async update(frameId: string, dto: UpdateFrameDto): Promise<Frame> {
     const frame = await this.repo.findById(frameId);
@@ -87,7 +98,7 @@ export class FramesService {
       milestone: unlockType === 'STREAK_MILESTONE' ? unlockValue : null,
     };
     await this.repo.update(frameId, patch);
-    return {
+    const updated: Frame = {
       ...frame,
       frameName: dto.frameName ?? frame.frameName,
       imageUrl: dto.imageUrl ?? frame.imageUrl,
@@ -95,15 +106,53 @@ export class FramesService {
       unlockValue,
       milestone: patch.milestone,
     };
+    await this.syncGachaPool(updated, unlockType === 'GACHA');
+    return updated;
   }
 
-  /** Admin xoa khung. */
+  /** Admin xoa khung. Khung dang nam trong kho gacha thi rut khoi kho luon (het quay ra). */
   async delete(frameId: string): Promise<void> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
       throw new NotFoundException('Khong tim thay khung anh.');
     }
     await this.repo.delete(frameId);
+    await this.syncGachaPool(frame, false);
+  }
+
+  /**
+   * Dong bo kho vat pham gacha voi dieu kien mo khoa cua khung (2026-08-11):
+   * `shouldBeInPool=true` -> dam bao co vat pham FRAME tro toi khung (them neu
+   * chua co, pham chat mac dinh R); `false` -> rut vat pham khoi kho neu co.
+   * Idempotent. Best-effort: loi o buoc nay chi ghi log, KHONG lam fail thao
+   * tac CRUD khung — lan sua khung ke tiep se tu keo kho ve dung trang thai.
+   */
+  private async syncGachaPool(frame: Frame, shouldBeInPool: boolean): Promise<void> {
+    try {
+      const existing = await this.gachaRepo.findItemByRef('FRAME', frame.frameId);
+      if (shouldBeInPool) {
+        if (existing) {
+          return;
+        }
+        await this.gachaRepo.createItem({
+          itemName: frame.frameName,
+          itemType: 'FRAME',
+          rarity: DEFAULT_RARITY_BY_TYPE.FRAME,
+          refId: frame.frameId,
+          imageUrl: frame.imageUrl,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date().toISOString(),
+        });
+      } else if (existing) {
+        await this.gachaRepo.deleteItem(existing.itemId);
+      }
+    } catch (err) {
+      this.logger.error(
+        `Dong bo kho gacha cho khung ${frame.frameId} that bai`,
+        err instanceof Error ? err.stack : String(err),
+      );
+    }
   }
 
   /**

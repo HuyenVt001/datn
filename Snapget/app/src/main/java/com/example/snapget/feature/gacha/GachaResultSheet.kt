@@ -3,6 +3,7 @@ package com.example.snapget.feature.gacha
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -41,15 +41,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.effect.TouchEffect
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
+import com.example.snapget.core.designsystem.effect.rememberEffectSheet
 import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.RollOutcomeDto
 import com.example.snapget.core.network.dto.RollResultDto
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /** Khoang cach giua 2 la lat lien tiep. */
@@ -311,8 +316,11 @@ private fun ResultCard(
 /** Mat truoc: khung asset + anh vat pham dat vao o trong o giua khung. */
 @Composable
 private fun CardFront(entry: RollResultDto) {
-    val localAsset = remember(entry.itemType, entry.refId) {
-        localItemAsset(entry.itemType, entry.refId)
+    val skinThumb = remember(entry.itemType, entry.refId) {
+        localSkinThumbnail(entry.itemType, entry.refId)
+    }
+    val effect = remember(entry.itemType, entry.refId) {
+        localEffect(entry.itemType, entry.refId)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -341,17 +349,15 @@ private fun CardFront(entry: RollResultDto) {
                 contentAlignment = Alignment.Center,
             ) {
                 when {
-                    localAsset != null -> Image(
-                        painter = painterResource(localAsset),
+                    skinThumb != null -> Image(
+                        painter = painterResource(skinThumb),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
-                        // Anh hat hieu ung la PNG TRANG tren nen trong -> khong
-                        // to thi chim vao nen den cua la bai.
-                        colorFilter = if (entry.itemType == "EFFECT") {
-                            ColorFilter.tint(GachaRarity.color(entry.tier))
-                        } else {
-                            null
-                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    effect != null -> EffectThumbnail(
+                        effect = effect,
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -421,22 +427,68 @@ private fun CardCaption(entry: RollResultDto, revealed: Boolean, width: Dp) {
     }
 }
 
-/**
- * Anh dai dien nam TRONG APK cua 1 vat pham, tra theo `(itemType, refId)`.
+/*
+ * Anh dai dien nam TRONG APK cua skin / hieu ung, tra theo `(itemType, refId)`.
  *
  * Khung anh co `imageUrl` tren Cloudinary, con **skin va hieu ung thi khong** —
  * asset cua chung dong goi trong APK (dung tinh than "admin khong sua duoc vat
- * pham nay"). Khong co ham nay thi quay trung skin/hieu ung chi hien mot o trong.
+ * pham nay"). Khong co 2 ham duoi thi quay trung skin/hieu ung chi hien o trong.
  *
  * `firstOrNull` chiu duoc refId la (vat pham cua ban server moi hon ban app dang
  * cai) bang cach tra `null` -> o trong, la bai van hien dung bac.
+ *
+ * Vi sao TACH lam 2 ham thay vi 1 ham tra `@DrawableRes Int?` nhu truoc: tu
+ * 2026-08-11 hieu ung la **spritesheet** chu khong con 1 anh hat don le, ve ca
+ * file bang `painterResource` se ra mot cai luoi 8 o. Phai cat 1 frame -> can ca
+ * doi tuong `TouchEffect` (biet `columns`/`thumbFrame`), khong chi resource id.
  */
+
+/** Anh dai dien cua skin (van la 1 drawable don). */
 @DrawableRes
-private fun localItemAsset(itemType: String?, refId: String?): Int? {
+private fun localSkinThumbnail(itemType: String?, refId: String?): Int? {
+    if (itemType != "SKIN") return null
     val id = refId?.toIntOrNull() ?: return null
-    return when (itemType) {
-        "SKIN" -> SkinRegistry.all.firstOrNull { it.id == id }?.thumbnail
-        "EFFECT" -> TouchEffectRegistry.all.firstOrNull { it.id == id }?.particleAsset
-        else -> null
+    return SkinRegistry.all.firstOrNull { it.id == id }?.thumbnail
+}
+
+/** Hieu ung touch tuong ung, de cat frame lam anh dai dien. */
+private fun localEffect(itemType: String?, refId: String?): TouchEffect? {
+    if (itemType != "EFFECT") return null
+    val id = refId?.toIntOrNull() ?: return null
+    return TouchEffectRegistry.all.firstOrNull { it.id == id && it.sheet != null }
+}
+
+/**
+ * Anh dai dien cua hieu ung: cat dung frame [TouchEffect.thumbFrame] tu
+ * spritesheet — frame animation no to nhat, chu khong phai frame 0 (frame 0 gan
+ * nhu trong tron, nhin ra o rong).
+ *
+ * KHONG tint theo mau bac nua: tu 2026-08-11 sheet da co mau san, tint la bet
+ * ca bo hoa nhieu mau thanh mot khoi mot mau.
+ */
+@Composable
+private fun EffectThumbnail(effect: TouchEffect, modifier: Modifier = Modifier) {
+    val sheet = rememberEffectSheet(effect)
+    val columns = effect.columns
+    val rows = effect.rows
+    if (sheet == null || columns <= 0 || rows <= 0) return
+
+    val frameW = sheet.width / columns
+    val frameH = sheet.height / rows
+    val frame = effect.thumbFrame.coerceIn(0, (effect.frameCount - 1).coerceAtLeast(0))
+
+    Canvas(modifier = modifier) {
+        // Vua khung o ma khong meo: lay canh ngan hon cua o lam co
+        val side = minOf(size.width, size.height)
+        drawImage(
+            image = sheet,
+            srcOffset = IntOffset((frame % columns) * frameW, (frame / columns) * frameH),
+            srcSize = IntSize(frameW, frameH),
+            dstOffset = IntOffset(
+                ((size.width - side) / 2f).roundToInt(),
+                ((size.height - side) / 2f).roundToInt(),
+            ),
+            dstSize = IntSize(side.roundToInt(), side.roundToInt()),
+        )
     }
 }

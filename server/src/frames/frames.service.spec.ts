@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
+import { GachaRepository } from '../gacha/gacha.repository';
 import { FramesRepository } from './frames.repository';
 import { FramesService } from './frames.service';
 
@@ -7,6 +8,7 @@ describe('FramesService', () => {
   let service: FramesService;
   let repo: jest.Mocked<FramesRepository>;
   let usersRepo: jest.Mocked<UsersRepository>;
+  let gachaRepo: jest.Mocked<GachaRepository>;
 
   beforeEach(() => {
     repo = {
@@ -21,8 +23,13 @@ describe('FramesService', () => {
       unlockFrame: jest.fn(),
       listByUnlockedFrame: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
+    gachaRepo = {
+      findItemByRef: jest.fn().mockResolvedValue(null),
+      createItem: jest.fn(),
+      deleteItem: jest.fn(),
+    } as unknown as jest.Mocked<GachaRepository>;
 
-    service = new FramesService(repo, usersRepo);
+    service = new FramesService(repo, usersRepo, gachaRepo);
   });
 
   it('listForUser: gan isUnlocked theo unlockedFrames cua user; khung DEFAULT luon mo', async () => {
@@ -59,6 +66,50 @@ describe('FramesService', () => {
 
     expect(frame.unlockType).toBe('GACHA');
     expect(frame.milestone).toBeNull();
+  });
+
+  it('create khung GACHA: tu dong them vao kho gacha (pham chat R, dang bat)', async () => {
+    repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
+
+    await service.create({ frameName: 'Thuong', imageUrl: 'http://t.png' });
+
+    expect(gachaRepo.createItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemName: 'Thuong',
+        itemType: 'FRAME',
+        rarity: 'R',
+        refId: 'new',
+        imageUrl: 'http://t.png',
+        isActive: true,
+      }),
+    );
+  });
+
+  it('create khung GACHA: khung da co trong kho thi khong them lan 2 (idempotent)', async () => {
+    repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
+    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'new' } as never);
+
+    await service.create({ frameName: 'Thuong' });
+
+    expect(gachaRepo.createItem).not.toHaveBeenCalled();
+  });
+
+  it('create khung khong phai GACHA: khong dong toi kho gacha', async () => {
+    repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
+
+    await service.create({ frameName: 'MoSan', unlockType: 'DEFAULT' });
+
+    expect(gachaRepo.findItemByRef).not.toHaveBeenCalled();
+    expect(gachaRepo.createItem).not.toHaveBeenCalled();
+  });
+
+  it('create: loi dong bo kho gacha KHONG lam fail viec tao khung (best-effort)', async () => {
+    repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
+    gachaRepo.createItem.mockRejectedValue(new Error('firestore down'));
+
+    const frame = await service.create({ frameName: 'Thuong' });
+
+    expect(frame.frameId).toBe('new');
   });
 
   it('update: bao loi khi frame khong ton tai', async () => {
@@ -118,9 +169,66 @@ describe('FramesService', () => {
     );
   });
 
+  it('update: doi dieu kien sang GACHA -> tu dong them khung vao kho gacha', async () => {
+    repo.findById.mockResolvedValue({
+      frameId: 'f1',
+      frameName: 'Old',
+      imageUrl: 'http://old.png',
+      unlockType: 'DEFAULT',
+    } as never);
+
+    await service.update('f1', { unlockType: 'GACHA' });
+
+    expect(gachaRepo.createItem).toHaveBeenCalledWith(
+      expect.objectContaining({ itemType: 'FRAME', refId: 'f1', itemName: 'Old', rarity: 'R' }),
+    );
+  });
+
+  it('update: doi dieu kien tu GACHA sang loai khac -> tu dong rut khung khoi kho gacha', async () => {
+    repo.findById.mockResolvedValue({
+      frameId: 'f1',
+      frameName: 'Old',
+      unlockType: 'GACHA',
+    } as never);
+    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
+
+    await service.update('f1', { unlockType: 'COOP_FIRST' });
+
+    expect(gachaRepo.deleteItem).toHaveBeenCalledWith('g1');
+    expect(gachaRepo.createItem).not.toHaveBeenCalled();
+  });
+
+  it('update: giu nguyen GACHA va khung DA co trong kho -> khong them trung', async () => {
+    repo.findById.mockResolvedValue({
+      frameId: 'f1',
+      frameName: 'Old',
+      unlockType: 'GACHA',
+    } as never);
+    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
+
+    await service.update('f1', { frameName: 'New' });
+
+    expect(gachaRepo.createItem).not.toHaveBeenCalled();
+    expect(gachaRepo.deleteItem).not.toHaveBeenCalled();
+  });
+
   it('delete: bao loi khi frame khong ton tai', async () => {
     repo.findById.mockResolvedValue(null);
     await expect(service.delete('bad')).rejects.toThrow(NotFoundException);
+  });
+
+  it('delete khung GACHA: rut khung khoi kho gacha luon', async () => {
+    repo.findById.mockResolvedValue({
+      frameId: 'f1',
+      frameName: 'Old',
+      unlockType: 'GACHA',
+    } as never);
+    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
+
+    await service.delete('f1');
+
+    expect(repo.delete).toHaveBeenCalledWith('f1');
+    expect(gachaRepo.deleteItem).toHaveBeenCalledWith('g1');
   });
 
   it('unlockForUser: mo khoa khi frame ton tai', async () => {

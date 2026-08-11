@@ -41,16 +41,17 @@
 | **1** | **`Snow`** | đen · xanh lam đậm · trắng | `Sources/skin-assets/skin1_snow/` | **SSR** |
 | **2** | **`Forest`** | xanh lá đậm · vàng be · trắng | `Sources/skin-assets/skin2_forest/` | **SSR** |
 
-| effectId | Concept | File | Bậc gacha |
-|---|---|---|---|
-| **0** | `None` — không hiệu ứng | ❌ không cần asset | luôn sở hữu |
-| **1** | `Snowfall` | `effect1_particle.png` | **SR** |
-| **2** | `Leaf` | `effect2_particle.png` | **SR** |
-| **3** | `Sparkle` | `effect3_particle.png` | **SR** |
-| **4** | `Bubble` | `effect4_particle.png` | **SR** |
-| **5** | `Ember` | `effect5_particle.png` | **SR** |
+> ⚠️ **LÀM LẠI 2026-08-11 — bảng dưới thay hẳn bảng 5 hiệu ứng particle cũ.** User xoá toàn bộ
+> `effectN_particle.png` và chuyển sang **spritesheet one-shot**: 1 lần chạm = 1 animation tại điểm
+> chạm, chuyển động do art quyết định. Mục 2.5.2 và 2.5.6 dưới đây đã cập nhật theo. **Tối đa 10 hiệu ứng.**
 
-Bảng màu 11 token của Snow và Forest: xem `Sources/skin-assets/README.md` mục 1.2. Tham số 5 hiệu ứng: `Sources/skin-assets/effects/EFFECTS.md`.
+| effectId | Concept | File | Lưới | Bậc gacha |
+|---|---|---|---|---|
+| **0** | `None` — không hiệu ứng | ❌ không cần asset | — | luôn sở hữu |
+| **1** | `Flower` — hoa nở từ điểm chạm | `effect1_sheet.png` (768×384) | 4 cột × 2 hàng, 8 frame 192×192 | **SR** |
+| **2–10** | *(chưa có — user bổ sung dần)* | `effectN_sheet.png` | khai báo trong `TouchEffectRegistry` | **SR** |
+
+Bảng màu 11 token của Snow và Forest: xem `Sources/skin-assets/README.md` mục 1.2.
 Tên concept đổi thoải mái — asset đặt tên theo **số id** nên đổi tên không phải đổi file.
 
 ⚠️ ID là **số**, nhưng `displayName` hiện trên UI phải là **chữ tiếng Anh** (luật CLAUDE.md mục 8). Tên file asset dùng **số** cho khớp ID → sau này đổi tên concept không phải đổi tên file.
@@ -248,20 +249,28 @@ Hiệu ứng touch **không nằm trong `AppSkin`**. Nó là loại vật phẩm
 
 ### 2.5.2 Model
 
+**Bản 2026-08-11 (spritesheet one-shot)** — nguồn sự thật là code: [TouchEffect.kt](../app/src/main/java/com/example/snapget/core/designsystem/effect/TouchEffect.kt).
+
 ```kotlin
 @Immutable
 data class TouchEffect(
-    val id: Int,                    // 0 = None, 1..5 (chốt 2026-08-05)
-    val displayName: String,             // tiếng Anh
-    val renderer: TouchEffectRenderer,   // cách vẽ (tab Effects demo trực tiếp, không cần thumbnail)
-    val particleCount: Int = 8,
-    val durationMs: Int = 600,
-    val useSkinAccent: Boolean = true,   // true = ăn màu accent của skin đang dùng
-    @DrawableRes val particleAsset: Int? = null, // null = vẽ vector thuần bằng Canvas
+    val id: Int,                          // 0 = None, 1..10
+    val displayName: String,              // tiếng Anh
+    @DrawableRes val sheet: Int? = null,  // spritesheet, lưới đều, frame vuông
+    val frameCount: Int = 0,
+    val columns: Int = 1,                 // cỡ 1 frame SUY RA từ ảnh (width / columns), không khai tay
+    val fps: Int = 24,
+    val durationMs: Int = 0,              // TỔNG vòng đời; dài hơn playbackMs thì frame cuối giữ nguyên
+    val sizeDp: Float = 120f,             // cỡ vẽ của CẢ animation
+    val fadeStart: Float = 1f,            // 1f = art tự tan; <1f = code fade hộ
+    val thumbFrame: Int = 0,              // frame làm ảnh đại diện gacha
 )
 ```
 
-`useSkinAccent = true` → hiệu ứng tự đổi màu theo skin, khỏi phải vẽ mỗi hiệu ứng nhiều bản màu.
+**Đã bỏ hẳn** (particle system cũ): `renderer`/`TouchEffectRenderer`, `particleCount`, `distanceDp`,
+`EmitDirection`, `swayDp`, `spinDegPerSec`, `scaleFrom/To`, `particleAsset`, và `useSkinAccent` —
+sheet có màu sẵn nên **không tint theo accent của skin nữa**. Đổi lại: hiệu ứng không tự khớp màu
+skin (skin xanh + hoa hồng là chuyện bình thường), bù lại art hiện đúng như file user cấp.
 
 ### 2.5.3 Cách hiện thực (Compose thuần, không thêm dependency)
 
@@ -324,62 +333,50 @@ DisposableEffect(isRecording) {
 
 **effectId 0 = `None`** (không có gì) — hiệu ứng **bắt buộc phải có**, mặc định, luôn sở hữu, không quay gacha ra được. App tự dựng, không cần asset.
 
-**effectId 1–5 do user tự cung cấp** (chốt 2026-08-05). Hợp đồng đầu vào ở mục 2.5.6.
-Tham khảo thứ vẽ được 100% bằng Canvas nếu bạn chọn Dạng 3 (không cần gửi file): vòng tròn lan · tia sáng bắn ra · bong bóng nổi lên · sóng lan toả.
+**effectId 1–10 do user tự cung cấp** (chốt 2026-08-05; trần 10 chốt 2026-08-11). Hợp đồng đầu vào ở mục 2.5.6.
 
 ### 2.5.6 HỢP ĐỒNG ĐẦU VÀO — user cần chuẩn bị gì cho mỗi hiệu ứng
 
-Mỗi hiệu ứng = **1 file ảnh (hoặc không có file) + 1 phiếu tham số**. Nhận 1 trong 3 dạng:
+> **Bản 2026-08-11.** Chỉ còn **một** dạng duy nhất: **spritesheet**. 3 dạng cũ (ảnh hạt tĩnh /
+> sheet 1 hàng ngang / mô tả hình học vẽ bằng Canvas) đã bỏ cùng particle system.
 
-#### Dạng 1 — Ảnh hạt tĩnh ⭐ khuyến nghị
-
-| Hạng mục | Yêu cầu |
-|---|---|
-| Số file | **1** |
-| Định dạng | **PNG-32 có alpha** (nền trong suốt hoàn toàn) |
-| Kích thước file ảnh | **192×192px** (= 48dp @4x) |
-| Bố cục trong canvas | Hình nằm **giữa**, chừa lề trống **≥10%** mỗi cạnh (~20px) để lúc xoay/phóng không bị cắt |
-| Màu | **Trắng thuần `#FFFFFF`**, dùng **alpha** để tạo sắc độ → app tint theo `accent` của skin. Muốn màu cố định không đổi theo skin thì gửi bản màu và ghi rõ ở phiếu |
-| Cấm | Bóng đổ / viền màu nướng sẵn (sẽ hỏng khi tint), nền trắng đục, viền đen |
-| Dung lượng | ≤ 100KB |
-| Tên file | `effect<N>_particle.png` với `N` = effectId 1–5 — ví dụ `effect3_particle.png` |
-
-#### Dạng 2 — Sprite sheet (hạt có hoạt ảnh riêng)
+Mỗi hiệu ứng = **1 file spritesheet + tên hiển thị + id**.
 
 | Hạng mục | Yêu cầu |
 |---|---|
-| Số file | **1** ảnh ngang chứa toàn bộ frame |
-| Mỗi frame | **192×192px**, xếp **1 hàng ngang**, đều nhau, không có khoảng đệm giữa các frame |
-| Số frame | **4–24** (ghi rõ ở phiếu) |
-| Tổng kích thước | `N × 192` rộng × `192` cao — ví dụ 12 frame → 2304×192px |
-| Màu / cấm / dung lượng | Như Dạng 1; dung lượng ≤ 400KB |
-| Tên file | `effect<N>_sheet.png` với `N` = effectId 1–5 |
+| Số frame | **12** (chấp nhận 8–16). Dưới 8 nhìn giật, trên 16 chỉ tốn RAM |
+| Cỡ 1 frame | **192×192px**, **vuông** (chấp nhận 128 nếu art mềm/glow, tối đa 256 nếu nét cứng) |
+| Lưới | **đều tuyệt đối**, đọc trái→phải rồi trên→dưới. 12 frame → 4 cột × 3 hàng |
+| **Cấm** | padding / margin / trim / rotate giữa các frame (đừng xuất bằng TexturePacker chế độ tối ưu — cần lưới thô) |
+| Cạnh sheet | **≤ 2048px** mỗi chiều (`minSdk 24`, máy cũ giới hạn texture 2048) |
+| Định dạng | **PNG-32 RGBA**, 8-bit/channel, sRGB, **nền trong suốt hoàn toàn** |
+| Màu | **có màu sẵn, giữ nguyên** (chốt 2026-08-11) — app **không** tint theo accent của skin nữa |
+| Tốc độ | **24fps** → 12 frame = 500ms. Hiệu ứng chạm nên nằm trong **400–700ms** |
+| Bố cục frame | hiệu ứng **canh giữa**, chừa lề ≥10% (~20px) để glow không bị cắt — lề này cũng chặn bilinear lấn sang frame bên cạnh lúc phóng to |
+| Frame cuối | nên **tan hết về alpha 0**. Không tan cũng nhận được — khai `fadeStart` để code fade hộ (sheet `Flower` đúng ca này) |
+| Tên file | `effect<N>_sheet.png` với `N` = effectId 1–10 |
 
-#### Dạng 3 — Không có file, chỉ mô tả hình học
-
-Hiệu ứng chỉ gồm hình cơ bản (tròn, vòng cung, tia, sóng, đường kẻ) → **không cần gửi ảnh**, chỉ cần mô tả bằng chữ + phiếu tham số, tôi vẽ bằng Canvas.
+**Sai spec vẫn nhận được** — gửi frame rời (`fx_00.png`, `fx_01.png`…), GIF, APNG, MP4/WebM có
+alpha, hay sheet layout khác (1 hàng ngang dài, 5×5, có padding) đều xử lý được bằng ffmpeg +
+Python/PIL; chỉ cần nói **frame nào là frame đầu** nếu thứ tự không rõ.
 
 #### Phiếu tham số — điền cho MỖI hiệu ứng
 
 ```
-effectId:            3                     (SỐ, từ 1 đến 5)
-displayName:         Snow                  (TIẾNG ANH — luật CLAUDE.md mục 8)
-Dạng:                1 / 2 / 3
-File kèm theo:       effect3_particle.png
-Số frame + fps:      (chỉ Dạng 2) 12 frame @ 24fps
-Số hạt mỗi lần chạm: 8                     (khuyến nghị 4–12, tối đa 20)
-Cỡ hạt hiển thị:     24dp                  (dải hợp lý 16–48dp)
-Thời lượng:          900ms                 (dải 300–1500ms)
-Hướng bay:           toả đều 360° | rơi xuống | bay lên | bắn ra rồi rơi | đứng yên
-Quãng đường:         60dp
-Xoay:                có, 180°/giây          | không
-Scale theo thời gian: 1.0 → 0.4
-Fade:                mờ dần từ mốc 70% thời lượng
-Ăn màu skin:         có (ảnh vẽ trắng)      | không (giữ màu gốc)
-Bậc hiếm gacha:      thường | hiếm | rất hiếm
+effectId:        1                    (SỐ, từ 1 đến 10)
+displayName:     Flower               (TIẾNG ANH — luật CLAUDE.md mục 8)
+File kèm theo:   effect1_sheet.png
+Số frame + lưới: 8 frame, 4 cột × 2 hàng, frame 192×192
+fps:             18
+Tổng vòng đời:   800ms                (≥ frameCount/fps; phần dư = giữ frame cuối + tan dần)
+Cỡ hiển thị:     120dp                (cỡ CẢ animation, không phải 1 hạt)
+Frame cuối tự tan? không → fadeStart 0.6
+Frame đẹp nhất:  7                    (dùng làm ảnh đại diện gacha)
+Bậc hiếm gacha:  SR
 ```
 
-**Không cần chuẩn bị**: thumbnail cho tab Effects (ô demo chạy hiệu ứng thật, không dùng ảnh tĩnh) · nhiều bản màu (app tint) · nhiều mật độ màn hình (1 file @4x là đủ).
+**Không cần chuẩn bị**: thumbnail cho tab Effects (ô demo chạy hiệu ứng thật) · thumbnail cho thẻ
+gacha (app cắt frame `thumbFrame` từ sheet) · nhiều bản màu · nhiều mật độ màn hình (1 file là đủ).
 
 ---
 
@@ -639,15 +636,14 @@ Chỉ đổi màu nền/chữ. Kích thước giữ để tham chiếu lúc refa
 
 ### 6.12 Hiệu ứng touch — **user tự cung cấp**
 
-Đặc tả đầy đủ ở **mục 2.5.6** (hợp đồng đầu vào + phiếu tham số). Tóm tắt kích thước:
+Đặc tả đầy đủ ở **mục 2.5.6** (hợp đồng đầu vào + phiếu tham số). Tóm tắt kích thước (bản 2026-08-11):
 
-| Dạng | File | Kích thước | Dung lượng |
-|---|---|---|---|
-| 1 — Ảnh hạt tĩnh ⭐ | 1 × PNG-32 alpha | **192×192px** (48dp @4x), hình nằm giữa, lề ≥10% | ≤100KB |
-| 2 — Sprite sheet | 1 × PNG-32 alpha, N frame 1 hàng ngang | mỗi frame **192×192px**, tổng `N×192 × 192`, N = 4–24 | ≤400KB |
-| 3 — Hình học | không có file | — | — |
+| File | Kích thước | Dung lượng |
+|---|---|---|
+| 1 × PNG-32 RGBA `effect<N>_sheet.png` | 8–16 frame **vuông 192×192px** xếp lưới đều (12 frame → 4×3 = 768×576); cạnh sheet ≤2048px | ≤400KB |
 
-Vẽ **trắng thuần `#FFFFFF` + alpha** để app tint theo `accent` của skin đang dùng → không phải làm nhiều bản màu, không phải làm nhiều mật độ màn hình.
+Sheet **có màu sẵn**, app vẽ nguyên màu — **không tint theo accent của skin** nữa (đổi 2026-08-11 cùng
+lúc bỏ particle system). Vẫn không cần nhiều bản màu hay nhiều mật độ màn hình: 1 file là đủ.
 
 ---
 
@@ -757,27 +753,20 @@ error:             #FF5370              lỗi, nút xoá               (Default:
 
 ⚠️ **Kiểm tra tương phản trước khi chốt màu**: `onBackground` trên `background` và `onSurfaceVariant` trên `surface` phải đọc được. Chữ đè lên ảnh người dùng luôn giữ trắng ở mọi skin (mục 3).
 
-### 6.13.4 Hiệu ứng touch — 5 hiệu ứng
+### 6.13.4 Hiệu ứng touch — tối đa 10 hiệu ứng
 
-Đặc tả kỹ thuật ở **mục 2.5.6**. Tên file:
+Đặc tả kỹ thuật ở **mục 2.5.6**. Tên file: `effect<N>_sheet.png` với `N` = effectId **1–10**
+(`effect1_sheet.png` … `effect10_sheet.png`). Mỗi hiệu ứng gửi kèm **1 phiếu tham số** (mẫu ở 2.5.6).
 
-| effectId | Dạng 1 (ảnh hạt) | Dạng 2 (sprite sheet) | Dạng 3 |
-|---|---|---|---|
-| 1 | `effect1_particle.png` | `effect1_sheet.png` | không có file |
-| 2 | `effect2_particle.png` | `effect2_sheet.png` | không có file |
-| 3 | `effect3_particle.png` | `effect3_sheet.png` | không có file |
-| 4 | `effect4_particle.png` | `effect4_sheet.png` | không có file |
-| 5 | `effect5_particle.png` | `effect5_sheet.png` | không có file |
-
-Mỗi hiệu ứng gửi kèm **1 phiếu tham số** (mẫu ở mục 2.5.6). Mỗi hiệu ứng chọn **một** dạng, không trộn.
+Đã bàn giao: **1 (`Flower`)**. Còn lại 2–10 user bổ sung dần.
 
 ### 6.13.5 Tổng kết khối lượng bàn giao
 
 | Hạng mục | Bắt buộc | Tuỳ chọn |
 |---|---|---|
 | **Mỗi skin** (×2) | **12 icon SVG (Nhóm 1)** + `btn_capture.webp` + `thumb.webp` + **11 mã màu** | 2 state nút chụp + 6 file nền/9-patch (`bottombar`, `pill`, `card`, `bubble_out`, `bubble_in`, `screen`) |
-| **Hiệu ứng** (×5) | 1 file ảnh **hoặc** không file (Dạng 3) + 1 phiếu tham số | — |
-| **TỔNG TỐI THIỂU** | **24 SVG + 4 ảnh WebP + 22 mã màu + 5 hiệu ứng** | |
+| **Hiệu ứng** (tối đa ×10) | 1 spritesheet PNG-32 + 1 phiếu tham số mỗi hiệu ứng | — |
+| **TỔNG TỐI THIỂU** | **24 SVG + 4 ảnh WebP + 22 mã màu + ≥1 hiệu ứng** | |
 
 **Thứ KHÔNG cần chuẩn bị:**
 - Icon **Nhóm 2 và Nhóm 3** — giữ Material icon, chỉ tint theo token màu (mục 6.13.1)

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AstriteModule } from '../astrite/astrite.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
@@ -13,11 +13,13 @@ import { GachaService } from './gacha.service';
  * - AstriteModule: ghi so cai trong CUNG transaction voi lan quay.
  * - AuthModule   : AdminJwtGuard (JwtModule) cho cac endpoint admin.
  * - FramesModule : kiem tra refId co that khi admin them khung vao kho.
+ *   forwardRef vi FramesModule cung import nguoc lai module nay (FramesService
+ *   dung GachaRepository de dong bo kho khi khung doi dieu kien mo khoa).
  * - UsersModule  : enrich uid -> ten o trang lich su quay cua admin.
  * - AuditModule  : ghi nhat ky moi thao tac admin (nhu cac module khac).
  */
 @Module({
-  imports: [AstriteModule, AuditModule, AuthModule, FramesModule, UsersModule],
+  imports: [AstriteModule, AuditModule, AuthModule, forwardRef(() => FramesModule), UsersModule],
   controllers: [GachaController],
   providers: [GachaService, GachaRepository],
   exports: [GachaService, GachaRepository],

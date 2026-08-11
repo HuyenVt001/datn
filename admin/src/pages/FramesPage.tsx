@@ -64,7 +64,7 @@ const UNLOCK_META: Record<
     label: 'Quay gacha',
     color: 'gold',
     tag: () => '🎲 Gacha',
-    hint: 'Vào kho vật phẩm gacha (phẩm chất R) — user quay trúng thì mở khóa.',
+    hint: 'TỰ ĐỘNG thêm vào kho vật phẩm gacha (phẩm chất R) — user quay trúng thì mở khóa. Đổi sang điều kiện khác sẽ tự rút khỏi kho.',
   },
   STREAK_MILESTONE: {
     label: 'Mốc streak cá nhân',
