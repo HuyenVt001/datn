@@ -45,8 +45,62 @@ object TouchEffectRegistry {
         thumbFrame = 7,
     )
 
+    /*
+     * ⚠️ Sheet 2/3/4 (bo them 2026-08-11) deu la anh 768×384 = luoi 4×2, nhung
+     * **o thu 8 DE TRONG** (alpha = 0 tuyet doi) -> khai `frameCount = 7`, khong
+     * phai 8. Khai 8 thi 1/8 chang cuoi ve mot frame rong: hieu ung chop tat dot
+     * ngot roi con dung do het `durationMs`, va `fadeStart` mo dan mot frame
+     * khong co gi.
+     *
+     * Ca 3 sheet deu tu loang o frame 6 (so diem anh duc tut so voi frame 5) roi
+     * cat phut sang rong -> giu frame 6 lam frame cuoi va cho `fadeStart` tan not
+     * phan con lai la muot.
+     */
+
+    /** Chum cau trong mo toa ra tu diem cham. */
+    val Snowflake = TouchEffect(
+        id = 2,
+        displayName = "Snowflake",
+        sheet = R.drawable.effect2_sheet,
+        frameCount = 7,
+        columns = 4,
+        fps = 16,
+        durationMs = 640,
+        sizeDp = 120f,
+        fadeStart = 0.60f,
+        thumbFrame = 5,
+    )
+
+    /** La thu toa ra roi tan. */
+    val Leaf = TouchEffect(
+        id = 3,
+        displayName = "Leaf",
+        sheet = R.drawable.effect3_sheet,
+        frameCount = 7,
+        columns = 4,
+        fps = 16,
+        durationMs = 660,
+        sizeDp = 120f,
+        fadeStart = 0.58f,
+        thumbFrame = 4,
+    )
+
+    /** Vong phep tim hien ra roi mo di — nhanh hon 2 hieu ung tren cho ra chat "niem chu". */
+    val Magic = TouchEffect(
+        id = 4,
+        displayName = "Magic",
+        sheet = R.drawable.effect4_sheet,
+        frameCount = 7,
+        columns = 4,
+        fps = 20,
+        durationMs = 560,
+        sizeDp = 120f,
+        fadeStart = 0.55f,
+        thumbFrame = 5,
+    )
+
     /** Thu tu trong list = thu tu hien o tab Effects; None luon dung dau. */
-    val all: List<TouchEffect> = listOf(None, Flower)
+    val all: List<TouchEffect> = listOf(None, Flower, Snowflake, Leaf, Magic)
 
     /**
      * Tim hieu ung theo id, KHONG BAO GIO nem loi — ban app cu co the nhan id

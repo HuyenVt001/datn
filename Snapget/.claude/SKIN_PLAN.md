@@ -48,8 +48,14 @@
 | effectId | Concept | File | Lưới | Bậc gacha |
 |---|---|---|---|---|
 | **0** | `None` — không hiệu ứng | ❌ không cần asset | — | luôn sở hữu |
-| **1** | `Flower` — hoa nở từ điểm chạm | `effect1_sheet.png` (768×384) | 4 cột × 2 hàng, 8 frame 192×192 | **SR** |
-| **2–10** | *(chưa có — user bổ sung dần)* | `effectN_sheet.png` | khai báo trong `TouchEffectRegistry` | **SR** |
+| **1** | `Flower` — hoa nở từ điểm chạm | `effect1_sheet.png` (768×384) | 4×2, **8** frame 192×192 | **SR** |
+| **2** | `Snowflake` — chùm cầu trong mờ toả ra | `effect2_sheet.png` (768×384) | 4×2, **7** frame (ô 8 trống) | **SR** |
+| **3** | `Leaf` — lá thu toả ra rồi tan | `effect3_sheet.png` (768×384) | 4×2, **7** frame (ô 8 trống) | **SR** |
+| **4** | `Magic` — vòng phép tím | `effect4_sheet.png` (768×384) | 4×2, **7** frame (ô 8 trống) | **SR** |
+| **5–10** | *(chưa có — user bổ sung dần)* | `effectN_sheet.png` | khai báo trong `TouchEffectRegistry` | **SR** |
+
+⚠️ Sheet 2/3/4 có **ô cuối để trống** → `frameCount = 7` chứ không phải 8. Khai 8 thì 1/8 chặng cuối
+vẽ một frame rỗng: hiệu ứng chớp tắt đột ngột rồi còn đứng đó hết `durationMs`.
 
 Bảng màu 11 token của Snow và Forest: xem `Sources/skin-assets/README.md` mục 1.2.
 Tên concept đổi thoải mái — asset đặt tên theo **số id** nên đổi tên không phải đổi file.

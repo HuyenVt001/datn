@@ -39,18 +39,25 @@ const SKINS: SeedItem[] = [
  * Hieu ung touch bundled trong APK — khop TouchEffectRegistry.
  *
  * ⚠️ Doi 2026-08-11: app xoa het 5 hieu ung particle cu (Snowfall / Leaf /
- * Sparkle / Bubble / Ember) va lam lai bang spritesheet, hien chi con `Flower`
- * (refId 1). User bo sung dan, **toi da 10**.
+ * Sparkle / Bubble / Ember) va lam lai bang spritesheet. User bo sung dan,
+ * **toi da 10**.
  *
  * Script nay CHI THEM item con thieu, khong sua/xoa item da co (xem vong lap
- * duoi, `seen` bo qua key da ton tai). Nen voi Firestore da seed ban cu:
- *  - item refId '1' van con ten 'Snowfall' -> doi ten thanh 'Flower' o trang admin.
- *  - item refId '2'..'5' tro toi hieu ung **khong con trong app** -> phai
- *    `isActive = false` o trang admin, khong thi quay ra se nhan duoc mot hieu
- *    ung khong hien thi duoc gi (app fallback ve None).
+ * duoi, `seen` bo qua key da ton tai). Nen voi Firestore da seed ban cu, phai
+ * sua tay o trang admin cho khop `TouchEffectRegistry`:
+ *  - refId '1' 'Snowfall'  -> doi ten thanh 'Flower'
+ *  - refId '2' 'Leaf'      -> doi ten thanh 'Snowflake'
+ *  - refId '3' 'Sparkle'   -> doi ten thanh 'Leaf'
+ *  - refId '4' 'Bubble'    -> doi ten thanh 'Magic'
+ *  - refId '5' 'Ember'     -> **`isActive = false`** (id 5 chua co sheet trong app);
+ *    de nguyen thi quay ra se nhan mot hieu ung khong hien thi duoc gi (app
+ *    fallback ve None).
  */
 const EFFECTS: SeedItem[] = [
   { itemName: 'Flower', itemType: 'EFFECT', rarity: 'SR', refId: '1', sortOrder: 20 },
+  { itemName: 'Snowflake', itemType: 'EFFECT', rarity: 'SR', refId: '2', sortOrder: 21 },
+  { itemName: 'Leaf', itemType: 'EFFECT', rarity: 'SR', refId: '3', sortOrder: 22 },
+  { itemName: 'Magic', itemType: 'EFFECT', rarity: 'SR', refId: '4', sortOrder: 23 },
 ];
 
 async function main(): Promise<void> {
