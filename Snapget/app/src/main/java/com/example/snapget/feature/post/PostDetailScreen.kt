@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -62,11 +61,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.snapget.core.designsystem.component.circle.Circle
+import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
@@ -454,22 +454,19 @@ fun PostDetailScreen(
             ) {
                 // Luoi: mo/dong grid tong hop cac post cu
                 IconButton(onClick = { showGrid = !showGrid }) {
-                    Icon(
-                        imageVector = Icons.Default.GridView,
+                    SkinIcon(
+                        res = SkinTheme.icons.grid,
+                        fallback = Icons.Default.GridView,
                         contentDescription = "All posts",
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(32.dp),
                     )
                 }
 
-                // Nut chup (ve camera) — cung style nut center 80dp vien vang nhu feed
-                Circle(
-                    outerSize = 80.dp,
-                    gap = 7.dp,
-                    backgroundColor = Color.Transparent,
-                    borderColor = SkinTheme.colors.accent,
-                    borderWidth = 3.dp,
+                // Nut chup (ve camera) — dung chung [CaptureButton] nhu feed
+                CaptureButton(
                     onClick = goBackToCamera,
+                    contentDescription = "Take a picture",
                 )
 
                 // ⋯ chi co nghia o pager (grid khong co "post hien tai")
@@ -477,8 +474,9 @@ fun PostDetailScreen(
                     onClick = { showOptions = true },
                     enabled = !showGrid && currentPost != null,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
+                    SkinIcon(
+                        res = SkinTheme.icons.more,
+                        fallback = Icons.Default.MoreHoriz,
                         contentDescription = "Post options",
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(32.dp),

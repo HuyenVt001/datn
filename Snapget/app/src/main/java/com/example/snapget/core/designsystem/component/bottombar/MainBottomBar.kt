@@ -1,8 +1,6 @@
 package com.example.snapget.core.designsystem.component.bottombar
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -46,6 +44,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -138,48 +137,28 @@ fun MainBottomBar(
                             navController.navigate(centerIconNavigation)
                         }
                     }
-                    // Nut chup RIENG cua skin (P5 — `SkinImages.captureButton`):
-                    // anh ve toan bo hinh nut (vien + ruot) nen Circle chi con
-                    // lam khung bat cham, khong ve vien/nen gi them. Chi ap cho
-                    // nut chup "tron" (khong icon); nut co icon (vd "Camera" o
-                    // bar thuong) giu nguyen.
-                    val captureImage = SkinTheme.images.captureButton
-                    if (captureImage != null &&
-                        centerItem.selectedIcon == null &&
-                        centerItem.unselectedIcon == null
-                    ) {
-                        Circle(
-                            outerSize = centerItem.customSizeCenter,
-                            gap = 0.dp,
-                            backgroundColor = Color.Transparent,
-                            borderWidth = 0.dp,
-                            borderColor = Color.Transparent,
+                    // Nut chup "tron" (khong icon) di qua [CaptureButton] — noi
+                    // duy nhat quyet dinh ve anh rieng cua skin hay vong tron
+                    // vien accent, dung chung voi feed/post detail/coop. Nut
+                    // center CO icon (vd "Camera" o bar thuong) khong phai nut
+                    // chup, giu nguyen nhanh Circle + icon ben duoi.
+                    val hasCenterIcon =
+                        centerItem.selectedIcon != null || centerItem.unselectedIcon != null
+                    if (!hasCenterIcon) {
+                        CaptureButton(
                             onClick = centerClick,
+                            size = centerItem.customSizeCenter,
+                            contentDescription = item.title,
                             // GIU = quay video / THA = dung (CameraScreen truyen vao)
                             onLongPress = centerItem.onLongPress,
                             onPressRelease = centerItem.onPressRelease,
-                            innerContent = {
-                                Image(
-                                    painter = painterResource(captureImage),
-                                    contentDescription = item.title,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            },
                         )
                     } else {
                         Circle(
                             outerSize = centerItem.customSizeCenter,
                             gap = 7.dp,
-                            backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                                Color.Gray
-                            } else {
-                                Color.Transparent
-                            },
-                            borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                                Color.Gray
-                            } else {
-                                SkinTheme.colors.accent
-                            },
+                            backgroundColor = Color.Gray,
+                            borderColor = Color.Gray,
                             borderWidth = 3.dp,
                             onClick = centerClick,
                             // GIU = quay video / THA = dung (CameraScreen truyen vao)
@@ -190,12 +169,14 @@ fun MainBottomBar(
                                     icon = centerItem.selectedIcon!!,
                                     tint = SkinTheme.colors.textPrimary,
                                     contentDescription = item.title,
+                                    skinRes = SkinTheme.icons.camera,
                                 )
 
                                 centerItem.unselectedIcon != null -> IconSetting(
                                     icon = centerItem.unselectedIcon!!,
                                     tint = SkinTheme.colors.textPrimary,
                                     contentDescription = item.title,
+                                    skinRes = SkinTheme.icons.camera,
                                 )
 
                                 else -> null
@@ -236,12 +217,14 @@ fun MainBottomBar(
                                 icon = centerItem.selectedIcon!!,
                                 tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
+                                skinRes = SkinTheme.icons.send,
                             )
 
                             centerItem.unselectedIcon != null -> IconSetting(
                                 icon = centerItem.unselectedIcon!!,
                                 tint = SkinTheme.colors.textPrimary,
                                 contentDescription = item.title,
+                                skinRes = SkinTheme.icons.send,
                             )
 
                             else -> null
@@ -258,7 +241,8 @@ fun MainBottomBar(
                             Icon(
                                 painter = painterResource(skinIconRes),
                                 contentDescription = item.title,
-                                tint = iconTint,
+                                // Icon skin da co mau san -> KHONG tint (xem KDoc SkinIcon)
+                                tint = Color.Unspecified,
                                 modifier = Modifier.size(40.dp),
                             )
                         } else if (item.selectedIcon != null || item.unselectedIcon != null) {

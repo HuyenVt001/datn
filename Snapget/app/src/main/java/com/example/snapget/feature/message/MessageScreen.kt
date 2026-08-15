@@ -64,6 +64,7 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDto
@@ -299,8 +300,9 @@ private fun GroupItem(
             )
         }
 
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+        SkinIcon(
+            res = SkinTheme.icons.chevronRight,
+            fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = "Open group",
             tint = MaterialTheme.colorScheme.onBackground,
         )
@@ -480,8 +482,9 @@ fun ConversationItem(
             Spacer(modifier = Modifier.width(8.dp))
 
             // Arrow indicator
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+            SkinIcon(
+                res = SkinTheme.icons.chevronRight,
+                fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = "Open conversation",
                 tint = MaterialTheme.colorScheme.onBackground,
             )

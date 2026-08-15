@@ -102,6 +102,10 @@ data class SkinColors(
  * Icon Nhom 2/3 KHONG co o day: giu Material icon, chi doi `tint` theo
  * [SkinColors]. `null` = skin nay chua ve icon do -> [SkinIcon] tu fallback ve
  * Material icon, nen skin thieu asset van chay duoc, khong vo man nao.
+ *
+ * ⚠️ Icon o day ve NGUYEN MAU trong file (chot 2026-08-14): designer to mau san
+ * cho ca bo cho khop bang mau skin, app khong tint. Chi nhanh fallback Material
+ * moi an `tint` theo token — xem [SkinIcon].
  */
 @Immutable
 data class SkinIcons(

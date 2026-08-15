@@ -62,6 +62,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
@@ -408,14 +409,10 @@ fun CoopCaptureScreen(
                             }
 
                             if (myPhotoPath == null) {
-                                // Nut CHUP 80dp vien vang (nhu nut chup camera chinh)
-                                Circle(
-                                    outerSize = 80.dp,
-                                    gap = 7.dp,
-                                    backgroundColor = Color.Transparent,
-                                    borderColor = SkinTheme.colors.accent,
-                                    borderWidth = 3.dp,
+                                // Nut CHUP — dung chung [CaptureButton] voi camera chinh
+                                CaptureButton(
                                     onClick = { captureRequestId++ },
+                                    contentDescription = "Take a picture",
                                 )
                             } else {
                                 // Nut SEND tron icon mui ten (cung style nut Send man dang bai)
@@ -430,6 +427,7 @@ fun CoopCaptureScreen(
                                         icon = Icons.AutoMirrored.Filled.Send,
                                         tint = Color.White,
                                         contentDescription = "Send photo",
+                                        skinRes = SkinTheme.icons.send,
                                     ),
                                     onClick = {
                                         if (!busy) {

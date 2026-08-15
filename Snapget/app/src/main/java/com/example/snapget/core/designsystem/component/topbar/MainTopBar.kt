@@ -64,6 +64,7 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
@@ -173,8 +174,9 @@ fun MainTopBar(
                         style = MaterialTheme.typography.titleMedium,
                     )
 
-                    Icon(
-                        imageVector = Icons.Filled.ExpandMore,
+                    SkinIcon(
+                        res = SkinTheme.icons.chevronDown,
+                        fallback = Icons.Filled.ExpandMore,
                         contentDescription = "Dropdown",
                         tint = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(18.dp),
@@ -264,8 +266,9 @@ fun MainTopBar(
                                     Spacer(modifier = Modifier.weight(1f))
 
                                     // Arrow icon (always visible)
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                    SkinIcon(
+                                        res = SkinTheme.icons.chevronRight,
+                                        fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
                                         contentDescription = "Select",
                                         tint = SkinTheme.colors.textPrimary,
                                         modifier = Modifier.size(16.dp),
@@ -326,8 +329,9 @@ fun MainTopBar(
 
                                     Spacer(modifier = Modifier.weight(1f))
 
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                    SkinIcon(
+                                        res = SkinTheme.icons.chevronRight,
+                                        fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
                                         contentDescription = "Select",
                                         tint = SkinTheme.colors.textPrimary,
                                         modifier = Modifier.size(16.dp),
@@ -420,8 +424,9 @@ fun MainTopBar(
                     contentPadding = PaddingValues(0.dp),
                     shape = CircleShape,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.ChatBubbleOutline,
+                    SkinIcon(
+                        res = SkinTheme.icons.chat,
+                        fallback = Icons.Filled.ChatBubbleOutline,
                         contentDescription = "Messages",
                         tint = SkinTheme.colors.textPrimary,
                         modifier = Modifier.size(24.dp),

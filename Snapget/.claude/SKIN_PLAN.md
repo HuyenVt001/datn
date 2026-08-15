@@ -508,7 +508,7 @@ Kiểu dữ liệu: `unlockedSkins` và `unlockedEffects` là **mảng số** (`
 > ⚠️ **Mục 6.1–6.12 là BẢNG TRA KÍCH THƯỚC** dùng lúc refactor code — **không phải danh sách bàn giao**.
 > **Danh sách bàn giao chính thức (bạn vẽ đúng những file này, không hơn) là mục 6.13.** Chỗ nào 2 mục lệch nhau thì **6.13 đúng**.
 >
-> **1dp = 1px @mdpi.** Cột px dưới đây là **@4x (xxxhdpi)**. Icon đơn sắc → xuất **SVG** rồi convert sang vector XML (không bao giờ vỡ nét). Có texture/gradient → **WebP @4x**.
+> **1dp = 1px @mdpi.** Cột px dưới đây là **@4x (xxxhdpi)**. Icon → xuất **SVG** rồi convert sang vector XML (không bao giờ vỡ nét); vector đủ sức tải nhiều màu + gradient nên **không cần** hạ xuống bitmap chỉ vì icon có màu. Có texture ảnh thật → **WebP @4x**.
 > Quy ước đặt tên file: `skin<N>_<loại>_<tên>` với `N` = skinId (1, 2) — loại ∈ `ic` (icon vector) · `bg` (nền) · `btn` (nút) · `thumb` (ảnh đại diện skin).
 > Ví dụ: `skin1_ic_camera.svg`, `skin1_btn_capture.webp`, `skin1_thumb.webp`.
 
@@ -666,10 +666,25 @@ lúc bỏ particle system). Vẫn không cần nhiều bản màu hay nhiều m�
 |---|---|
 | Canvas | **24×24** đơn vị (viewport 24×24) |
 | Vùng an toàn | Nét nằm trong **20×20** giữa, chừa lề 2 mỗi cạnh |
-| Màu | **Trắng thuần `#FFFFFF`** — app tự tint theo token màu. KHÔNG dùng gradient, KHÔNG dùng nhiều màu |
+| Màu | **Tô màu sẵn, app GIỮ NGUYÊN — không tint** (chốt 2026-08-14). Nhiều màu và gradient đều được (`minSdk 24` đủ hỗ trợ gradient trong vector). Trách nhiệm tương phản với `background`/`surface` của skin là ở khâu thiết kế |
 | Nét | Độ dày ≥ **1.5** đơn vị (mỏng hơn sẽ mờ ở màn hình nhỏ) |
 | Định dạng | `.svg` — đã **outline stroke thành path**, không còn text/khối chưa flatten |
 | Cấm | Bóng đổ, hiệu ứng blur, ảnh nhúng bitmap |
+
+> ⚠️ **Đổi 2026-08-14 — icon skin KHÔNG bị app tint nữa.** Trước đây quy cách là "trắng thuần, app tự
+> tô màu theo token". User chốt **tự tô màu cả bộ dựa trên bảng màu của chủ đề**, nên `SkinIcon` vẽ icon
+> skin bằng `Color.Unspecified` (giữ nguyên màu trong file). Phân công màu sau đổi này:
+>
+> | Loại icon | Ai quyết định màu |
+> |---|---|
+> | **Nhóm 1 — 12 icon user vẽ** | **File thiết kế**. App giữ nguyên, không can thiệp |
+> | **Nhóm 2/3 — giữ Material** | **Token `SkinColors`** như cũ (`textPrimary` / `onSurfaceVariant` / `accent`) |
+>
+> Hai bộ này nằm cạnh nhau trên cùng màn hình (vd bottom bar), nên user canh màu Nhóm 1 theo đúng
+> bảng màu chủ đề để 2 bộ không lệch tông — **đây là lý do phải chốt 11 mã màu (mục 6.13.3) TRƯỚC khi
+> vẽ icon**, không phải sau. Hai điều còn lại cần nhớ:
+> - **Icon nằm đè lên ảnh người dùng** (nút gửi ở thanh message, ⋯ và lưới ở feed) phải tự đủ tương phản trên **mọi** nền ảnh, kể cả ảnh trắng xoá — token không cứu được chỗ này nữa.
+> - Icon skin **không phản ánh trạng thái selected/unselected** bằng màu được nữa. Hiện chưa màn nào cần, nhưng nếu sau này cần thì phải gửi 2 file (`_on` / `_off`).
 
 **Nhóm 1 — BẮT BUỘC (12 icon).** Đây là icon to, luôn nhìn thấy; thiếu là skin trông "nửa vời":
 
@@ -780,7 +795,7 @@ error:             #FF5370              lỗi, nút xoá               (Default:
 - Thumbnail cho hiệu ứng — tab Effects demo trực tiếp
 - Asset cho **Profile / Settings / popup / login / quest / friends / coop** — Tier B chỉ đổi màu
 - Viền "In use", badge "NEW", icon khoá, tab indicator ở màn Appearance — vẽ bằng code
-- Nhiều mật độ màn hình (1 bản @4x là đủ) · nhiều bản màu cho hiệu ứng (app tự tint)
+- Nhiều mật độ màn hình (1 bản @4x là đủ) · nhiều bản màu cho icon/hiệu ứng — app **giữ nguyên màu file**, mỗi thứ chỉ cần 1 bản
 
 ---
 

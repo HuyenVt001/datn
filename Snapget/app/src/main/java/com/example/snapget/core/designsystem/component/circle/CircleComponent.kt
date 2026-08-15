@@ -1,5 +1,6 @@
 package com.example.snapget.core.designsystem.component.circle
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
 data class IconSetting(
@@ -38,9 +39,16 @@ data class IconSetting(
      * Phai la nullable chu khong dat thang `SkinTheme.colors.textPrimary` lam
      * gia tri mac dinh: day la data class thuong, khong phai ham `@Composable`
      * nen doc CompositionLocal o day khong duoc.
+     *
+     * CHI ap cho [icon] Material; [skinRes] luon ve nguyen mau goc.
      */
     val tint: Color? = null,
     val contentDescription: String? = null,
+    /**
+     * Icon RIENG cua skin dang dung (`SkinTheme.icons.xxx`) — co thi ve thay
+     * [icon]. `null` (skin chua ve icon nay) -> roi ve [icon] Material.
+     */
+    @DrawableRes val skinRes: Int? = null,
 )
 
 sealed class ImageSource {
@@ -124,8 +132,9 @@ fun Circle(
             }
 
             iconSetting != null -> {
-                Icon(
-                    imageVector = iconSetting.icon,
+                SkinIcon(
+                    res = iconSetting.skinRes,
+                    fallback = iconSetting.icon,
                     contentDescription = iconSetting.contentDescription,
                     modifier = Modifier.size(innerSize.coerceAtLeast(0.dp)),
                     tint = iconSetting.tint ?: SkinTheme.colors.textPrimary,

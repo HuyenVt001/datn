@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-11**.
+> Cập nhật lần cuối: **2026-08-14**.
 
 ---
 
@@ -272,6 +272,12 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-14 — Nối nốt 7 icon skin còn treo + icon skin KHÔNG bị tint nữa (user chốt)**. Trước đợt này chỉ **5/12** icon Nhóm 1 thực sự vẽ ra màn hình (`gallery`, `flipCamera`, `close`, `captions` ở bottom bar camera; `back` ở `SimpleTopBar`); 7 icon còn lại khai đủ trong `SkinIcons` nhưng **không call site nào đọc** → thiết kế thật cắm vào cũng không đổi gì. Nay đủ 12/12 qua 13 call site.
+  - 🎨 **Bỏ tint cho icon của skin** (đây là thay đổi hành vi, không chỉ nối dây): `SkinIcon` vẽ nhánh skin bằng `tint = Color.Unspecified`, `MainBottomBar` cũng vậy. User tự tô màu cả bộ icon cho khớp bảng màu skin → app tint vào là bẹt hết về 1 màu. `tint` giờ **chỉ còn tác dụng ở nhánh fallback Material** (vector đơn sắc, không tint thì chìm vào nền). Quy cách thiết kế cập nhật ở `SKIN_PLAN.md` mục 6.13.1.
+  - 🔌 **Call site mới**: `grid` + `more` (PostScreen, PostDetailScreen — hàng nút đáy feed) · `chevronRight` (MessageScreen ×2, FriendListComponent, MainTopBar ×2) · `chevronDown` (MainTopBar — pill "Everyone ⌄") · `chat` (MainTopBar — nút góc phải) · `send` (ChatScreen, MessagePill, nút center 80dp của `submitPhotoBar`, CoopCaptureScreen) · `camera` (ô "Camera" trong PostGrid + nút center khi skin không có `captureButton`) · `more` (GroupSettingsSheet).
+  - 🧩 **`IconSetting` thêm `skinRes`** để icon skin đi được qua `Circle` (nút Send tròn 80dp xoay −45° dùng `iconSetting`, không nhận painter); `Circle` gọi `SkinIcon` thay `Icon` nên fallback + luật tint dùng chung một chỗ.
+  - ⛔ **Cố ý KHÔNG đổi**: `SettingScreen` `PhotoCamera` (là logo Instagram, không phải icon camera) · `UserProfileTopBar` `KeyboardArrowRight` (nút điều hướng Home, khác vai trò với chevron cuối hàng danh sách) · `ShowMoreShowLessButton` (cần cả `ExpandLess`/`ExpandMore`, skin mới có 1 chiều) · các `@Preview`.
 
 - **2026-08-11 — Hiệu ứng chạm làm lại bằng SPRITESHEET one-shot; xoá hẳn particle system (user chốt)**. User xoá 5 PNG hạt cũ khỏi `res/drawable-nodpi/` (app không build được vì `R.drawable.effectN_particle` mất) và cấp sheet mới `effect1_sheet.png` — **Flower, id 1**. Mô hình mới: **1 lần chạm = 1 animation tại điểm chạm**, chuyển động do ART quyết định chứ không do code.
   - 🗑️ **Xoá khỏi `TouchEffect`**: `particleCount`, `distanceDp`, `swayDp`, `spinDegPerSec`, `scaleFrom/To`, `useSkinAccent`, `particleAsset` và **cả enum `EmitDirection`**. Xoá `ParticleStyle` + `rememberParticleStyle` + `drawEmission`; `drawParticle` (vòng lặp hạt + `sin/cos` tính quỹ đạo + `rotate` từng hạt) thay bằng `drawTouchEffectFrame` cắt frame bằng `drawImage(srcOffset, srcSize)`. Thêm: `sheet`, `frameCount`, `columns`, `fps`, `sizeDp` (cỡ cả animation, không phải 1 hạt), `thumbFrame` + 2 thuộc tính suy ra `rows`/`playbackMs`.

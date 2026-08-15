@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.constants.MAX_GROUP_SIZE
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDetailDto
@@ -243,8 +244,9 @@ fun GroupSettingsSheet(
                     if (isCreator && !isSelf) {
                         Box {
                             IconButton(onClick = { memberMenuFor = member.uid }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreHoriz,
+                                SkinIcon(
+                                    res = SkinTheme.icons.more,
+                                    fallback = Icons.Default.MoreHoriz,
                                     contentDescription = "Member options",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

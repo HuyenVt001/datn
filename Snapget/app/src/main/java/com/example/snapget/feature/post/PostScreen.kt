@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -68,12 +67,13 @@ import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.sampleItems2
-import com.example.snapget.core.designsystem.component.circle.Circle
+import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
@@ -440,8 +440,9 @@ fun PostScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = { showGrid = true }) {
-                            Icon(
-                                imageVector = Icons.Default.GridView,
+                            SkinIcon(
+                                res = SkinTheme.icons.grid,
+                                fallback = Icons.Default.GridView,
                                 contentDescription = "All posts",
                                 // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
                                 tint = MaterialTheme.colorScheme.onBackground,
@@ -449,22 +450,21 @@ fun PostScreen(
                             )
                         }
 
-                        // Nut chup (ve camera) — cung style nut center 80dp vien vang
-                        Circle(
-                            outerSize = 80.dp,
-                            gap = 7.dp,
-                            backgroundColor = Color.Transparent,
-                            borderColor = SkinTheme.colors.accent,
-                            borderWidth = 3.dp,
+                        // Nut chup (ve camera) — dung chung [CaptureButton] voi bottom
+                        // bar man camera nen skin nao co anh nut chup rieng thi 2 cho
+                        // hien y het nhau
+                        CaptureButton(
                             onClick = goBackToCamera,
+                            contentDescription = "Take a picture",
                         )
 
                         IconButton(
                             onClick = { currentPost?.let { optionsPost = it } },
                             enabled = currentPost != null,
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreHoriz,
+                            SkinIcon(
+                                res = SkinTheme.icons.more,
+                                fallback = Icons.Default.MoreHoriz,
                                 contentDescription = "Post options",
                                 tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(32.dp),

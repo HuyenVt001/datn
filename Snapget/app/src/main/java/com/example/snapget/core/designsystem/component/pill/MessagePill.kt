@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
 /** 3 emoji nhanh tren thanh (khop anh mau 2026-07-26) + bo mo rong khi bam ⊕. */
@@ -111,8 +112,9 @@ fun MessageInputPill(
 
             if (onSendMessage != null && messageText.isNotBlank()) {
                 // Dang go -> emoji nhuong cho cho nut Send (giong ChatInputPill)
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
+                SkinIcon(
+                    res = SkinTheme.icons.send,
+                    fallback = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Send message",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier

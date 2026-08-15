@@ -19,8 +19,15 @@ import androidx.compose.ui.res.painterResource
  * SkinIcon(SkinTheme.icons.camera, Icons.Filled.PhotoCamera, "Camera")
  * ```
  *
+ * ⚠️ **Icon rieng cua skin ve NGUYEN MAU GOC** (`Color.Unspecified` — chot voi
+ * user 2026-08-14): designer to mau san cho ca bo icon, khop bang mau cua skin
+ * do; app tint vao la de bet het ve 1 mau, mat luon phan phoi mau da thiet ke.
+ * [tint] CHI con tac dung o nhanh fallback Material — icon Material la vector
+ * don sac, khong tint thi chim vao nen.
+ *
  * @param res id drawable cua skin (`SkinTheme.icons.xxx`) — null = chua ve.
  * @param fallback icon Material dang dung o cho do.
+ * @param tint mau cho nhanh fallback Material; KHONG ap cho icon cua skin.
  */
 @Composable
 fun SkinIcon(
@@ -35,7 +42,7 @@ fun SkinIcon(
             painter = painterResource(res),
             contentDescription = contentDescription,
             modifier = modifier,
-            tint = tint,
+            tint = Color.Unspecified,
         )
     } else {
         Icon(

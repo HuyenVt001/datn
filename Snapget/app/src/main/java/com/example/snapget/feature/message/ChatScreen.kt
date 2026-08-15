@@ -78,6 +78,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.avatarOrDefault
@@ -672,8 +673,9 @@ fun ChatInputPill(
                     onClick = onSend,
                     modifier = Modifier.size(32.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
+                    SkinIcon(
+                        res = SkinTheme.icons.send,
+                        fallback = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send message",
                         tint = MaterialTheme.colorScheme.onSurface,
                     )

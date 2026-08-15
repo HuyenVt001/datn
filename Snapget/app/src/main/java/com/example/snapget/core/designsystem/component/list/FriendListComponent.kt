@@ -50,6 +50,7 @@ import com.example.snapget.core.designsystem.component.button.ShowMoreShowLessBu
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.container.BlurredContainer
+import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.User
@@ -571,8 +572,9 @@ fun ShareYourLinkComponent(inviteLink: String? = null) {
                 Spacer(modifier = Modifier.weight(1f))
 
                 // Arrow icon (always visible)
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                SkinIcon(
+                    res = SkinTheme.icons.chevronRight,
+                    fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = "Select",
                     tint = SkinTheme.colors.textPrimary,
                     modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
