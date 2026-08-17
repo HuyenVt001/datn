@@ -495,9 +495,9 @@ Khớp ngân sách 5–7$ user đã chốt. ⚠️ Vận hành: **bật gói tr�
 
 | # | Việc | Cách làm | Kiểm tra |
 |---|---|---|---|
-| C1 | **Push code lên GitHub** (nếu chưa) — notebook `git clone` repo này | commit thư mục `ml/` + server/app (không có binary) | repo có `ml/notebooks/snapget12_train.ipynb` |
+| C1 | **Push code lên GitHub** (nếu chưa) — notebook `git clone` repo này | commit thư mục `ml/` + server/app (không có binary). Repo nên **public** để Colab clone không cần token (repo không chứa secret — `.env`, service account, model đều gitignore); private thì URL clone dạng `https://<gh-user>:<PAT>@github.com/<gh-user>/<repo>.git` | repo có `ml/notebooks/snapget12_train.ipynb` |
 | C2 | Mở notebook trên Colab | https://colab.research.google.com → *GitHub* → dán URL repo → chọn `ml/notebooks/snapget12_train.ipynb` → **Runtime → Change runtime type → T4 GPU** | ô 0b in `True` (CUDA) |
-| C3 | Sửa 2 chỗ trong notebook | ô 0b: URL repo `https://github.com/<user>/<repo>.git`; ô bước 5: `MODEL_REPO = '<user>/snapget-ai-model'` | — |
+| C3 | Sửa 2 chỗ trong notebook | ô 0b: URL repo GitHub (vd `https://github.com/HuyenVt001/datn.git`); ô bước 5: `MODEL_REPO = '<hf-user>/snapget-ai-model'` — **`<hf-user>` = tên tài khoản Hugging Face** (A1, xem góc phải trên huggingface.co), *không phải* GitHub; `snapget-ai-model` tự đặt, script tự tạo repo. Cùng chuỗi này dùng cho Cloud Run ở C5b | — |
 | C4 | Chạy ô 0a → 0c → **1** (tải COCO, 20–40 phút) → **2** (cache embedding ~10 phút) → **3** (train head ~2 phút) → **4** (ngưỡng + PR curve) | chạy tuần tự, đọc log; ô 4 hiện hình PR curve 12 lớp + bảng P/R/F1 | `artifacts/v0/thresholds.json` + `metrics_test.json` trên Drive |
 | C5 | Chạy ô **5** (export ONNX int8 + upload **HF Model repo**) | `login()` dán token A2 → script tự tạo repo `<user>/snapget-ai-model` (miễn phí) + upload 3 file | Repo HF có `model.onnx`, `thresholds.json`, `model_meta.json` |
 | C5b | Cho Cloud Run nạp model | Chạy lại B7 kèm `--set-env-vars MODEL_REPO=<user>/snapget-ai-model` (lần sau đổi model chỉ cần `gcloud run services update snapget-ai --region asia-southeast1 --update-env-vars MODEL_RELOAD=$(date +%s)`) | `<Service URL>/health` → **`modelVersion:"v0"`, `verifierReady:true`** |
