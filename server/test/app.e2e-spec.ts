@@ -103,6 +103,20 @@ describe('Snapget API (e2e smoke)', () => {
     expect(res.headers['content-type']).toContain('text/html');
   });
 
+  it('POST /api/quests/ai/generate KHONG/SAI cron secret: 401 hoac 503 (khong bao gio 2xx)', async () => {
+    // .env test co the co hoac khong co CRON_SECRET: co -> sai secret = 401;
+    // khong -> chua cau hinh = 503. Ca 2 deu la "tu choi", khong sinh quest.
+    const res = await request(app.getHttpServer())
+      .post('/api/quests/ai/generate')
+      .set('x-cron-secret', 'sai-secret');
+    expect([401, 503]).toContain(res.status);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('GET /api/quests/today KHONG token: 401 (quest AI khong lo ra ngoai)', async () => {
+    await request(app.getHttpServer()).get('/api/quests/today').expect(401);
+  });
+
   it('Route khong ton tai: 404 + envelope loi (filter toan cuc)', async () => {
     const res = await request(app.getHttpServer()).get('/api/khong-ton-tai').expect(404);
     expect(res.body.success).toBe(false);

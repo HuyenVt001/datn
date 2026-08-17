@@ -1,0 +1,13 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+httpx==0.28.1
+numpy==1.26.4
+pillow==11.1.0
+onnxruntime==1.20.1
+huggingface_hub==0.27.1
+# LLM sinh quest — CHI can khi tu host Qwen (ENABLE_LLM=1 + instance >= 2GB RAM).
+# Mac dinh Cloud Run 512MB => de ENABLE_LLM=0 va sinh quest bang Gemini API / template.
+# Bo comment 2 dong duoi neu that su muon tu host (image se nang them ~200MB):
+# --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+# llama-cpp-python==0.3.6

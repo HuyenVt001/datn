@@ -15,7 +15,14 @@ export class MomentsController {
   constructor(private readonly momentsService: MomentsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Dang moment (anh/video). Tang personal streak + bao ban be qua FCM' })
+  @ApiOperation({
+    summary: 'Dang moment (anh/video). Tang personal streak + bao ban be qua FCM',
+    description:
+      'Response = moment vua tao. Neu server bat AI, moment la PHOTO va user chua xong quest AI hom nay: ' +
+      'them field `aiQuest: { result: MATCHED | NOT_MATCHED | SKIPPED, score?, questContent? }` — ' +
+      'MATCHED = quest AI tu hoan thanh + đã cộng 30 Astrite; NOT_MATCHED = bài vẫn đăng, quest chưa xong; ' +
+      'SKIPPED = AI lỗi/timeout, không ảnh hưởng đăng bài. (2026-08-15)',
+  })
   async create(@CurrentUser() user: AuthUser, @Body() dto: CreateMomentDto) {
     const moment = await this.momentsService.create(user, dto);
     return { message: 'Dang bai thanh cong.', data: moment };

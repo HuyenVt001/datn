@@ -18,6 +18,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { AdminService } from './admin.service';
 import { DailyStatsDto } from './dto/daily-stats.dto';
+import { ListAiVerificationsDto } from './dto/list-ai-verifications.dto';
 import { ListUsersDto } from './dto/list-users.dto';
 import { SetDisabledDto } from './dto/set-disabled.dto';
 
@@ -67,6 +68,18 @@ export class AdminController {
   @ApiOperation({ summary: 'Nhat ky hanh dong admin (audit log, moi nhat truoc)' })
   listLogs(@Query() query: PaginationDto) {
     return this.auditService.list(query);
+  }
+
+  @Get('ai-verifications')
+  @ApiOperation({
+    summary:
+      '[AI quest] Log AI xác minh ảnh (mới nhất trước) — kèm thumbnail, điểm 12 lớp, ngưỡng, model',
+    description:
+      'Mỗi lần server gọi AI service để kiểm tra ảnh đăng lên có chứa vật thể của quest AI (kể cả trượt/SKIPPED). ' +
+      'Nguồn số liệu accuracy production + calibrate ngưỡng. Lọc theo outcome / date / uid; phân trang trong bộ nhớ (quét tối đa 500 log mới nhất).',
+  })
+  listAiVerifications(@Query() query: ListAiVerificationsDto) {
+    return this.adminService.listAiVerifications(query);
   }
 
   @Patch('users/:uid/disabled')

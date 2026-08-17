@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-08-05 — thêm **[mục 17 — Thanh toán PayOS & tiền tệ Astrite](#17-thanh-toán-payos--tiền-tệ-astrite)**: đây là phần đầu tiên của hệ thống đụng **tiền thật**, nên có mô hình đe doạ riêng (webhook giả mạo, cộng tiền 2 lần, client tự khai số tiền). Trước đó 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
+> **Cập nhật lần cuối:** 2026-08-15 — thêm **[mục 18 — AI Daily Quest: Space ngoài & cron](#18-ai-daily-quest-space-ngoài--cron)**: lần đầu server gọi ra một dịch vụ ngoài do nhóm tự vận hành (HF Space) và mở một endpoint không cần user (cron) — 2 bí mật mới `AI_SERVICE_API_KEY`, `CRON_SECRET`, đều optional (thiếu → tính năng tắt êm). Trước đó 2026-08-05 — thêm **[mục 17 — Thanh toán PayOS & tiền tệ Astrite](#17-thanh-toán-payos--tiền-tệ-astrite)**: đây là phần đầu tiên của hệ thống đụng **tiền thật**, nên có mô hình đe doạ riêng (webhook giả mạo, cộng tiền 2 lần, client tự khai số tiền). Trước đó 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -957,7 +957,7 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 
 | Bất biến | Vì sao sống còn | Enforce ở đâu |
 |---|---|---|
-| **Chỉ có 4 nguồn cộng Astrite**: tặng tân thủ · thưởng quest · hoàn khi quay trúng trùng · **webhook PayOS** | Thêm một nguồn thứ 5 mà quên guard = in tiền vô hạn | [server/src/astrite/astrite.service.ts](server/src/astrite/astrite.service.ts) · [server/src/topup/topup.service.ts](server/src/topup/topup.service.ts) |
+| **Chỉ có 5 nguồn cộng Astrite**: tặng tân thủ · thưởng quest 2/2 · **thưởng quest AI +30 (2026-08-15, `AI_QUEST_REWARD` — chỉ khi model xác minh khớp, `completeUserQuest` atomic 1 lần/ngày)** · hoàn khi quay trúng trùng · **webhook PayOS** | Thêm một nguồn nữa mà quên guard = in tiền vô hạn | [server/src/astrite/astrite.service.ts](server/src/astrite/astrite.service.ts) · [server/src/topup/topup.service.ts](server/src/topup/topup.service.ts) |
 | **Không endpoint nào cộng Astrite theo yêu cầu của client** | Client không tin được | Toàn bộ module `topup` — không có route nào nhận số Astrite |
 | **Mọi thay đổi số dư đều ghi 1 dòng sổ cái `astriteTransactions`** | Đối soát: tổng sổ cái của 1 uid phải bằng `users.astrite` | `AstriteRepository.addEntryInTransaction` chạy trong **cùng transaction** với lệnh ghi số dư |
 | **Ba khoá `PAYOS_*` không bao giờ ra khỏi server** | Lộ checksum key = ký được webhook giả | `.env` (gitignored) + Render env; [PayosService](server/src/topup/payos.service.ts) chỉ log `orderCode`, không log config/lỗi thô |
@@ -1049,3 +1049,54 @@ Firestore **serialize** các transaction chạm cùng document, nên hai webhook
 | Dọn đơn quá hạn chạy cơ hội | 🧭 | Không dùng `@nestjs/schedule` (thêm dependency) — đơn `PENDING` được quét sang `EXPIRED` khi có người mở lịch sử nạp hoặc trang admin. Chạy trong transaction có điều kiện nên không đụng tới đơn đã `PAID` |
 | Chưa có đối soát tự động sổ cái ↔ PayOS | ⚠️ | Quy mô DATN đối soát tay qua trang Lịch sử nạp. Sản phẩm thật nên có job so tổng `paidRevenueVnd` với báo cáo PayOS |
 | Chênh lệch số tiền phải xử lý tay | 🧭 | `AMOUNT_MISMATCH` chỉ ghi log + giữ đơn `PENDING`. Cố tình không tự đoán: đây là tiền thật |
+
+---
+
+## 18. AI Daily Quest: Space ngoài & cron
+
+> **Thêm 2026-08-15, cập nhật 2026-08-16** (kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`). Hai điểm mới về mặt bảo mật: (1) server lần đầu **gọi ra một dịch vụ ngoài do nhóm tự vận hành** (AI service FastAPI trên **Google Cloud Run**, code ở `ml/ai-service/` — trước dự định HF Space, đổi vì HF thu phí); (2) server mở **một endpoint không gắn với user nào** (`POST /quests/ai/generate`, nay tuỳ chọn) cho cron-job.org gọi. Cả hai đều có thể **tắt hoàn toàn bằng cách để trống env**. LLM sinh quest đã bỏ → không còn API key LLM nào.
+
+### 18.1 Ranh giới tin cậy
+
+```
+Android app ──► NestJS ──► AI service (FastAPI, Cloud Run) ── chỉ NestJS biết URL + API key
+cron-job.org ──► POST /quests/ai/generate               ── x-cron-secret (tuỳ chọn)
+cron-job.org ──► GET  <cloud-run>/health                ── public, không dữ liệu (keep-warm)
+```
+
+| Bất biến | Enforce ở đâu |
+|---|---|
+| **App không bao giờ gọi AI service** — không có URL/key nào của service trong APK; server là cửa ngõ duy nhất | Chỉ [server/src/ai/ai.service.ts](server/src/ai/ai.service.ts) biết `AI_SERVICE_URL`/`AI_SERVICE_API_KEY` |
+| **AI service từ chối request thiếu/sai `X-API-Key`** (so sánh `secrets.compare_digest`); `/health` public nhưng không trả dữ liệu người dùng. Cloud Run `--allow-unauthenticated` (server gọi bằng key, không IAM) — khoá vẫn nằm ở key; key để trong **Secret Manager** (`--set-secrets`) | [ml/ai-service/app.py](ml/ai-service/app.py) `require_api_key` |
+| **Dữ liệu gửi sang AI service chỉ là URL Cloudinary công khai sẵn có** (đã transform 224×224) + tên lớp — không uid, không token, không byte ảnh đi qua Render | `AiService.toVerifyImageUrl` · `QuestsService.verifyAiQuest` |
+| **Server không tin AI service**: `/verify` chỉ được coi là khớp khi `matched===true`; lỗi/timeout 3s → SKIPPED, **đăng bài không bao giờ fail vì AI**. (Điểm cắm `/generate` nếu bật lại: validate 9 lớp ra đề, độ dài, avoid trước khi ghi Firestore) | [server/src/quests/quests.service.ts](server/src/quests/quests.service.ts) `verifyAiQuest`, `validateGenerated` |
+| **Không log API key / URL kèm key** — `AiService` chỉ log path + status; log `aiVerifications.error` cắt 200 ký tự message | `AiService.request` |
+| **Cron endpoint**: `@Public()` nhưng có `CronSecretGuard` — `timingSafeEqual` với `CRON_SECRET`; **thiếu env → 503** (không bao giờ mở toang); sai → 401. Endpoint **idempotent** (create atomic theo doc id ngày, không ghi đè) nên bị gọi lặp/đoán trúng cũng chỉ sinh quest sẵn có, không đụng user/tiền | [server/src/common/guards/cron-secret.guard.ts](server/src/common/guards/cron-secret.guard.ts) |
+| **Thưởng +30 không cộng 2 lần**: `completeUserQuest` (create atomic) → `isFirstTime` mới credit; credit fail → xoá doc quest để lần sau thử lại (mirror pattern 60 Astrite) | `QuestsService.completeAiQuest` — có unit test |
+
+### 18.2 Bí mật mới (đều optional — pattern PayOS)
+
+| Biến | Nơi lưu | Thiếu thì sao |
+|---|---|---|
+| `AI_SERVICE_URL` | server `.env` / Render env | quest AI tắt, 2 quest như cũ |
+| `AI_SERVICE_API_KEY` (≥32 ký tự ngẫu nhiên) | server `.env` / Render env **và** Secret Manager của Cloud Run (`API_KEY`) — 2 nơi phải trùng | như trên |
+| `CRON_SECRET` (≥32 ký tự, khác key trên) | server `.env` / Render env **và** header của job trên cron-job.org | `POST /quests/ai/generate` → 503; quest AI vẫn tự sinh từ bộ mẫu khi user mở app (endpoint này nay tuỳ chọn) |
+
+Xoay khoá: đổi ở cả 2 nơi (server ↔ Cloud Run secret version mới + redeploy / server ↔ cron), deploy Cloud Run ~2–3 phút — không làm sát giờ demo. `.env.example` đã có 3 biến (giá trị rỗng).
+
+### 18.3 Chống gian lận quest (mức nghiệp vụ, không phải bảo mật hệ thống)
+
+| Cách gian lận | Trạng thái |
+|---|---|
+| Chọn ảnh có sẵn từ gallery | ✅ chặn sẵn — luồng đăng moment chỉ đi từ CameraX (`GetContent()` chỉ ở avatar/chat) |
+| Chụp lại màn hình đang hiển thị vật thể | ❌ chưa chặn (v1) — nêu là limitation trong báo cáo; chi phí gian lận tối đa 30 Astrite/ngày (< 1/5 lượt gacha) |
+| Đăng lặp cùng cảnh nhiều ngày | ⚠️ nice-to-have (pHash) — chưa làm |
+
+### 18.4 Khoảng trống đã biết
+
+| Vấn đề | Mức | Ghi chú |
+|---|---|---|
+| AI service public (`--allow-unauthenticated`) trên Cloud Run, khoá bằng API key | 🧭 | Chấp nhận ở quy mô DATN; service chỉ nhận URL ảnh công khai, không dữ liệu nhạy cảm; `--max-instances 3` chặn bill nếu bị spam |
+| AI service tải ảnh từ URL bất kỳ do server gửi (SSRF về phía service) | 🧭 | Server chỉ gửi URL Cloudinary của chính moment vừa tạo; service giới hạn 8MB + timeout 2.5s + chỉ http(s). Nếu muốn siết: whitelist host `res.cloudinary.com` trong `app.py` |
+| Verify sync trong `POST /moments` có thể bị lợi dụng làm chậm (spam đăng bài) | 🧭 | Chỉ verify khi user CHƯA xong quest AI hôm nay (tối đa vài lần/ngày/user); rate limit toàn cục 120/60s vẫn áp |
+

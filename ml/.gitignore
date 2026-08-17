@@ -1,0 +1,10 @@
+# KHONG commit data/model nhi phan (QUEST_AI_PLAN muc 3, 4.2)
+data/
+artifacts/
+*.onnx
+*.pt
+*.npz
+__pycache__/
+.pytest_cache/
+space/model/*.onnx
+space/model/*.json

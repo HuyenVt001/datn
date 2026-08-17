@@ -268,7 +268,12 @@ private fun QuestCard(quest: TodayQuestDto) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (quest.type == "POST_MOMENT") "📸" else "👋",
+                // Icon theo loai quest — AI_CHALLENGE (quest thu 3 do AI sinh, 2026-08-15) = 🎯
+                text = when (quest.type) {
+                    "POST_MOMENT" -> "📸"
+                    "AI_CHALLENGE" -> "🎯"
+                    else -> "👋"
+                },
                 fontSize = 22.sp,
             )
         }

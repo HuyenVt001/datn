@@ -6,6 +6,7 @@ import {
   HistoryOutlined,
   LogoutOutlined,
   PictureOutlined,
+  RobotOutlined,
   TeamOutlined,
   ThunderboltOutlined,
   WalletOutlined,
@@ -25,6 +26,7 @@ const MENU_ITEMS = [
   { key: '/gacha-history', icon: <ThunderboltOutlined />, label: 'Lịch sử quay' },
   { key: '/topup', icon: <WalletOutlined />, label: 'Gói nạp' },
   { key: '/topup-history', icon: <DollarOutlined />, label: 'Lịch sử nạp' },
+  { key: '/ai-verifications', icon: <RobotOutlined />, label: 'AI quest' },
   { key: '/logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
 ];
 

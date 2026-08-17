@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-14**.
+> Cập nhật lần cuối: **2026-08-15**.
 
 ---
 
@@ -186,7 +186,7 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Quản lý nhóm chat (sheet ⋯ trên header, theo mẫu Messenger): đổi tên + đổi avatar nhóm (upload Cloudinary), mời bạn vào nhóm (≤20), xóa thành viên (chỉ người tạo), rời nhóm, mute thông báo (server bỏ qua khi push FCM) | ✅ |
 | Co-op capture **(redesign 2026-08-02)**: nút Co-op → popup chọn bạn → lời mời 5 phút → accept → màn chụp coop (nửa camera + nửa xám chờ, nút chụp/again/send) → server ghép → cả 2 vào luồng edit → đăng bài thường | ✅ |
 | Profile: streak thật, calendar moment, edit tên/avatar; profile người khác chỉ bạn bè xem | ✅ |
-| Daily Quest; thưởng 2/2 quest = **+60 Astrite**; banner mở màn Gacha (2026-08-05) | ✅ |
+| Daily Quest; thưởng 2/2 quest = **+60 Astrite**; banner mở màn Gacha (2026-08-05); **(2026-08-15)** quest thứ 3 `AI_CHALLENGE` do AI tạo — icon 🎯, hoàn thành bằng đăng bài thường (server AI-xác-minh ảnh), toast kết quả (+30 Astrite / thử lại) ở `SubmitPhotoScreen` | ✅ (⬜ chưa thấy trên máy — server còn tắt env AI) |
 | **Appearance** 3 tab: Frames (bộ sưu tập khung) · Skins (Default/Snow/Forest) · Effects (None + 5, ô demo chạy thật) — khoá theo sở hữu | ✅ |
 | **Hiệu ứng touch** toàn app (overlay bọc NavHost, không chặn nút/pager/giữ-quay-GIF) | ✅ |
 | **Gacha**: quay x1/x10, popup Rule sinh từ server, kết quả lật lần lượt + Skip, hoàn Astrite khi trùng | ✅ |
@@ -272,6 +272,9 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-16 — Phạm vi AI quest chốt lại (không đổi code app)**: AI chỉ **xác minh ảnh**, nội dung quest từ bộ mẫu server (72 câu, 9 lớp ra đề); AI service chạy Google Cloud Run thay HF Space. App không đụng — `type`/`targetClass`/`aiQuest` vẫn như 2026-08-15. Xem `QUEST_AI_PLAN.md` mục 0, 2.3, 17.
+- **2026-08-15 — Đồng bộ contract AI Daily Quest (M5 của `QUEST_AI_PLAN.md`)** — 3 điểm chạm nhỏ, không màn hình mới, không dependency mới. (1) `TodayQuestDto` thêm `targetClass: String? = null` (chỉ để đọc, UI không hiện); comment ghi rõ `type` có thêm `AI_CHALLENGE`. (2) `MomentDto` thêm `aiQuest: AiQuestResultDto? = null` (`result` MATCHED/NOT_MATCHED/SKIPPED, `score?`, `questContent?`) — chỉ có trong response `POST /moments`, null ở feed. (3) `DailyQuestScreen` icon `when(type)`: POST_MOMENT 📸 · **AI_CHALLENGE 🎯** · else 👋. (4) `PostViewModel.submitPhoto` **bắt đầu đọc body createMoment** → `aiQuestMessage` StateFlow → `SubmitPhotoScreen` toast: MATCHED "🎯 Challenge complete! +30 Astrite", NOT_MATCHED "Photo doesn't match today's challenge — post another one to try again!", SKIPPED/null im lặng (đặt trước khi `submitStatus=Success` để toast kịp trước khi điều hướng về feed). App cũ gặp quest AI chỉ sai icon, không crash (type là String, render động).
 
 - **2026-08-14 — Nối nốt 7 icon skin còn treo + icon skin KHÔNG bị tint nữa (user chốt)**. Trước đợt này chỉ **5/12** icon Nhóm 1 thực sự vẽ ra màn hình (`gallery`, `flipCamera`, `close`, `captions` ở bottom bar camera; `back` ở `SimpleTopBar`); 7 icon còn lại khai đủ trong `SkinIcons` nhưng **không call site nào đọc** → thiết kế thật cắm vào cũng không đổi gì. Nay đủ 12/12 qua 13 call site.
   - 🎨 **Bỏ tint cho icon của skin** (đây là thay đổi hành vi, không chỉ nối dây): `SkinIcon` vẽ nhánh skin bằng `tint = Color.Unspecified`, `MainBottomBar` cũng vậy. User tự tô màu cả bộ icon cho khớp bảng màu skin → app tint vào là bẹt hết về 1 màu. `tint` giờ **chỉ còn tác dụng ở nhánh fallback Material** (vector đơn sắc, không tint thì chìm vào nền). Quy cách thiết kế cập nhật ở `SKIN_PLAN.md` mục 6.13.1.

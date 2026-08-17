@@ -50,6 +50,7 @@ describe('MomentsService', () => {
     } as unknown as jest.Mocked<FriendshipsRepository>;
     questsService = {
       registerMomentPosted: jest.fn().mockResolvedValue(undefined),
+      verifyAiQuest: jest.fn().mockResolvedValue(undefined), // mac dinh: khong co gi de xac minh
     } as unknown as jest.Mocked<QuestsService>;
     framesService = {
       unlockByThreshold: jest.fn().mockResolvedValue([]),
@@ -91,6 +92,48 @@ describe('MomentsService', () => {
       questsService.registerMomentPosted.mockRejectedValue(new Error('quest down'));
 
       await expect(service.create(me, dto)).resolves.toBeDefined();
+    });
+
+    // ==== Quest AI (2026-08-15) ====
+
+    it('khong co gi de xac minh (AI tat / da xong) -> response KHONG co field aiQuest', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+
+      const result = await service.create(me, dto);
+
+      expect(questsService.verifyAiQuest).toHaveBeenCalledWith(
+        'me',
+        expect.objectContaining({ momentId: 'm1' }),
+      );
+      expect('aiQuest' in result).toBe(false);
+    });
+
+    it('AI xac minh khop -> response kem aiQuest MATCHED (bai van la moment vua tao)', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+      questsService.verifyAiQuest.mockResolvedValue({
+        result: 'MATCHED',
+        score: 0.9,
+        questContent: 'Chụp một chiếc cốc',
+      });
+
+      const result = await service.create(me, dto);
+
+      expect(result.momentId).toBe('m1');
+      expect(result.aiQuest).toEqual({
+        result: 'MATCHED',
+        score: 0.9,
+        questContent: 'Chụp một chiếc cốc',
+      });
+    });
+
+    it('verifyAiQuest throw (khong mong doi) -> van dang bai, khong co aiQuest', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+      questsService.verifyAiQuest.mockRejectedValue(new Error('boom'));
+
+      const result = await service.create(me, dto);
+
+      expect(result.momentId).toBe('m1');
+      expect(result.aiQuest).toBeUndefined();
     });
 
     it('van dang bai thanh cong khi FCM loi', async () => {

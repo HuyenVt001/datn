@@ -4,12 +4,20 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { FriendshipsService } from '../friendships/friendships.service';
+import { AiQuestResult } from '../quests/entities/quest.entity';
 import { QuestsService } from '../quests/quests.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { CreateMomentDto } from './dto/create-moment.dto';
 import { Moment, Reaction } from './entities/moment.entity';
 import { MomentsRepository } from './moments.repository';
+
+/**
+ * Response POST /moments: moment vua tao + (tuy chon) ket qua AI xac minh quest AI
+ * hom nay (2026-08-15). `aiQuest` CHI co khi server bat AI, moment la PHOTO, hom nay
+ * co quest AI va user chua xong — con lai y het Moment (app cu bo qua field la).
+ */
+export type CreatedMoment = Moment & { aiQuest?: AiQuestResult };
 
 @Injectable()
 export class MomentsService {
@@ -30,7 +38,11 @@ export class MomentsService {
    * 2 hook nang (dem bai mo khung POST_COUNT + FCM ca danh sach ban) chay SAU
    * response. mediaUrl da qua POST /upload (Cloudinary da enforce gioi han).
    */
-  async create(authUser: AuthUser, dto: CreateMomentDto, coopUserId?: string): Promise<Moment> {
+  async create(
+    authUser: AuthUser,
+    dto: CreateMomentDto,
+    coopUserId?: string,
+  ): Promise<CreatedMoment> {
     // Chong dang TRUNG: client timeout roi bam dang lai — request dau da tao bai
     // thanh cong nhung response khong ve kip. Cung clientRequestId -> tra bai cu.
     if (dto.clientRequestId) {
@@ -64,6 +76,15 @@ export class MomentsService {
       this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
     });
 
+    // Quest AI (2026-08-15): anh vua dang co chua vat the cua quest AI hom nay khong?
+    // Await vi user can thay ket qua ngay trong response (toast) — QuestsService tu
+    // gioi han timeout 3s + tra SKIPPED, va chi goi AI service khi user CHUA xong quest AI.
+    // Loi o day KHONG BAO GIO lam fail dang bai.
+    const aiQuest = await this.questsService.verifyAiQuest(authUser.uid, moment).catch((e) => {
+      this.logger.warn(`Khong xac minh duoc quest AI: ${(e as Error).message}`);
+      return undefined;
+    });
+
     // 2 hook NANG chay fire-and-forget SAU response (fix 2026-08-03): dem tong bai
     // + FCM ca danh sach ban truoc day duoc await lam POST /moments cham nhieu giay
     // tren Render free (2 user coop cung dang 1 luc la client timeout du bai DA len).
@@ -75,7 +96,7 @@ export class MomentsService {
       this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
     });
 
-    return moment;
+    return aiQuest ? { ...moment, aiQuest } : moment;
   }
 
   /**

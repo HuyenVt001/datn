@@ -19,8 +19,8 @@
 
 Server **NestJS (Node + TypeScript)** làm **cửa ngõ duy nhất** giữa client (app Android + admin React) và Firebase/Cloudinary — client không chạm Firestore trực tiếp. Server verify auth, validate input, enforce business rule (mục 16), rồi mới chạm Firebase.
 
-- Domain modules: `users`, `friendships`, `upload`, `moments` (kèm coop), `messages`, `frames`, `quests`, `admin`, `audit`. Hạ tầng: `auth`, `firebase`, `common`, `config`.
-- Actor (theo phân tích thiết kế): **Member** → **User** (app) + **Admin** (quản trị); **AI** (tạo daily quest thứ 3) có trong thiết kế nhưng **hoãn — chưa làm** (mục 14).
+- Domain modules: `users`, `friendships`, `upload`, `moments` (kèm coop), `messages`, `frames`, `quests`, `ai`, `astrite`, `gacha`, `topup`, `admin`, `audit`. Hạ tầng: `auth`, `firebase`, `common`, `config`.
+- Actor (theo phân tích thiết kế): **Member** → **User** (app) + **Admin** (quản trị); **AI** (quest thứ 3 `AI_CHALLENGE`) — **đã làm 2026-08-15**, phạm vi chốt 2026-08-16: AI = **xác minh ảnh** (model tự train, `ml/`), nội dung quest lấy từ **bộ mẫu 72 câu** (bỏ LLM sinh quest — giữ điểm cắm). AI **không nằm trong server**: NestJS chỉ là HTTP client gọi AI service trên **Google Cloud Run** (`ml/ai-service/`), thiếu env thì tắt êm (mục 14). Kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`.
 - Sơ đồ kiến trúc, pipeline request, bản đồ module: **GUIDE.md mục 1**.
 
 ---
@@ -97,8 +97,9 @@ Cây thư mục thực tế + ý nghĩa từng file: **GUIDE.md mục 2**. Luậ
 | **Message** | `messages/{id}` | `senderId`, `receiverId?`/`groupId?` (một trong hai), `messageType` (TEXT/VOICE/EMOJI/STICKER/PHOTO), `content`, `sendTime`, `isSeen`, `reactions{uid: emoji}`, `attachmentUrl?`+`attachmentType?`, `replyToId?`+`replyToType/Content/SenderId` (snapshot tin gốc) | Reply chỉ trong CÙNG hội thoại; snapshot để client vẽ trích dẫn không cần lookup |
 | **Coop_Invite** | `coopInvites/{id}` | `inviterId`, `inviteeId`, `inviterMediaUrl?`, `inviteeMediaUrl?`, `mergedMediaUrl?`, `status` (PENDING/ACCEPTED/COMPLETED/DECLINED/EXPIRED) | TTL **5 phút** (redesign 2026-08-02) |
 | **Frame** | `frames/{id}` | `frameName`, `imageUrl`, `unlockType` + `unlockValue` (6 loại điều kiện mở khóa), `milestone` (legacy — repo suy ngược cho doc cũ) | Catalog do admin quản lý |
-| **Daily_Quest** | `dailyQuests/{date}_{type}` | `type` (LOGIN/POST_MOMENT), `content`, `releaseDate` | Id cố định → lazy-create idempotent |
-| **User_Quest** | `userQuests/{date}_{uid}_{type}` | `questId`, `userId`, `type`, `status`, `completedAt` | Hoàn thành TỰ ĐỘNG. Doc `_DAILY_REWARD` đánh dấu đã thưởng khung ngày đó |
+| **Daily_Quest** | `dailyQuests/{date}_{type}` | `type` (LOGIN/POST_MOMENT/**AI_CHALLENGE**), `content`, `releaseDate`; quest AI thêm `targetClass` (1/12 lớp), `source` (LLM/FALLBACK), `generatedAt` | Id cố định → lazy-create idempotent (quest AI: `create()` atomic, không ghi đè) |
+| **User_Quest** | `userQuests/{date}_{uid}_{type}` | `questId`, `userId`, `type`, `status`, `completedAt`; quest AI thêm `momentId`, `aiScore`, `modelVersion` | Hoàn thành TỰ ĐỘNG. Doc `_DAILY_REWARD` đánh dấu đã thưởng ngày đó (field `astrite`) |
+| **AI_Verification** | `aiVerifications/{id}` | `uid`, `momentId`, `date`, `targetClass`, `outcome` (MATCHED/NOT_MATCHED/SKIPPED), `score`, `threshold`, `scores{12}`, `modelVersion`, `latencyMs`, `roundTripMs`, `error?`, `createdAt` | **(2026-08-15)** log MỌI lần AI xác minh — số liệu báo cáo; ghi best-effort |
 | **Admin_Log** | `adminLogs/{id}` | actor, action, target, thời điểm | Audit log, ghi best-effort |
 
 ### 6.2 Quy tắc query
@@ -140,7 +141,7 @@ Mọi response qua global `ResponseInterceptor`; mọi lỗi qua global `AllExce
 - Toàn bộ config qua `@nestjs/config`, đọc `.env`, **validate lúc khởi động** (Joi) — thiếu biến thì fail sớm.
 - Firebase Admin credential: service account key, đường dẫn trong env `FIREBASE_SERVICE_ACCOUNT` (file `snapget-*-firebase-adminsdk-*.json` — **khác** `google-services.json` của app).
 - 🔒 **Không commit:** `.env`, file service account (`.gitignore` có pattern `*-firebase-adminsdk-*.json`). Thêm biến env mới → cập nhật `.env.example` + `env.validation`.
-- Biến tối thiểu: `PORT`, `NODE_ENV`, `CORS_ORIGINS`, `FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_PROJECT_ID`, `JWT_SECRET`, `JWT_EXPIRES_IN` (+ Cloudinary keys).
+- Biến tối thiểu: `PORT`, `NODE_ENV`, `CORS_ORIGINS`, `FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_PROJECT_ID`, `JWT_SECRET`, `JWT_EXPIRES_IN` (+ Cloudinary keys). Optional theo pattern fail-safe: `PAYOS_*` (nạp tiền), `AI_SERVICE_URL` + `AI_SERVICE_API_KEY` + `CRON_SECRET` (quest AI, 2026-08-15) — thiếu thì tính năng tương ứng tắt, server vẫn boot.
 
 ---
 
@@ -197,13 +198,13 @@ Client chỉ chặn UX; **server mới validate ràng buộc thật**. Luật r�
 | Moment view / Message seen | tự đánh dấu `isSeen`; seen/reaction **chỉ người thấy được bài** (chủ bài/coop partner/bạn bè); message seen chỉ người nhận | `moments` / `messages` |
 | Xóa moment | chỉ chủ bài (admin xóa qua route kiểm duyệt riêng, có audit log) | `moments` / `admin` |
 | Co-op capture | **(REDESIGN 2026-08-02)** chỉ bạn bè ACCEPTED; lời mời KHÔNG kèm ảnh, TTL **5 phút**; invitee accept → cả 2 nộp nửa ảnh riêng → server ghép (sharp) → `mergedMediaUrl` — KHÔNG tự tạo moment nữa, mỗi người cầm ảnh ghép đăng bài theo luồng thường (streak/quest tính lúc đăng); friend streak + khung COOP_FIRST cộng lúc ghép xong; hủy PENDING được cả 2 phía | `moments` (coop) |
-| Daily quest | **(CHỐT 2026-07-13)** Thiết kế gốc **3 quest/ngày** (quest thứ 3 do **AI** tạo) — AI hoãn nên **tạm giữ 2** quest cố định/ngày: LOGIN (tự xong khi `GET /quests/today`) + POST_MOMENT (tự xong khi đăng bài); sinh lazy. Thưởng: đủ quest/ngày → **+60 Astrite** (đổi 2026-08-05, trước là khung ngẫu nhiên); mốc streak 3/7/14/30 → khung mốc. Làm AI → nâng `DAILY_QUESTS_PER_DAY` lên 3 | `quests` |
+| Daily quest | **(2026-08-15 — đủ 3 quest theo thiết kế gốc)** 2 quest cố định: LOGIN (tự xong khi `GET /quests/today`) + POST_MOMENT (tự xong khi đăng bài), sinh lazy, đủ 2/2 → **+60 Astrite** (giữ nguyên từng dòng). **Quest thứ 3 `AI_CHALLENGE`** (chỉ khi có env AI): nội dung từ bộ mẫu 72 câu (`AI_QUEST_TEMPLATES`, chọn seed ngày — LLM đã bỏ 2026-08-16, giữ điểm cắm), `targetClass` ∈ **9 lớp ra đề** `AI_QUEST_CLASSES` (model học 12 = `AI_MODEL_CLASSES`); **hoàn thành bằng hook đăng bài** — ảnh PHOTO đăng lên feed được model AI (service trên Cloud Run) xác minh khớp → **+30 Astrite riêng** (`QUEST_AI_ASTRITE`, tối đa 90/ngày); không khớp = chưa xong (status vẫn chỉ COMPLETED), AI lỗi = SKIPPED không phá đăng bài. Cron `POST /quests/ai/generate` (x-cron-secret) sinh hôm nay + ngày mai, idempotent. Mốc streak 3/7/14/30 → khung mốc | `quests` + `ai` |
 | Mở khóa khung | 6 loại `unlockType`: **GACHA** · STREAK_MILESTONE (3/7/14/30) · POST_COUNT · FRIEND_COUNT (mở cả 2 phía) · COOP_FIRST (cả 2) · DEFAULT (mở sẵn) — hook tự mở đặt ở moments/friendships/coop. `QUEST_RANDOM` đã bỏ (2026-08-05) — doc cũ được repo map sang `GACHA` khi đọc | `frames` |
 | Tiền tệ Astrite | **(2026-08-05)** MỌI thay đổi số dư đi qua `AstriteService` (hoặc `AstriteRepository` trong transaction của gacha) để sổ cái `astriteTransactions` luôn khớp số dư. KHÔNG service nào được tự sửa `users.astrite` | `astrite` |
 
-**Phân quyền admin**: quản lý user (list/search, khóa/mở = `updateUser({disabled})` + revoke refresh token, cấp/THU quyền), thống kê (+ theo ngày), quản lý khung (CRUD/grant/owners), **kiểm duyệt bài đăng**, **audit log** mọi hành động admin.
+**Phân quyền admin**: quản lý user (list/search, khóa/mở = `updateUser({disabled})` + revoke refresh token, cấp/THU quyền), thống kê (+ theo ngày), quản lý khung (CRUD/grant/owners), **kiểm duyệt bài đăng**, **audit log** mọi hành động admin, **xem log AI xác minh ảnh quest** (`/admin/ai-verifications`, chỉ đọc — 2026-08-16).
 
-> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=3` (độ dài ảnh GIF), `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=2` (tạm — thiết kế 3 khi có AI), `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_MINUTES=5`, `INVITE_LINK_TTL_DAYS=30`.
+> Hằng số giới hạn đặt tên trong `common/constants.ts` — không hardcode: `MAX_FRIENDS=20`, `MAX_GROUP_SIZE=20`, `MAX_VIDEO_SECONDS=3` (độ dài ảnh GIF), `STREAK_WINDOW_HOURS=24`, `DAILY_QUESTS_PER_DAY=3` (2 cố định + 1 AI, 2026-08-15), `QUEST_DAILY_ASTRITE=60`, `QUEST_AI_ASTRITE=30`, `AI_QUEST_CLASSES` (9 lớp ra đề) ⊂ `AI_MODEL_CLASSES` (12 lớp model học), `AI_VERIFY_TIMEOUT_MS=3000`, `STREAK_MILESTONES=[3,7,14,30]`, `COOP_INVITE_TTL_MINUTES=5`, `INVITE_LINK_TTL_DAYS=30`.
 
 ---
 

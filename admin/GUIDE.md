@@ -64,7 +64,7 @@ Server re-check quyền admin + disabled **mỗi request** → bị thu quyền/
 ```
 /login                    ── public (LoginPage)
 <RequireAuth>             ── chưa có JWT → redirect /login
-  └── / (AdminLayout: Sider menu 9 mục + Header email/đăng xuất + <Outlet/>)
+  └── / (AdminLayout: Sider menu 10 mục + Header email/đăng xuất + <Outlet/>)
         ├── /               DashboardPage     (stats + 2 biểu đồ cột 7 ngày)
         ├── /users          UsersPage         (khóa/mở, cấp/thu admin, cột Astrite)
         ├── /moments        MomentsPage       (kiểm duyệt bài đăng)
@@ -73,6 +73,7 @@ Server re-check quyền admin + disabled **mỗi request** → bị thu quyền/
         ├── /gacha-history  GachaHistoryPage  (lịch sử quay toàn hệ thống)
         ├── /topup          TopupPackagesPage (CRUD gói nạp — TIỀN THẬT)
         ├── /topup-history  TopupHistoryPage  (lịch sử nạp + doanh thu)
+        ├── /ai-verifications AiVerificationsPage (log AI xác minh ảnh quest — 2026-08-16)
         └── /logs           LogsPage          (audit log admin)
 ```
 
@@ -179,6 +180,7 @@ admin/
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-08-16 — Trang "AI quest" (`/ai-verifications`)**: bảng log AI xác minh ảnh quest từ `GET /admin/ai-verifications` — thumbnail 224 (đúng ảnh model nhìn), uid + momentId, lớp yêu cầu (tên Việt), kết quả (Khớp/Không khớp/Bỏ qua — tooltip lý do), thanh điểm kèm ngưỡng, **top 3 lớp** model nghĩ là gì (soi vì sao trượt), model/latency; lọc uid/kết quả/ngày; 4 ô tổng hợp trên trang. Dashboard thêm 2 ô "AI xác minh ảnh hôm nay" / "Quest AI khớp hôm nay" (`AdminStats.aiVerificationsToday/aiMatchedToday`). Types `AiVerification`, api `listAiVerifications`. Chỉ đọc — không có hành động, không audit. Bối cảnh: `Snapget/.claude/QUEST_AI_PLAN.md` mục 15.3 (đã đóng), 5.2 (calibrate ngưỡng).
 - **2026-08-11 — Bỏ nút "Thêm khung vào kho" ở `GachaItemsPage`**. Server (`FramesService.syncGachaPool`) giờ TỰ đồng bộ kho gacha theo điều kiện mở khóa: khung `GACHA` tự vào kho khi tạo/sửa ở `FramesPage`, đổi sang điều kiện khác (hoặc xóa khung) thì tự rút khỏi kho — luồng thêm tay thành thừa và dễ lệch. Modal của trang chỉ còn chế độ SỬA (bỏ Select chọn khung từ catalog, bỏ query `frames`, page không còn import `createGachaItem` — hàm vẫn giữ trong `gacha.api.ts` vì endpoint server còn sống); cập nhật mô tả trang + hint loại FRAME; hint điều kiện "Quay gacha" ở `FramesPage` ghi rõ hành vi tự đồng bộ. Mỗi vật phẩm thêm 2 nút: 🎁 **Tặng** (modal tìm user theo email/tên, debounce 300ms — tặng thẳng vào tài khoản, idempotent, KHÔNG cộng Astrite) và 👥 **Ai đang sở hữu?** (drawer). `LogsPage` thêm nhãn `GACHA_ITEM_GRANT`. Nhắc lại đúng phân công: **sửa** vật phẩm chỉ là metadata (tên/ảnh/phẩm chất) — asset thật của skin/hiệu ứng nằm trong APK, ẩn thì dùng công tắc `isActive`.
 - **2026-08-05 — G6: 2 trang nạp tiền (PayOS — TIỀN THẬT)**. `TopupPackagesPage` (`/topup`) CRUD gói nạp + công tắc "hiện trong app" ngay trong bảng; có cột tính sẵn **"Astrite / 1.000đ"** để soi xem gói to có thực sự đáng tiền hơn gói nhỏ không (không thì không ai mua gói to), và banner cảnh báo sửa giá ở đây **đổi ngay số tiền người dùng phải trả** cho đơn tạo từ lúc đó — đơn đã tạo giữ giá của chính nó nên không hồi tố. `TopupHistoryPage` (`/topup-history`) lọc uid/trạng thái/ngày, 4 ô doanh thu + bảng theo ngày, hiện `orderCode` **và mã giao dịch ngân hàng** (`payosReference`) để đối soát với dashboard PayOS; đơn do `/topup/simulate` sinh có nhãn **"Giả lập"** để không lẫn vào doanh thu thật. `LogsPage` thêm 3 nhãn `TOPUP_PACKAGE_*`.
   - 🧭 **Doanh thu tính trên toàn bộ tập đã lọc**, không phải trên số dòng đang hiển thị — đặt `limit` nhỏ không được làm doanh thu tụt (server trả `{rows, summary}` riêng vì lý do này).

@@ -1,4 +1,13 @@
-import type { AdminLog, AdminMoment, AdminStats, AdminUser, DailyStat, Paginated } from '../types';
+import type {
+  AdminLog,
+  AdminMoment,
+  AdminStats,
+  AdminUser,
+  AiVerification,
+  AiVerificationOutcome,
+  DailyStat,
+  Paginated,
+} from '../types';
 import { del, get, patch, post } from './client';
 
 /** Danh sach nguoi dung, tim kiem theo email/ten + phan trang. */
@@ -51,4 +60,15 @@ export function deleteMoment(momentId: string) {
 /** Nhat ky hanh dong admin (moi nhat truoc). */
 export function listLogs(params: { page?: number; limit?: number }): Promise<Paginated<AdminLog>> {
   return get<Paginated<AdminLog>>('/admin/logs', params);
+}
+
+/** Log AI xac minh anh quest (moi nhat truoc) — loc outcome/date/uid, phan trang (2026-08-16). */
+export function listAiVerifications(params: {
+  page?: number;
+  limit?: number;
+  outcome?: AiVerificationOutcome;
+  date?: string;
+  uid?: string;
+}): Promise<Paginated<AiVerification>> {
+  return get<Paginated<AiVerification>>('/admin/ai-verifications', params);
 }

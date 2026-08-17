@@ -1,0 +1,13 @@
+# Train/eval (Colab/Kaggle) — Space co requirements rieng o ml/space/requirements.txt
+torch>=2.2
+torchvision>=0.17
+numpy
+pillow
+scikit-learn
+matplotlib
+tqdm
+fiftyone           # tai COCO 2017 subset (01)
+onnx
+onnxruntime        # quantize + kiem tra ONNX (05, 08)
+huggingface_hub    # upload artifact len Space (05)
+transformers>=4.40 # ablation OWL-ViT (07)

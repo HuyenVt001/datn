@@ -30,4 +30,11 @@ export const envValidationSchema = Joi.object({
   PAYOS_CHECKSUM_KEY: Joi.string().optional().allow(''),
   PAYOS_RETURN_URL: Joi.string().optional().allow(''),
   PAYOS_CANCEL_URL: Joi.string().optional().allow(''),
+
+  // AI Daily Quest (2026-08-15, Snapget/.claude/QUEST_AI_PLAN.md muc 6.3).
+  // Deu optional: thieu URL/API key -> quest AI TAT (moi ngay 2 quest nhu cu),
+  // server boot binh thuong. Thieu CRON_SECRET -> endpoint cron tra 503.
+  AI_SERVICE_URL: Joi.string().uri().optional().allow(''),
+  AI_SERVICE_API_KEY: Joi.string().optional().allow(''),
+  CRON_SECRET: Joi.string().optional().allow(''),
 });

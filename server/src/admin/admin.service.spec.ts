@@ -75,6 +75,10 @@ describe('AdminService', () => {
     } as unknown as jest.Mocked<MomentsRepository>;
     questsService = {
       countCompletionsToday: jest.fn().mockResolvedValue(0),
+      getAiVerificationStatsToday: jest
+        .fn()
+        .mockResolvedValue({ date: 'd', total: 0, matched: 0, notMatched: 0, skipped: 0 }),
+      listAiVerifications: jest.fn().mockResolvedValue({ items: [], page: 1, limit: 15, total: 0 }),
     } as unknown as jest.Mocked<QuestsService>;
     gachaService = {
       getRollCounts: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
@@ -102,6 +106,49 @@ describe('AdminService', () => {
     expect(result.questCompletionsToday).toBe(3);
     expect(result.gachaRollsToday).toBe(7);
     expect(result.gachaRollsTotal).toBe(42);
+  });
+
+  it('getStats: kem so lan AI verify / khop hom nay (2026-08-16)', async () => {
+    adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
+    gachaService.getRollCounts.mockResolvedValue({ today: 0, total: 0 });
+    questsService.getAiVerificationStatsToday.mockResolvedValue({
+      date: '2026-08-16',
+      total: 5,
+      matched: 3,
+      notMatched: 1,
+      skipped: 1,
+    });
+
+    const result = await service.getStats();
+
+    expect(result.aiVerificationsToday).toBe(5);
+    expect(result.aiMatchedToday).toBe(3);
+  });
+
+  it('getStats: thong ke AI loi (collection chua co) -> 0, dashboard van tra', async () => {
+    adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
+    gachaService.getRollCounts.mockResolvedValue({ today: 0, total: 0 });
+    questsService.getAiVerificationStatsToday.mockRejectedValue(new Error('no collection'));
+
+    const result = await service.getStats();
+
+    expect(result.users).toBe(1);
+    expect(result.aiVerificationsToday).toBe(0);
+  });
+
+  it('listAiVerifications: chuyen filter outcome/date/uid sang QuestsService', async () => {
+    await service.listAiVerifications({
+      page: 2,
+      limit: 15,
+      outcome: 'MATCHED',
+      date: '2026-08-16',
+      uid: 'u1',
+    } as never);
+
+    expect(questsService.listAiVerifications).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 2, limit: 15 }),
+      { outcome: 'MATCHED', date: '2026-08-16', uid: 'u1' },
+    );
   });
 
   it('listUsers: kem so du Astrite tu Firestore (user chua co field -> 0)', async () => {

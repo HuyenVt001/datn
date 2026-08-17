@@ -49,6 +49,10 @@ async function bootstrap() {
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       'admin', // JWT server (luong admin)
     )
+    .addApiKey(
+      { type: 'apiKey', in: 'header', name: 'x-cron-secret' },
+      'cron', // Secret cua cron-job.org (POST /quests/ai/generate) — 2026-08-15
+    )
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);

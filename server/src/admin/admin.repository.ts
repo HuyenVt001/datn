@@ -15,6 +15,9 @@ export interface AdminStats {
   /** **(2026-08-05)** So luot BAM NUT quay gacha (x10 tinh la 1) — AdminService dien tu GachaService. */
   gachaRollsToday?: number;
   gachaRollsTotal?: number;
+  /** **(2026-08-16)** So lan AI xac minh anh quest hom nay / so lan khop — AdminService dien tu QuestsService. */
+  aiVerificationsToday?: number;
+  aiMatchedToday?: number;
 }
 
 /** 1 diem du lieu cua bieu do thong ke theo ngay tren dashboard. */

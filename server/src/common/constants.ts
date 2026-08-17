@@ -6,7 +6,7 @@ export const MAX_FRIENDS = 20; // Gioi han ban be moi user
 export const MAX_GROUP_SIZE = 20; // Thanh vien toi da 1 nhom chat
 export const MAX_VIDEO_SECONDS = 3; // Do dai "anh GIF" (clip ngan, lap vo han, khong tieng) toi da — chot 2026-08-03 (truoc la 5)
 export const STREAK_WINDOW_HOURS = 24; // Qua 24h khong tuong tac -> reset friend streak
-export const DAILY_QUESTS_PER_DAY = 2; // 2 quest co dinh/ngay: LOGIN + POST_MOMENT (chot 2026-07-13, khong AI)
+export const DAILY_QUESTS_PER_DAY = 3; // 2 quest co dinh (LOGIN + POST_MOMENT) + 1 quest AI (AI_CHALLENGE) — nang tu 2 len 3 theo thiet ke goc (2026-08-15, QUEST_AI_PLAN.md)
 export const STREAK_MILESTONES = [3, 7, 14, 30]; // Moc streak ca nhan duoc thuong khung
 export const COOP_INVITE_TTL_MINUTES = 5; // Loi moi chup chung qua 5 phut chua tra loi -> het han
 export const INVITE_LINK_TTL_DAYS = 30; // Ma moi ket ban hieu luc 30 ngay; het han -> sinh ma moi, ma cu vo hieu (chot 2026-07-19)
@@ -51,7 +51,53 @@ export const TOPUP_ORDER_TTL_MINUTES = 30;
  */
 export const PAYOS_DESCRIPTION_MAX = 25;
 
-export const QUEST_DAILY_ASTRITE = 60; // Thuong khi xong 2/2 quest trong ngay (THAY cho mo khung ngau nhien)
+export const QUEST_DAILY_ASTRITE = 60; // Thuong khi xong 2/2 quest CO DINH trong ngay (THAY cho mo khung ngau nhien) — quest AI KHONG tinh vao moc nay
+
+// ==== AI Daily Quest (2026-08-15 — xem Snapget/.claude/QUEST_AI_PLAN.md) ====
+// Quest thu 3 moi ngay do AI sinh ("Chụp một chiếc cốc"), hoan thanh khi anh
+// user DANG LEN FEED chua dung vat the (model tu train xac minh). Thieu env
+// AI_SERVICE_URL/AI_SERVICE_API_KEY -> toan bo tinh nang tat em, app chay y het 2 quest.
+
+export const QUEST_AI_ASTRITE = 30; // Thuong RIENG khi xong quest AI (60 cua 2/2 quest co dinh GIU NGUYEN) — toi da 90/ngay
+/**
+ * Lop vat the DUOC RA DE (ten COCO chuan) — 9 lop, chot 2026-08-16 (Claude quyet theo
+ * tieu chi user giao: do chinh xac xac minh cao nhat). Model xac minh HOC 12 lop
+ * (AI_MODEL_CLASSES) nhung 3 lop `book` / `backpack` / `keyboard` bi loai khoi vong quay:
+ * nhan COCO nhieu nhat (book, backpack — AP thap nhat COCO) hoac lan voi lop khac (keyboard
+ * luon di cung laptop). Them/bot lop ra de = sua list nay, KHONG can retrain (moi output
+ * cua model doc lap). 3 lop bi loai van co so lieu de bao cao "do roi moi loai".
+ */
+export const AI_QUEST_CLASSES = [
+  'cup',
+  'bottle',
+  'chair',
+  'potted plant',
+  'laptop',
+  'clock',
+  'umbrella',
+  'bicycle',
+  'motorcycle',
+] as const;
+export type AiQuestClass = (typeof AI_QUEST_CLASSES)[number];
+/** Toan bo lop model biet (thu tu = output model, khop ml/snapget12/classes.py) — AI_QUEST_CLASSES ⊂ list nay. */
+export const AI_MODEL_CLASSES = [
+  'cup',
+  'bottle',
+  'book',
+  'chair',
+  'potted plant',
+  'laptop',
+  'keyboard',
+  'backpack',
+  'clock',
+  'umbrella',
+  'bicycle',
+  'motorcycle',
+] as const;
+export const AI_QUEST_AVOID_RECENT = 3; // Khong lap vat the cua 3 ngay gan nhat
+export const AI_QUEST_CONTENT_MAX = 80; // content quest AI toi da (ky tu) — LLM tra dai hon thi dung fallback
+export const AI_VERIFY_TIMEOUT_MS = 3000; // AI service verify qua 3s -> SKIPPED, khong giu chan response dang bai
+export const AI_GENERATE_TIMEOUT_MS = 90_000; // LLM CPU sinh cham — cron goi offline nen cho duoc lau
 export const SIGNUP_BONUS_ASTRITE = 1600; // Tang 1 lan khi tao tai khoan (= 10 lan quay le, cham pity R)
 
 /** Key ngay (YYYY-MM-DD, UTC) — dung CHUNG cho personal streak va daily quest de 2 he thong khop ngay. */
@@ -77,6 +123,7 @@ export const Collections = {
   TOPUP_PACKAGES: 'topupPackages', // goi nap (admin quan ly)
   TOPUP_ORDERS: 'topupOrders', // don nap — doc id = orderCode de webhook idempotent
   CONFIG: 'config', // doc cau hinh don le (vd config/gachaBanner)
+  AI_VERIFICATIONS: 'aiVerifications', // log MOI lan AI xac minh anh quest (ke ca truot) — so lieu accuracy production (2026-08-15)
 } as const;
 
 /** Subcollection cua posts. */

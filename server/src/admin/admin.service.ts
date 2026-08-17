@@ -7,6 +7,7 @@ import { GachaService } from '../gacha/gacha.service';
 import { MomentsRepository } from '../moments/moments.repository';
 import { QuestsService } from '../quests/quests.service';
 import { AdminRepository, AdminStats, DailyStat } from './admin.repository';
+import { ListAiVerificationsDto } from './dto/list-ai-verifications.dto';
 import { ListUsersDto } from './dto/list-users.dto';
 
 /** 1 dong trong danh sach user cua trang admin. */
@@ -81,19 +82,32 @@ export class AdminService {
     return { items: users.slice(start, start + limit), page, limit, total: users.length };
   }
 
-  /** Thong ke tong quan cho dashboard (kem quest hom nay + so luot quay gacha). */
+  /** Thong ke tong quan cho dashboard (kem quest hom nay + so luot quay gacha + AI verify hom nay). */
   async getStats(): Promise<AdminStats> {
-    const [stats, questCompletionsToday, rolls] = await Promise.all([
+    const [stats, questCompletionsToday, rolls, ai] = await Promise.all([
       this.adminRepo.getStats(),
       this.questsService.countCompletionsToday(),
       this.gachaService.getRollCounts(),
+      // Best-effort: collection aiVerifications co the chua ton tai / AI tat -> 0, khong fail dashboard
+      this.questsService.getAiVerificationStatsToday().catch(() => undefined),
     ]);
     return {
       ...stats,
       questCompletionsToday,
       gachaRollsToday: rolls.today,
       gachaRollsTotal: rolls.total,
+      aiVerificationsToday: ai?.total ?? 0,
+      aiMatchedToday: ai?.matched ?? 0,
     };
+  }
+
+  /** Log AI xac minh anh quest (trang admin) — uy quyen QuestsService (chu collection). */
+  listAiVerifications(query: ListAiVerificationsDto) {
+    return this.questsService.listAiVerifications(query, {
+      outcome: query.outcome,
+      date: query.date,
+      uid: query.uid,
+    });
   }
 
   /**

@@ -5,7 +5,8 @@
  */
 export const ASTRITE_TX_TYPES = [
   'SIGNUP_BONUS', // +1600 tang 1 lan khi tao tai khoan
-  'QUEST_REWARD', // +60 khi xong 2/2 daily quest
+  'QUEST_REWARD', // +60 khi xong 2/2 daily quest co dinh
+  'AI_QUEST_REWARD', // +30 khi AI xac minh anh khop quest AI cua ngay (2026-08-15)
   'TOPUP', // + nap tien qua PayOS
   'GACHA_SPEND', // - tru khi quay (160 hoac 1440)
   'GACHA_REFUND', // + hoan lai khi quay trung vat pham da so huu / ra bac N

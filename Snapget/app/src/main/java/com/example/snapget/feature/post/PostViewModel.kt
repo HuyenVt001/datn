@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
+import com.example.snapget.core.network.dto.AiQuestResultDto
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.network.serverMessage
@@ -41,6 +42,18 @@ class PostViewModel @Inject constructor(
 
     fun clearChatSendError() {
         _chatSendError.value = null
+    }
+
+    /**
+     * Ket qua quest AI cua bai vua dang (2026-08-15): server tra `aiQuest` trong response
+     * POST /moments khi hom nay co quest AI & minh chua xong. UI toast roi clear.
+     * MATCHED -> "+30 Astrite"; NOT_MATCHED -> goi y thu lai; SKIPPED/null -> im lang.
+     */
+    private val _aiQuestMessage = MutableStateFlow<String?>(null)
+    val aiQuestMessage: StateFlow<String?> = _aiQuestMessage.asStateFlow()
+
+    fun clearAiQuestMessage() {
+        _aiQuestMessage.value = null
     }
 
     /** Feed cua minh + ban be. */
@@ -93,13 +106,15 @@ class PostViewModel @Inject constructor(
             _submitStatus.value = LoadStatus.Loading()
             try {
                 val uploaded = postRepository.uploadMedia(file, isVideo)
-                postRepository.createMoment(
+                val created = postRepository.createMoment(
                     mediaUrl = uploaded.url,
                     isVideo = isVideo,
                     caption = caption,
                     frameId = frameId,
                     clientRequestId = clientRequestId,
                 )
+                // Quest AI: server da tu xac minh anh vua dang — chi viec bao ket qua
+                _aiQuestMessage.value = aiQuestMessageOf(created.aiQuest)
                 // Gui kem vao chat neu co chon nguoi nhan — loi o buoc nay KHONG lam
                 // fail bai dang (moment da len feed roi), chi bao rieng qua chatSendError
                 if (sendToUids.isNotEmpty() && isVideo) {
@@ -250,5 +265,12 @@ class PostViewModel @Inject constructor(
                 _actionMessage.value = e.serverMessage("Failed to send message.")
             }
         }
+    }
+
+    /** Chuoi toast cho ket qua quest AI; null = khong toast (SKIPPED / khong co quest AI). */
+    private fun aiQuestMessageOf(result: AiQuestResultDto?): String? = when (result?.result) {
+        "MATCHED" -> "🎯 Challenge complete! +30 Astrite"
+        "NOT_MATCHED" -> "Photo doesn't match today's challenge — post another one to try again!"
+        else -> null
     }
 }

@@ -1,9 +1,11 @@
 import {
   CameraOutlined,
+  CheckCircleOutlined,
   FireOutlined,
   GiftOutlined,
   HeartOutlined,
   MessageOutlined,
+  RobotOutlined,
   TeamOutlined,
   ThunderboltOutlined,
   TrophyOutlined,
@@ -213,6 +215,13 @@ export function DashboardPage() {
     // Quay x10 tinh la 1 luot (khop cach server luu gachaRolls)
     { title: 'Lượt quay hôm nay', value: data?.gachaRollsToday, icon: <ThunderboltOutlined /> },
     { title: 'Tổng lượt quay', value: data?.gachaRollsTotal, icon: <GiftOutlined /> },
+    // Quest AI (2026-08-16): so lan AI xac minh anh hom nay va so lan khop (quest AI tick)
+    {
+      title: 'AI xác minh ảnh hôm nay',
+      value: data?.aiVerificationsToday,
+      icon: <RobotOutlined />,
+    },
+    { title: 'Quest AI khớp hôm nay', value: data?.aiMatchedToday, icon: <CheckCircleOutlined /> },
   ];
 
   return (

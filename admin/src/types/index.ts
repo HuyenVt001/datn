@@ -41,6 +41,9 @@ export interface AdminStats {
   /** So luot BAM NUT quay gacha (quay x10 tinh la 1 luot). */
   gachaRollsToday?: number;
   gachaRollsTotal?: number;
+  /** (2026-08-16) So lan AI xac minh anh quest hom nay / so lan KHOP (quest AI tick). */
+  aiVerificationsToday?: number;
+  aiMatchedToday?: number;
 }
 
 /** 1 diem du lieu bieu do thong ke theo ngay (GET /admin/stats/daily). */
@@ -250,6 +253,36 @@ export interface AdminLog {
   action: AdminAction;
   targetId?: string;
   targetLabel?: string;
+  createdAt: string;
+}
+
+/** Ket qua 1 lan AI xac minh anh quest (GET /admin/ai-verifications) — 2026-08-16. */
+export type AiVerificationOutcome = 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
+
+export interface AiVerification {
+  id: string;
+  uid: string;
+  momentId: string;
+  /** URL anh DA resize 224 gui cho AI service — dung lam thumbnail. */
+  mediaUrl?: string;
+  /** Ngay quest (YYYY-MM-DD UTC). */
+  date: string;
+  /** Vat the quest yeu cau (1 trong 9 lop ra de). */
+  targetClass: string;
+  outcome: AiVerificationOutcome;
+  /** Diem sigmoid [0,1] cua targetClass (khong co khi SKIPPED). */
+  score?: number;
+  /** Nguong cua targetClass ma model dang dung. */
+  threshold?: number;
+  /** Du 12 diem cua model — de debug/calibrate. */
+  scores?: Record<string, number>;
+  modelVersion?: string;
+  /** ms suy luan tren AI service. */
+  latencyMs?: number;
+  /** ms round-trip server -> AI service. */
+  roundTripMs?: number;
+  /** Ly do SKIPPED. */
+  error?: string;
   createdAt: string;
 }
 

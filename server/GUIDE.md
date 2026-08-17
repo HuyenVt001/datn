@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-08-11**.
+> Cập nhật lần cuối: **2026-08-15**.
 
 ---
 
@@ -17,11 +17,11 @@
 
 | | |
 |---|---|
-| Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, astrite, gacha, topup, admin, audit) |
-| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **11 suite / 207 test pass** (astrite 8 + gacha 29 + topup 21 + **frames 21**) · e2e smoke **10 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
+| Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, **ai** (2026-08-15), astrite, gacha, topup, admin, audit) |
+| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **13 suite / 255 test pass** (astrite 8 + gacha 29 + topup 21 + frames 21 + **quests 35 + ai 9 + ai-quest-templates 7 + admin +3**) · e2e smoke **12 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401, cron secret sai → 401/503) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
 | Deploy | Đã chạy trên Render: `https://datn-8810.onrender.com/api` (gói free ngủ sau 15 phút — gọi `/api/health` để đánh thức trước demo). Hướng dẫn: `../DEPLOY.md` |
-| Việc kế tiếp | **Gacha + Astrite + PayOS xong toàn bộ G0–G6** (kế hoạch: `Snapget/.claude/GACHA_PLAN.md`). Còn lại là **việc của user, không phải việc code**: điền 3 khoá `PAYOS_*` vào `.env` → deploy lại Render → đăng ký webhook `https://<server>/api/topup/webhook` trên my.payos.vn (GACHA_PLAN mục 12). Song song: test end-to-end app + server (co-op, chat nhóm, reply, deep link) |
-| Blocker | ⚠️ Luồng nạp tiền TẮT cho tới khi có 3 khoá `PAYOS_*` trong `.env` — `POST /topup/orders` trả 503. Toàn bộ phần còn lại của server chạy bình thường |
+| Việc kế tiếp | **AI Daily Quest — code server/Space/app xong M0–M5 (2026-08-15)** (kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`, checklist việc user ở mục 17 của plan). Còn lại **việc của user**: train model trên Colab (`ml/notebooks/snapget12_train.ipynb`) → tạo HF Space + upload model → điền `AI_SERVICE_URL`/`AI_SERVICE_API_KEY`/`CRON_SECRET` → tạo 2 cron trên cron-job.org (generate 00:05 UTC + keep-warm /health 10') → M6 (Snapget-12, v1, ablation). PayOS: điền 3 khoá `PAYOS_*` → đăng ký webhook (GACHA_PLAN mục 12) |
+| Blocker | ⚠️ Luồng nạp tiền TẮT cho tới khi có 3 khoá `PAYOS_*` — `POST /topup/orders` trả 503. ⚠️ Quest AI TẮT cho tới khi có `AI_SERVICE_URL` + `AI_SERVICE_API_KEY` — `GET /quests/today` vẫn trả 2 quest như cũ. Toàn bộ phần còn lại chạy bình thường |
 
 ---
 
@@ -92,7 +92,8 @@ helmet (security headers, CSP off cho Swagger)
 | `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal+friend streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
 | `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-08-11)** tự đồng bộ kho gacha khi CRUD khung (GACHA ⇒ có mặt trong `gachaItems`, khác/xóa ⇒ rút khỏi kho) | users, audit, gacha (forwardRef) |
-| `quests` | 2 quest cố định/ngày (LOGIN + POST_MOMENT), lazy tạo, tự hoàn thành; **(2026-08-05)** thưởng 2/2 quest = **+60 Astrite** (trước là khung ngẫu nhiên); mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames |
+| `quests` | **3 quest/ngày (2026-08-15)**: 2 quest cố định (LOGIN + POST_MOMENT) lazy tạo, tự hoàn thành, xong 2/2 = **+60 Astrite** (giữ nguyên) + **quest AI `AI_CHALLENGE`** ("Chụp một chiếc cốc"): nội dung do LLM trên HF Space viết (cron `POST /quests/ai/generate`) hoặc template fallback; hoàn thành khi ảnh user đăng lên feed được model AI xác minh có chứa `targetClass` → **+30 Astrite riêng**; log mọi lần verify vào `aiVerifications`; mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames, **ai** |
+| `ai` | **(2026-08-15, sửa 2026-08-16)** `AiService` = HTTP client DUY NHẤT gọi AI service (FastAPI + ONNX trên **Google Cloud Run**, code ở `ml/ai-service/`): `verify(imageUrl, targetClass)` timeout 3s · `health()` · `generate(avoid)` (điểm cắm LLM — hiện service tắt, trả 503 → bộ mẫu); auth `X-API-Key`; `toVerifyImageUrl()` chèn transform Cloudinary `w_224,h_224,c_fill`. Không controller, không repository. Thiếu env → `enabled=false`, không verify (quest AI vẫn hiện, không tick) | config |
 | `astrite` | **(2026-08-05)** Ví Astrite: `credit`/`debit`/`grantSignupBonusOnce` — MỌI thay đổi số dư đi qua đây để sổ cái luôn khớp | firebase |
 | `gacha` | **(2026-08-05)** Catalog `gachaItems` + quay 1/x10: pity ưu tiên bậc cao & chỉ reset bậc trúng, SR/SSR không trùng khi chưa full, random ở SERVER; **G3**: CRUD kho vật phẩm + lịch sử toàn hệ thống cho admin | astrite, auth, frames, users, audit |
 | `topup` | **(2026-08-05 — G6)** Nạp Astrite bằng **tiền thật** qua PayOS: `topupPackages` (admin CRUD) · tạo đơn + link thanh toán · **webhook verify chữ ký + idempotent theo `orderCode`** · `/topup/simulate` chỉ chạy ở dev · lịch sử + doanh thu cho admin. `PayosService` là nơi DUY NHẤT gọi SDK `@payos/node` | astrite, auth, users, audit |
@@ -126,7 +127,7 @@ server/
 │   ├── firebase/            ✅ @Global FirebaseService: auth()/firestore()/messaging()
 │   ├── common/              ✅ constants, decorators (@Public/@Roles/@CurrentUser), dto (envelope + pagination),
 │   │                           filters (AllExceptionsFilter), interceptors (ResponseInterceptor),
-│   │                           guards (FirebaseAuthGuard, AdminJwtGuard, RolesGuard)
+│   │                           guards (FirebaseAuthGuard, AdminJwtGuard, RolesGuard, **CronSecretGuard** — header `x-cron-secret`, 2026-08-15)
 │   ├── auth/                ✅ POST /auth/admin/login (verify Firebase → check claim admin hiện hành + disabled → JWT + uid)
 │   ├── users/               ✅ me (GET/PATCH kèm birthday, sync displayName/photoURL lên Auth), fcm-tokens, /:uid,
 │   │                           ensureUser (tự tạo/backfill doc), personal streak, inviteCode TTL 30 ngày, pushToUids (FCM helper)
@@ -140,7 +141,12 @@ server/
 │   │                           reactions (toggle), groups
 │   ├── frames/              ✅ catalog + isUnlocked; 6 unlockType; unlockByThreshold()/unlockCoopFrames() cho hook;
 │   │                           admin CRUD + grant + owners
-│   ├── quests/              ✅ GET /quests/today (lazy, tự hoàn thành LOGIN); thưởng 2/2 = +60 Astrite, mốc streak = khung
+│   ├── quests/              ✅ GET /quests/today (lazy, tự hoàn thành LOGIN; 3 quest khi bật AI); thưởng 2/2 = +60 Astrite, mốc streak = khung;
+│   │                           **(2026-08-15)** POST /quests/ai/generate (cron, `CronSecretGuard`); `verifyAiQuest()` hook từ moments;
+│   │                           `entities/ai-quest-templates.ts` (12 lớp × 4 câu fallback + `pickFallbackQuest` seed theo ngày),
+│   │                           `entities/ai-verification.entity.ts` (log `aiVerifications`)
+│   ├── ai/                  ✅ **(2026-08-15)** `AiService` — HTTP client gọi AI service trên Cloud Run (verify/health, timeout, `enabled` fail-safe;
+│   │                           `generate` = điểm cắm LLM, hiện tắt). Model + code service nằm ở `../ml/` (root monorepo), KHÔNG trong server
 │   ├── astrite/            ✅ **(2026-08-05)** ví tiền tệ Astrite: credit/debit trong transaction + sổ cái `astriteTransactions`;
 │   │                           không có controller — users/quests/gacha/topup gọi qua AstriteService
 │   ├── gacha/              ✅ **(2026-08-05)** GET state/items/history + POST roll; thuật toán 4 bậc N/R/SR/SSR,
@@ -182,7 +188,8 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 | `chatGroups/{id}` | nhóm chat (memberIds[] ≤20, `avatar?` URL Cloudinary, `mutedBy[]` uid tắt thông báo, `createdBy` = người quản lý) |
 | `coopInvites/{id}` | lời mời chụp chung (inviterId, inviteeId, `inviterMediaUrl?`/`inviteeMediaUrl?` 2 nửa ảnh, `mergedMediaUrl?` ảnh ghép, status PENDING/ACCEPTED/COMPLETED/DECLINED/EXPIRED) |
 | `frames/{id}` | khung ảnh: frameName, imageUrl, `unlockType` + `unlockValue`; `milestone` legacy (suy ngược tương thích doc cũ, kể cả `QUEST_RANDOM` → `GACHA`) |
-| `dailyQuests/{id}` + `userQuests/{id}` | quest cố định/ngày + trạng thái hoàn thành của từng user; doc `{date}_{uid}_DAILY_REWARD` = claim thưởng ngày (**field `astrite`** — doc trước 2026-08-05 dùng `frameId`) |
+| `dailyQuests/{id}` + `userQuests/{id}` | quest/ngày + trạng thái hoàn thành của từng user; doc `{date}_{uid}_DAILY_REWARD` = claim thưởng ngày (**field `astrite`** — doc trước 2026-08-05 dùng `frameId`). **(2026-08-15)** `dailyQuests/{date}_AI_CHALLENGE` thêm `targetClass`, `source` (LLM/FALLBACK), `generatedAt`; `userQuests/{date}_{uid}_AI_CHALLENGE` thêm `momentId`, `aiScore`, `modelVersion` |
+| `aiVerifications/{id}` | **(2026-08-15)** log MỌI lần AI xác minh ảnh quest (kể cả trượt/SKIPPED): uid, momentId, date, targetClass, outcome, score, threshold, scores{12}, modelVersion, latencyMs, roundTripMs, error — số liệu accuracy production cho báo cáo; ghi best-effort |
 | `adminLogs/{id}` | audit log hành động admin (ai làm gì lên đối tượng nào lúc nào) |
 | `astriteTransactions/{id}` | **(2026-08-05)** sổ cái tiền tệ Astrite — MỌI thay đổi số dư ghi 1 dòng (uid, type, amount ±, balanceAfter, refId) |
 | `gachaItems/{id}` | **(2026-08-05)** catalog vật phẩm quay ra: itemName, itemType (FRAME/EFFECT/SKIN), rarity (R/SR/SSR), imageUrl, `refId` (frameId / skinId / effectId), isActive |
@@ -204,7 +211,8 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | coop | ✅ | chỉ bạn bè ACCEPTED; TTL **5 phút**; accept chỉ invitee (hủy được cả 2 phía); mỗi bên nộp nửa ảnh riêng; sharp ghép → mergedMediaUrl (KHÔNG tự tạo moment); friend streak + khung COOP_FIRST lúc ghép | ✅ | ✅ |
 | messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè — cả lúc tạo lẫn lúc mời thêm), seen, reaction toggle, reply cùng-hội-thoại, quản lý nhóm (rename/avatar/mời/xóa — chỉ creator/rời/mute) | ✅ | ✅ |
 | frames | ✅ | 6 unlockType + hook tự mở ở moments/friendships/coop | ✅ | ✅ |
-| quests | ✅ | 2 quest/ngày lazy; **(G2)** thưởng 2/2 = +60 Astrite (claim atomic 1 lần/ngày; cộng tiền fail → trả lại claim, cộng xong → GIỮ claim để không cộng 2 lần); mốc streak = khung | ✅ | ✅ |
+| quests | ✅ | 2 quest/ngày lazy; **(G2)** thưởng 2/2 = +60 Astrite (claim atomic 1 lần/ngày; cộng tiền fail → trả lại claim, cộng xong → GIỮ claim để không cộng 2 lần); mốc streak = khung. **(2026-08-15 — AI)** quest thứ 3 `AI_CHALLENGE`: sinh idempotent (create atomic, không ghi đè), fallback template seed theo ngày tránh lặp 3 ngày; verify chỉ PHOTO + chưa xong; MATCHED → complete atomic + **+30 Astrite** (`AI_QUEST_REWARD`), cộng fail → xoá doc quest để thử lại; Space lỗi → SKIPPED; LLM trả rác → fallback | ✅ 33 test | ✅ |
+| **ai** | ✅ | **(2026-08-15)** fail-safe env (`enabled`), fetch + AbortController timeout, không log key, transform URL Cloudinary 224 | ✅ 9 test | ✅ |
 | admin | ✅ | chặn tự khóa/tự thu quyền (luôn ≥1 admin), guard re-check mỗi request, khóa = revoke refresh token, audit log | ✅ | ✅ |
 | upload | ✅ | ≤25MB, ảnh GIF ≤3s enforce | ⬜ | ✅ |
 | audit | ✅ | ghi best-effort, không chặn hành động chính | — | ✅ |
@@ -235,7 +243,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | DELETE | `/api/friendships/:friendUid` | Xóa bạn bè | Firebase |
 | POST | `/api/upload` | Upload ảnh/video (multipart `file`, ≤25MB, ảnh GIF ≤3s) → `{url, publicId, resourceType, duration}` | Firebase |
 | POST | `/api/upload/admin` | [Admin] Upload ảnh (khung ảnh…) — cùng format với /upload | Admin JWT |
-| POST | `/api/moments` | Đăng moment (mediaUrl từ /upload; tăng streak + quest rồi trả NGAY — mở khung POST_COUNT + FCM bạn bè chạy sau response; `clientRequestId?` chống đăng trùng khi retry) | Firebase |
+| POST | `/api/moments` | Đăng moment (mediaUrl từ /upload; tăng streak + quest rồi trả NGAY — mở khung POST_COUNT + FCM bạn bè chạy sau response; `clientRequestId?` chống đăng trùng khi retry) **(2026-08-15)** response thêm `aiQuest?: {result: MATCHED\|NOT_MATCHED\|SKIPPED, score?, questContent?}` khi có quest AI & user chưa xong (Gson app cũ bỏ qua) | Firebase |
 | GET | `/api/moments/feed` | Feed mình + bạn bè (`?page&limit`) | Firebase |
 | GET | `/api/moments/mine` | Moment của chính mình (profile calendar, `?page&limit`) | Firebase |
 | GET | `/api/moments/user/:uid` | Moment của 1 user — CHỈ bạn bè (hoặc chính mình), 403 nếu không | Firebase |
@@ -263,7 +271,8 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | DELETE | `/api/messages/groups/:groupId/members/:memberUid` | Xóa thành viên (CHỈ người tạo nhóm; không tự xóa mình) | Firebase |
 | POST | `/api/messages/groups/:groupId/leave` | Rời nhóm (creator rời → chuyển quyền; người cuối rời → xóa nhóm) | Firebase |
 | PATCH | `/api/messages/groups/:groupId/mute` | Bật/tắt thông báo nhóm cho riêng mình (`{muted}` — mutedBy bị loại khỏi FCM nhóm) | Firebase |
-| GET | `/api/quests/today` | 2 quest hôm nay + trạng thái (lazy; gọi = tự hoàn thành LOGIN; **`rewardAstrite`** nếu đã xong 2/2 — ⚠️ đổi tên từ `rewardFrameId` ngày 2026-08-05) | Firebase |
+| GET | `/api/quests/today` | Quest hôm nay + trạng thái (lazy; gọi = tự hoàn thành LOGIN; **`rewardAstrite`** nếu đã xong 2/2 — ⚠️ đổi tên từ `rewardFrameId` ngày 2026-08-05). **(2026-08-15)** khi server bật AI: phần tử thứ 3 `type:'AI_CHALLENGE'` kèm `targetClass`, `source` — app cũ vẫn parse (type là String) | Firebase |
+| POST | `/api/quests/ai/generate` | **(2026-08-15) [Cron]** sinh quest AI hôm nay + ngày mai (LLM trên Space, lỗi → template); idempotent, không ghi đè; AI tắt → `[]`; thiếu `CRON_SECRET` → 503 | `@Public` + **CronSecretGuard** (`x-cron-secret`) |
 | GET | `/api/gacha/state` | **(2026-08-05)** Số dư Astrite + pity + giá quay + tỉ lệ gốc — app tự sinh popup Rule từ đây | Firebase |
 | GET | `/api/gacha/items` | **(2026-08-05)** Catalog vật phẩm đang bật + `isOwned` của mình | Firebase |
 | GET | `/api/gacha/history` | **(2026-08-05)** Lịch sử quay của mình (`?limit`, mặc định 50, tối đa 200) | Firebase |
@@ -301,6 +310,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | GET | `/api/admin/moments` | [Admin] Bài đăng mới nhất (kiểm duyệt, kèm tên tác giả) | Admin JWT |
 | DELETE | `/api/admin/moments/:id` | [Admin] Xóa bài vi phạm (kèm subcollection; ghi audit log) | Admin JWT |
 | GET | `/api/admin/logs` | [Admin] Audit log hành động admin (`?page&limit`) | Admin JWT |
+| GET | `/api/admin/ai-verifications` | **(2026-08-16)** Log AI xác minh ảnh quest (mới nhất trước) — thumbnail 224, điểm 12 lớp, ngưỡng, model, latency; lọc `outcome`/`date`/`uid`; phân trang trong bộ nhớ (quét ≤500 log). `GET /admin/stats` thêm `aiVerificationsToday`, `aiMatchedToday` | Admin JWT |
 
 Swagger: `http://localhost:3000/docs`.
 
@@ -312,6 +322,7 @@ Swagger: `http://localhost:3000/docs`.
 - `getConversations` (messages) quét toàn bộ tin gửi + nhận của user để dựng danh sách hội thoại — chấp nhận vì không tạo composite index; scale lớn thì thêm `conversationId` trên message.
 - `countCompletionsByDate` (quests, admin stats) đọc mọi doc userQuests của ngày rồi lọc trong bộ nhớ — có thể chuyển sang Firestore count() aggregation.
 - Tin nhắn prototype cũ (field `recipientId` thời app đọc Firestore trực tiếp) KHÔNG hiện trong thread/hội thoại — xóa collection `messages` cũ trước khi test thật (không có data người dùng thật).
+- **(2026-08-15)** Verify quest AI chạy **đồng bộ** trong `POST /moments` (await, timeout cứng 3s) — chỉ khi hôm nay có quest AI và user chưa xong; p95 cần đo khi Space chạy thật. Chụp lại màn hình máy khác đang hiển thị vật thể **không chặn được** ở v1 (limitation nêu trong báo cáo — QUEST_AI_PLAN mục 10).
 
 ## 7. Quyết định đã chốt
 
@@ -319,7 +330,8 @@ Swagger: `http://localhost:3000/docs`.
 - ✅ Role 2 cấp user/admin: cấp + THU quyền qua trang admin; chặn tự khóa/tự thu quyền (⇒ luôn còn ≥1 admin); `AdminJwtGuard` re-check claim + disabled mỗi request (đánh đổi 1 read Auth/request — chấp nhận).
 - ✅ Điều kiện mở khóa khung: 6 loại `unlockType` — **GACHA** / STREAK_MILESTONE (3/7/14/30) / POST_COUNT / FRIEND_COUNT / COOP_FIRST / DEFAULT. `QUEST_RANDOM` đã bỏ (2026-08-05); `FramesRepository.toEntity` map doc cũ (`QUEST_RANDOM` hoặc chỉ có `milestone`) sang loại mới khi đọc → **không cần migration, không cần chờ chạy seed**.
 - ✅ **(2026-08-11)** Kho gacha đồng bộ TỰ ĐỘNG theo `unlockType` của khung: `FramesService.syncGachaPool` (best-effort, idempotent) — tạo/sửa khung thành GACHA ⇒ thêm vật phẩm FRAME (phẩm chất R, đang bật) vào `gachaItems`; đổi khỏi GACHA hoặc xóa khung ⇒ rút vật phẩm khỏi kho (ai đã sở hữu vẫn giữ). Admin bỏ nút "Thêm khung vào kho"; `POST /gacha/items` vẫn giữ (idempotent-check trùng refId như cũ).
-- ✅ Daily Quest: 2 quest cố định/ngày (LOGIN + POST_MOMENT), sinh lazy, hoàn thành tự động. Thưởng 2/2 quest = **+60 Astrite** (2026-08-05, trước là khung ngẫu nhiên — khung giờ mở qua gacha). Thiết kế gốc **3 quest/ngày** (quest thứ 3 do AI tạo) — AI hoãn nên tạm giữ `DAILY_QUESTS_PER_DAY=2`; làm AI thì nâng lên 3.
+- ✅ Daily Quest: 2 quest cố định/ngày (LOGIN + POST_MOMENT), sinh lazy, hoàn thành tự động. Thưởng 2/2 quest = **+60 Astrite** (2026-08-05, trước là khung ngẫu nhiên — khung giờ mở qua gacha). **(2026-08-15)** Quest thứ 3 do **AI** tạo đã làm theo thiết kế gốc → `DAILY_QUESTS_PER_DAY=3`: `AI_CHALLENGE` hoàn thành bằng **hook vào đăng bài** (không màn nộp ảnh riêng), thưởng **+30 riêng** (`QUEST_AI_ASTRITE`), 60 của 2/2 giữ nguyên, tối đa 90/ngày; `UserQuest.status` vẫn chỉ `'COMPLETED'` (ảnh không khớp = chưa xong). 12 lớp vật thể `AI_QUEST_CLASSES` (COCO). Cron sinh **hôm nay + ngày mai** để không có cửa sổ user mở app trước cron; **không ghi đè** quest đã có. Chi tiết: `Snapget/.claude/QUEST_AI_PLAN.md`.
+- ✅ **(2026-08-15)** AI Space **không nằm trong server**: NestJS là cửa ngõ duy nhất (app không biết Space); Render không load model (giữ 512MB). Code Space + train ở `../ml/`. Ngưỡng per-class (`thresholds.json`) là artifact **đi cùng model trên Space**, không hardcode ở server.
 - ✅ Service account key: env `FIREBASE_SERVICE_ACCOUNT` → file json (đã có, gitignore).
 - ⏳ Tên collection Moment: giữ `posts` (tương thích app cũ) — muốn đổi thì sửa `Collections.POSTS`.
 
@@ -343,6 +355,14 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-16 (2) — Trang admin xem log AI verify (đóng câu hỏi 15.3 của QUEST_AI_PLAN)**: `GET /admin/ai-verifications` (DTO `ListAiVerificationsDto`: outcome/date/uid + phân trang) → `QuestsService.listAiVerifications` (repo `listAiVerifications(limit 500)` orderBy `createdAt` desc — 1 field, không cần index; lọc trong bộ nhớ) và `getAiVerificationStatsToday` (repo `listAiVerificationsByDate` where 1 field) → `GET /admin/stats` thêm `aiVerificationsToday`/`aiMatchedToday` (best-effort, lỗi → 0). Entity `AiVerification` thêm **`mediaUrl`** (URL 224 đã gửi cho service — ghi lúc log để admin hiện thumbnail không cần join `posts`), thêm `AiVerificationRecord` (kèm id) + `AiVerificationDailyStats`. Test mới: `ai-quest-templates.spec.ts` (7 — khoá 72 câu: bắt đầu "Chụp", ≤80 ký tự, không trùng, seed xác định, avoid, 9 ⊂ 12), quests +2, admin +3 → **255 test / 13 suite**. Admin React: `AiVerificationsPage` (`/ai-verifications`, menu "AI quest") + 2 ô dashboard. `ml/ai-service/dev_fake_model.py`: model ONNX giả để chạy service local (ảnh sáng → khớp `motorcycle`, tối → khớp `cup`) — test end-to-end server↔service↔app không cần Colab.
+- **2026-08-16 — Gọn phạm vi AI quest theo 3 quyết định của user** (chi tiết `Snapget/.claude/QUEST_AI_PLAN.md` mục 0, 2.3, 17, changelog): (1) **Bỏ LLM sinh quest** — AI chỉ **xác minh ảnh**; quest lấy từ bộ mẫu `AI_QUEST_TEMPLATES` (nay **9 lớp × 8 = 72 câu**, câu chữ hướng ảnh dễ nhận diện). `generateAiQuests()` + `POST /quests/ai/generate` + `AiService.generate()` **giữ nguyên làm điểm cắm** (service trả 503 → server dùng bộ mẫu), cron sinh trước thành tuỳ chọn. (2) **`AI_QUEST_CLASSES` 12 → 9** (bỏ `book`/`backpack`/`keyboard` — nhãn COCO nhiễu / lẫn laptop); thêm `AI_MODEL_CLASSES` (12, khớp output model). Không retrain, không đổi contract (`targetClass` vẫn String). (3) **AI service deploy Google Cloud Run** thay HF Space (HF thu phí Docker Space) — server chỉ đổi `AI_SERVICE_URL`; code service ở `ml/ai-service/` (đổi tên từ `ml/space/`), model artifact tải từ HF Model repo. Chỉ sửa comment/Swagger + hằng số; **243 test pass**.
+- **2026-08-15 — AI Daily Quest (M0–M4 phía server, QUEST_AI_PLAN.md)**: hoàn thiện actor **AI** hoãn từ 2026-07-13. Module mới `ai/` (`AiService`, không controller/repo); `quests` thêm `AI_CHALLENGE`: `getTodayQuests` trả 3 quest khi AI bật (cron chưa sinh → tạo FALLBACK ngay, không gọi LLM trong request user), `verifyAiQuest()` hook từ `MomentsService.create` (chỉ PHOTO + chưa xong; Space timeout 3s → SKIPPED; MATCHED → `completeUserQuest` atomic + `AstriteService.credit(30,'AI_QUEST_REWARD')`, cộng fail → `deleteUserQuest` để thử lại), `generateAiQuests()` cho cron (hôm nay + ngày mai, LLM → validate 12 lớp/avoid/độ dài → fallback, `createAiQuestIfAbsent` atomic không ghi đè). Repo thêm `getAiQuest/createAiQuestIfAbsent/getRecentAiTargets/hasCompletedQuest/deleteUserQuest/addAiVerification`. Guard mới `CronSecretGuard` (timingSafeEqual, thiếu env → 503). Constants: `DAILY_QUESTS_PER_DAY=3`, `QUEST_AI_ASTRITE=30`, `AI_QUEST_CLASSES` (12), `AI_QUEST_AVOID_RECENT=3`, `AI_QUEST_CONTENT_MAX=80`, `AI_VERIFY_TIMEOUT_MS=3000`, `AI_GENERATE_TIMEOUT_MS=90000`, `Collections.AI_VERIFICATIONS`. `ASTRITE_TX_TYPES` thêm `AI_QUEST_REWARD`. Env mới (đều optional): `AI_SERVICE_URL`, `AI_SERVICE_API_KEY`, `CRON_SECRET`. Swagger thêm scheme `cron`. 36 test mới (**243 pass**, 12 suite), e2e +2 (**12 pass**). 🔐 SECURITY.md mục 18.
+  - ⚠️ **Contract (thêm field, không breaking)**: `GET /quests/today` có thể có phần tử thứ 3 `AI_CHALLENGE` (+ `targetClass`, `source`); `POST /moments` response thêm `aiQuest?`. Đã sync app (`QuestDtos.kt`, `MomentDto.kt` + `AiQuestResultDto`, `DailyQuestScreen` icon 🎯, `PostViewModel`/`SubmitPhotoScreen` toast). Admin không đổi.
+  - 🧭 **Fail-safe 3 tầng**: thiếu env → `AiService.enabled=false` (2 quest như cũ); LLM hỏng → template `AI_QUEST_TEMPLATES` (12×4 câu, chọn seed theo ngày, tránh 3 ngày gần nhất); verify hỏng → SKIPPED, đăng bài không bao giờ fail vì AI.
+  - 🧭 **Cron sinh cả ngày mai** (thay vì chỉ hôm nay như plan 1.2): xoá cửa sổ 00:00–00:05 UTC user mở app trước cron bị khoá fallback cả ngày; cron gọi lặp/giờ nào cũng an toàn (idempotent, không ghi đè quest user đã thấy).
+  - Model + Space + notebook train nằm ở **`ml/` root monorepo** (mới): `ml/space/` (FastAPI, 7 smoke test pytest với ONNX giả), `ml/snapget12/` + `ml/scripts/01–08` + `ml/notebooks/snapget12_train.ipynb`. Xem `ml/README.md`.
 
 - **2026-08-11 — App làm lại hiệu ứng touch bằng spritesheet ⇒ danh mục EFFECT trong `seed-gacha.ts` viết lại (5 → 4, đổi hết tên)**. App xoá 5 hiệu ứng particle cũ (Snowfall/Leaf/Sparkle/Bubble/Ember); kho mới: `Flower` `'1'` · `Snowflake` `'2'` · `Leaf` `'3'` · `Magic` `'4'`; user bổ sung dần, **trần 10** (xem `Snapget/.claude/GUIDE.md` cùng ngày). Server **không đổi contract** — `refId` của EFFECT vẫn là số dạng chuỗi, khớp `TouchEffectRegistry` trong APK.
   - ⚠️ **Việc phải làm tay trên Firestore đã seed** (script chỉ *thêm* item còn thiếu, không sửa/xoá item đã có), qua trang admin: đổi `itemName` `refId '1' → Flower`, `'2' → Snowflake`, `'3' → Leaf`, `'4' → Magic`; đặt **`isActive = false` cho `refId '5'`** (id 5 chưa có sheet trong app). Bỏ bước này thì người chơi quay ra hiệu ứng **không tồn tại trong app** — `TouchEffectRegistry.find()` fallback về `None` nên không crash, nhưng coi như mất lượt SR; tệ hơn là tên item hiện sai hẳn so với hiệu ứng nhận được.

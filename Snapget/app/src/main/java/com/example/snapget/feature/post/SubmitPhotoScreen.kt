@@ -90,6 +90,7 @@ fun SubmitPhotoScreen(
     val context = LocalContext.current
     val submitStatus by postViewModel.submitStatus.collectAsState()
     val chatSendError by postViewModel.chatSendError.collectAsState()
+    val aiQuestMessage by postViewModel.aiQuestMessage.collectAsState()
     val apiFriends by friendsViewModel.friends.collectAsState()
 
     // Tai ban be 1 lan khi mo man (de list chon nguoi gui kem co data that)
@@ -100,6 +101,14 @@ fun SubmitPhotoScreen(
         chatSendError?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
             postViewModel.clearChatSendError()
+        }
+    }
+
+    // Ket qua quest AI cua bai vua dang (server xac minh anh) -> toast rieng, khong chan luong
+    LaunchedEffect(aiQuestMessage) {
+        aiQuestMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            postViewModel.clearAiQuestMessage()
         }
     }
 

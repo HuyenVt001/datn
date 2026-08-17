@@ -7,6 +7,7 @@ import { FramesPage } from './pages/FramesPage';
 import { GachaHistoryPage } from './pages/GachaHistoryPage';
 import { GachaItemsPage } from './pages/GachaItemsPage';
 import { LoginPage } from './pages/LoginPage';
+import { AiVerificationsPage } from './pages/AiVerificationsPage';
 import { LogsPage } from './pages/LogsPage';
 import { MomentsPage } from './pages/MomentsPage';
 import { TopupHistoryPage } from './pages/TopupHistoryPage';
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
           { path: 'gacha-history', element: <GachaHistoryPage /> },
           { path: 'topup', element: <TopupPackagesPage /> },
           { path: 'topup-history', element: <TopupHistoryPage /> },
+          { path: 'ai-verifications', element: <AiVerificationsPage /> },
           { path: 'logs', element: <LogsPage /> },
         ],
       },
