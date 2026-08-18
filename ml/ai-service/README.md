@@ -44,7 +44,7 @@ gcloud run deploy snapget-ai \
 
 ## Model artifact
 
-3 file trong `model/` (không commit vào repo): `model.onnx` (int8 ~2.5MB), `thresholds.json`, `model_meta.json`. Hai cách nạp:
+3 file trong `model/` (không commit vào repo): `model.onnx` (backbone fp32 + head int8, ~3.9MB — **không** quantize Conv: MobileNetV3 bị phá bởi ConvInteger, xem `scripts/05_export_onnx.py`), `thresholds.json`, `model_meta.json`. Hai cách nạp:
 
 1. **HF Model repo (khuyến nghị)** — Model repo vẫn **miễn phí** (chỉ Space mới thu phí). Notebook bước 5 upload lên `<user>/snapget-ai-model`; service tự tải lúc khởi động khi có env `MODEL_REPO`. Đổi model = *Cloud Run → Edit & deploy new revision* (hoặc deploy lại), không cần build lại từ đầu.
 2. **Nhồi vào image** — copy 3 file vào `model/` rồi deploy; không phụ thuộc HF lúc chạy.

@@ -38,6 +38,13 @@ def rows_from_dataset(ds, split: str) -> list[dict]:
 
 
 def load(split: str, classes: list[str] | None, max_samples: int | None, only_matching: bool, seed: int):
+    # ⚠️ dataset_name PHAI KHAC NHAU cho moi lan goi: FiftyOne gap ten da ton tai se TRA LAI
+    # dataset cu (in "Loading existing dataset ...") thay vi tai lop moi. Bug 2026-08-18: 12 lop
+    # dung chung 1 ten -> chi tai lop dau (cup), 11 lop con lai chi co nhan qua dong xuat hien
+    # trong anh cup -> model hoc "cup = khong phai negative", mAP test 0.44, cup AP 0.25.
+    tag = "-".join(c.replace(" ", "_") for c in classes) if classes else "negative"
+    if len(tag) > 40:
+        tag = f"all{len(classes)}"
     return foz.load_zoo_dataset(
         "coco-2017",
         split=split,
@@ -47,7 +54,7 @@ def load(split: str, classes: list[str] | None, max_samples: int | None, only_ma
         max_samples=max_samples,
         shuffle=True,
         seed=seed,
-        dataset_name=f"coco-{split}-{'pos' if classes else 'neg'}-{seed}",
+        dataset_name=f"coco-{split}-{tag}-{seed}",
     )
 
 
@@ -66,9 +73,18 @@ def main() -> None:
     train_rows: dict[str, dict] = {}
     for c in CLASSES:
         ds = load("train", [c], args.max_per_class, only_matching=False, seed=args.seed)
-        for r in rows_from_dataset(ds, "train"):
+        rows_c = rows_from_dataset(ds, "train")
+        pos_c = sum(int(r[c]) for r in rows_c)
+        # Chan loi im lang: dataset tai ve cho lop c ma hau het anh KHONG chua c => tai nham/tai lai cai cu
+        if pos_c < 0.8 * len(rows_c) or pos_c < 500:
+            raise SystemExit(
+                f"!! Lop '{c}': chi {pos_c}/{len(rows_c)} anh chua '{c}' — FiftyOne tra ve dataset sai "
+                "(trung ten dataset / cache hong). Xoa dataset FiftyOne cu: python -c \"import fiftyone as fo; "
+                "[fo.delete_dataset(n) for n in fo.list_datasets() if n.startswith('coco-')]\" roi chay lai."
+            )
+        for r in rows_c:
             train_rows[r["filepath"]] = r  # khu trung theo filepath (anh co nhieu lop)
-        print(f"[train] {c}: +{len(ds)} -> tong {len(train_rows)} anh")
+        print(f"[train] {c}: +{len(rows_c)} anh ({pos_c} co '{c}') -> tong {len(train_rows)} anh")
 
     # 2) Negative: anh KHONG chua lop nao trong 12 — tai roi loc (label_types detections de biet)
     neg_ds = load("train", None, args.negatives * 2, only_matching=False, seed=args.seed + 1)
@@ -94,6 +110,10 @@ def main() -> None:
     write_manifest(rows, args.out)
     pos_counts = {c: sum(int(r[c]) for r in rows if r["split"] == "train") for c in CLASSES}
     print(f"Da ghi {args.out}: {len(rows)} dong. So positive/lop (train): {pos_counts}")
+    weak = [c for c, n in pos_counts.items() if n < 1000]
+    if weak:
+        raise SystemExit(f"!! Lop it hon 1000 anh duong trong train: {weak} — kiem tra lai buoc tai (xem canh bao o tren).")
+    print("OK: moi lop deu >= 1000 anh duong. Tiep tuc 02_cache_embeddings.py")
 
 
 if __name__ == "__main__":

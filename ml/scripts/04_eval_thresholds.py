@@ -62,6 +62,9 @@ def main() -> None:
         plot_pr_curves(curves, thresholds, rep["perClass"], f"{args.out}/pr_curves_{name}.png",
                        f"PR curves ({name}) — mAP {rep['mAP']}  macro-F1 {rep['macroF1']}")
         print(f"[{name}] n={rep['n']} mAP={rep['mAP']} macroF1={rep['macroF1']}")
+        if name == "val" and rep["mAP"] is not None and rep["mAP"] < 0.6:
+            print("!! CANH BAO: val mAP < 0.6 — voi backbone ImageNet + 12 lop COCO pho bien thi bat thuong; "
+                  "nghi ngo DU LIEU (manifest lech nhan) hon la model. Kiem tra 'So positive/lop' cua buoc 01.")
         for c in CLASSES:
             pc = rep["perClass"][c]
             print(f"   {c:14s} thr={pc['threshold']:.3f} P={pc['precision']:.3f} R={pc['recall']:.3f} F1={pc['f1']:.3f} AP={pc['ap']} n={pc['support']}")

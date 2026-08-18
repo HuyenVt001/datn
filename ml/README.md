@@ -43,7 +43,7 @@ Mở `notebooks/snapget12_train.ipynb` trên Colab, chạy từ trên xuống. T
 | 2 | `02_cache_embeddings.py` | `data/embeddings.npz` | ~10 phút GPU |
 | 3 | `03_train_head.py` | `artifacts/v0/head.pt` | ~1–2 phút |
 | 4 | `04_eval_thresholds.py` | `thresholds.json`, `metrics_val/test.json`, PR curve PNG | giây |
-| 5 | `05_export_onnx.py --upload <user>/snapget-ai-model` | `model.onnx` int8 + `model_meta.json` → **HF Model repo** (free) → Cloud Run tự tải | phút |
+| 5 | `05_export_onnx.py --upload <user>/snapget-ai-model` | `model.onnx` (backbone fp32 + head int8, ~3.9MB — ⚠️ int8 cả Conv phá MobileNetV3, xem docstring) + `model_meta.json` → **HF Model repo** (free) → Cloud Run tự tải | phút |
 | 6 (M6) | `06_finetune_v1.py` → `08_eval_images.py` → `05 --full` | v1 + số liệu Snapget-12 | 30–60 phút GPU |
 | 7 (M6) | `07_ablation_owlvit.py` | `artifacts/owlvit/metrics_*.json` | tuỳ GPU |
 
