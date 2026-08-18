@@ -13,16 +13,17 @@ import com.example.snapget.core.designsystem.skin.SkinImages
  * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Vat pham **SSR** cua
  * gacha; mo khoa qua `users.unlockedSkins`.
  *
- * Da cam DU bo asset rieng (2026-08-06): `thumbnail`, `captureButton` va 12 icon
- * ([AppSkin.icons]). ⚠️ Noi dung hien tai la **PLACEHOLDER** (icon ve giong het
- * ban Material fallback, nut chup la vong tron accent) — muc dich la de duong
- * ong chay san.
+ * Da cam DU bo asset rieng: `thumbnail`, `captureButton` va 12 icon
+ * ([AppSkin.icons]). **Art THAT cua user tu 2026-08-18** (truoc do la placeholder
+ * ve giong het ban Material fallback).
  *
  * TOAN BO asset cua skin nay nam trong **`app/src/main/res-skins/skin1_snow/`**
- * (user chot cach gom theo skin; da khai `res.srcDirs` trong build.gradle.kts):
- * icon vector o `drawable/skin1_ic_*.xml`, nut chup + thumbnail o
- * `drawable-nodpi/`. Co thiet ke that thi **ghi de file cung ten** trong thu
- * muc do, KHONG can sua dong code nao.
+ * (user chot cach gom theo skin; da khai `res.srcDirs` trong build.gradle.kts).
+ * ⚠️ Ca 14 file deu la **WebP trong `drawable-nodpi/`**, KHONG con vector XML:
+ * art cua skin nay ve theo loi tranh (tuyet, chim canh cut, thong, do bong mem)
+ * nen vector khong ta duoc — chi tiet ly do o `SKIN_PLAN.md` muc 6.13.1.
+ * File SVG goc user gui cat o `Sources/skin-assets/skin1_snow/` (ngoai duong
+ * build). Co ban thiet ke moi thi **ghi de file cung ten**, KHONG can sua code.
  */
 val SnowSkin = AppSkin(
     id = 1,

@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-15**.
+> Cập nhật lần cuối: **2026-08-18**.
 
 ---
 
@@ -272,6 +272,12 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-08-18 — Cắm art THẬT của skin 1 (Snow) + đồng bộ nút chụp ở 4 màn**. Skin Snow hết placeholder: 12 icon + nút chụp + thumbnail đều là art của user.
+  - 🖼️ **12 icon skin 1 chuyển sang WebP, KHÔNG phải vector XML** — user gửi `.svg` nhưng ruột 12 file đó là **PNG bitmap nhúng trong vỏ SVG** (`<image xlink:href="data:image/png;base64,…">` + `<mask>` + `feColorMatrix`; file 0.3–5.8MB, tổng 26MB). Vector drawable của Android không đỡ được `<image>`/`<mask>`/`<filter>`, convert thẳng chỉ còn lại mấy path mũi tên xanh phẳng, mất sạch tuyết/chim cánh cụt/thông. Cách làm: render bằng **Chrome headless 2 lần (nền trắng + nền đen) rồi giải hệ ra alpha** (`a = 1−(W−B)`, `C = B/a`) — chính xác tuyệt đối kể cả rìa khử răng cưa, không phải key màu nền. Xuất WebP lossless RGBA vào `drawable-nodpi/`: **158KB cho cả 12 icon**. Tên resource không đổi (`R.drawable.skin1_ic_*`) nên **không sửa dòng code nào**.
+  - 📐 Cỡ px = **4× cỡ dp lớn nhất icon đó thực sự được vẽ** → 192×192 cho 11 icon (tối đa 40dp ở bottom bar), **288×288 cho `camera`** (có thể nằm ở nút center 66dp). Chọn cỡ theo nhu cầu thật thay vì một cỡ to dùng chung là để tiết kiệm RAM: bitmap 320² tốn 410KB RAM/icon, `minSdk 24` vẫn phải chạy máy yếu.
+  - 📁 SVG gốc (26MB) **chuyển khỏi `res/`** sang `Sources/skin-assets/skin1_snow/` — để trong `res/drawable/` là aapt2 fail build ngay. Thư mục `res-skins/skin1_snow/drawable/` giờ rỗng và đã xoá.
+  - 🔘 **`CaptureButton` mới** (`core/designsystem/component/button/`) — gom chỗ quyết định "vẽ ảnh nút chụp của skin hay vòng tròn viền accent" về **một** nơi. Trước đó chỉ bottom bar màn camera đọc `SkinImages.captureButton`, còn feed / post detail / coop vẫn vẽ `Circle` cứng bằng code → cắm art thật vào là 4 chỗ nhìn lệch hẳn nhau. Nay cả 4 dùng chung; nhánh nút center **có icon** (không phải nút chụp) giữ nguyên `Circle` + icon như cũ.
 
 - **2026-08-16 — Phạm vi AI quest chốt lại (không đổi code app)**: AI chỉ **xác minh ảnh**, nội dung quest từ bộ mẫu server (72 câu, 9 lớp ra đề); AI service chạy Google Cloud Run thay HF Space. App không đụng — `type`/`targetClass`/`aiQuest` vẫn như 2026-08-15. Xem `QUEST_AI_PLAN.md` mục 0, 2.3, 17.
 - **2026-08-15 — Đồng bộ contract AI Daily Quest (M5 của `QUEST_AI_PLAN.md`)** — 3 điểm chạm nhỏ, không màn hình mới, không dependency mới. (1) `TodayQuestDto` thêm `targetClass: String? = null` (chỉ để đọc, UI không hiện); comment ghi rõ `type` có thêm `AI_CHALLENGE`. (2) `MomentDto` thêm `aiQuest: AiQuestResultDto? = null` (`result` MATCHED/NOT_MATCHED/SKIPPED, `score?`, `questContent?`) — chỉ có trong response `POST /moments`, null ở feed. (3) `DailyQuestScreen` icon `when(type)`: POST_MOMENT 📸 · **AI_CHALLENGE 🎯** · else 👋. (4) `PostViewModel.submitPhoto` **bắt đầu đọc body createMoment** → `aiQuestMessage` StateFlow → `SubmitPhotoScreen` toast: MATCHED "🎯 Challenge complete! +30 Astrite", NOT_MATCHED "Photo doesn't match today's challenge — post another one to try again!", SKIPPED/null im lặng (đặt trước khi `submitStatus=Success` để toast kịp trước khi điều hướng về feed). App cũ gặp quest AI chỉ sai icon, không crash (type là String, render động).

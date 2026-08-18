@@ -1,7 +1,7 @@
 # SKIN_PLAN.md — Kế hoạch chức năng "Đổi giao diện" (Skin) + màn Appearance + Gacha
 
 > **Trạng thái (cập nhật 2026-08-05): ✅ XONG P0–P5** — skin engine, token màu/shape, gỡ Light, màn Appearance 3 tab, engine hiệu ứng touch, 2 skin mới (Snow/Forest) đều đã chạy; app build + APK sạch.
-> Còn lại duy nhất: **cắm file thiết kế thật** (icon vector, nút chụp, thumbnail 9:16, PNG hạt) — app hiện chạy bằng **bảng màu token + hình vẽ Canvas** nên không thiếu gì về chức năng, thay file vào là đẹp hơn. Quy cách file: mục 6.13 + `Sources/skin-assets/README.md`.
+> **Cắm asset thật (cập nhật 2026-08-18):** skin **1 — Snow ✅ XONG** (12 icon + nút chụp + thumbnail đều là art thật của user, dạng WebP — lý do ở mục 6.13.1). Skin **2 — Forest ⏳ vẫn placeholder**. App chạy đủ chức năng ở cả 2 trạng thái, thay file vào là đẹp hơn. Quy cách file: mục 6.13; SVG gốc cất ở `Sources/skin-assets/skin<N>_<tên>/`.
 > Đọc kèm: `.claude/DESIGN.md` (ngôn ngữ thiết kế hiện tại) và `.claude/CLAUDE.md` (luật).
 > **⚠️ Đọc cùng `.claude/GACHA_PLAN.md`** — skin và hiệu ứng touch **chính là vật phẩm SSR/SR của gacha**. Lộ trình gộp của cả hai tính năng nằm ở **GACHA_PLAN mục 9** (bảng đó là bản chính; mục 7 dưới đây chỉ là phần skin tách riêng).
 > **Asset đã dựng sẵn placeholder** tại `Sources/skin-assets/` — xem `Sources/skin-assets/README.md` để biết cách thay file.
@@ -15,7 +15,7 @@
 |---|---|
 | Phạm vi skin | **Toàn app** (mọi màn) |
 | Nguồn skin | **Đóng gói sẵn trong APK** (không tải từ server) |
-| Định dạng asset | **Hỗn hợp**: icon = vector XML (từ SVG); nền/nút có texture = WebP @4x |
+| Định dạng asset | **Hỗn hợp, quyết định theo LỐI VẼ của art** (làm rõ 2026-08-18): icon nét phẳng → vector XML; icon vẽ theo lối tranh (đổ bóng mềm, texture, chi tiết ảnh) → **WebP @4x**; nền/nút có texture → WebP @4x. Skin 1 (Snow) rơi vào vế WebP — xem mục 6.13.1 |
 | Entry point | Settings → **màn Appearance riêng** (số tab xem dòng dưới) |
 | Mở khóa | Qua **gacha** (cơ chế chi tiết user cấp sau) |
 | Tab Skins | **2 cột, thumbnail dọc 9:16** |
@@ -508,7 +508,7 @@ Kiểu dữ liệu: `unlockedSkins` và `unlockedEffects` là **mảng số** (`
 > ⚠️ **Mục 6.1–6.12 là BẢNG TRA KÍCH THƯỚC** dùng lúc refactor code — **không phải danh sách bàn giao**.
 > **Danh sách bàn giao chính thức (bạn vẽ đúng những file này, không hơn) là mục 6.13.** Chỗ nào 2 mục lệch nhau thì **6.13 đúng**.
 >
-> **1dp = 1px @mdpi.** Cột px dưới đây là **@4x (xxxhdpi)**. Icon → xuất **SVG** rồi convert sang vector XML (không bao giờ vỡ nét); vector đủ sức tải nhiều màu + gradient nên **không cần** hạ xuống bitmap chỉ vì icon có màu. Có texture ảnh thật → **WebP @4x**.
+> **1dp = 1px @mdpi.** Cột px dưới đây là **@4x (xxxhdpi)**. Icon **nét phẳng** (kể cả nhiều màu + gradient) → xuất `.svg` rồi convert sang vector XML, không bao giờ vỡ nét. Icon **vẽ theo lối tranh** (đổ bóng mềm, texture, chi tiết dạng ảnh) → **WebP @4x**: vector không tả được lối vẽ đó, cố convert chỉ còn lại các mảng phẳng. Nền/nút có texture → WebP @4x.
 > Quy ước đặt tên file: `skin<N>_<loại>_<tên>` với `N` = skinId (1, 2) — loại ∈ `ic` (icon vector) · `bg` (nền) · `btn` (nút) · `thumb` (ảnh đại diện skin).
 > Ví dụ: `skin1_ic_camera.svg`, `skin1_btn_capture.webp`, `skin1_thumb.webp`.
 
@@ -530,7 +530,7 @@ Kiểu dữ liệu: `unlockedSkins` và `unlockedEffects` là **mảng số** (`
 | 6.12 Hiệu ứng touch | — | ❌ Không thuộc skin — vật phẩm riêng, **user cung cấp cả 5** (mục 2.5.6) |
 | **Khung ảnh** | — | ❌ Không thuộc skin — vật phẩm gacha riêng, admin upload lên Cloudinary như hiện tại |
 
-**Tóm lại mỗi skin mới BẮT BUỘC chỉ có 14 file: 12 icon vector (Nhóm 1) + `btn_capture.webp` + `thumb.webp`** — cộng 11 mã màu. Mọi thứ khác là tuỳ chọn hoặc tự đổi màu theo token.
+**Tóm lại mỗi skin mới BẮT BUỘC chỉ có 14 file: 12 icon (Nhóm 1) + `btn_capture` + `thumb`** — cộng 11 mã màu. Định dạng 12 icon là vector XML hay WebP thì tuỳ lối vẽ (mục 6.13.1); tên resource giống nhau nên **đổi định dạng không phải sửa code**. Mọi thứ khác là tuỳ chọn hoặc tự đổi màu theo token.
 
 ### 6.1 Branding & hệ thống — **BỎ QUA** (user chốt 2026-08-05)
 
@@ -658,7 +658,7 @@ lúc bỏ particle system). Vẫn không cần nhiều bản màu hay nhiều m�
 > **Đây là danh sách chốt để bạn đặt tên asset.** Quy tắc tên resource Android: **chỉ chữ thường `a–z`, số, gạch dưới `_`; phải bắt đầu bằng chữ cái.** Sai tên là build fail.
 > Thay `N` bằng `1` hoặc `2` theo skinId. Ví dụ dưới đây dùng skin 1.
 
-### 6.13.1 Icon — vector (gửi `.svg`, tôi convert sang XML)
+### 6.13.1 Icon — gửi `.svg`, tôi lo khâu chuyển sang định dạng Android đọc được
 
 **Quy cách chung cho MỌI icon:**
 
@@ -685,6 +685,24 @@ lúc bỏ particle system). Vẫn không cần nhiều bản màu hay nhiều m�
 > vẽ icon**, không phải sau. Hai điều còn lại cần nhớ:
 > - **Icon nằm đè lên ảnh người dùng** (nút gửi ở thanh message, ⋯ và lưới ở feed) phải tự đủ tương phản trên **mọi** nền ảnh, kể cả ảnh trắng xoá — token không cứu được chỗ này nữa.
 > - Icon skin **không phản ánh trạng thái selected/unselected** bằng màu được nữa. Hiện chưa màn nào cần, nhưng nếu sau này cần thì phải gửi 2 file (`_on` / `_off`).
+
+> 🧊 **Ca thật 2026-08-18 — skin 1 (Snow) đi đường WebP, không phải vector XML.** User gửi 12 file
+> `.svg` nhưng ruột chúng là **PNG bitmap nhúng trong vỏ SVG** (`<image xlink:href="data:image/png;base64,…">`
+> + `<mask>` + `feColorMatrix`; mỗi file 0.3–5.8MB). Vector drawable của Android không hỗ trợ
+> `<image>` / `<mask>` / `<filter>` → convert thẳng chỉ giữ được mấy mảng phẳng, mất sạch tuyết,
+> chim cánh cụt, cây thông. **Đây không phải lỗi của art** — art vẽ theo lối tranh thì WebP mới là
+> định dạng đúng; vector chỉ hợp icon nét phẳng.
+>
+> Cách chuyển (lặp lại được cho skin 2, không cần Illustrator):
+> 1. Render mỗi SVG **2 lần bằng Chrome headless** — một lần nền trắng, một lần nền đen, cùng kích thước.
+> 2. Giải ra alpha: `a = 1 − (W − B)`, màu gốc `C = B / a`. Chính xác tuyệt đối kể cả rìa khử răng cưa — **không** dùng kiểu "chụp nền xanh rồi key màu" (rìa sẽ có viền bẩn).
+> 3. Lưu **WebP lossless RGBA** vào `drawable-nodpi/`, tên **giữ nguyên** (`skin1_ic_send.webp`) → `R.drawable.skin1_ic_send` vẫn resolve, **không sửa dòng code nào**.
+>
+> **Cỡ px = 4× cỡ dp lớn nhất icon đó thực sự được vẽ trong app** (cột "Cỡ hiển thị" ở bảng dưới),
+> không phải một cỡ to dùng chung: bitmap 320² tốn 410KB RAM mỗi icon, `minSdk 24` vẫn phải chạy máy
+> yếu. Skin 1 ra **192×192 cho 11 icon** + **288×288 cho `camera`** = 158KB cho cả bộ.
+>
+> File `.svg` gốc **không được để trong `res/`** (aapt2 fail build) — cất ở `Sources/skin-assets/skin<N>_<tên>/`.
 
 **Nhóm 1 — BẮT BUỘC (12 icon).** Đây là icon to, luôn nhìn thấy; thiếu là skin trông "nửa vời":
 
