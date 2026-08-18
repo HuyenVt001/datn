@@ -8,6 +8,7 @@ matplotlib
 tqdm
 fiftyone           # tai COCO 2017 subset (01)
 onnx
+onnxscript         # torch>=2.9 exporter dynamo can goi nay (05 da dung dynamo=False nhung cai san cho chac)
 onnxruntime        # quantize + kiem tra ONNX (05, 08)
 huggingface_hub    # upload artifact len Space (05)
 transformers>=4.40 # ablation OWL-ViT (07)

@@ -57,10 +57,17 @@ def main() -> None:
 
     dummy = torch.randn(1, 3, INPUT_SIZE, INPUT_SIZE)
     fp32_path = out / "model_fp32.onnx"
-    torch.onnx.export(
-        model, dummy, str(fp32_path), input_names=["input"], output_names=["logits"],
+    export_kwargs = dict(
+        input_names=["input"], output_names=["logits"],
         opset_version=17, dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}},
     )
+    # torch >= 2.9 mac dinh dung exporter "dynamo" (can them goi onnxscript). Dung exporter
+    # TorchScript cu (dynamo=False) — on dinh voi MobileNet + quantize_dynamic. torch cu hon
+    # khong co tham so `dynamo` -> TypeError -> goi lai khong kem.
+    try:
+        torch.onnx.export(model, dummy, str(fp32_path), dynamo=False, **export_kwargs)
+    except TypeError:
+        torch.onnx.export(model, dummy, str(fp32_path), **export_kwargs)
 
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
