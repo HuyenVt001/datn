@@ -1,0 +1,10 @@
+# gcloud run deploy --source: KHONG upload nhung thu nay (mac dinh gcloud se dung .gitignore
+# -> loai luon model/*.onnx; file nay ghi de de van nhoi duoc model vao image khi can)
+.git
+.gitignore
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+test_app.py
+dev_fake_model.py

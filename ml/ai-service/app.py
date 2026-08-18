@@ -192,7 +192,9 @@ async def fetch_image(url: str) -> bytes:
     if not re.match(r"^https?://", url):
         raise HTTPException(status_code=400, detail="imageUrl phai la http(s)")
     try:
-        async with httpx.AsyncClient(timeout=IMAGE_TIMEOUT_S, follow_redirects=True) as client:
+        # User-Agent ro rang: mot so host (Wikimedia...) tra 403 cho client khong co UA — Cloudinary khong can
+        headers = {"User-Agent": "snapget-ai/1.0 (+https://github.com/HuyenVt001/datn)"}
+        async with httpx.AsyncClient(timeout=IMAGE_TIMEOUT_S, follow_redirects=True, headers=headers) as client:
             async with client.stream("GET", url) as res:
                 if res.status_code != 200:
                     raise HTTPException(status_code=422, detail=f"Khong tai duoc anh (HTTP {res.status_code})")
