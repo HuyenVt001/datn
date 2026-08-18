@@ -503,7 +503,9 @@ Khớp ngân sách 5–7$ user đã chốt. ⚠️ Vận hành: **bật gói tr�
 | C5b | Cho Cloud Run nạp model | Chạy lại B7 kèm `--set-env-vars MODEL_REPO=<user>/snapget-ai-model` (lần sau đổi model chỉ cần `gcloud run services update snapget-ai --region asia-southeast1 --update-env-vars MODEL_RELOAD=$(date +%s)`) | `<Service URL>/health` → **`modelVersion:"v0"`, `verifierReady:true`** |
 | C6 | Test verify thật (PowerShell) | `Invoke-RestMethod -Method Post -Uri <Service URL>/verify -Headers @{'X-API-Key'='<Chuỗi 1>'} -ContentType 'application/json' -Body '{"imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Cup_of_coffee.jpg/320px-Cup_of_coffee.jpg","targetClass":"cup"}'` | `matched: True`, `score` cao, `latencyMs` vài chục ms |
 
-> Hết disk Colab ở ô 1 → giảm `--max-per-class 3000 --negatives 8000`. Colab ngắt giữa chừng → chạy lại từ ô 0a (data/artifacts nằm trên Drive nên không mất). Ghi lại **mAP/macro-F1 test** từ ô 4 cho báo cáo.
+> Hết disk Colab ở ô 1 → giảm `--max-per-class 3000 --negatives 8000`. Ghi lại **mAP/macro-F1 test** từ ô 4 cho báo cáo.
+>
+> 🔌 **Colab bị ngắt (Runtime disconnected)**: mọi thứ trên `/content` mất, kể cả ảnh COCO đang tải (FiftyOne để ảnh ở đĩa tạm — cố ý, 7–9GB không vừa Drive free). Chạy lại **0a → 0b → 0c** (3–5 phút) rồi **ô 1** (tải lại 20–40'); `data/`+`artifacts/` là symlink Drive nên manifest/embedding/artifact đã có **còn nguyên**. Sau khi **ô 2 xong** (`embeddings.npz` lên Drive) thì v0 không bao giờ cần COCO nữa — chỉ M6 (v1) mới tải lại 1 lần. Màn hình laptop tắt **không** ngắt Colab; **máy ngủ** thì có → tắt sleep khi cắm điện, cứ 20–30' click vào tab một lần, chạy ô 1+2 liền nhau (Runtime → *Run after*). Hết GPU quota vẫn chạy được ô 1–2 trên CPU (ô 2 ~30–40').
 
 ### D. Bật tính năng trên server (10 phút) — theo thứ tự deploy mục 9.3
 
