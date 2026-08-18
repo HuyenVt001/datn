@@ -495,6 +495,8 @@ Khớp ngân sách 5–7$ user đã chốt. ⚠️ Vận hành: **bật gói tr�
 > 💡 `--allow-unauthenticated` là **bắt buộc** (server NestJS gọi bằng `X-API-Key`, không phải IAM token) nhưng service vẫn khoá: thiếu/sai key → 401. Chỉ `/health` là public — nó không trả dữ liệu người dùng.
 > 💡 Deploy lại sau khi sửa code: chạy lại đúng lệnh B7. Xem log: Console → Cloud Run → `snapget-ai` → *Logs*, hoặc `gcloud run services logs read snapget-ai --region asia-southeast1`.
 
+> 🔁 **RESUME 2026-08-18 (sau khi tắt máy)** — trạng thái: bug dữ liệu 01 đã sửa & push; Cloud Run đang chạy model v0 **sai** (train trên data lỗi). Việc cần làm: mở lại notebook → T4 → **0a → 0b → 0c** (clone mới đã có bản sửa) → **ô 1** (log phải `+4000 anh (4000 co '<lớp>')` và "tong" tăng dần, cuối `OK: moi lop deu >= 1000`) → **2 → 3 → 4** (kỳ vọng test mAP 0.75–0.85, cup AP > 0.7; `!! CANH BAO` thì dừng) → **5** (`login()` lại, `MODEL_REPO='Flowerng/snapget-ai-model'`, 3 dòng `uploaded`, diff < 0.05) → báo Claude restart Cloud Run + test ảnh. Rồi D/E nếu chưa làm.
+
 ### C. Train model v0 trên Colab (1 buổi, phần lớn là chờ tải)
 
 | # | Việc | Cách làm | Kiểm tra |
