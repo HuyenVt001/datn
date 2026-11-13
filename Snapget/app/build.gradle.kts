@@ -105,7 +105,20 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes +=
+                setOf(
+                    "/META-INF/{AL2.0,LGPL2.1}",
+                    "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                    "/META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                    "META-INF/INDEX.LIST",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/license.txt",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt",
+                    "META-INF/notice.txt",
+                )
         }
     }
 
@@ -133,6 +146,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.identity.doctypes.jvm)
     implementation(libs.play.services.auth) // hoặc bản mới nhất
     implementation(libs.kotlinx.coroutines.play.services)
 

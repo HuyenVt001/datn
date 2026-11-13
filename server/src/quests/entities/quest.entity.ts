@@ -20,8 +20,8 @@ export const QUEST_TYPES: QuestType[] = [...FIXED_QUEST_TYPES, 'AI_CHALLENGE'];
 
 /** Noi dung hien thi cho user (tieng Viet co dau — hien tren app). Quest AI lay tu LLM/template. */
 export const QUEST_CONTENT: Record<FixedQuestType, string> = {
-  LOGIN: 'Đăng nhập vào Snapget',
-  POST_MOMENT: 'Đăng một ảnh hoặc video bất kỳ',
+  LOGIN: 'Login to Snapget',
+  POST_MOMENT: 'Post any photo or GIF',
 };
 
 /**

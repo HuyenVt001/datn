@@ -4,9 +4,13 @@ Danh gia + chon nguong (QUEST_AI_PLAN.md muc 5).
 - Per-class: precision/recall/F1 tai nguong da chon, average precision (AP), PR curve.
 - Tong: mAP, macro-F1.
 - Chon nguong RIENG tung lop tren PR curve cua tap VAL theo quy tac:
-      precision >= MIN_PRECISION (0.80), TOI DA HOA recall
+      precision >= MIN_PRECISION, TOI DA HOA recall
   Thien recall co chu dich: false-reject (anh CO coc ma khong nhan) dat hon false-accept
   (user duoc 30 Astrite "hoi") — muc 5.2.
+
+  MIN_PRECISION ha 0.80 -> 0.70 ngay 2026-08-19 (user chot sau khi xem PR curve v0):
+  voi precision 0.8 recall chi 15-30%/lop -> user dang anh dung van truot lien tuc;
+  0.7 keo macro-F1 test 0.46 -> 0.535. Se calibrate lai lan cuoi tren Snapget-12 (M6).
 """
 from __future__ import annotations
 
@@ -18,7 +22,7 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 
 from .classes import CLASSES
 
-MIN_PRECISION = 0.80
+MIN_PRECISION = 0.70
 
 
 def sigmoid(x: np.ndarray) -> np.ndarray:

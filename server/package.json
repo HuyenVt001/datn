@@ -20,6 +20,7 @@
     "seed:frames": "ts-node scripts/seed-frames.ts",
     "seed:gacha": "ts-node scripts/seed-gacha.ts",
     "seed:topup": "ts-node scripts/seed-topup.ts",
+    "export:schema": "ts-node scripts/export-schema.ts",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

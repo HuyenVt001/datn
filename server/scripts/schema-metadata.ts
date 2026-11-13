@@ -1,0 +1,473 @@
+/**
+ * Static schema & relationship metadata derived from NestJS entities/repositories.
+ * Used together with live Cloud Firestore introspection in `export-schema.ts`.
+ */
+
+export type DbmlScalarType =
+  | 'varchar'
+  | 'text'
+  | 'int'
+  | 'bigint'
+  | 'float'
+  | 'boolean'
+  | 'timestamp'
+  | 'jsonb';
+
+export type JsonSchemaType = 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
+
+export interface StaticFieldDef {
+  name: string;
+  dbmlType: DbmlScalarType;
+  jsonType: JsonSchemaType;
+  format?: string;
+  enumValues?: readonly string[];
+  required?: boolean;
+  pk?: boolean;
+  note?: string;
+}
+
+export interface StaticRelationDef {
+  fromTable: string;
+  fromColumn: string;
+  toTable: string;
+  toColumn: string;
+  cardinality: '>' | '-' | '<' | '<>';
+  note?: string;
+  deleteCascade?: boolean;
+}
+
+export interface StaticCollectionDef {
+  tableName: string;
+  firestorePath: string;
+  group: 'Core & Social' | 'Moments & Co-op' | 'Chat' | 'Gacha & Economy' | 'Quests & AI' | 'Admin & System';
+  docIdField: string;
+  parentTable?: string;
+  parentFkField?: string;
+  note: string;
+  fields: StaticFieldDef[];
+}
+
+export const STATIC_COLLECTIONS: StaticCollectionDef[] = [
+  {
+    tableName: 'users',
+    firestorePath: 'users',
+    group: 'Core & Social',
+    docIdField: 'uid',
+    note: 'Firebase Auth UID is the document ID. Holds profile, streaks, unlocked items, and Astrite wallet.',
+    fields: [
+      { name: 'uid', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID = Firebase Auth UID' },
+      { name: 'email', dbmlType: 'varchar', jsonType: 'string', format: 'email', required: true },
+      { name: 'fullName', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'avatar', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'joinDate', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'personalStreak', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'lastStreakDate', dbmlType: 'varchar', jsonType: 'string', note: 'YYYY-MM-DD (UTC)' },
+      { name: 'birthday', dbmlType: 'varchar', jsonType: 'string', note: 'yyyy-MM-dd' },
+      { name: 'inviteCode', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'inviteCodeExpiresAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+      { name: 'unlockedFrames', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'string[] of frames.frameId' },
+      { name: 'fcmTokens', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'string[]' },
+      { name: 'astrite', dbmlType: 'int', jsonType: 'integer', required: true, note: 'Must match sum(astriteTransactions.amount)' },
+      { name: 'unlockedSkins', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'number[] matching APK SkinRegistry' },
+      { name: 'unlockedEffects', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'number[] matching APK TouchEffectRegistry' },
+      { name: 'gachaPity', dbmlType: 'jsonb', jsonType: 'object', required: true, note: '{ R: number, SR: number, SSR: number }' },
+      { name: 'signupBonusClaimed', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+    ],
+  },
+  {
+    tableName: 'friendships',
+    firestorePath: 'friendships',
+    group: 'Core & Social',
+    docIdField: 'pairId',
+    note: 'Friend relationship & shared streak between two users.',
+    fields: [
+      { name: 'pairId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID = sorted uid1_uid2' },
+      { name: 'userIds', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'Sorted [uidA, uidB] for array-contains queries' },
+      { name: 'user1Id', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'user2Id', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'friendStreak', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'lastInteractionAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+      {
+        name: 'status',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['PENDING', 'ACCEPTED', 'BLOCKED', 'DECLINED'],
+      },
+      { name: 'requesterUid', dbmlType: 'varchar', jsonType: 'string', note: 'User who clicked invite link' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'posts',
+    firestorePath: 'posts',
+    group: 'Moments & Co-op',
+    docIdField: 'momentId',
+    note: 'Moments (photo/GIF posts). Subcollections: views, reactions.',
+    fields: [
+      { name: 'momentId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'userId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'contentType', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['PHOTO', 'VIDEO'] },
+      { name: 'mediaUrl', dbmlType: 'text', jsonType: 'string', format: 'uri', required: true },
+      { name: 'frameId', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'caption', dbmlType: 'text', jsonType: 'string' },
+      { name: 'coopUserId', dbmlType: 'varchar', jsonType: 'string', note: 'Partner UID for co-op moment' },
+      { name: 'postTime', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'clientRequestId', dbmlType: 'varchar', jsonType: 'string', note: 'Idempotency key from client' },
+    ],
+  },
+  {
+    tableName: 'posts_views',
+    firestorePath: 'posts/{momentId}/views',
+    group: 'Moments & Co-op',
+    docIdField: 'viewerId',
+    parentTable: 'posts',
+    parentFkField: 'momentId',
+    note: 'Subcollection of posts tracking which users viewed a moment.',
+    fields: [
+      { name: 'viewerId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID = viewer UID' },
+      { name: 'isSeen', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+      { name: 'seenAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'posts_reactions',
+    firestorePath: 'posts/{momentId}/reactions',
+    group: 'Moments & Co-op',
+    docIdField: 'reactionId',
+    parentTable: 'posts',
+    parentFkField: 'momentId',
+    note: 'Subcollection of posts storing emoji reactions on a moment.',
+    fields: [
+      { name: 'reactionId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'reactorId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'emojiType', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'coopInvites',
+    firestorePath: 'coopInvites',
+    group: 'Moments & Co-op',
+    docIdField: 'inviteId',
+    note: 'Co-op dual-camera capture invitations (5-minute TTL).',
+    fields: [
+      { name: 'inviteId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'inviterId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'inviteeId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'inviterMediaUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'inviteeMediaUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'mergedMediaUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      {
+        name: 'status',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['PENDING', 'ACCEPTED', 'COMPLETED', 'DECLINED', 'EXPIRED'],
+      },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'respondedAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+      { name: 'momentId', dbmlType: 'varchar', jsonType: 'string', note: 'Legacy field' },
+    ],
+  },
+  {
+    tableName: 'messages',
+    firestorePath: 'messages',
+    group: 'Chat',
+    docIdField: 'messageId',
+    note: '1-to-1 (receiverId) or group (groupId) messages with optional reply snapshot.',
+    fields: [
+      { name: 'messageId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'senderId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'receiverId', dbmlType: 'varchar', jsonType: 'string', note: 'Set for 1-1 chat' },
+      { name: 'groupId', dbmlType: 'varchar', jsonType: 'string', note: 'Set for group chat' },
+      {
+        name: 'messageType',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['TEXT', 'VOICE', 'EMOJI', 'STICKER', 'PHOTO'],
+      },
+      { name: 'content', dbmlType: 'text', jsonType: 'string', required: true },
+      { name: 'sendTime', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'isSeen', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+      { name: 'attachmentUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'attachmentType', dbmlType: 'varchar', jsonType: 'string', enumValues: ['PHOTO', 'VIDEO'] },
+      { name: 'reactions', dbmlType: 'jsonb', jsonType: 'object', note: 'Map<uid, emoji>' },
+      { name: 'replyToId', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'replyToType', dbmlType: 'varchar', jsonType: 'string', enumValues: ['TEXT', 'VOICE', 'EMOJI', 'STICKER', 'PHOTO'] },
+      { name: 'replyToContent', dbmlType: 'text', jsonType: 'string' },
+      { name: 'replyToSenderId', dbmlType: 'varchar', jsonType: 'string' },
+    ],
+  },
+  {
+    tableName: 'chatGroups',
+    firestorePath: 'chatGroups',
+    group: 'Chat',
+    docIdField: 'groupId',
+    note: 'Group chat rooms (max 20 members).',
+    fields: [
+      { name: 'groupId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'groupName', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'avatar', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'memberIds', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'string[] of users.uid' },
+      { name: 'createdBy', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'mutedBy', dbmlType: 'jsonb', jsonType: 'array', note: 'string[] of users.uid' },
+    ],
+  },
+  {
+    tableName: 'frames',
+    firestorePath: 'frames',
+    group: 'Gacha & Economy',
+    docIdField: 'frameId',
+    note: 'Photo frame catalog managed by admin.',
+    fields: [
+      { name: 'frameId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'frameName', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'imageUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      {
+        name: 'unlockType',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['GACHA', 'STREAK_MILESTONE', 'POST_COUNT', 'FRIEND_COUNT', 'COOP_FIRST', 'DEFAULT'],
+      },
+      { name: 'unlockValue', dbmlType: 'int', jsonType: 'integer' },
+      { name: 'milestone', dbmlType: 'int', jsonType: 'integer', note: 'Legacy mirror of unlockValue for STREAK_MILESTONE' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'gachaItems',
+    firestorePath: 'gachaItems',
+    group: 'Gacha & Economy',
+    docIdField: 'itemId',
+    note: 'Gacha reward pool metadata (FRAME, EFFECT, SKIN).',
+    fields: [
+      { name: 'itemId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'itemName', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'itemType', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['FRAME', 'EFFECT', 'SKIN'] },
+      { name: 'rarity', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['R', 'SR', 'SSR'] },
+      { name: 'imageUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'refId', dbmlType: 'varchar', jsonType: 'string', required: true, note: 'frames.frameId when FRAME, else APK registry ID' },
+      { name: 'isActive', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+      { name: 'sortOrder', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'gachaRolls',
+    firestorePath: 'gachaRolls',
+    group: 'Gacha & Economy',
+    docIdField: 'rollId',
+    note: 'Gacha roll history (1 doc per SINGLE or TEN roll).',
+    fields: [
+      { name: 'rollId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'uid', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'rollType', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['SINGLE', 'TEN'] },
+      { name: 'cost', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'results', dbmlType: 'jsonb', jsonType: 'array', required: true, note: 'RollResultEntry[]' },
+      { name: 'refundTotal', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'balanceAfter', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'astriteTransactions',
+    firestorePath: 'astriteTransactions',
+    group: 'Gacha & Economy',
+    docIdField: 'id',
+    note: 'Immutable ledger of every Astrite balance change.',
+    fields: [
+      { name: 'id', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'uid', dbmlType: 'varchar', jsonType: 'string', required: true },
+      {
+        name: 'type',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['SIGNUP_BONUS', 'QUEST_REWARD', 'AI_QUEST_REWARD', 'TOPUP', 'GACHA_SPEND', 'GACHA_REFUND', 'ADMIN_ADJUST'],
+      },
+      { name: 'amount', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'balanceAfter', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'refId', dbmlType: 'varchar', jsonType: 'string', note: 'rollId / orderCode / dateKey' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'topupPackages',
+    firestorePath: 'topupPackages',
+    group: 'Gacha & Economy',
+    docIdField: 'packageId',
+    note: 'PayOS top-up package catalog managed by admin.',
+    fields: [
+      { name: 'packageId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'name', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'astrite', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'priceVnd', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'isActive', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+      { name: 'isTest', dbmlType: 'boolean', jsonType: 'boolean', required: true },
+      { name: 'sortOrder', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'topupOrders',
+    firestorePath: 'topupOrders',
+    group: 'Gacha & Economy',
+    docIdField: 'orderCode',
+    note: 'PayOS top-up orders; document ID is stringified orderCode for webhook idempotency.',
+    fields: [
+      { name: 'orderCode', dbmlType: 'bigint', jsonType: 'integer', pk: true, required: true, note: 'PayOS integer orderCode (also doc ID)' },
+      { name: 'uid', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'packageId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'packageName', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'astrite', dbmlType: 'int', jsonType: 'integer', required: true },
+      { name: 'amountVnd', dbmlType: 'int', jsonType: 'integer', required: true },
+      {
+        name: 'status',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['PENDING', 'PAID', 'CANCELLED', 'EXPIRED'],
+      },
+      { name: 'payosPaymentLinkId', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'checkoutUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'payosReference', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'isSimulated', dbmlType: 'boolean', jsonType: 'boolean' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+      { name: 'paidAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+    ],
+  },
+  {
+    tableName: 'dailyQuests',
+    firestorePath: 'dailyQuests',
+    group: 'Quests & AI',
+    docIdField: 'questId',
+    note: 'System-wide daily quests; doc ID = `${releaseDate}_${type}`.',
+    fields: [
+      { name: 'questId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID = YYYY-MM-DD_TYPE' },
+      { name: 'type', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['LOGIN', 'POST_MOMENT', 'AI_CHALLENGE'] },
+      { name: 'content', dbmlType: 'text', jsonType: 'string', required: true },
+      { name: 'releaseDate', dbmlType: 'varchar', jsonType: 'string', required: true, note: 'YYYY-MM-DD (UTC)' },
+      { name: 'targetClass', dbmlType: 'varchar', jsonType: 'string', note: 'COCO class for AI_CHALLENGE' },
+      { name: 'source', dbmlType: 'varchar', jsonType: 'string', enumValues: ['LLM', 'FALLBACK'] },
+      { name: 'generatedAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+    ],
+  },
+  {
+    tableName: 'userQuests',
+    firestorePath: 'userQuests',
+    group: 'Quests & AI',
+    docIdField: 'id',
+    note: 'Per-user quest completion & daily reward claim markers.',
+    fields: [
+      { name: 'id', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID = date_uid_type' },
+      { name: 'questId', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'userId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      {
+        name: 'type',
+        dbmlType: 'varchar',
+        jsonType: 'string',
+        required: true,
+        enumValues: ['LOGIN', 'POST_MOMENT', 'AI_CHALLENGE', 'DAILY_REWARD'],
+      },
+      { name: 'releaseDate', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'status', dbmlType: 'varchar', jsonType: 'string', note: 'COMPLETED' },
+      { name: 'completedAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
+      { name: 'momentId', dbmlType: 'varchar', jsonType: 'string', note: 'Moment that completed AI_CHALLENGE' },
+      { name: 'aiScore', dbmlType: 'float', jsonType: 'number' },
+      { name: 'modelVersion', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'astrite', dbmlType: 'int', jsonType: 'integer', note: 'Set on DAILY_REWARD doc' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', note: 'Set on DAILY_REWARD doc' },
+    ],
+  },
+  {
+    tableName: 'aiVerifications',
+    firestorePath: 'aiVerifications',
+    group: 'Quests & AI',
+    docIdField: 'id',
+    note: 'AI quest image verification logs for production accuracy metrics.',
+    fields: [
+      { name: 'id', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'uid', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'momentId', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'mediaUrl', dbmlType: 'text', jsonType: 'string', format: 'uri' },
+      { name: 'date', dbmlType: 'varchar', jsonType: 'string', required: true, note: 'YYYY-MM-DD (UTC)' },
+      { name: 'targetClass', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'outcome', dbmlType: 'varchar', jsonType: 'string', required: true, enumValues: ['MATCHED', 'NOT_MATCHED', 'SKIPPED'] },
+      { name: 'score', dbmlType: 'float', jsonType: 'number' },
+      { name: 'threshold', dbmlType: 'float', jsonType: 'number' },
+      { name: 'scores', dbmlType: 'jsonb', jsonType: 'object', note: '12-class sigmoid map' },
+      { name: 'modelVersion', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'latencyMs', dbmlType: 'int', jsonType: 'integer' },
+      { name: 'roundTripMs', dbmlType: 'int', jsonType: 'integer' },
+      { name: 'error', dbmlType: 'text', jsonType: 'string' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+  {
+    tableName: 'adminLogs',
+    firestorePath: 'adminLogs',
+    group: 'Admin & System',
+    docIdField: 'logId',
+    note: 'Audit log of admin actions.',
+    fields: [
+      { name: 'logId', dbmlType: 'varchar', jsonType: 'string', pk: true, required: true, note: 'Document ID' },
+      { name: 'actorUid', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'actorEmail', dbmlType: 'varchar', jsonType: 'string', format: 'email' },
+      { name: 'action', dbmlType: 'varchar', jsonType: 'string', required: true },
+      { name: 'targetId', dbmlType: 'varchar', jsonType: 'string', note: 'Polymorphic target (uid / frameId / momentId / itemId / packageId)' },
+      { name: 'targetLabel', dbmlType: 'varchar', jsonType: 'string' },
+      { name: 'createdAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time', required: true },
+    ],
+  },
+];
+
+export const STATIC_RELATIONS: StaticRelationDef[] = [
+  // Friendships
+  { fromTable: 'friendships', fromColumn: 'user1Id', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'friendships', fromColumn: 'user2Id', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'friendships', fromColumn: 'requesterUid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+
+  // Posts & subcollections
+  { fromTable: 'posts', fromColumn: 'userId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'posts', fromColumn: 'frameId', toTable: 'frames', toColumn: 'frameId', cardinality: '>' },
+  { fromTable: 'posts', fromColumn: 'coopUserId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'posts_views', fromColumn: 'momentId', toTable: 'posts', toColumn: 'momentId', cardinality: '>', deleteCascade: true, note: 'Subcollection parent' },
+  { fromTable: 'posts_views', fromColumn: 'viewerId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'posts_reactions', fromColumn: 'momentId', toTable: 'posts', toColumn: 'momentId', cardinality: '>', deleteCascade: true, note: 'Subcollection parent' },
+  { fromTable: 'posts_reactions', fromColumn: 'reactorId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+
+  // Co-op invites
+  { fromTable: 'coopInvites', fromColumn: 'inviterId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'coopInvites', fromColumn: 'inviteeId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'coopInvites', fromColumn: 'momentId', toTable: 'posts', toColumn: 'momentId', cardinality: '>', note: 'Legacy' },
+
+  // Chat & Messages
+  { fromTable: 'chatGroups', fromColumn: 'createdBy', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'messages', fromColumn: 'senderId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'messages', fromColumn: 'receiverId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'messages', fromColumn: 'groupId', toTable: 'chatGroups', toColumn: 'groupId', cardinality: '>' },
+  { fromTable: 'messages', fromColumn: 'replyToId', toTable: 'messages', toColumn: 'messageId', cardinality: '>' },
+  { fromTable: 'messages', fromColumn: 'replyToSenderId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+
+  // Gacha & Economy
+  { fromTable: 'gachaItems', fromColumn: 'refId', toTable: 'frames', toColumn: 'frameId', cardinality: '>', note: 'When itemType = FRAME' },
+  { fromTable: 'gachaRolls', fromColumn: 'uid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'astriteTransactions', fromColumn: 'uid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'topupOrders', fromColumn: 'uid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'topupOrders', fromColumn: 'packageId', toTable: 'topupPackages', toColumn: 'packageId', cardinality: '>' },
+
+  // Quests & AI
+  { fromTable: 'userQuests', fromColumn: 'questId', toTable: 'dailyQuests', toColumn: 'questId', cardinality: '>' },
+  { fromTable: 'userQuests', fromColumn: 'userId', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'userQuests', fromColumn: 'momentId', toTable: 'posts', toColumn: 'momentId', cardinality: '>' },
+  { fromTable: 'aiVerifications', fromColumn: 'uid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+  { fromTable: 'aiVerifications', fromColumn: 'momentId', toTable: 'posts', toColumn: 'momentId', cardinality: '>' },
+
+  // Admin
+  { fromTable: 'adminLogs', fromColumn: 'actorUid', toTable: 'users', toColumn: 'uid', cardinality: '>' },
+];
+

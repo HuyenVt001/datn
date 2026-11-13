@@ -18,7 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.WavingHand
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -69,9 +73,24 @@ fun DailyQuestScreen(
     // Vao man = goi /quests/today -> server tu hoan thanh quest LOGIN
     LaunchedEffect(Unit) { viewModel.load() }
 
+    DailyQuestScreenContent(
+        uiState = uiState,
+        onBackClick = { navController.popBackStack() },
+        onGachaClick = { navController.navigate(Screen.Gacha.route) },
+        onRetry = { viewModel.load() },
+    )
+}
+
+@Composable
+fun DailyQuestScreenContent(
+    uiState: QuestUiState,
+    onBackClick: () -> Unit = {},
+    onGachaClick: () -> Unit = {},
+    onRetry: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
-            SimpleTopBar(title = "Daily Quest", onBackClick = { navController.popBackStack() })
+            SimpleTopBar(title = "Daily Quest", onBackClick = onBackClick)
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -97,7 +116,7 @@ fun DailyQuestScreen(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp),
                     )
-                    TextButton(onClick = { viewModel.load() }) {
+                    TextButton(onClick = onRetry) {
                         Text(text = "Retry", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -105,7 +124,7 @@ fun DailyQuestScreen(
 
             else -> QuestContent(
                 uiState = uiState,
-                onGachaClick = { navController.navigate(Screen.Gacha.route) },
+                onGachaClick = onGachaClick,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         }
@@ -113,7 +132,7 @@ fun DailyQuestScreen(
 }
 
 @Composable
-private fun QuestContent(
+internal fun QuestContent(
     uiState: QuestUiState,
     onGachaClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -267,14 +286,16 @@ private fun QuestCard(quest: TodayQuestDto) {
                 .background(SkinTheme.colors.pill),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                // Icon theo loai quest — AI_CHALLENGE (quest thu 3 do AI sinh, 2026-08-15) = 🎯
-                text = when (quest.type) {
-                    "POST_MOMENT" -> "📸"
-                    "AI_CHALLENGE" -> "🎯"
-                    else -> "👋"
-                },
-                fontSize = 22.sp,
+            val icon = when (quest.type) {
+                "POST_MOMENT" -> Icons.Default.PhotoCamera
+                "AI_CHALLENGE" -> Icons.Default.CenterFocusStrong
+                else -> Icons.Default.WavingHand
+            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = SkinTheme.colors.textPrimary,
+                modifier = Modifier.size(24.dp),
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -312,7 +333,12 @@ private fun RewardBanner(astrite: Int) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "🎁", fontSize = 30.sp)
+        Icon(
+            imageVector = Icons.Default.CardGiftcard,
+            contentDescription = null,
+            tint = SkinTheme.colors.accentGold,
+            modifier = Modifier.size(32.dp),
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

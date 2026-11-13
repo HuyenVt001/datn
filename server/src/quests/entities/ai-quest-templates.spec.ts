@@ -17,10 +17,10 @@ describe('AI_QUEST_TEMPLATES', () => {
     expect(total).toBe(72);
   });
 
-  it('cau nao cung bat dau bang "Chụp", <= AI_QUEST_CONTENT_MAX ky tu, khong thua khoang trang', () => {
+  it('cau nao cung bat dau bang "Take a photo of", <= AI_QUEST_CONTENT_MAX ky tu, khong thua khoang trang', () => {
     for (const cls of AI_QUEST_CLASSES) {
       for (const content of AI_QUEST_TEMPLATES[cls]) {
-        expect(content.startsWith('Chụp')).toBe(true);
+        expect(content.startsWith('Take a photo of')).toBe(true);
         expect(content.length).toBeLessThanOrEqual(AI_QUEST_CONTENT_MAX);
         expect(content.trim()).toBe(content);
       }

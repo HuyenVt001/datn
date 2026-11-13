@@ -49,13 +49,13 @@ describe('QuestsService', () => {
     {
       questId: `${today}_LOGIN`,
       type: 'LOGIN',
-      content: 'Đăng nhập vào Snapget',
+      content: 'Login to Snapget',
       releaseDate: today,
     },
     {
       questId: `${today}_POST_MOMENT`,
       type: 'POST_MOMENT',
-      content: 'Đăng một ảnh hoặc video bất kỳ',
+      content: 'Post any photo or GIF',
       releaseDate: today,
     },
   ];
@@ -257,7 +257,7 @@ describe('QuestsService', () => {
       expect(result.quests).toHaveLength(3);
       const q = result.quests.find((x) => x.type === 'AI_CHALLENGE');
       expect(q?.targetClass).toBeDefined();
-      expect(q?.content.startsWith('Chụp')).toBe(true);
+      expect(q?.content.startsWith('Take a photo of')).toBe(true);
       expect(q?.completed).toBe(false);
     });
 

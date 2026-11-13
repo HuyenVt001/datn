@@ -74,9 +74,30 @@ fun AppearanceScreen(
 
     LaunchedEffect(Unit) { viewModel.load() }
 
+    AppearanceScreenContent(
+        uiState = uiState,
+        selectedTab = selectedTab,
+        onTabSelected = { selectedTab = it },
+        onBackClick = { navController.popBackStack() },
+        onApplySkin = viewModel::applySkin,
+        onApplyEffect = viewModel::applyEffect,
+        onRetry = { viewModel.load() },
+    )
+}
+
+@Composable
+fun AppearanceScreenContent(
+    uiState: AppearanceUiState,
+    selectedTab: Int = 0,
+    onTabSelected: (Int) -> Unit = {},
+    onBackClick: () -> Unit = {},
+    onApplySkin: (Int) -> Unit = {},
+    onApplyEffect: (Int) -> Unit = {},
+    onRetry: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
-            SimpleTopBar(title = "Appearance", onBackClick = { navController.popBackStack() })
+            SimpleTopBar(title = "Appearance", onBackClick = onBackClick)
         },
         containerColor = SkinTheme.colors.background,
     ) { padding ->
@@ -96,7 +117,7 @@ fun AppearanceScreen(
                 TABS.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = { onTabSelected(index) },
                         text = {
                             Text(
                                 text = title,
@@ -134,7 +155,7 @@ fun AppearanceScreen(
                             color = SkinTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
                         )
-                        TextButton(onClick = { viewModel.load() }) {
+                        TextButton(onClick = onRetry) {
                             Text(
                                 text = "Retry",
                                 color = SkinTheme.colors.accent,
@@ -146,8 +167,8 @@ fun AppearanceScreen(
 
                 else -> when (selectedTab) {
                     0 -> FramesTab(frames = uiState.frames)
-                    1 -> SkinsTab(uiState = uiState, onApply = viewModel::applySkin)
-                    else -> EffectsTab(uiState = uiState, onApply = viewModel::applyEffect)
+                    1 -> SkinsTab(uiState = uiState, onApply = onApplySkin)
+                    else -> EffectsTab(uiState = uiState, onApply = onApplyEffect)
                 }
             }
         }

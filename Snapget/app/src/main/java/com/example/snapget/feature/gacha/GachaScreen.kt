@@ -218,7 +218,7 @@ fun GachaScreen(
  * mau trang co dinh — dung quy tac "trang vi nam tren anh".
  */
 @Composable
-private fun GachaContent(
+internal fun GachaContent(
     state: GachaStateDto,
     rollingTimes: Int?,
     isAwaitingPayment: Boolean,

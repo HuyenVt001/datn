@@ -259,5 +259,3 @@ fun CameraScreen(
     }
 }
 
-// LUU Y: da bo CameraScreenPreview (2026-07-16) — CameraScreen tu tao hiltViewModel
-// va can CameraX runtime nen preview luon fail "Failed to instantiate a ViewModel".

@@ -57,7 +57,7 @@ fun LegalDocScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            sections.forEach { (heading, body) ->
+            for ((heading, body) in sections) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     text = heading,

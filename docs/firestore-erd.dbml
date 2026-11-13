@@ -1,0 +1,425 @@
+Project SnapgetFirestore {
+  database_type: 'Cloud Firestore (NoSQL)'
+  Note: 'Auto-generated Snapget Firestore ERD (hybrid: code + live Firestore) on 2026-11-12T08:26:48.999Z. Import into https://dbdiagram.io'
+}
+
+Enum friendships_status {
+  PENDING
+  ACCEPTED
+  BLOCKED
+  DECLINED
+}
+
+Enum posts_content_type {
+  PHOTO
+  VIDEO
+}
+
+Enum coop_invites_status {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  DECLINED
+  EXPIRED
+}
+
+Enum messages_message_type {
+  TEXT
+  VOICE
+  EMOJI
+  STICKER
+  PHOTO
+}
+
+Enum messages_attachment_type {
+  PHOTO
+  VIDEO
+}
+
+Enum messages_reply_to_type {
+  TEXT
+  VOICE
+  EMOJI
+  STICKER
+  PHOTO
+}
+
+Enum frames_unlock_type {
+  GACHA
+  STREAK_MILESTONE
+  POST_COUNT
+  FRIEND_COUNT
+  COOP_FIRST
+  DEFAULT
+}
+
+Enum gacha_items_item_type {
+  FRAME
+  EFFECT
+  SKIN
+}
+
+Enum gacha_items_rarity {
+  R
+  SR
+  SSR
+}
+
+Enum gacha_rolls_roll_type {
+  SINGLE
+  TEN
+}
+
+Enum astrite_transactions_type {
+  SIGNUP_BONUS
+  QUEST_REWARD
+  AI_QUEST_REWARD
+  TOPUP
+  GACHA_SPEND
+  GACHA_REFUND
+  ADMIN_ADJUST
+}
+
+Enum topup_orders_status {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+Enum daily_quests_type {
+  LOGIN
+  POST_MOMENT
+  AI_CHALLENGE
+}
+
+Enum daily_quests_source {
+  LLM
+  FALLBACK
+}
+
+Enum user_quests_type {
+  LOGIN
+  POST_MOMENT
+  AI_CHALLENGE
+  DAILY_REWARD
+}
+
+Enum ai_verifications_outcome {
+  MATCHED
+  NOT_MATCHED
+  SKIPPED
+}
+
+Table users {
+  uid varchar [pk, not null, note: 'Document ID = Firebase Auth UID']
+  email varchar [not null]
+  fullName varchar [not null]
+  avatar text
+  joinDate timestamp [not null]
+  personalStreak int [not null]
+  lastStreakDate varchar [note: 'YYYY-MM-DD (UTC)']
+  birthday varchar [note: 'yyyy-MM-dd']
+  inviteCode varchar
+  inviteCodeExpiresAt timestamp
+  unlockedFrames jsonb [not null, note: 'string[] of frames.frameId']
+  fcmTokens jsonb [not null, note: 'string[]']
+  astrite int [not null, note: 'Must match sum(astriteTransactions.amount)']
+  unlockedSkins jsonb [not null, note: 'number[] matching APK SkinRegistry']
+  unlockedEffects jsonb [not null, note: 'number[] matching APK TouchEffectRegistry']
+  gachaPity jsonb [not null, note: '{ R: number, SR: number, SSR: number }']
+  signupBonusClaimed boolean [not null]
+  avatarUrl varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
+  name varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
+  username varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
+  Note: 'Firestore path: users (code+firestore, sampled 5 docs). Firebase Auth UID is the document ID. Holds profile, streaks, unlocked items, and Astrite wallet.'
+}
+
+Table friendships {
+  pairId varchar [pk, not null, note: 'Document ID = sorted uid1_uid2']
+  userIds jsonb [not null, note: 'Sorted [uidA, uidB] for array-contains queries']
+  user1Id varchar [not null]
+  user2Id varchar [not null]
+  friendStreak int [not null]
+  lastInteractionAt timestamp
+  status friendships_status [not null]
+  requesterUid varchar [note: 'User who clicked invite link']
+  createdAt timestamp [not null]
+  Note: 'Firestore path: friendships (code+firestore, sampled 4 docs). Friend relationship & shared streak between two users.'
+}
+
+Table posts {
+  momentId varchar [pk, not null, note: 'Document ID']
+  userId varchar [not null]
+  contentType posts_content_type [not null]
+  mediaUrl text [not null]
+  frameId varchar
+  caption text
+  coopUserId varchar [note: 'Partner UID for co-op moment']
+  postTime timestamp [not null]
+  clientRequestId varchar [note: 'Idempotency key from client']
+  Note: 'Firestore path: posts (code+firestore, sampled 50 docs). Moments (photo/GIF posts). Subcollections: views, reactions.'
+}
+
+Table posts_views {
+  momentId varchar [not null, note: 'Parent document ID (posts/{momentId}/views)']
+  viewerId varchar [pk, not null, note: 'Document ID = viewer UID']
+  isSeen boolean [not null]
+  seenAt timestamp [not null]
+  Note: 'Firestore path: posts/{momentId}/views (code+firestore, sampled 80 docs). Subcollection of posts tracking which users viewed a moment.'
+}
+
+Table posts_reactions {
+  momentId varchar [not null, note: 'Parent document ID (posts/{momentId}/reactions)']
+  reactionId varchar [pk, not null, note: 'Document ID']
+  reactorId varchar [not null]
+  emojiType varchar [not null]
+  createdAt timestamp [not null]
+  Note: 'Firestore path: posts/{momentId}/reactions (code+firestore, sampled 31 docs). Subcollection of posts storing emoji reactions on a moment.'
+}
+
+Table coopInvites {
+  inviteId varchar [pk, not null, note: 'Document ID']
+  inviterId varchar [not null]
+  inviteeId varchar [not null]
+  inviterMediaUrl text
+  inviteeMediaUrl text
+  mergedMediaUrl text
+  status coop_invites_status [not null]
+  createdAt timestamp [not null]
+  respondedAt timestamp
+  momentId varchar [note: 'Legacy field']
+  Note: 'Firestore path: coopInvites (code+firestore, sampled 8 docs). Co-op dual-camera capture invitations (5-minute TTL).'
+}
+
+Table messages {
+  messageId varchar [pk, not null, note: 'Document ID']
+  senderId varchar [not null]
+  receiverId varchar [note: 'Set for 1-1 chat']
+  groupId varchar [note: 'Set for group chat']
+  messageType messages_message_type [not null]
+  content text [not null]
+  sendTime timestamp [not null]
+  isSeen boolean [not null]
+  attachmentUrl text
+  attachmentType messages_attachment_type
+  reactions jsonb [note: 'Map<uid, emoji>']
+  replyToId varchar
+  replyToType messages_reply_to_type
+  replyToContent text
+  replyToSenderId varchar
+  Note: 'Firestore path: messages (code+firestore, sampled 50 docs). 1-to-1 (receiverId) or group (groupId) messages with optional reply snapshot.'
+}
+
+Table chatGroups {
+  groupId varchar [pk, not null, note: 'Document ID']
+  groupName varchar [not null]
+  avatar text
+  memberIds jsonb [not null, note: 'string[] of users.uid']
+  createdBy varchar [not null]
+  createdAt timestamp [not null]
+  mutedBy jsonb [note: 'string[] of users.uid']
+  Note: 'Firestore path: chatGroups (code+firestore, sampled 4 docs). Group chat rooms (max 20 members).'
+}
+
+Table frames {
+  frameId varchar [pk, not null, note: 'Document ID']
+  frameName varchar [not null]
+  imageUrl text
+  unlockType frames_unlock_type [not null]
+  unlockValue int
+  milestone int [note: 'Legacy mirror of unlockValue for STREAK_MILESTONE']
+  createdAt timestamp [not null]
+  Note: 'Firestore path: frames (code+firestore, sampled 26 docs). Photo frame catalog managed by admin.'
+}
+
+Table gachaItems {
+  itemId varchar [pk, not null, note: 'Document ID']
+  itemName varchar [not null]
+  itemType gacha_items_item_type [not null]
+  rarity gacha_items_rarity [not null]
+  imageUrl text
+  refId varchar [not null, note: 'frames.frameId when FRAME, else APK registry ID']
+  isActive boolean [not null]
+  sortOrder int [not null]
+  createdAt timestamp [not null]
+  Note: 'Firestore path: gachaItems (code+firestore, sampled 20 docs). Gacha reward pool metadata (FRAME, EFFECT, SKIN).'
+}
+
+Table gachaRolls {
+  rollId varchar [pk, not null, note: 'Document ID']
+  uid varchar [not null]
+  rollType gacha_rolls_roll_type [not null]
+  cost int [not null]
+  results jsonb [not null, note: 'RollResultEntry[]']
+  refundTotal int [not null]
+  balanceAfter int [not null]
+  createdAt timestamp [not null]
+  Note: 'Firestore path: gachaRolls (code+firestore, sampled 50 docs). Gacha roll history (1 doc per SINGLE or TEN roll).'
+}
+
+Table astriteTransactions {
+  id varchar [pk, not null, note: 'Document ID']
+  uid varchar [not null]
+  type astrite_transactions_type [not null]
+  amount int [not null]
+  balanceAfter int [not null]
+  refId varchar [note: 'rollId / orderCode / dateKey']
+  createdAt timestamp [not null]
+  Note: 'Firestore path: astriteTransactions (code+firestore, sampled 50 docs). Immutable ledger of every Astrite balance change.'
+}
+
+Table topupPackages {
+  packageId varchar [pk, not null, note: 'Document ID']
+  name varchar [not null]
+  astrite int [not null]
+  priceVnd int [not null]
+  isActive boolean [not null]
+  isTest boolean [not null]
+  sortOrder int [not null]
+  createdAt timestamp [not null]
+  seedKey varchar [not null, note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
+  Note: 'Firestore path: topupPackages (code+firestore, sampled 5 docs). PayOS top-up package catalog managed by admin.'
+}
+
+Table topupOrders {
+  orderCode bigint [pk, not null, note: 'PayOS integer orderCode (also doc ID)']
+  uid varchar [not null]
+  packageId varchar [not null]
+  packageName varchar [not null]
+  astrite int [not null]
+  amountVnd int [not null]
+  status topup_orders_status [not null]
+  payosPaymentLinkId varchar
+  checkoutUrl text
+  payosReference varchar
+  isSimulated boolean [note: '[optional/unseen in sample]']
+  createdAt timestamp [not null]
+  paidAt timestamp
+  Note: 'Firestore path: topupOrders (code+firestore, sampled 2 docs). PayOS top-up orders; document ID is stringified orderCode for webhook idempotency.'
+}
+
+Table dailyQuests {
+  questId varchar [pk, not null, note: 'Document ID = YYYY-MM-DD_TYPE']
+  type daily_quests_type [not null]
+  content text [not null]
+  releaseDate varchar [not null, note: 'YYYY-MM-DD (UTC)']
+  targetClass varchar [note: 'COCO class for AI_CHALLENGE']
+  source daily_quests_source
+  generatedAt timestamp
+  Note: 'Firestore path: dailyQuests (code+firestore, sampled 49 docs). System-wide daily quests; doc ID = `${releaseDate}_${type}`.'
+}
+
+Table userQuests {
+  id varchar [pk, not null, note: 'Document ID = date_uid_type']
+  questId varchar
+  userId varchar [not null]
+  type user_quests_type [not null]
+  releaseDate varchar [not null]
+  status varchar [note: 'COMPLETED']
+  completedAt timestamp
+  momentId varchar [note: 'Moment that completed AI_CHALLENGE · [optional/unseen in sample]']
+  aiScore float [note: '[optional/unseen in sample]']
+  modelVersion varchar [note: '[optional/unseen in sample]']
+  astrite int [note: 'Set on DAILY_REWARD doc']
+  createdAt timestamp [note: 'Set on DAILY_REWARD doc']
+  frameId varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
+  Note: 'Firestore path: userQuests (code+firestore, sampled 50 docs). Per-user quest completion & daily reward claim markers.'
+}
+
+Table aiVerifications {
+  id varchar [pk, not null, note: 'Document ID']
+  uid varchar [not null]
+  momentId varchar [not null]
+  mediaUrl text
+  date varchar [not null, note: 'YYYY-MM-DD (UTC)']
+  targetClass varchar [not null]
+  outcome ai_verifications_outcome [not null]
+  score float
+  threshold float
+  scores jsonb [note: '12-class sigmoid map']
+  modelVersion varchar
+  latencyMs int
+  roundTripMs int
+  error text
+  createdAt timestamp [not null]
+  Note: 'Firestore path: aiVerifications (code+firestore, sampled 8 docs). AI quest image verification logs for production accuracy metrics.'
+}
+
+Table adminLogs {
+  logId varchar [pk, not null, note: 'Document ID']
+  actorUid varchar [not null]
+  actorEmail varchar
+  action varchar [not null]
+  targetId varchar [note: 'Polymorphic target (uid / frameId / momentId / itemId / packageId)']
+  targetLabel varchar
+  createdAt timestamp [not null]
+  Note: 'Firestore path: adminLogs (code+firestore, sampled 50 docs). Audit log of admin actions.'
+}
+
+TableGroup Core_Social {
+  users
+  friendships
+}
+
+TableGroup Moments_Co_op {
+  posts
+  posts_views
+  posts_reactions
+  coopInvites
+}
+
+TableGroup Chat {
+  messages
+  chatGroups
+}
+
+TableGroup Gacha_Economy {
+  frames
+  gachaItems
+  gachaRolls
+  astriteTransactions
+  topupPackages
+  topupOrders
+}
+
+TableGroup Quests_AI {
+  dailyQuests
+  userQuests
+  aiVerifications
+}
+
+TableGroup Admin_System {
+  adminLogs
+}
+
+Ref: friendships.user1Id > users.uid
+Ref: friendships.user2Id > users.uid
+Ref: friendships.requesterUid > users.uid
+Ref: posts.userId > users.uid
+Ref: posts.frameId > frames.frameId
+Ref: posts.coopUserId > users.uid
+Ref: posts_views.momentId > posts.momentId [delete: cascade] // Subcollection parent
+Ref: posts_views.viewerId > users.uid
+Ref: posts_reactions.momentId > posts.momentId [delete: cascade] // Subcollection parent
+Ref: posts_reactions.reactorId > users.uid
+Ref: coopInvites.inviterId > users.uid
+Ref: coopInvites.inviteeId > users.uid
+Ref: coopInvites.momentId > posts.momentId // Legacy
+Ref: chatGroups.createdBy > users.uid
+Ref: messages.senderId > users.uid
+Ref: messages.receiverId > users.uid
+Ref: messages.groupId > chatGroups.groupId
+Ref: messages.replyToId > messages.messageId
+Ref: messages.replyToSenderId > users.uid
+Ref: gachaItems.refId > frames.frameId // When itemType = FRAME
+Ref: gachaRolls.uid > users.uid
+Ref: astriteTransactions.uid > users.uid
+Ref: topupOrders.uid > users.uid
+Ref: topupOrders.packageId > topupPackages.packageId
+Ref: userQuests.questId > dailyQuests.questId
+Ref: userQuests.userId > users.uid
+Ref: userQuests.momentId > posts.momentId
+Ref: aiVerifications.uid > users.uid
+Ref: aiVerifications.momentId > posts.momentId
+Ref: adminLogs.actorUid > users.uid

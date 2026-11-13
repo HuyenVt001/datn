@@ -1,0 +1,1771 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snapget-d8693.web.app/schemas/firestore.schema.json",
+  "title": "Snapget Cloud Firestore Database Schema",
+  "description": "Generated (hybrid: code + live Firestore) on 2026-11-12T08:26:49.001Z from NestJS entities and Cloud Firestore introspection.",
+  "type": "object",
+  "properties": {
+    "users": {
+      "type": "array",
+      "description": "Collection \"users\"",
+      "items": {
+        "$ref": "#/$defs/users"
+      }
+    },
+    "friendships": {
+      "type": "array",
+      "description": "Collection \"friendships\"",
+      "items": {
+        "$ref": "#/$defs/friendships"
+      }
+    },
+    "posts": {
+      "type": "array",
+      "description": "Collection \"posts\"",
+      "items": {
+        "$ref": "#/$defs/posts"
+      }
+    },
+    "coopInvites": {
+      "type": "array",
+      "description": "Collection \"coopInvites\"",
+      "items": {
+        "$ref": "#/$defs/coopInvites"
+      }
+    },
+    "messages": {
+      "type": "array",
+      "description": "Collection \"messages\"",
+      "items": {
+        "$ref": "#/$defs/messages"
+      }
+    },
+    "chatGroups": {
+      "type": "array",
+      "description": "Collection \"chatGroups\"",
+      "items": {
+        "$ref": "#/$defs/chatGroups"
+      }
+    },
+    "frames": {
+      "type": "array",
+      "description": "Collection \"frames\"",
+      "items": {
+        "$ref": "#/$defs/frames"
+      }
+    },
+    "gachaItems": {
+      "type": "array",
+      "description": "Collection \"gachaItems\"",
+      "items": {
+        "$ref": "#/$defs/gachaItems"
+      }
+    },
+    "gachaRolls": {
+      "type": "array",
+      "description": "Collection \"gachaRolls\"",
+      "items": {
+        "$ref": "#/$defs/gachaRolls"
+      }
+    },
+    "astriteTransactions": {
+      "type": "array",
+      "description": "Collection \"astriteTransactions\"",
+      "items": {
+        "$ref": "#/$defs/astriteTransactions"
+      }
+    },
+    "topupPackages": {
+      "type": "array",
+      "description": "Collection \"topupPackages\"",
+      "items": {
+        "$ref": "#/$defs/topupPackages"
+      }
+    },
+    "topupOrders": {
+      "type": "array",
+      "description": "Collection \"topupOrders\"",
+      "items": {
+        "$ref": "#/$defs/topupOrders"
+      }
+    },
+    "dailyQuests": {
+      "type": "array",
+      "description": "Collection \"dailyQuests\"",
+      "items": {
+        "$ref": "#/$defs/dailyQuests"
+      }
+    },
+    "userQuests": {
+      "type": "array",
+      "description": "Collection \"userQuests\"",
+      "items": {
+        "$ref": "#/$defs/userQuests"
+      }
+    },
+    "aiVerifications": {
+      "type": "array",
+      "description": "Collection \"aiVerifications\"",
+      "items": {
+        "$ref": "#/$defs/aiVerifications"
+      }
+    },
+    "adminLogs": {
+      "type": "array",
+      "description": "Collection \"adminLogs\"",
+      "items": {
+        "$ref": "#/$defs/adminLogs"
+      }
+    }
+  },
+  "$defs": {
+    "users": {
+      "type": "object",
+      "title": "users",
+      "description": "Firebase Auth UID is the document ID. Holds profile, streaks, unlocked items, and Astrite wallet.",
+      "required": [
+        "uid",
+        "email",
+        "fullName",
+        "joinDate",
+        "personalStreak",
+        "unlockedFrames",
+        "fcmTokens",
+        "astrite",
+        "unlockedSkins",
+        "unlockedEffects",
+        "gachaPity",
+        "signupBonusClaimed"
+      ],
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Document ID = Firebase Auth UID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "fullName": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "joinDate": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "personalStreak": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "lastStreakDate": {
+          "type": "string",
+          "description": "YYYY-MM-DD (UTC)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "birthday": {
+          "type": "string",
+          "description": "yyyy-MM-dd",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "inviteCode": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "inviteCodeExpiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "unlockedFrames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "string[] of frames.frameId",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "fcmTokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "string[]",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "astrite": {
+          "type": "integer",
+          "description": "Must match sum(astriteTransactions.amount)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "unlockedSkins": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "number[] matching APK SkinRegistry",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "unlockedEffects": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "number[] matching APK TouchEffectRegistry",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "gachaPity": {
+          "type": "object",
+          "description": "{ R: number, SR: number, SSR: number }",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "signupBonusClaimed": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 1
+        },
+        "name": {
+          "type": "string",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 1
+        },
+        "username": {
+          "type": "string",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 1
+        }
+      },
+      "x-firestore": {
+        "path": "users",
+        "docIdField": "uid",
+        "group": "Core & Social",
+        "source": "code+firestore",
+        "sampledDocs": 5
+      }
+    },
+    "friendships": {
+      "type": "object",
+      "title": "friendships",
+      "description": "Friend relationship & shared streak between two users.",
+      "required": [
+        "pairId",
+        "userIds",
+        "user1Id",
+        "user2Id",
+        "friendStreak",
+        "status",
+        "createdAt"
+      ],
+      "properties": {
+        "pairId": {
+          "type": "string",
+          "description": "Document ID = sorted uid1_uid2",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "userIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Sorted [uidA, uidB] for array-contains queries",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "user1Id": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "user2Id": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "friendStreak": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "lastInteractionAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "BLOCKED",
+            "DECLINED"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "requesterUid": {
+          "type": "string",
+          "description": "User who clicked invite link",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        }
+      },
+      "x-firestore": {
+        "path": "friendships",
+        "docIdField": "pairId",
+        "group": "Core & Social",
+        "source": "code+firestore",
+        "sampledDocs": 4,
+        "relations": [
+          {
+            "field": "user1Id",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "user2Id",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "requesterUid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "posts": {
+      "type": "object",
+      "title": "posts",
+      "description": "Moments (photo/GIF posts). Subcollections: views, reactions.",
+      "required": [
+        "momentId",
+        "userId",
+        "contentType",
+        "mediaUrl",
+        "postTime"
+      ],
+      "properties": {
+        "momentId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "userId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "contentType": {
+          "type": "string",
+          "enum": [
+            "PHOTO",
+            "VIDEO"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "mediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "frameId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 34
+        },
+        "caption": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 12
+        },
+        "coopUserId": {
+          "type": "string",
+          "description": "Partner UID for co-op moment",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "postTime": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "clientRequestId": {
+          "type": "string",
+          "description": "Idempotency key from client",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 22
+        }
+      },
+      "x-firestore": {
+        "path": "posts",
+        "docIdField": "momentId",
+        "group": "Moments & Co-op",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "subcollections": [
+          "posts_views",
+          "posts_reactions"
+        ],
+        "relations": [
+          {
+            "field": "userId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "frameId",
+            "targetCollection": "frames",
+            "targetField": "frameId"
+          },
+          {
+            "field": "coopUserId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "posts_views": {
+      "type": "object",
+      "title": "posts_views",
+      "description": "Subcollection of posts tracking which users viewed a moment.",
+      "required": [
+        "viewerId",
+        "isSeen",
+        "seenAt"
+      ],
+      "properties": {
+        "viewerId": {
+          "type": "string",
+          "description": "Document ID = viewer UID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 80
+        },
+        "isSeen": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 80
+        },
+        "seenAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 80
+        }
+      },
+      "x-firestore": {
+        "path": "posts/{momentId}/views",
+        "docIdField": "viewerId",
+        "group": "Moments & Co-op",
+        "source": "code+firestore",
+        "sampledDocs": 80,
+        "parentCollection": "posts",
+        "relations": [
+          {
+            "field": "momentId",
+            "targetCollection": "posts",
+            "targetField": "momentId",
+            "note": "Subcollection parent"
+          },
+          {
+            "field": "viewerId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "posts_reactions": {
+      "type": "object",
+      "title": "posts_reactions",
+      "description": "Subcollection of posts storing emoji reactions on a moment.",
+      "required": [
+        "reactionId",
+        "reactorId",
+        "emojiType",
+        "createdAt"
+      ],
+      "properties": {
+        "reactionId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "reactorId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 31
+        },
+        "emojiType": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 31
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 31
+        }
+      },
+      "x-firestore": {
+        "path": "posts/{momentId}/reactions",
+        "docIdField": "reactionId",
+        "group": "Moments & Co-op",
+        "source": "code+firestore",
+        "sampledDocs": 31,
+        "parentCollection": "posts",
+        "relations": [
+          {
+            "field": "momentId",
+            "targetCollection": "posts",
+            "targetField": "momentId",
+            "note": "Subcollection parent"
+          },
+          {
+            "field": "reactorId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "coopInvites": {
+      "type": "object",
+      "title": "coopInvites",
+      "description": "Co-op dual-camera capture invitations (5-minute TTL).",
+      "required": [
+        "inviteId",
+        "inviterId",
+        "inviteeId",
+        "status",
+        "createdAt"
+      ],
+      "properties": {
+        "inviteId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "inviterId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "inviteeId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "inviterMediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 7
+        },
+        "inviteeMediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "mergedMediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "ACCEPTED",
+            "COMPLETED",
+            "DECLINED",
+            "EXPIRED"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "respondedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "momentId": {
+          "type": "string",
+          "description": "Legacy field",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        }
+      },
+      "x-firestore": {
+        "path": "coopInvites",
+        "docIdField": "inviteId",
+        "group": "Moments & Co-op",
+        "source": "code+firestore",
+        "sampledDocs": 8,
+        "relations": [
+          {
+            "field": "inviterId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "inviteeId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "momentId",
+            "targetCollection": "posts",
+            "targetField": "momentId",
+            "note": "Legacy"
+          }
+        ]
+      }
+    },
+    "messages": {
+      "type": "object",
+      "title": "messages",
+      "description": "1-to-1 (receiverId) or group (groupId) messages with optional reply snapshot.",
+      "required": [
+        "messageId",
+        "senderId",
+        "messageType",
+        "content",
+        "sendTime",
+        "isSeen"
+      ],
+      "properties": {
+        "messageId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "senderId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "receiverId": {
+          "type": "string",
+          "description": "Set for 1-1 chat",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 33
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Set for group chat",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 17
+        },
+        "messageType": {
+          "type": "string",
+          "enum": [
+            "TEXT",
+            "VOICE",
+            "EMOJI",
+            "STICKER",
+            "PHOTO"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "content": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "sendTime": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "isSeen": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "attachmentUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "attachmentType": {
+          "type": "string",
+          "enum": [
+            "PHOTO",
+            "VIDEO"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "reactions": {
+          "type": "object",
+          "description": "Map<uid, emoji>",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "replyToId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "replyToType": {
+          "type": "string",
+          "enum": [
+            "TEXT",
+            "VOICE",
+            "EMOJI",
+            "STICKER",
+            "PHOTO"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "replyToContent": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "replyToSenderId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        }
+      },
+      "x-firestore": {
+        "path": "messages",
+        "docIdField": "messageId",
+        "group": "Chat",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "senderId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "receiverId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "groupId",
+            "targetCollection": "chatGroups",
+            "targetField": "groupId"
+          },
+          {
+            "field": "replyToId",
+            "targetCollection": "messages",
+            "targetField": "messageId"
+          },
+          {
+            "field": "replyToSenderId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "chatGroups": {
+      "type": "object",
+      "title": "chatGroups",
+      "description": "Group chat rooms (max 20 members).",
+      "required": [
+        "groupId",
+        "groupName",
+        "memberIds",
+        "createdBy",
+        "createdAt"
+      ],
+      "properties": {
+        "groupId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "groupName": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        },
+        "memberIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "string[] of users.uid",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "createdBy": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "mutedBy": {
+          "type": "array",
+          "description": "string[] of users.uid",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 3
+        }
+      },
+      "x-firestore": {
+        "path": "chatGroups",
+        "docIdField": "groupId",
+        "group": "Chat",
+        "source": "code+firestore",
+        "sampledDocs": 4,
+        "relations": [
+          {
+            "field": "createdBy",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "frames": {
+      "type": "object",
+      "title": "frames",
+      "description": "Photo frame catalog managed by admin.",
+      "required": [
+        "frameId",
+        "frameName",
+        "unlockType",
+        "createdAt"
+      ],
+      "properties": {
+        "frameId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "frameName": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        },
+        "unlockType": {
+          "type": "string",
+          "enum": [
+            "GACHA",
+            "STREAK_MILESTONE",
+            "POST_COUNT",
+            "FRIEND_COUNT",
+            "COOP_FIRST",
+            "DEFAULT"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        },
+        "unlockValue": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        },
+        "milestone": {
+          "type": "integer",
+          "description": "Legacy mirror of unlockValue for STREAK_MILESTONE",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 26
+        }
+      },
+      "x-firestore": {
+        "path": "frames",
+        "docIdField": "frameId",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 26
+      }
+    },
+    "gachaItems": {
+      "type": "object",
+      "title": "gachaItems",
+      "description": "Gacha reward pool metadata (FRAME, EFFECT, SKIN).",
+      "required": [
+        "itemId",
+        "itemName",
+        "itemType",
+        "rarity",
+        "refId",
+        "isActive",
+        "sortOrder",
+        "createdAt"
+      ],
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "itemName": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "itemType": {
+          "type": "string",
+          "enum": [
+            "FRAME",
+            "EFFECT",
+            "SKIN"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "rarity": {
+          "type": "string",
+          "enum": [
+            "R",
+            "SR",
+            "SSR"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "refId": {
+          "type": "string",
+          "description": "frames.frameId when FRAME, else APK registry ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "isActive": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "sortOrder": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 20
+        }
+      },
+      "x-firestore": {
+        "path": "gachaItems",
+        "docIdField": "itemId",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 20,
+        "relations": [
+          {
+            "field": "refId",
+            "targetCollection": "frames",
+            "targetField": "frameId",
+            "note": "When itemType = FRAME"
+          }
+        ]
+      }
+    },
+    "gachaRolls": {
+      "type": "object",
+      "title": "gachaRolls",
+      "description": "Gacha roll history (1 doc per SINGLE or TEN roll).",
+      "required": [
+        "rollId",
+        "uid",
+        "rollType",
+        "cost",
+        "results",
+        "refundTotal",
+        "balanceAfter",
+        "createdAt"
+      ],
+      "properties": {
+        "rollId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "uid": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "rollType": {
+          "type": "string",
+          "enum": [
+            "SINGLE",
+            "TEN"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "cost": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "RollResultEntry[]",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "refundTotal": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "balanceAfter": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        }
+      },
+      "x-firestore": {
+        "path": "gachaRolls",
+        "docIdField": "rollId",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "uid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "astriteTransactions": {
+      "type": "object",
+      "title": "astriteTransactions",
+      "description": "Immutable ledger of every Astrite balance change.",
+      "required": [
+        "id",
+        "uid",
+        "type",
+        "amount",
+        "balanceAfter",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "uid": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "SIGNUP_BONUS",
+            "QUEST_REWARD",
+            "AI_QUEST_REWARD",
+            "TOPUP",
+            "GACHA_SPEND",
+            "GACHA_REFUND",
+            "ADMIN_ADJUST"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "amount": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "balanceAfter": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "refId": {
+          "type": "string",
+          "description": "rollId / orderCode / dateKey",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 49
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        }
+      },
+      "x-firestore": {
+        "path": "astriteTransactions",
+        "docIdField": "id",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "uid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "topupPackages": {
+      "type": "object",
+      "title": "topupPackages",
+      "description": "PayOS top-up package catalog managed by admin.",
+      "required": [
+        "packageId",
+        "name",
+        "astrite",
+        "priceVnd",
+        "isActive",
+        "isTest",
+        "sortOrder",
+        "createdAt",
+        "seedKey"
+      ],
+      "properties": {
+        "packageId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "name": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "astrite": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "priceVnd": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "isActive": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "isTest": {
+          "type": "boolean",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "sortOrder": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "seedKey": {
+          "type": "string",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 5
+        }
+      },
+      "x-firestore": {
+        "path": "topupPackages",
+        "docIdField": "packageId",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 5
+      }
+    },
+    "topupOrders": {
+      "type": "object",
+      "title": "topupOrders",
+      "description": "PayOS top-up orders; document ID is stringified orderCode for webhook idempotency.",
+      "required": [
+        "orderCode",
+        "uid",
+        "packageId",
+        "packageName",
+        "astrite",
+        "amountVnd",
+        "status",
+        "createdAt"
+      ],
+      "properties": {
+        "orderCode": {
+          "type": "integer",
+          "description": "PayOS integer orderCode (also doc ID)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "uid": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "packageId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "packageName": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "astrite": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "amountVnd": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PAID",
+            "CANCELLED",
+            "EXPIRED"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "payosPaymentLinkId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "checkoutUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "payosReference": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        },
+        "isSimulated": {
+          "type": "boolean",
+          "x-source": "code-only",
+          "x-seenInDocs": 0
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 2
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 1
+        }
+      },
+      "x-firestore": {
+        "path": "topupOrders",
+        "docIdField": "orderCode",
+        "group": "Gacha & Economy",
+        "source": "code+firestore",
+        "sampledDocs": 2,
+        "relations": [
+          {
+            "field": "uid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "packageId",
+            "targetCollection": "topupPackages",
+            "targetField": "packageId"
+          }
+        ]
+      }
+    },
+    "dailyQuests": {
+      "type": "object",
+      "title": "dailyQuests",
+      "description": "System-wide daily quests; doc ID = `${releaseDate}_${type}`.",
+      "required": [
+        "questId",
+        "type",
+        "content",
+        "releaseDate"
+      ],
+      "properties": {
+        "questId": {
+          "type": "string",
+          "description": "Document ID = YYYY-MM-DD_TYPE",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "LOGIN",
+            "POST_MOMENT",
+            "AI_CHALLENGE"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 49
+        },
+        "content": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 49
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "YYYY-MM-DD (UTC)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 49
+        },
+        "targetClass": {
+          "type": "string",
+          "description": "COCO class for AI_CHALLENGE",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "LLM",
+            "FALLBACK"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        }
+      },
+      "x-firestore": {
+        "path": "dailyQuests",
+        "docIdField": "questId",
+        "group": "Quests & AI",
+        "source": "code+firestore",
+        "sampledDocs": 49
+      }
+    },
+    "userQuests": {
+      "type": "object",
+      "title": "userQuests",
+      "description": "Per-user quest completion & daily reward claim markers.",
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "releaseDate"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID = date_uid_type",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "questId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 37
+        },
+        "userId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "LOGIN",
+            "POST_MOMENT",
+            "AI_CHALLENGE",
+            "DAILY_REWARD"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "releaseDate": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "status": {
+          "type": "string",
+          "description": "COMPLETED",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 37
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 37
+        },
+        "momentId": {
+          "type": "string",
+          "description": "Moment that completed AI_CHALLENGE",
+          "x-source": "code-only",
+          "x-seenInDocs": 0
+        },
+        "aiScore": {
+          "type": "number",
+          "x-source": "code-only",
+          "x-seenInDocs": 0
+        },
+        "modelVersion": {
+          "type": "string",
+          "x-source": "code-only",
+          "x-seenInDocs": 0
+        },
+        "astrite": {
+          "type": "integer",
+          "description": "Set on DAILY_REWARD doc",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 5
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Set on DAILY_REWARD doc",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 13
+        },
+        "frameId": {
+          "type": "string",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 8
+        }
+      },
+      "x-firestore": {
+        "path": "userQuests",
+        "docIdField": "id",
+        "group": "Quests & AI",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "questId",
+            "targetCollection": "dailyQuests",
+            "targetField": "questId"
+          },
+          {
+            "field": "userId",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "momentId",
+            "targetCollection": "posts",
+            "targetField": "momentId"
+          }
+        ]
+      }
+    },
+    "aiVerifications": {
+      "type": "object",
+      "title": "aiVerifications",
+      "description": "AI quest image verification logs for production accuracy metrics.",
+      "required": [
+        "id",
+        "uid",
+        "momentId",
+        "date",
+        "targetClass",
+        "outcome",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "uid": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "momentId": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "mediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "date": {
+          "type": "string",
+          "description": "YYYY-MM-DD (UTC)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "targetClass": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "MATCHED",
+            "NOT_MATCHED",
+            "SKIPPED"
+          ],
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "score": {
+          "type": "number",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "threshold": {
+          "type": "number",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "scores": {
+          "type": "object",
+          "description": "12-class sigmoid map",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "modelVersion": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "latencyMs": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "roundTripMs": {
+          "type": "integer",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        },
+        "error": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 4
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 8
+        }
+      },
+      "x-firestore": {
+        "path": "aiVerifications",
+        "docIdField": "id",
+        "group": "Quests & AI",
+        "source": "code+firestore",
+        "sampledDocs": 8,
+        "relations": [
+          {
+            "field": "uid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          },
+          {
+            "field": "momentId",
+            "targetCollection": "posts",
+            "targetField": "momentId"
+          }
+        ]
+      }
+    },
+    "adminLogs": {
+      "type": "object",
+      "title": "adminLogs",
+      "description": "Audit log of admin actions.",
+      "required": [
+        "logId",
+        "actorUid",
+        "action",
+        "createdAt"
+      ],
+      "properties": {
+        "logId": {
+          "type": "string",
+          "description": "Document ID",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 0
+        },
+        "actorUid": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "actorEmail": {
+          "type": "string",
+          "format": "email",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "action": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "targetId": {
+          "type": "string",
+          "description": "Polymorphic target (uid / frameId / momentId / itemId / packageId)",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        },
+        "targetLabel": {
+          "type": "string",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 46
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "code+firestore",
+          "x-seenInDocs": 50
+        }
+      },
+      "x-firestore": {
+        "path": "adminLogs",
+        "docIdField": "logId",
+        "group": "Admin & System",
+        "source": "code+firestore",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "actorUid",
+            "targetCollection": "users",
+            "targetField": "uid"
+          }
+        ]
+      }
+    }
+  }
+}

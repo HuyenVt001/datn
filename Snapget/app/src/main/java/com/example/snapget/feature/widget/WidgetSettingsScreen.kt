@@ -69,6 +69,25 @@ fun WidgetSettingsScreen(
 
     LaunchedEffect(Unit) { viewModel.reloadSnapshot() }
 
+    WidgetSettingsScreenContent(
+        streakOnWidget = streakOnWidget,
+        snapshot = snapshot,
+        isRefreshing = isRefreshing,
+        navController = navController,
+        onToggleStreak = { viewModel.setStreakOnWidget(it) },
+        onRefreshNow = { viewModel.refreshNow() },
+    )
+}
+
+@Composable
+fun WidgetSettingsScreenContent(
+    streakOnWidget: Boolean = true,
+    snapshot: com.example.snapget.feature.widget.data.WidgetSnapshot = com.example.snapget.feature.widget.data.WidgetSnapshot(kind = com.example.snapget.feature.widget.data.WidgetStateKind.OK),
+    isRefreshing: Boolean = false,
+    navController: NavHostController = rememberNavController(),
+    onToggleStreak: (Boolean) -> Unit = {},
+    onRefreshNow: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
             CommonTopBar(
@@ -124,14 +143,14 @@ fun WidgetSettingsScreen(
                     }
                     Switch(
                         checked = streakOnWidget,
-                        onCheckedChange = { viewModel.setStreakOnWidget(it) },
+                        onCheckedChange = onToggleStreak,
                     )
                 }
             }
 
             // Refresh tay + thoi diem cap nhat gan nhat
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { viewModel.refreshNow() }, enabled = !isRefreshing) {
+                TextButton(onClick = onRefreshNow, enabled = !isRefreshing) {
                     if (isRefreshing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
