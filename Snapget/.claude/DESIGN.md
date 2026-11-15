@@ -6,6 +6,106 @@
 
 ---
 
+## 0. 🎮 Định hướng v2 — "Playful Dark" (2026-11-15, ĐANG LÊN PLAN)
+
+> **Mục tiêu (user chốt 2026-11-15):** app có cảm giác **sinh động, vui, "gây nghiện" kiểu app học ngôn ngữ gamified**
+> — mỗi hành động đều có phản hồi, mỗi thành tựu đều được ăn mừng.
+> **Nguồn:** skill `ui-ux-pro-max` (style **Claymorphism**: khối dày, bo lớn, nút có chiều sâu, nhấn "lún";
+> motion "Stagger + back-out"; font tròn) + skill `mobile-android-design` (M3 motion, haptic, 48dp, semantics).
+> Skill gợi ý palette **nền sáng cam** → **KHÔNG áp**: Snapget giữ dark-first + vàng là màu thương hiệu;
+> chỉ mượn *hình khối, chuyển động, nhịp phản hồi*.
+> ⚠️ Lấy **nguyên tắc** của các app gamified, **không sao chép** tài sản của app cụ thể nào (linh vật, màu
+> thương hiệu, font riêng, âm thanh, minh họa).
+>
+> Ký hiệu: ✅ = đã chốt, áp ngay cho UI mới · ⏳ = đề xuất, **chờ user chốt** (xem `UI_UPGRADE_PLAN.md`) ·
+> Mục 1–9 phía dưới vẫn là **hiện trạng code**; chỗ nào v2 thay đổi thì mục 0 thắng khi đã ✅.
+
+### 0.1 Năm nguyên tắc "Playful Dark"
+1. ✅ **Mọi chạm đều có phản hồi** — nhấn = lún/co (scale 0.94–0.96) + haptic nhẹ; không còn nút "chết" bấm không thấy gì (`indication = null` bị cấm cho phần tử bấm được).
+2. ✅ **Ăn mừng thành tựu, không ăn mừng thao tác vặt** — streak +1, xong quest, mua item, đăng bài đầu ngày = khoảnh khắc lớn (mục 0.5); bấm nút thường chỉ micro-interaction. Skill: *"animate 1–2 key elements per view"*.
+3. ✅ **Tiến độ luôn nhìn thấy được** — streak, quest, mốc khung hiển thị dạng thanh/vòng tiến độ chứ không chỉ con số.
+4. ✅ **Khối dày, tròn, "đồ chơi"** — nút chính có đáy dày tạo chiều sâu (mục 0.3), bo lớn, icon to, chữ đậm.
+5. ✅ **Ảnh vẫn là nhân vật chính** — playful nằm ở *chrome* (nút, sheet, tab, gamification); màn camera/feed giữ tối giản, không đè hiệu ứng lên ảnh người dùng.
+
+### 0.2 Motion system (token chuyển động — thêm vào `core/designsystem/motion/`)
+| Token | Giá trị | Dùng cho |
+|---|---|---|
+| `Motion.press` | scale → 0.95, `spring(dampingRatio = 0.5f, stiffness = 800f)` | Mọi nút/ô bấm được |
+| `Motion.pop` | scale 0.6 → 1.08 → 1, `spring(0.45f, 400f)` | Badge mới, emoji reaction, item vừa mua, check quest |
+| `Motion.enter` | fade + slide 16dp, 300ms `FastOutSlowIn`, stagger **40ms/item** (tối đa 8 item) | List/grid lần đầu hiện (Shop, Quest, Messages) |
+| `Motion.exit` | fade 150ms (exit **nhanh hơn** enter) | Đóng sheet/dialog, xóa item |
+| `Motion.celebrate` | 1.2–2s, confetti/particle + số đếm tăng dần | Chỉ các khoảnh khắc mục 0.5 |
+| `Motion.shake` | lắc ngang 3 nhịp ±8dp, 300ms | Lỗi nhập (sai mật khẩu, không đủ Astrite) |
+
+- ✅ **Reduced motion bắt buộc:** đọc `Settings.Global.ANIMATOR_DURATION_SCALE` (= 0 → tắt) ⇒ bỏ confetti/stagger, giữ fade ngắn. Hiệu ứng **không bao giờ** là cách duy nhất truyền thông tin.
+- ✅ Animate bằng API Compose (`animate*AsState`, `AnimatedVisibility`, `updateTransition`), logic animation nằm ở UI, **không** ở ViewModel (skill stack jetpack-compose).
+- ✅ Chỉ animate `graphicsLayer` (scale/alpha/translation) — không animate width/height gây re-layout.
+
+### 0.3 Nút "chunky" (component mới `core/designsystem/component/button/ChunkyButton.kt`) — ⏳ chờ chốt kiểu
+- Thân nút màu `accent`, **đáy dày 4dp** màu `accent` tối hơn ~30% (token mới `accentShadow`); nhấn → thân dịch xuống 4dp, đáy biến mất = cảm giác "lún". Bo `shapes.input` (16dp), cao **52dp**, chữ Bold 16sp.
+- Biến thể: `Primary` (accent) · `Secondary` (nền `pill`, đáy `surfaceVariant`) · `Danger` (error) · `Disabled` (phẳng, không đáy, `textSecondary`).
+- Áp cho CTA chính: Sign In, Buy/Apply (Shop), Next (Edit), Accept (coop), Retry. **Không** áp cho nút chụp 80dp (giữ vòng tròn viền vàng — bản sắc camera).
+
+### 0.4 Phản hồi xúc giác (haptic) — ✅
+| Sự kiện | Haptic |
+|---|---|
+| Chụp ảnh | `HapticFeedbackType.LongPress` |
+| Bắt đầu / dừng quay GIF | `LongPress` lúc bắt đầu, `TextHandleMove` lúc dừng |
+| Thả reaction, gửi tin | `TextHandleMove` (nhẹ) |
+| Hoàn thành quest / streak +1 / mua thành công | `Confirm` (API 30+), fallback `LongPress` |
+| Lỗi (shake) | `Reject` (API 30+), fallback không rung |
+Tôn trọng cài đặt rung hệ thống (dùng `LocalHapticFeedback`, không gọi `Vibrator` trực tiếp). ⏳ Có thể thêm toggle "Haptics" trong Settings.
+
+### 0.5 Khoảnh khắc ăn mừng (celebration moments) — ⏳ chờ chốt danh sách + mức độ
+| Khoảnh khắc | Đề xuất hiển thị |
+|---|---|
+| Đăng moment đầu tiên trong ngày → **streak +1** | Màn phủ toàn màn: 🔥 to nảy (`pop`), số streak **đếm lên** (N-1 → N), chữ "N day streak!", tự đóng 2s hoặc chạm để đóng |
+| Đạt mốc streak 3/7/14/30 | Như trên + confetti vàng + preview **khung vừa mở khóa** + nút "Use this frame" |
+| Xong quest (từng quest) | Card quest: icon check `pop` + viền vàng chớp; số "+30 Astrite" bay lên số dư |
+| Xong 2/2 quest ngày | Banner thưởng trượt vào + số Astrite đếm lên |
+| Mua item ở Shop | Item `pop` + lấp lánh, số dư **đếm xuống** |
+| Kết bạn thành công (QR) | Avatar 2 người chụm vào nhau + confetti nhỏ |
+| AI challenge đúng | Thay toast bằng sheet "Challenge complete! 🎯" |
+
+### 0.6 Tiến độ & gamification hiển thị — ✅ nguyên tắc / ⏳ bố cục
+- Streak: **thanh tiến độ tới mốc kế tiếp** ("5 / 7 → unlock frame"), không chỉ số trần.
+- Quest: vòng tiến độ tổng `completed/total`; phần thưởng (+60 / +30 Astrite) **hiện trước** khi làm, không chỉ sau.
+- Card quest chưa xong có **CTA đi làm ngay** (vd "Post a moment" → camera).
+- ⏳ Nhắc giữ streak: badge/nhấp nháy ở tab Quest khi hôm nay chưa đăng bài.
+
+### 0.7 Màu bổ sung — ⏳ chờ chốt (đụng nguyên tắc 1.2 "vàng là accent duy nhất")
+Đề xuất thêm **token chức năng** (không phải accent trang trí), có giá trị riêng mỗi skin:
+| Token đề xuất | Default skin | Vai trò |
+|---|---|---|
+| `success` | `#58CC7A` (xanh lá dịu) | Quest xong, thao tác thành công, check |
+| `streak` | `#FF9F1C` (cam lửa) | Riêng streak 🔥 — tách khỏi `accentGold` |
+| `info` | `#4FC3F7` | Thông tin trung tính, link phụ |
+| `badge` | ⏳ đỏ `#FF3B30` **hoặc** `accentGold` | Badge chưa đọc — thống nhất 1 màu (hiện footer đỏ, top bar vàng) |
+| `accentShadow` | accent tối 30% | Đáy nút chunky (0.3) |
+Kiểm contrast ≥ 4.5:1 cho chữ, ≥ 3:1 cho icon/viền trên `#121212`.
+
+### 0.8 Typography v2 — ⏳ chờ chốt font
+- Skill gợi ý cặp **Fredoka (tiêu đề) + Nunito (nội dung)** — tròn, thân thiện, có Google Fonts (OFL), hỗ trợ tiếng Việt cần kiểm tra Fredoka. Phương án khác: **Nunito** cho cả hai (an toàn tiếng Việt).
+- Bổ sung đủ thang M3 vào `Type.kt` (display/headline/title/body/label) **kèm fontWeight** — bỏ thói quen set `fontWeight` tại chỗ.
+- Số gamification (streak, Astrite, đếm quest) dùng style riêng `numberDisplay`: 28–40sp ExtraBold, `fontFeatureSettings = "tnum"` để số đếm lên không nhảy bề ngang.
+- ✅ Chữ tối thiểu **12sp**; không dùng alpha để làm mờ chữ (dùng `textSecondary`).
+
+### 0.9 Giọng văn (UX copy) — ✅
+Ngắn, ấm, khích lệ, ngôi thứ hai. Empty/error state luôn có **1 hành động**:
+- ❌ "No posts to show" → ✅ "Nothing here yet — be the first to share today!" + nút **Open camera**
+- ❌ (lỗi mạng hiện như rỗng) → ✅ "Couldn't load. Check your connection." + **Retry**
+- Thành công: "Posted! 🔥 Streak: 6 days" thay vì "Posted successfully!"
+
+### 0.10 Baseline accessibility & chất lượng (từ `UI_REVIEW.md`) — ✅ áp cho mọi UI mới/sửa
+- Touch target ≥ **48dp** (`minimumInteractiveComponentSize()`), giữ kích thước hiển thị.
+- Icon trang trí cạnh chữ: `contentDescription = null`; tab/chip có `selected` + `Role` trong semantics.
+- 3 trạng thái tách bạch **Loading (skeleton) / Error (+Retry) / Empty (+CTA)**; danh sách có pull-to-refresh.
+- Không xóa nội dung người dùng trước khi thao tác thành công; màn chỉnh sửa có "Discard changes?".
+- Phản hồi = **Snackbar** (có action Undo/Retry) thay Toast trong màn có Scaffold.
+- Màu mới → token `SkinColors` trước (luật SKIN), không hardcode trong `feature/`.
+
+---
+
 ## 1. Triết lý thiết kế (nhìn từ assets)
 
 1. **Dark-first, ảnh là nhân vật chính.** Nền đen gần tuyệt đối; UI chrome (bar, nút) tối giản, chìm xuống để ảnh nổi bật. Không dùng light theme (AppTheme đang force dark).
@@ -236,4 +336,6 @@ Gợi ý mặc định khi đề xuất: tái dùng component mục 7, màu mụ
 
 ---
 
-> **Checklist trước khi merge UI mới:** nền `GrayBackground`? bo góc theo mục 4? accent chỉ vàng? overlay đen mờ 50–60%? chữ Bold trắng/phụ xám `#B0B0B0`? component tái dùng từ mục 7? nếu tính năng thuộc mục 8 → đã hỏi user chưa?
+> **Checklist trước khi merge UI mới:** nền `GrayBackground`? bo góc theo mục 4? accent chỉ vàng (hoặc token chức năng mục 0.7 khi đã chốt)? overlay đen mờ 50–60%? chữ Bold trắng/phụ xám `#B0B0B0`? component tái dùng từ mục 7? nếu tính năng thuộc mục 8 → đã hỏi user chưa?
+>
+> **Checklist Playful v2 (mục 0):** mọi phần tử bấm được có press feedback + vùng chạm ≥ 48dp? haptic đúng bảng 0.4? animation dùng token 0.2 và tắt được khi reduced motion? ≤ 2 phần tử animate/màn? có Loading/Error+Retry/Empty+CTA? chữ ≥ 12sp, không làm mờ chữ bằng alpha? icon trang trí `contentDescription = null`?

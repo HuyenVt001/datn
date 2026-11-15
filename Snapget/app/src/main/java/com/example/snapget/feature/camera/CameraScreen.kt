@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -164,7 +162,11 @@ fun CameraScreen(
             // Show camera view or post image based on the localCameraMode state
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                // Le 16dp + shape giong khung anh man EditMedia de 2 man trong y het nhau
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = SkinTheme.shapes.image,
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.Transparent, // removes gray background
@@ -172,7 +174,10 @@ fun CameraScreen(
             ) {
                 CameraPreviewWithZoom(
                     lifecycleOwner = lifecycleOwner,
-                    height = 360.dp,
+                    // Khung VUONG bo goc giong man chinh sua/bai dang (fix 2026-11-15):
+                    // truoc la rong-man-hinh x 360dp -> sang EditMedia bi cat 2 ria ngang
+                    aspectRatio = 1f,
+                    shape = SkinTheme.shapes.image,
                     onPhotoTaken = { photoPath ->
                         // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
                         // DA roi man camera -> bo qua, khong chong 2 man EditMedia
@@ -196,9 +201,7 @@ fun CameraScreen(
                     startRecordRequestId = startRecordRequestId,
                     stopRecordRequestId = stopRecordRequestId,
                     flipRequestId = flipRequestId,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(50.dp)),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 

@@ -18,6 +18,11 @@ import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
@@ -52,6 +57,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -86,6 +92,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -98,6 +105,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnLayout
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.LifecycleOwner
 import com.example.snapget.core.constants.MAX_VIDEO_SECONDS
@@ -127,6 +135,10 @@ fun CameraPreviewWithZoom(
     lifecycleOwner: LifecycleOwner,
     modifier: Modifier = Modifier,
     height: Dp = 300.dp,
+    // != null -> khung theo ti le rong/cao nay (bo qua `height`). CameraScreen
+    // truyen 1f: khung VUONG khop man chinh sua/bai dang -> chup sao dang vay.
+    aspectRatio: Float? = null,
+    shape: Shape = SkinTheme.shapes.input,
     onPhotoTaken: ((String) -> Unit)? = null,
     // Giu nut chup de quay video (<=5s). null = tat quay video
     onVideoTaken: ((String) -> Unit)? = null,
@@ -146,9 +158,9 @@ fun CameraPreviewWithZoom(
 
     // Calculate the actual modifier to use
     val sizeModifier = modifier
-        .height(height)
         .fillMaxWidth()
-        .clip(SkinTheme.shapes.input)
+        .then(if (aspectRatio != null) Modifier.aspectRatio(aspectRatio) else Modifier.height(height))
+        .clip(shape)
 
     var hasPermission by remember {
         mutableStateOf(
@@ -305,90 +317,112 @@ fun CameraPreviewWithZoom(
 
                         val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                         cameraProviderFuture.addListener({
-                            try {
-                                val cameraProvider = cameraProviderFuture.get()
-                                val preview = Preview.Builder()
-                                    .setTargetResolution(Size(1280, 720))
-                                    .build()
-
-                                preview.surfaceProvider = localPreviewView.surfaceProvider
-
-                                val imageCaptureUseCase = ImageCapture.Builder()
-                                    .setTargetResolution(Size(1280, 720))
-                                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                                    .build()
-
-                                imageCapture = imageCaptureUseCase
-
-                                val cameraSelector = if (isFrontCamera) {
-                                    CameraSelector.DEFAULT_FRONT_CAMERA
-                                } else {
-                                    CameraSelector.DEFAULT_BACK_CAMERA
-                                }
-
-                                cameraProvider.unbindAll()
-                                // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
-                                // stream -> fallback bind khong co video, chi chup anh.
-                                val camera = if (onVideoTaken != null) {
-                                    // Quality tu cao xuong thap + fallback: ep cung Quality.HD
-                                    // lam nhieu may (va emulator) bind FAIL -> mat han chuc nang
-                                    // quay GIF (fix 2026-08-03)
-                                    val recorder = Recorder.Builder()
-                                        .setQualitySelector(
-                                            QualitySelector.fromOrderedList(
-                                                listOf(Quality.HD, Quality.SD, Quality.LOWEST),
-                                                FallbackStrategy.lowerQualityOrHigherThan(Quality.SD),
+                            // Doi PreviewView co kich thuoc that roi moi bind: ViewPort lay
+                            // tu kich thuoc khung (viewPort = null khi view chua layout)
+                            localPreviewView.doOnLayout {
+                                try {
+                                    val cameraProvider = cameraProviderFuture.get()
+                                    // Preview + anh CUNG ti le 4:3 (truoc 2026-11-15 dung
+                                    // setTargetResolution(1280x720) — chi la goi y, 2 stream
+                                    // co the ra ti le khac nhau -> anh chup hep hon preview)
+                                    val resolutionSelector = ResolutionSelector.Builder()
+                                        .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+                                        .setResolutionStrategy(
+                                            ResolutionStrategy(
+                                                Size(1280, 960),
+                                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                                             ),
                                         )
                                         .build()
-                                    val videoCaptureUseCase = VideoCapture.withOutput(recorder)
-                                    try {
-                                        val cam = cameraProvider.bindToLifecycle(
-                                            lifecycleOwner,
-                                            cameraSelector,
-                                            preview,
-                                            imageCaptureUseCase,
-                                            videoCaptureUseCase,
-                                        )
-                                        videoCapture = videoCaptureUseCase
-                                        cam
-                                    } catch (e: Exception) {
-                                        Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
-                                        videoCapture = null
-                                        cameraProvider.unbindAll()
+                                    val preview = Preview.Builder()
+                                        .setResolutionSelector(resolutionSelector)
+                                        .build()
+
+                                    preview.surfaceProvider = localPreviewView.surfaceProvider
+
+                                    val imageCaptureUseCase = ImageCapture.Builder()
+                                        .setResolutionSelector(resolutionSelector)
+                                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                                        .build()
+
+                                    // WYSIWYG (fix 2026-11-15): gom use case vao 1 UseCaseGroup voi
+                                    // ViewPort cua PreviewView -> anh/GIF chup ra bi crop DUNG phan
+                                    // dang hien trong khung (FILL_CENTER). Truoc do bind roi nen anh
+                                    // chup lech FOV voi preview, sang man chinh sua trong nhu bi zoom.
+                                    val viewPort = localPreviewView.viewPort
+                                    fun group(vararg useCases: UseCase): UseCaseGroup = UseCaseGroup.Builder().apply {
+                                        viewPort?.let { setViewPort(it) }
+                                        useCases.forEach { addUseCase(it) }
+                                    }.build()
+
+                                    imageCapture = imageCaptureUseCase
+
+                                    val cameraSelector = if (isFrontCamera) {
+                                        CameraSelector.DEFAULT_FRONT_CAMERA
+                                    } else {
+                                        CameraSelector.DEFAULT_BACK_CAMERA
+                                    }
+
+                                    cameraProvider.unbindAll()
+                                    // Thu bind kem VideoCapture (quay video ngan). May LIMITED khong du
+                                    // stream -> fallback bind khong co video, chi chup anh.
+                                    val camera = if (onVideoTaken != null) {
+                                        // Quality tu cao xuong thap + fallback: ep cung Quality.HD
+                                        // lam nhieu may (va emulator) bind FAIL -> mat han chuc nang
+                                        // quay GIF (fix 2026-08-03)
+                                        val recorder = Recorder.Builder()
+                                            .setQualitySelector(
+                                                QualitySelector.fromOrderedList(
+                                                    listOf(Quality.HD, Quality.SD, Quality.LOWEST),
+                                                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD),
+                                                ),
+                                            )
+                                            .build()
+                                        val videoCaptureUseCase = VideoCapture.withOutput(recorder)
+                                        try {
+                                            val cam = cameraProvider.bindToLifecycle(
+                                                lifecycleOwner,
+                                                cameraSelector,
+                                                group(preview, imageCaptureUseCase, videoCaptureUseCase),
+                                            )
+                                            videoCapture = videoCaptureUseCase
+                                            cam
+                                        } catch (e: Exception) {
+                                            Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
+                                            videoCapture = null
+                                            cameraProvider.unbindAll()
+                                            cameraProvider.bindToLifecycle(
+                                                lifecycleOwner,
+                                                cameraSelector,
+                                                group(preview, imageCaptureUseCase),
+                                            )
+                                        }
+                                    } else {
                                         cameraProvider.bindToLifecycle(
                                             lifecycleOwner,
                                             cameraSelector,
-                                            preview,
-                                            imageCaptureUseCase,
+                                            group(preview, imageCaptureUseCase),
                                         )
                                     }
-                                } else {
-                                    cameraProvider.bindToLifecycle(
-                                        lifecycleOwner,
-                                        cameraSelector,
-                                        preview,
-                                        imageCaptureUseCase,
-                                    )
+                                    cameraControl = camera.cameraControl
+                                    cameraInfo = camera.cameraInfo
+
+                                    // Observe zoom state with enhanced feedback
+                                    cameraInfo?.zoomState?.observe(lifecycleOwner) { zoomState ->
+                                        zoomRatio = zoomState.zoomRatio
+                                        minZoom = zoomState.minZoomRatio
+                                        maxZoom = zoomState.maxZoomRatio
+                                    }
+
+                                    // (Pinch-zoom cu bang setOnTouchListener DA XOA 2026-07-26 —
+                                    // tra ve false nen mat ca gesture, khong zoom duoc. Thay bang
+                                    // pointerInput 2 ngon tren AndroidView ben duoi.)
+
+                                    isLoading = false
+                                } catch (exc: Exception) {
+                                    Log.e("CameraPreview", "Use case binding failed", exc)
+                                    isLoading = false
                                 }
-                                cameraControl = camera.cameraControl
-                                cameraInfo = camera.cameraInfo
-
-                                // Observe zoom state with enhanced feedback
-                                cameraInfo?.zoomState?.observe(lifecycleOwner) { zoomState ->
-                                    zoomRatio = zoomState.zoomRatio
-                                    minZoom = zoomState.minZoomRatio
-                                    maxZoom = zoomState.maxZoomRatio
-                                }
-
-                                // (Pinch-zoom cu bang setOnTouchListener DA XOA 2026-07-26 —
-                                // tra ve false nen mat ca gesture, khong zoom duoc. Thay bang
-                                // pointerInput 2 ngon tren AndroidView ben duoi.)
-
-                                isLoading = false
-                            } catch (exc: Exception) {
-                                Log.e("CameraPreview", "Use case binding failed", exc)
-                                isLoading = false
                             }
                         }, ContextCompat.getMainExecutor(ctx))
 
