@@ -1,10 +1,11 @@
 # KHONG commit data/model nhi phan (QUEST_AI_PLAN muc 3, 4.2)
+# (Rac Python: __pycache__, .pytest_cache, .venv... da chan o .gitignore goc)
 data/
 artifacts/
 *.onnx
 *.pt
 *.npz
-__pycache__/
-.pytest_cache/
-space/model/*.onnx
-space/model/*.json
+
+# Model cua ai-service: tai ve khi build/deploy, chi giu README huong dan
+ai-service/model/*
+!ai-service/model/README.md

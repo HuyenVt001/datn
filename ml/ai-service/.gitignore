@@ -1,3 +1,0 @@
-model/*.onnx
-model/*.json
-__pycache__/
