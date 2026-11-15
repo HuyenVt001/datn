@@ -1,14 +1,17 @@
+<!-- Skin 2 Forest · captions · ve boi Claude 2026-11-15 (glyph be + la 2 tong).
+     Thay bang ban thiet ke khac thi GIU NGUYEN TEN FILE, khong phai sua code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!--PLACEHOLDER skin2 · captions · thay bang thiet ke that, giu nguyen ten file-->
-    <path
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.9"
-        android:pathData="M2.8,12 a9.2,9.2 0 1 0 18.4,0 a9.2,9.2 0 1 0 -18.4,0 Z"/>
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12 6.6 15.9 17h-2.1l-.8-2.3H9l-.8 2.3H6.1L12 6.6zm-2.4 6.4h4.8L12 9.4l-2.4 3.6z"/>
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#E8D9A8" android:pathData="M11,10 H37 A6,6 0 0 1 43,16 V32 A6,6 0 0 1 37,38 H11 A6,6 0 0 1 5,32 V16 A6,6 0 0 1 11,10 Z"/>
+    <path android:strokeColor="#14301F" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M21.4,20.1 A5.5,5.5 0 1 0 21.4,27.9"/>
+    <path android:strokeColor="#14301F" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M34.4,20.1 A5.5,5.5 0 1 0 34.4,27.9"/>
+    <group android:translateX="41" android:translateY="11" android:rotation="-120" android:scaleX="0.95" android:scaleY="0.95">
+        <path android:fillColor="#8BC34A" android:pathData="M0,0 C2.5,-3.6 7.5,-3.8 10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:fillColor="#5C9A4A" android:pathData="M0,0 L10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:strokeColor="#3F7A35" android:strokeWidth="0.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0.8,0 L8.4,0"/>
+        <path android:strokeColor="#8B5E3C" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0,0 L-1.6,0.6"/>
+    </group>
 </vector>

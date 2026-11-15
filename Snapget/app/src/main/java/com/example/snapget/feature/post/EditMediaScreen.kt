@@ -35,11 +35,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -425,7 +425,7 @@ fun EditMediaScreen(
                     ) {
                         IconButton(onClick = { doodleMode = !doodleMode }) {
                             Icon(
-                                imageVector = Icons.Filled.Edit,
+                                imageVector = Icons.Outlined.Edit,
                                 contentDescription = "Draw",
                                 tint = if (doodleMode) SkinTheme.colors.accent else Color.White,
                                 modifier = Modifier.size(20.dp),
@@ -504,7 +504,7 @@ fun EditMediaScreen(
                             enabled = strokes.isNotEmpty(),
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Undo,
+                                imageVector = Icons.AutoMirrored.Outlined.Undo,
                                 contentDescription = "Undo stroke",
                                 tint = if (strokes.isNotEmpty()) Color.White else Color.Gray,
                             )
@@ -514,7 +514,7 @@ fun EditMediaScreen(
                             enabled = strokes.isNotEmpty(),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Delete,
+                                imageVector = Icons.Outlined.Delete,
                                 contentDescription = "Clear drawing",
                                 tint = if (strokes.isNotEmpty()) Color.White else Color.Gray,
                             )
@@ -646,7 +646,7 @@ private fun EditBottomBar(
     ) {
         IconButton(onClick = onCancel) {
             Icon(
-                imageVector = Icons.Filled.Close,
+                imageVector = Icons.Outlined.Close,
                 contentDescription = "Cancel",
                 tint = Color.White,
                 modifier = Modifier.size(32.dp),
@@ -662,7 +662,7 @@ private fun EditBottomBar(
         ) {
             IconButton(onClick = onNext, modifier = Modifier.fillMaxSize()) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = "Next",
                     tint = Color.Black,
                     modifier = Modifier.size(36.dp),

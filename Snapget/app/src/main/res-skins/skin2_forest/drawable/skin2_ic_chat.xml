@@ -1,10 +1,18 @@
+<!-- Skin 2 Forest · chat · ve boi Claude 2026-11-15 (glyph be + la 2 tong).
+     Thay bang ban thiet ke khac thi GIU NGUYEN TEN FILE, khong phai sua code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!--PLACEHOLDER skin2 · chat · thay bang thiet ke that, giu nguyen ten file-->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#E8D9A8" android:pathData="M24,8 C34.5,8 42,14.6 42,23 C42,31.4 34.5,38 24,38 C21.8,38 19.7,37.7 17.8,37.2 L9.5,41 Q8,41.6 8.3,40 L9.6,33.4 C7.3,30.6 6,27 6,23 C6,14.6 13.5,8 24,8 Z"/>
+    <path android:fillColor="#14301F" android:pathData="M16.5,20.6 A2.4,2.4 0 1 1 16.49,20.6 Z"/>
+    <path android:fillColor="#14301F" android:pathData="M24,20.6 A2.4,2.4 0 1 1 23.99,20.6 Z"/>
+    <path android:fillColor="#14301F" android:pathData="M31.5,20.6 A2.4,2.4 0 1 1 31.49,20.6 Z"/>
+    <group android:translateX="12" android:translateY="10.5" android:rotation="-150" android:scaleX="1.0" android:scaleY="1.0">
+        <path android:fillColor="#8BC34A" android:pathData="M0,0 C2.5,-3.6 7.5,-3.8 10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:fillColor="#5C9A4A" android:pathData="M0,0 L10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:strokeColor="#3F7A35" android:strokeWidth="0.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0.8,0 L8.4,0"/>
+        <path android:strokeColor="#8B5E3C" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0,0 L-1.6,0.6"/>
+    </group>
 </vector>

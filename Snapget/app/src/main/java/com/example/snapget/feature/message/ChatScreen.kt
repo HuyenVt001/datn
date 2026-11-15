@@ -33,14 +33,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -89,6 +89,7 @@ import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.skinChatWallpaper
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.copyUriToCacheFile
@@ -178,9 +179,12 @@ fun ChatScreen(
     AutoScrollToBottom(listState = listState, itemCount = thread.size)
 
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
         // (truoc day ban phim CHE ca o go text)
-        modifier = Modifier.imePadding(),
+        // Skin v2: hoa van particle + lop diu nen, ve TRUOC imePadding de phu ca man
+        modifier = Modifier.skinChatWallpaper().imePadding(),
         topBar = {
             ChatTopBar(
                 navController = navController,
@@ -240,8 +244,7 @@ fun ChatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+                .padding(paddingValues),
         ) {
             when {
                 threadStatus is LoadStatus.Loading && thread.isEmpty() -> {
@@ -447,7 +450,7 @@ fun ChatTopBar(
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = "Back",
                 )
             }
@@ -533,7 +536,7 @@ fun ChatInputPill(
                 if (onCancelReply != null) {
                     IconButton(onClick = onCancelReply, modifier = Modifier.size(ChatTouchTarget)) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Outlined.Close,
                             contentDescription = "Cancel reply",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
@@ -649,7 +652,7 @@ fun ChatInputPill(
                     if (onPhotoClick != null) {
                         IconButton(onClick = onPhotoClick, modifier = Modifier.size(ChatTouchTarget)) {
                             Icon(
-                                imageVector = Icons.Default.Image,
+                                imageVector = Icons.Outlined.Image,
                                 contentDescription = "Send photo",
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
@@ -661,7 +664,7 @@ fun ChatInputPill(
                             modifier = Modifier.size(ChatTouchTarget),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.EmojiEmotions,
+                                imageVector = Icons.Outlined.EmojiEmotions,
                                 contentDescription = "Sticker",
                                 tint = if (showStickers) {
                                     SkinTheme.colors.accent
@@ -677,7 +680,7 @@ fun ChatInputPill(
                             modifier = Modifier.size(ChatTouchTarget),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Mic,
+                                imageVector = Icons.Outlined.Mic,
                                 contentDescription = "Record voice",
                                 tint = if (voiceRecorder.isRecording) {
                                     SkinTheme.colors.error
@@ -708,7 +711,7 @@ fun ChatInputPill(
                 ) {
                     SkinIcon(
                         res = SkinTheme.icons.send,
-                        fallback = Icons.AutoMirrored.Filled.Send,
+                        fallback = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = null,
                         tint = SkinTheme.colors.onAccent,
                         modifier = Modifier.size(20.dp),
@@ -906,7 +909,7 @@ fun MessageBubble(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlayArrow,
+                                imageVector = Icons.Outlined.PlayArrow,
                                 contentDescription = "Play video",
                                 tint = SkinTheme.colors.textPrimary,
                             )
@@ -1046,7 +1049,7 @@ private fun MessageActionRow(
             if (onReactClick != null) {
                 IconButton(onClick = onReactClick) {
                     Icon(
-                        imageVector = Icons.Default.EmojiEmotions,
+                        imageVector = Icons.Outlined.EmojiEmotions,
                         contentDescription = "React to message",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),
@@ -1056,7 +1059,7 @@ private fun MessageActionRow(
             if (onReplyClick != null) {
                 IconButton(onClick = onReplyClick) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Reply,
+                        imageVector = Icons.AutoMirrored.Outlined.Reply,
                         contentDescription = "Reply to message",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp),

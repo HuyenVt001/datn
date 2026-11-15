@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -27,9 +27,9 @@ import androidx.navigation.compose.rememberNavController
 import com.example.snapget.navigation.Screen
 
 val buttons = listOf(
-    Triple(Icons.Filled.Group, "", "FRIEND"),
-    Triple(Icons.Filled.Settings, Screen.Setting.route, "Settings"),
-    Triple(Icons.AutoMirrored.Filled.KeyboardArrowRight, Screen.Post.route, "Home"),
+    Triple(Icons.Outlined.Group, "", "FRIEND"),
+    Triple(Icons.Outlined.Settings, Screen.Setting.route, "Settings"),
+    Triple(Icons.AutoMirrored.Outlined.KeyboardArrowRight, Screen.Post.route, "Home"),
 )
 
 // Nut "Get Locket Gold" da XOA (2026-07-13): toan bo tinh nang mien phi, khong co thanh toan

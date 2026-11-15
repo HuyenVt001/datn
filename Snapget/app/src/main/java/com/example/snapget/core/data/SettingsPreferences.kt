@@ -37,7 +37,13 @@ class SettingsPreferences @Inject constructor(
     /** Luu trang thai toggle moi cho 1 setting. */
     fun setToggle(settingId: String, isToggled: Boolean) {
         prefs.edit { putBoolean(settingId, isToggled) }
+        if (settingId == SettingIds.AMBIENT_EFFECTS) _ambientEffectsEnabled.value = isToggled
     }
+
+    // Hat bay tren nen skin (Skin v2 — 2026-11-15). Can StateFlow (khong chi doc 1 lan)
+    // de bat/tat trong Settings la backdrop dung/chay lai ngay.
+    private val _ambientEffectsEnabled = MutableStateFlow(prefs.getBoolean(SettingIds.AMBIENT_EFFECTS, true))
+    val ambientEffectsEnabled: StateFlow<Boolean> = _ambientEffectsEnabled.asStateFlow()
 
     /** Doc truc tiep trang thai toggle 1 setting (widget doc live, khong qua list). */
     fun isToggled(settingId: String, default: Boolean): Boolean = prefs.getBoolean(settingId, default)

@@ -29,8 +29,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AddCircle
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -216,18 +216,18 @@ fun ShopScreenContent(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
         },
-        containerColor = SkinTheme.colors.background,
+        containerColor = Color.Transparent,
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             val selectedIndex = uiState.tab.ordinal
             TabRow(
                 selectedTabIndex = selectedIndex,
-                containerColor = SkinTheme.colors.background,
+                containerColor = Color.Transparent,
                 contentColor = SkinTheme.colors.accent,
                 indicator = { positions ->
                     TabRowDefaults.SecondaryIndicator(
@@ -347,7 +347,7 @@ private fun AstriteBalance(astrite: Int, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(6.dp))
         Icon(
-            imageVector = Icons.Filled.AddCircle,
+            imageVector = Icons.Outlined.AddCircle,
             contentDescription = "Top up Astrite",
             tint = SkinTheme.colors.accent,
             modifier = Modifier.size(20.dp),
@@ -548,7 +548,7 @@ private fun CornerBadge(
             .padding(horizontal = 7.dp, vertical = 2.dp),
     ) {
         Icon(
-            imageVector = Icons.Filled.Check,
+            imageVector = Icons.Outlined.Check,
             contentDescription = null,
             tint = content,
             modifier = Modifier.size(12.dp),

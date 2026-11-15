@@ -1,14 +1,26 @@
+<!-- Skin 2 Forest · camera · ve boi Claude 2026-11-15 (glyph be + la 2 tong).
+     Thay bang ban thiet ke khac thi GIU NGUYEN TEN FILE, khong phai sua code. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!--PLACEHOLDER skin2 · camera · thay bang thiet ke that, giu nguyen ten file-->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M9.5 4h5l1.2 2H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4.3L9.5 4z"/>
-    <path
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.8"
-        android:pathData="M7.8,13 a4.2,4.2 0 1 0 8.4,0 a4.2,4.2 0 1 0 -8.4,0 Z"/>
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#E8D9A8" android:pathData="M10,14 H15.5 L18,9.5 Q18.6,8.5 19.8,8.5 H28.2 Q29.4,8.5 30,9.5 L32.5,14 H38 A6,6 0 0 1 44,20 V35 A6,6 0 0 1 38,41 H10 A6,6 0 0 1 4,35 V20 A6,6 0 0 1 10,14 Z"/>
+    <path android:fillColor="#C9B57A" android:pathData="M4,32 H44 V35 A6,6 0 0 1 38,41 H10 A6,6 0 0 1 4,35 Z"/>
+    <path android:fillColor="#14301F" android:pathData="M24,17.5 A9.5,9.5 0 1 1 23.99,17.5 Z"/>
+    <path android:fillColor="#5C9A4A" android:pathData="M24,20.5 A6.5,6.5 0 1 1 23.99,20.5 Z"/>
+    <path android:fillColor="#E8D9A8" android:pathData="M21.5,22.5 A2,2 0 1 1 21.49,22.5 Z"/>
+    <path android:fillColor="#14301F" android:pathData="M37.5,18 A1.8,1.8 0 1 1 37.49,18 Z"/>
+    <group android:translateX="8" android:translateY="15" android:rotation="-60" android:scaleX="1.0" android:scaleY="1.0">
+        <path android:fillColor="#8BC34A" android:pathData="M0,0 C2.5,-3.6 7.5,-3.8 10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:fillColor="#5C9A4A" android:pathData="M0,0 L10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:strokeColor="#3F7A35" android:strokeWidth="0.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0.8,0 L8.4,0"/>
+        <path android:strokeColor="#8B5E3C" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0,0 L-1.6,0.6"/>
+    </group>
+    <group android:translateX="8" android:translateY="15" android:rotation="-15" android:scaleX="0.8" android:scaleY="0.8">
+        <path android:fillColor="#8BC34A" android:pathData="M0,0 C2.5,-3.6 7.5,-3.8 10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:fillColor="#5C9A4A" android:pathData="M0,0 L10,0 C7.5,3.8 2.5,3.6 0,0 Z"/>
+        <path android:strokeColor="#3F7A35" android:strokeWidth="0.7" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0.8,0 L8.4,0"/>
+        <path android:strokeColor="#8B5E3C" android:strokeWidth="1.1" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M0,0 L-1.6,0.6"/>
+    </group>
 </vector>

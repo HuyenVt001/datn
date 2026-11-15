@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,7 +52,7 @@ fun MessageInputPill(
         Text("🔥", modifier = Modifier.padding(horizontal = 4.dp))
 
         Icon(
-            imageVector = Icons.Default.AddCircle,
+            imageVector = Icons.Outlined.AddCircle,
             contentDescription = "More",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

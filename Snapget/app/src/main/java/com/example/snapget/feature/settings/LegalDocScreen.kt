@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,11 +36,13 @@ fun LegalDocScreen(
     val sections = if (isTerms) termsSections else privacySections
 
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         topBar = {
             CommonTopBar(
                 navController = navController,
                 title = title,
-                startIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                startIcon = Icons.AutoMirrored.Outlined.ArrowBack,
                 onStartIconClick = { navController.popBackStack() },
             )
         },

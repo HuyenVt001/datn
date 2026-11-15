@@ -1,6 +1,5 @@
 package com.example.snapget.feature.post
 
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -26,8 +25,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
@@ -69,8 +68,6 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.state.EmptyState
 import com.example.snapget.core.designsystem.component.state.ErrorState
 import com.example.snapget.core.designsystem.component.state.SkeletonBlock
@@ -78,20 +75,21 @@ import com.example.snapget.core.designsystem.component.state.SkeletonGrid
 import com.example.snapget.core.designsystem.component.state.skeleton
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
 import com.example.snapget.core.model.auth.AuthState
-import com.example.snapget.core.network.dto.CoopInviteDto
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.MediaActions
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.feature.auth.AuthViewModel
+import com.example.snapget.feature.coop.CoopInviteBanner
 import com.example.snapget.feature.coop.CoopViewModel
+import com.example.snapget.feature.friends.FriendsSheetHost
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Keo xuong qua nguong nay khi dang o POST MOI NHAT -> quay ve man camera
@@ -127,11 +125,10 @@ fun PostScreen(
     val userMomentsStatus by postViewModel.userMomentsStatus.collectAsState()
     val frames by postViewModel.frames.collectAsState()
 
-    // Loi moi chup chung dang cho (banner tren feed) + dialog tra loi
+    // Loi moi chup chung dang cho: the CoopInviteBanner (Accept/Decline ngay tren the,
+    // tu poll + dem nguoc — 2026-11-16, thay banner chu + dialog cu)
     val coopViewModel: CoopViewModel = hiltViewModel()
-    val pendingInvites by coopViewModel.pendingInvites.collectAsState()
     val coopError by coopViewModel.coopError.collectAsState()
-    var coopInviteToRespond by remember { mutableStateOf<CoopInviteDto?>(null) }
 
     LaunchedEffect(coopError) {
         coopError?.let {
@@ -140,22 +137,9 @@ fun PostScreen(
         }
     }
 
-    // Loi moi coop TTL chi 5 PHUT — poll nhe 10s/lan khi dang o feed de banner
-    // hien kip (truoc chi load luc vao feed: ngoi xem feed la lo luon loi moi)
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(10_000)
-            if (authState is AuthState.Authenticated) {
-                coopViewModel.loadPending()
-            }
-        }
-    }
-
     // Sheet ban be (QR ket ban) — data tu API /friendships
     val friendsViewModel: FriendsViewModel = hiltViewModel()
     val apiFriends by friendsViewModel.friends.collectAsState()
-    val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
-    val inviteLink by friendsViewModel.inviteLink.collectAsState()
     val friendRequests by friendsViewModel.requests.collectAsState()
     var showFriendSheet by remember { mutableStateOf(false) }
 
@@ -190,7 +174,6 @@ fun PostScreen(
                 mainViewModel.fetchCurrentUser()
                 postViewModel.loadFeed() // feed tu server NestJS
                 postViewModel.loadFrames() // catalog khung (overlay len anh)
-                coopViewModel.loadPending() // loi moi chup chung dang cho
                 friendsViewModel.loadFriends() // dropdown top bar + resolve tac gia
                 friendsViewModel.loadRequests() // banner 💌 loi moi ket ban dang cho
             }
@@ -473,7 +456,7 @@ fun PostScreen(
                         IconButton(onClick = { showGrid = true }) {
                             SkinIcon(
                                 res = SkinTheme.icons.grid,
-                                fallback = Icons.Default.GridView,
+                                fallback = Icons.Outlined.GridView,
                                 contentDescription = "All posts",
                                 // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
                                 tint = MaterialTheme.colorScheme.onBackground,
@@ -487,7 +470,7 @@ fun PostScreen(
                         ) {
                             SkinIcon(
                                 res = SkinTheme.icons.more,
-                                fallback = Icons.Default.MoreHoriz,
+                                fallback = Icons.Outlined.MoreHoriz,
                                 contentDescription = "Post options",
                                 tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(32.dp),
@@ -521,9 +504,6 @@ fun PostScreen(
             },
             // Hang "Add friends" cuoi dropdown -> mo sheet ban be
             onAddFriendsClick = {
-                friendsViewModel.loadFriends()
-                friendsViewModel.loadInviteLink()
-                friendsViewModel.loadRequests() // loi moi dang cho minh xac nhan
                 showFriendSheet = true
             },
             onQuestClick = null,
@@ -539,30 +519,11 @@ fun PostScreen(
                 .align(Alignment.TopCenter)
                 .padding(top = 140.dp, start = 16.dp, end = 16.dp),
         ) {
-            // Loi moi chup chung — cham de mo dialog Accept/Decline (redesign 2026-08-02)
-            pendingInvites.firstOrNull()?.let { invite ->
-                Surface(
-                    shape = SkinTheme.shapes.image,
-                    color = SkinTheme.colors.accent,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.clickable { coopInviteToRespond = invite },
-                ) {
-                    Text(
-                        text = buildString {
-                            append("📸 ")
-                            append(invite.inviterName ?: "A friend")
-                            append(" invited you to a co-op capture!")
-                            if (pendingInvites.size > 1) {
-                                append(" (+${pendingInvites.size - 1})")
-                            }
-                        },
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    )
-                }
-            }
+            // The loi moi chup chung (dem nguoc + Accept/Decline ngay tren the)
+            CoopInviteBanner(
+                coopViewModel = coopViewModel,
+                navController = navController,
+            )
 
             // Loi moi ket ban dang cho — cham de mo sheet ban be (section 💌) xac nhan.
             // Hien ca khi app dang mo (FCM chi bao khi o ngoai app) — fix 2026-07-27
@@ -572,9 +533,6 @@ fun PostScreen(
                     color = SkinTheme.colors.accent,
                     shadowElevation = 6.dp,
                     modifier = Modifier.clickable {
-                        friendsViewModel.loadFriends()
-                        friendsViewModel.loadInviteLink()
-                        friendsViewModel.loadRequests()
                         showFriendSheet = true
                     },
                 ) {
@@ -600,65 +558,11 @@ fun PostScreen(
         FlyingEmojiOverlay(flyingEmojis)
 
         // Sheet quan ly ban be: dem ban, QR ket ban, xoa ban (xac nhan trong sheet)
-        UserDetailBottomSheet(
-            data = if (showFriendSheet) {
-                UserDetailBottomSheetData(
-                    friends = apiFriends,
-                    isLoading = apiFriendsStatus is LoadStatus.Loading,
-                    inviteCode = inviteLink?.inviteCode,
-                    inviteLink = inviteLink?.link,
-                    inviteExpiresAt = inviteLink?.expiresAt,
-                    requests = friendRequests,
-                    onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
-                    onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
-                    onScanQrClick = {
-                        showFriendSheet = false
-                        navController.navigate(Screen.QrScan.route)
-                    },
-                    onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
-                )
-            } else {
-                null
-            },
+        FriendsSheetHost(
+            visible = showFriendSheet,
             onDismiss = { showFriendSheet = false },
-        )
-    }
-
-    // ==== Dialog tra loi loi moi CHUP CHUNG: Accept -> man chup coop; Decline ====
-    coopInviteToRespond?.let { invite ->
-        val inviterName = invite.inviterName ?: "A friend"
-        AlertDialog(
-            onDismissRequest = { coopInviteToRespond = null },
-            title = { Text("Co-op capture invite") },
-            text = {
-                Text("$inviterName invited you to take a photo together. Invites expire after 5 minutes.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        coopInviteToRespond = null
-                        coopViewModel.acceptInvite(invite.inviteId) {
-                            navController.navigate(
-                                Screen.CoopCapture.route +
-                                    "?inviteId=" + invite.inviteId +
-                                    "&name=" + Uri.encode(inviterName),
-                            )
-                        }
-                    },
-                ) {
-                    Text("Accept")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        coopViewModel.declineInvite(invite.inviteId)
-                        coopInviteToRespond = null
-                    },
-                ) {
-                    Text("Decline", color = MaterialTheme.colorScheme.error)
-                }
-            },
+            navController = navController,
+            friendsViewModel = friendsViewModel,
         )
     }
 
@@ -776,6 +680,7 @@ internal fun PostOptionsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { SkinSheetDragHandle(sheetColor = MaterialTheme.colorScheme.surface) },
     ) {
         Column(
             modifier = Modifier

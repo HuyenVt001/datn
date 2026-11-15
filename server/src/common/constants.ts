@@ -8,6 +8,8 @@ export const MAX_VIDEO_SECONDS = 3; // Do dai "anh GIF" (clip ngan, lap vo han, 
 export const DAILY_QUESTS_PER_DAY = 3; // 2 quest co dinh (LOGIN + POST_MOMENT) + 1 quest AI (AI_CHALLENGE) — nang tu 2 len 3 theo thiet ke goc (2026-08-15, QUEST_AI_PLAN.md)
 export const STREAK_MILESTONES = [3, 7, 14, 30]; // Moc streak ca nhan duoc thuong khung
 export const COOP_INVITE_TTL_MINUTES = 5; // Loi moi chup chung qua 5 phut chua tra loi -> het han
+export const COOP_SESSION_TTL_MINUTES = 10; // Phien chup chung da ACCEPTED qua 10 phut chua ghep xong -> het han (2 ben bi kill app khong treo mai)
+export const COOP_MEDIA_ALLOWED_HOSTS = ['res.cloudinary.com']; // Nua anh coop chi nhan URL tu Cloudinary (server tai ve de ghep — chong SSRF)
 export const INVITE_LINK_TTL_DAYS = 30; // Ma moi ket ban hieu luc 30 ngay; het han -> sinh ma moi, ma cu vo hieu (chot 2026-07-19)
 export const INVITE_LINK_BASE_URL = 'https://snapget-d8693.web.app/invite/'; // Firebase Hosting cua project — App Links verify duoc (assetlinks.json trong hosting/)
 

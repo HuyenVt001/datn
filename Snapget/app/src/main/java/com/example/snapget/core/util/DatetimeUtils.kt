@@ -7,7 +7,41 @@ import com.example.snapget.core.constants.Month
 import com.example.snapget.core.model.Post
 import com.example.snapget.feature.profile.DayPostGroup
 import com.example.snapget.feature.profile.MonthPosts
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.util.Locale
+import java.util.TimeZone
+import java.util.concurrent.TimeUnit
+
+/**
+ * ISO server ("2026-11-15T07:30:00.000Z") -> "just now" / "5m ago" / "2h ago" / "3d ago" /
+ * "2w ago"; cu hon 8 tuan -> "dd/MM/yyyy". SimpleDateFormat thay java.time (minSdk 24).
+ * null / sai dinh dang -> null (UI an dong).
+ */
+fun timeAgo(iso: String?, nowMs: Long = System.currentTimeMillis()): String? {
+    if (iso == null || iso.length < 19) return null
+    val parsed = try {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .parse(iso.take(19))
+    } catch (_: ParseException) {
+        null
+    } ?: return null
+    // Lech dong ho may (thoi diem "tuong lai") -> coi nhu vua xong
+    val diff = (nowMs - parsed.time).coerceAtLeast(0)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
+    val hours = TimeUnit.MILLISECONDS.toHours(diff)
+    val days = TimeUnit.MILLISECONDS.toDays(diff)
+    return when {
+        minutes < 1 -> "just now"
+        hours < 1 -> "${minutes}m ago"
+        days < 1 -> "${hours}h ago"
+        days < 7 -> "${days}d ago"
+        days < 56 -> "${days / 7}w ago"
+        else -> SimpleDateFormat("dd/MM/yyyy", Locale.US).format(parsed)
+    }
+}
 
 fun calculateDaysOfMonthInYear(
     month: Month,

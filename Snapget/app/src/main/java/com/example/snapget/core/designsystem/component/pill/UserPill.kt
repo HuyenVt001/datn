@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,7 +47,7 @@ data class UserPillConfig(
     val showTrailingContent: Boolean = true,
     val trailingContent: @Composable () -> Unit = {
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
             contentDescription = "Navigate",
             tint = MaterialTheme.colorScheme.primary,
         )
@@ -136,7 +136,7 @@ fun UserPillWithIcon(
             textAlign = TextAlign.CENTER,
             trailingContent = {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Message,
+                    imageVector = Icons.AutoMirrored.Outlined.Message,
                     contentDescription = "Message",
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -225,7 +225,7 @@ fun UserListWithIcons(
         config = UserPillConfig(
             trailingContent = {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Message,
+                    imageVector = Icons.AutoMirrored.Outlined.Message,
                     contentDescription = "Message",
                     tint = MaterialTheme.colorScheme.primary,
                 )

@@ -36,6 +36,13 @@ describe('CoopService', () => {
   const acceptedInvite = {
     ...pendingInvite,
     status: 'ACCEPTED' as const,
+    respondedAt: new Date().toISOString(),
+  };
+
+  /** Phien ACCEPTED tu 11 phut truoc — qua han phien 10 phut. */
+  const staleSession = {
+    ...acceptedInvite,
+    respondedAt: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
   };
 
   function mockMerge() {
@@ -52,6 +59,7 @@ describe('CoopService', () => {
       create: jest.fn(),
       findById: jest.fn(),
       listPendingForInvitee: jest.fn().mockResolvedValue([]),
+      listPendingBetween: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue(undefined),
       transition: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<CoopRepository>;
@@ -63,6 +71,7 @@ describe('CoopService', () => {
     } as unknown as jest.Mocked<UsersRepository>;
     usersService = {
       pushToUids: jest.fn().mockResolvedValue(0),
+      pushDataToUids: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<UsersService>;
     framesService = {
       unlockCoopFrames: jest.fn().mockResolvedValue([]),
@@ -105,6 +114,43 @@ describe('CoopService', () => {
         expect.not.objectContaining({ inviterMediaUrl: expect.anything() }),
       );
       expect(result.inviteId).toBe('i1');
+      // Kem dem nguoc cho app (khong luu DB)
+      expect(result.remainingSeconds).toBeGreaterThan(290);
+      expect(result.expiresAt).toBeDefined();
+    });
+
+    it('push loi moi kem TEN nguoi moi', async () => {
+      repo.create.mockResolvedValue(pendingInvite as never);
+      usersRepo.findByUid.mockResolvedValue({ uid: 'alice', fullName: 'Alice' } as never);
+
+      await service.createInvite('alice', dto);
+
+      expect(usersService.pushToUids).toHaveBeenCalledWith(
+        ['bob'],
+        expect.stringContaining('Alice'),
+        expect.any(String),
+        expect.objectContaining({ type: 'COOP_INVITE' }),
+      );
+    });
+
+    it('da co loi moi CON HAN cho cung nguoi -> tra ve loi moi cu, khong tao/push lai', async () => {
+      repo.listPendingBetween.mockResolvedValue([pendingInvite] as never);
+
+      const result = await service.createInvite('alice', dto);
+
+      expect(result.inviteId).toBe('i1');
+      expect(repo.create).not.toHaveBeenCalled();
+      expect(usersService.pushToUids).not.toHaveBeenCalled();
+    });
+
+    it('loi moi cu da QUA HAN -> danh dau EXPIRED roi tao loi moi moi', async () => {
+      repo.listPendingBetween.mockResolvedValue([expiredInvite] as never);
+      repo.create.mockResolvedValue(pendingInvite as never);
+
+      await service.createInvite('alice', dto);
+
+      expect(repo.transition).toHaveBeenCalledWith('i2', 'PENDING', 'EXPIRED');
+      expect(repo.create).toHaveBeenCalled();
     });
   });
 
@@ -167,6 +213,23 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i2', 'PENDING', 'EXPIRED');
     });
 
+    it('phien ACCEPTED qua 10 phut -> EXPIRED', async () => {
+      repo.findById.mockResolvedValue(staleSession as never);
+
+      const result = await service.getInvite('alice', 'i1');
+
+      expect(result.status).toBe('EXPIRED');
+      expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'EXPIRED');
+    });
+
+    it('phien ACCEPTED con han -> kem remainingSeconds cua phien', async () => {
+      repo.findById.mockResolvedValue(acceptedInvite as never);
+
+      const result = await service.getInvite('alice', 'i1');
+
+      expect(result.remainingSeconds).toBeGreaterThan(590);
+    });
+
     it('thua transition EXPIRED (accept vua thang) -> tra ve trang thai THAT tu DB', async () => {
       repo.findById
         .mockResolvedValueOnce(expiredInvite as never)
@@ -180,7 +243,29 @@ describe('CoopService', () => {
   });
 
   describe('submitMedia', () => {
-    const dto = { mediaUrl: 'https://cdn/half.jpg' };
+    const dto = { mediaUrl: 'https://res.cloudinary.com/demo/half.jpg' };
+
+    it('chan URL KHONG phai Cloudinary (SSRF)', async () => {
+      repo.findById.mockResolvedValue(acceptedInvite as never);
+      for (const mediaUrl of [
+        'http://169.254.169.254/latest/meta-data',
+        'https://evil.example.com/a.jpg',
+        'http://res.cloudinary.com/demo/a.jpg',
+      ]) {
+        await expect(service.submitMedia('alice', 'i1', { mediaUrl })).rejects.toThrow(
+          BadRequestException,
+        );
+      }
+      expect(repo.update).not.toHaveBeenCalled();
+    });
+
+    it('chan nop anh khi phien da qua han 10 phut', async () => {
+      repo.findById.mockResolvedValue(staleSession as never);
+
+      await expect(service.submitMedia('alice', 'i1', dto)).rejects.toThrow(BadRequestException);
+      expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'EXPIRED');
+      expect(repo.update).not.toHaveBeenCalled();
+    });
 
     it('chan khi loi moi CHUA duoc chap nhan', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
@@ -202,13 +287,13 @@ describe('CoopService', () => {
     it('du 2 nua -> khoa ACCEPTED->COMPLETED, ghep + upload -> mergedMediaUrl, hook khung/streak', async () => {
       const bothHalves = {
         ...acceptedInvite,
-        inviterMediaUrl: 'https://cdn/left.jpg',
-        inviteeMediaUrl: 'https://cdn/right.jpg',
+        inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
+        inviteeMediaUrl: 'https://res.cloudinary.com/demo/right.jpg',
       };
       repo.findById
         .mockResolvedValueOnce({
           ...acceptedInvite,
-          inviterMediaUrl: 'https://cdn/left.jpg',
+          inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
         } as never)
         .mockResolvedValueOnce(bothHalves as never);
       const mergeSpy = mockMerge();
@@ -217,7 +302,10 @@ describe('CoopService', () => {
 
       expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'COMPLETED');
       // Trai = nguoi moi, phai = nguoi nhan
-      expect(mergeSpy).toHaveBeenCalledWith('https://cdn/left.jpg', 'https://cdn/right.jpg');
+      expect(mergeSpy).toHaveBeenCalledWith(
+        'https://res.cloudinary.com/demo/left.jpg',
+        'https://res.cloudinary.com/demo/right.jpg',
+      );
       expect(repo.update).toHaveBeenCalledWith('i1', { mergedMediaUrl: 'https://cdn/merged.jpg' });
       expect(result.status).toBe('COMPLETED');
       expect(result.mergedMediaUrl).toBe('https://cdn/merged.jpg');
@@ -229,8 +317,8 @@ describe('CoopService', () => {
     it('2 ben nop cung luc: ben thua transaction KHONG ghep lai, tra ve trang thai THAT', async () => {
       const bothHalves = {
         ...acceptedInvite,
-        inviterMediaUrl: 'https://cdn/left.jpg',
-        inviteeMediaUrl: 'https://cdn/right.jpg',
+        inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
+        inviteeMediaUrl: 'https://res.cloudinary.com/demo/right.jpg',
       };
       repo.findById
         .mockResolvedValueOnce(bothHalves as never)
@@ -254,8 +342,8 @@ describe('CoopService', () => {
     it('ghep FAIL -> tra loi moi ve ACCEPTED de nop lai', async () => {
       const bothHalves = {
         ...acceptedInvite,
-        inviterMediaUrl: 'https://cdn/left.jpg',
-        inviteeMediaUrl: 'https://cdn/right.jpg',
+        inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
+        inviteeMediaUrl: 'https://res.cloudinary.com/demo/right.jpg',
       };
       repo.findById
         .mockResolvedValueOnce(bothHalves as never)
@@ -268,7 +356,8 @@ describe('CoopService', () => {
         .mockRejectedValue(new BadRequestException('Khong tai duoc anh de ghep.'));
 
       await expect(service.submitMedia('bob', 'i1', dto)).rejects.toThrow(BadRequestException);
-      expect(repo.update).toHaveBeenCalledWith('i1', { status: 'ACCEPTED' });
+      // Revert qua TRANSITION co khoa, khong update tran
+      expect(repo.transition).toHaveBeenCalledWith('i1', 'COMPLETED', 'ACCEPTED');
     });
   });
 
@@ -292,10 +381,20 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i1', 'PENDING', 'DECLINED');
     });
 
-    it('NGUOI MOI cung huy duoc loi moi dang cho cua minh', async () => {
+    it('NGUOI MOI cung huy duoc loi moi dang cho cua minh + bao nguoi nhan (data-only)', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await service.decline('alice', 'i1');
       expect(repo.transition).toHaveBeenCalledWith('i1', 'PENDING', 'DECLINED');
+      expect(usersService.pushDataToUids).toHaveBeenCalledWith(['bob'], {
+        type: 'COOP_CANCELLED',
+        inviteId: 'i1',
+      });
+    });
+
+    it('nguoi nhan tu choi -> KHONG gui push huy', async () => {
+      repo.findById.mockResolvedValue(pendingInvite as never);
+      await service.decline('bob', 'i1');
+      expect(usersService.pushDataToUids).not.toHaveBeenCalled();
     });
 
     it('HUY duoc phien dang ACCEPTED (roi man chup) — ca 2 phia', async () => {

@@ -254,10 +254,25 @@ Giá trị thật trong code:
 
 ## 6. Iconography
 
-- **Material Icons** (đã có `material-icons-extended`): Filled khi active/nổi bật, Outlined khi phụ.
+- **Material Icons** (đã có `material-icons-extended`) — **đồng bộ theo style icon footer (chốt 2026-11-15):**
+  - **Mặc định = `Icons.Outlined.*`** (và `Icons.AutoMirrored.Outlined.*` cho mũi tên/send/message…) ở **mọi** nơi: top bar, setting row, sheet, nút hành động, camera, chat.
+  - **`Filled` CHỈ cho icon mang TRẠNG THÁI**: tab/item đang chọn (`selectedIcon` của footer/bottom bar), `Favorite` (= đã thích), `CheckCircle` (= đã chọn/thành công). Muốn thêm ngoại lệ → ghi vào đây trước.
+  - ❌ Không dùng `Icons.Default.*` / `Icons.Filled.*` cho icon trung tính (`Default` chính là Filled). Không dùng Rounded/Sharp/TwoTone.
+  - Icon riêng của skin (`SkinIcons`, Nhóm 1) vẽ theo art của skin, không bị luật này ràng buộc; nhánh fallback Material của `SkinIcon` vẫn là Outlined.
 - Icon đè trên ảnh: đặt trong hình tròn `Black 60%` (flash, zoom "1.0x", play video).
 - Icon hành động chính (chat, share, grid, flip camera): trắng, 24–32dp, nền tròn tối hoặc trần trên nền đen.
 - Emoji dùng trực tiếp trong UI (reaction ❤️🔥😄, streak 🔥, lockets ❤️) — không thay bằng icon vector.
+
+### 6.1 Nền skin & bề mặt kính (Skin v2 — chốt 2026-11-15, chi tiết `SKIN_PLAN.md` đầu file)
+
+- **Nền app = `SkinBackdrop`** vẽ 1 lần trong `Navigation.kt` (ảnh/gradient + scrim + glow + hạt bay + ornament). Màn **mới**:
+  - Màn **giao diện/danh sách** (settings, list, quest…) → `Scaffold(containerColor = Color.Transparent)`, **không** `.background(colors.background)` ở gốc.
+  - Màn **nội dung ảnh/camera** → giữ nền đặc `colors.background` + thêm route vào `routesCoveringBackdrop` (Navigation.kt) để hạt bay dừng.
+- **Card nằm trên backdrop** → `Modifier.skinGlass(shape)` (hoặc `glassColor()` khi API cần `Color`) thay cho `colors.surface`. 3 bậc: `Low` 6% (mặc định) · `Base` 10% · `High` 14%.
+- **Giữ ĐẶC:** dialog, bottom sheet (dùng `surface`/`surfaceContainer*`), nút chunky có lớp đáy (card Shop), mọi thứ đè lên ảnh.
+- Top bar trên backdrop: nền trong suốt (`SimpleTopBar` đã vậy). Footer: `background` 90%.
+- **Bottom sheet mới** → `dragHandle = { SkinSheetDragHandle(sheetColor = <đúng containerColor của sheet>) }` (hoặc dùng `AnimatedBottomSheet` — mặc định đã có). Handle riêng thì truyền vào tham số `handle`.
+- **Màn chat/hội thoại mới** → gắn `Modifier.skinChatWallpaper()` vào modifier gốc (trước `imePadding`).
 
 ---
 

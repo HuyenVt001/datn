@@ -268,11 +268,11 @@ export class MomentsService {
       return;
     }
     const me = await this.usersRepo.findByUid(authUser.uid);
-    const senderName = me?.fullName ?? 'Ban be cua ban';
+    const senderName = me?.fullName ?? 'Your friend';
     await this.usersService.pushToUids(
       friendIds,
       'Snapget',
-      `${senderName} vua dang mot khoanh khac moi!`,
+      `${senderName} just posted a new moment!`,
     );
   }
 }

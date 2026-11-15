@@ -1,7 +1,7 @@
 package com.example.snapget.core.designsystem.component.topbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -10,6 +10,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -36,7 +37,7 @@ fun SimpleTopBar(
                     // Material, nen 1 cho sua nay an cho MOI man dung SimpleTopBar
                     SkinIcon(
                         res = SkinTheme.icons.back,
-                        fallback = Icons.AutoMirrored.Filled.ArrowBack,
+                        fallback = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
@@ -45,7 +46,8 @@ fun SimpleTopBar(
         },
         modifier = modifier,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            // Skin v2: trong suot -> lo backdrop + ornament (man nen dac van dac nho Scaffold)
+            containerColor = Color.Transparent,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
         ),

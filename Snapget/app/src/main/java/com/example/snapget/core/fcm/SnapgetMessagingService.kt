@@ -49,6 +49,12 @@ class SnapgetMessagingService : FirebaseMessagingService() {
         /** data.type cua push nhac giu streak (server: UsersService.sendStreakReminders). */
         private const val TYPE_STREAK_REMINDER = "STREAK_REMINDER"
 
+        /** Route gia "mo sheet ban be" — MainActivity/Navigation xu ly (FriendsSheetLauncher). */
+        const val ROUTE_FRIENDS = "friends"
+
+        /** Route gia "mo the loi moi chup chung" — Navigation dua ve Camera (the nam o do). */
+        const val ROUTE_COOP_INVITE = "coop_invite"
+
         /** Trung PREFS_NAME cua SettingsPreferences (toggle luu theo setting id). */
         private const val SETTINGS_PREFS = "snapget_settings"
 
@@ -109,6 +115,28 @@ class SnapgetMessagingService : FirebaseMessagingService() {
             val enabled = getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE)
                 .getBoolean(SettingIds.STREAK_REMINDERS, true)
             if (enabled) showNotification(title, body, route = "camera")
+            return
+        }
+
+        // Loi moi ket ban / duoc chap nhan: bao VM dang song tai lai (app dang mo thi
+        // banner Feed + badge Camera cap nhat ngay); bam thong bao -> mo sheet ban be
+        val type = message.data["type"]
+        if (FriendPushEvents.isFriendType(type)) {
+            FriendPushEvents.emit(type!!)
+            showNotification(title, body, route = ROUTE_FRIENDS)
+            return
+        }
+
+        // Chup chung (2026-11-16): bao VM dang song cap nhat ngay (the loi moi / man
+        // chup coop). COOP_CANCELLED la data-only -> chi cap nhat, KHONG hien thong bao.
+        // Bam thong bao loi moi -> ve Camera (noi hien the Accept/Decline).
+        if (CoopPushEvents.isCoopType(type)) {
+            CoopPushEvents.emit(type!!, message.data["inviteId"])
+            when (type) {
+                CoopPushEvents.TYPE_COOP_CANCELLED -> Unit
+                CoopPushEvents.TYPE_COOP_INVITE -> showNotification(title, body, route = ROUTE_COOP_INVITE)
+                else -> showNotification(title, body)
+            }
             return
         }
 

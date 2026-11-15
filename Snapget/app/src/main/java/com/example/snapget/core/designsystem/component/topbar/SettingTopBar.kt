@@ -1,7 +1,7 @@
 package com.example.snapget.core.designsystem.component.topbar
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
@@ -15,7 +15,7 @@ fun SettingScreenTopBar(navController: NavController) {
     CommonTopBar(
         navController = navController,
         title = "Settings",
-        startIcon = Icons.AutoMirrored.Filled.ArrowBack,
+        startIcon = Icons.AutoMirrored.Outlined.ArrowBack,
         onStartIconClick = { navController.popBackStack() },
     )
 }

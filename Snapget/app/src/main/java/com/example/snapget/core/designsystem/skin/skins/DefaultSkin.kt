@@ -2,6 +2,7 @@ package com.example.snapget.core.designsystem.skin.skins
 
 import androidx.compose.ui.graphics.Color
 import com.example.snapget.core.designsystem.skin.AppSkin
+import com.example.snapget.core.designsystem.skin.SkinAtmosphere
 import com.example.snapget.core.designsystem.skin.SkinColors
 
 /**
@@ -41,5 +42,14 @@ val DefaultSkin = AppSkin(
         onAccent = Color.Black, // chu den tren nut vang
         navBarActive = Color.White,
         navBarInactive = Color(0xFF757575),
+    ),
+    // Skin v2 (2026-11-15): khong co asset — chi gradient am nhe + vang sang mat ong
+    // goc tren phai. Kinh trang 6% tren #121212 ~ #1F1F1F, gan sat surface cu #1A1A1A.
+    atmosphere = SkinAtmosphere(
+        gradient = listOf(Color(0xFF1C1810), Color(0xFF121212), Color(0xFF121212)),
+        glow = Color(0xFFF5C542).copy(alpha = 0.08f),
+        glassTint = Color.White,
+        glassAlpha = 0.06f,
+        glassBorderAlpha = 0.08f,
     ),
 )

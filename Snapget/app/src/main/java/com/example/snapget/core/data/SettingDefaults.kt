@@ -13,6 +13,9 @@ object SettingIds {
 
     /** Thay cho "theme" cu (go giao dien Light 2026-08-05) — mo man Appearance. */
     const val APPEARANCE = "appearance"
+
+    /** Hat bay (tuyet/la…) tren nen skin — Skin v2 2026-11-15. */
+    const val AMBIENT_EFFECTS = "ambient_effects"
     const val STREAK_ON_WIDGET = "streak_on_widget"
 
     /** Push nhac giu streak luc toi (data-only, SnapgetMessagingService loc theo toggle nay). */
@@ -72,6 +75,14 @@ object SettingDefaults {
             title = "Appearance",
             icon = "ICON_THEME",
             description = "Change your skin, touch effect and see your frames",
+        ),
+        Setting(
+            id = SettingIds.AMBIENT_EFFECTS,
+            type = SettingType.CUSTOMIZE,
+            title = "Ambient effects",
+            description = "Falling snow, drifting leaves and more on skins that have them",
+            isToggleable = true,
+            isToggled = true,
         ),
         Setting(
             id = SettingIds.STREAK_ON_WIDGET,

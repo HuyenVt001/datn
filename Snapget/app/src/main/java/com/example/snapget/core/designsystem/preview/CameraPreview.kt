@@ -67,11 +67,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Camera
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Camera
+import androidx.compose.material.icons.outlined.FlashOff
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -607,7 +607,7 @@ fun CameraPreviewWithZoom(
                             },
                         ) {
                             Icon(
-                                imageVector = if (flashEnabled) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                                imageVector = if (flashEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
                                 contentDescription = "Flash",
                                 tint = if (flashEnabled) Color.Black else Color.White,
                                 modifier = Modifier.size(24.dp),
@@ -668,7 +668,7 @@ fun CameraPreviewWithZoom(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     ) {
                                         ZoomButton(
-                                            icon = Icons.Default.Remove,
+                                            icon = Icons.Outlined.Remove,
                                             onClick = {
                                                 val newZoom =
                                                     (zoomRatio - 0.2f).coerceAtLeast(minZoom)
@@ -689,7 +689,7 @@ fun CameraPreviewWithZoom(
                                         )
 
                                         ZoomButton(
-                                            icon = Icons.Default.Add,
+                                            icon = Icons.Outlined.Add,
                                             onClick = {
                                                 val newZoom =
                                                     (zoomRatio + 0.2f).coerceAtMost(maxZoom)
@@ -802,7 +802,7 @@ fun CameraPreviewWithZoom(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Camera,
+                                        imageVector = Icons.Outlined.Camera,
                                         contentDescription = "Camera",
                                         tint = Color.Gray,
                                         modifier = Modifier.size(64.dp),
@@ -856,7 +856,7 @@ fun CameraPreviewWithZoom(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Camera,
+                        imageVector = Icons.Outlined.Camera,
                         contentDescription = "Camera",
                         tint = Color.Gray,
                         modifier = Modifier.size(64.dp),

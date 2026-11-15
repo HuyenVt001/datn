@@ -3,9 +3,11 @@ package com.example.snapget.feature.camera
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -35,9 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -46,8 +52,6 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.takePhotoBar
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.pressScale
@@ -56,7 +60,10 @@ import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.feature.coop.CoopFriendPickerDialog
+import com.example.snapget.feature.coop.CoopInviteBanner
 import com.example.snapget.feature.coop.CoopViewModel
+import com.example.snapget.feature.friends.FriendsSheetHost
+import com.example.snapget.feature.friends.FriendsSheetLauncher
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
 
@@ -102,11 +109,20 @@ fun CameraScreen(
     val coopError by coopViewModel.coopError.collectAsState()
     val apiFriends by friendsViewModel.friends.collectAsState()
     val friendsStatus by friendsViewModel.friendsStatus.collectAsState()
-    val inviteLink by friendsViewModel.inviteLink.collectAsState()
     val friendRequests by friendsViewModel.requests.collectAsState()
 
     // So ban hien tren pill — tai ngay khi vao camera (truoc chi tai khi mo popup coop)
-    LaunchedEffect(Unit) { friendsViewModel.loadFriends() }
+    // Camera la man chinh -> tai luon loi moi dang cho de pill "N Friends" co badge
+    LaunchedEffect(Unit) {
+        friendsViewModel.loadFriends()
+        friendsViewModel.loadRequests()
+    }
+
+    // Bam thong bao FRIEND_REQUEST/FRIEND_ACCEPTED -> Navigation dua ve day, mo sheet ban be
+    val friendsSheetRequested by FriendsSheetLauncher.pending.collectAsState()
+    LaunchedEffect(friendsSheetRequested) {
+        if (friendsSheetRequested && FriendsSheetLauncher.consume()) showFriendSheet = true
+    }
 
     LaunchedEffect(coopError) {
         coopError?.let {
@@ -144,169 +160,194 @@ fun CameraScreen(
                 showProfileIcon = false,
                 showMessageIcon = false,
                 friendCount = apiFriends.size,
-                onFriendsPillClick = {
-                    friendsViewModel.loadFriends()
-                    friendsViewModel.loadInviteLink()
-                    friendsViewModel.loadRequests()
-                    showFriendSheet = true
-                },
+                pendingRequestCount = friendRequests.size,
+                onFriendsPillClick = { showFriendSheet = true },
             )
         },
     ) { paddingValues ->
-        Column(
-            verticalArrangement = Arrangement.SpaceEvenly,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                // BeReal-style: vuot LEN tu man camera -> mo feed xem bai cua ban be
-                .pointerInput(Unit) {
-                    var dragTotal = 0f
-                    detectVerticalDragGestures(
-                        onDragStart = { dragTotal = 0f },
-                        onVerticalDrag = { _, dragAmount -> dragTotal += dragAmount },
-                        onDragEnd = {
-                            if (dragTotal < -SWIPE_UP_TO_FEED_THRESHOLD.toPx()) {
-                                navController.navigate(Screen.Post.route) {
-                                    launchSingleTop = true
+        // Box: the loi moi chup chung noi DE LEN tren camera (2026-11-16)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    // BeReal-style: vuot LEN tu man camera -> mo feed xem bai cua ban be
+                    .pointerInput(Unit) {
+                        var dragTotal = 0f
+                        detectVerticalDragGestures(
+                            onDragStart = { dragTotal = 0f },
+                            onVerticalDrag = { _, dragAmount -> dragTotal += dragAmount },
+                            onDragEnd = {
+                                if (dragTotal < -SWIPE_UP_TO_FEED_THRESHOLD.toPx()) {
+                                    navController.navigate(Screen.Post.route) {
+                                        launchSingleTop = true
+                                    }
                                 }
+                            },
+                        )
+                    },
+            ) {
+                // Show camera view or post image based on the localCameraMode state
+
+                Card(
+                    // Le 16dp + shape giong khung anh man EditMedia de 2 man trong y het nhau
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = SkinTheme.shapes.image,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent, // removes gray background
+                    ),
+                ) {
+                    CameraPreviewWithZoom(
+                        lifecycleOwner = lifecycleOwner,
+                        // Khung VUONG bo goc giong man chinh sua/bai dang (fix 2026-11-15):
+                        // truoc la rong-man-hinh x 360dp -> sang EditMedia bi cat 2 ria ngang
+                        aspectRatio = 1f,
+                        shape = SkinTheme.shapes.image,
+                        onPhotoTaken = { photoPath ->
+                            // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
+                            // DA roi man camera -> bo qua, khong chong 2 man EditMedia
+                            if (navController.currentDestination?.route == Screen.Camera.route) {
+                                // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
+                                navController.navigate(
+                                    Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
+                                )
                             }
                         },
+                        // Giu nut chup de quay video <=5s -> cung sang man chinh sua (chi chon khung)
+                        onVideoTaken = { videoPath ->
+                            if (navController.currentDestination?.route == Screen.Camera.route) {
+                                navController.navigate(
+                                    Screen.EditMedia.route + "?mediaPath=" + Uri.encode(videoPath) + "&isVideo=true",
+                                )
+                            }
+                        },
+                        showControls = true,
+                        captureRequestId = captureRequestId,
+                        startRecordRequestId = startRecordRequestId,
+                        stopRecordRequestId = stopRecordRequestId,
+                        flipRequestId = flipRequestId,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-        ) {
-            // Show camera view or post image based on the localCameraMode state
+                }
 
-            Card(
-                // Le 16dp + shape giong khung anh man EditMedia de 2 man trong y het nhau
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = SkinTheme.shapes.image,
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent, // removes gray background
-                ),
-            ) {
-                CameraPreviewWithZoom(
-                    lifecycleOwner = lifecycleOwner,
-                    // Khung VUONG bo goc giong man chinh sua/bai dang (fix 2026-11-15):
-                    // truoc la rong-man-hinh x 360dp -> sang EditMedia bi cat 2 ria ngang
-                    aspectRatio = 1f,
-                    shape = SkinTheme.shapes.image,
-                    onPhotoTaken = { photoPath ->
-                        // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
-                        // DA roi man camera -> bo qua, khong chong 2 man EditMedia
-                        if (navController.currentDestination?.route == Screen.Camera.route) {
-                            // Chup xong -> man chinh sua (khung + filter + ve tay) truoc khi gui
-                            navController.navigate(
-                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(photoPath),
-                            )
-                        }
+                // Nut CHUP CHUNG (co-op): mo popup chon ban + gui loi moi (TTL 5 phut)
+                // (2026-11-15) Surface(onClick) thay clickable ngoai Surface (ripple tran goc bo),
+                // icon that thay emoji 👥, cao >= 48dp, co nhan-lun
+                val coopInteraction = remember { MutableInteractionSource() }
+                Surface(
+                    onClick = {
+                        friendsViewModel.loadFriends()
+                        showCoopPicker = true
                     },
-                    // Giu nut chup de quay video <=5s -> cung sang man chinh sua (chi chon khung)
-                    onVideoTaken = { videoPath ->
-                        if (navController.currentDestination?.route == Screen.Camera.route) {
-                            navController.navigate(
-                                Screen.EditMedia.route + "?mediaPath=" + Uri.encode(videoPath) + "&isVideo=true",
-                            )
-                        }
-                    },
-                    showControls = true,
-                    captureRequestId = captureRequestId,
-                    startRecordRequestId = startRecordRequestId,
-                    stopRecordRequestId = stopRecordRequestId,
-                    flipRequestId = flipRequestId,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            // Nut CHUP CHUNG (co-op): mo popup chon ban + gui loi moi (TTL 5 phut)
-            // (2026-11-15) Surface(onClick) thay clickable ngoai Surface (ripple tran goc bo),
-            // icon that thay emoji 👥, cao >= 48dp, co nhan-lun
-            val coopInteraction = remember { MutableInteractionSource() }
-            Surface(
-                onClick = {
-                    friendsViewModel.loadFriends()
-                    showCoopPicker = true
-                },
-                shape = SkinTheme.shapes.pill,
-                color = Color.Black.copy(alpha = 0.6f),
-                interactionSource = coopInteraction,
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .pressScale(coopInteraction),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    shape = SkinTheme.shapes.pill,
+                    color = Color.Black.copy(alpha = 0.6f),
+                    interactionSource = coopInteraction,
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .pressScale(coopInteraction),
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Group,
+                            contentDescription = null,
+                            tint = SkinTheme.colors.accent,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Co-op",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+
+                // Nut center "Take a picture": BAM = chup anh, GIU = quay "anh GIF" <=3s,
+                // THA = dung (khong navigate submit_photo rong)
+                MainBottomBar(
+                    navController,
+                    windowInsets = WindowInsets(0, 0, 0, 0),
+                    items = takePhotoBar.map { item ->
+                        when {
+                            item.isCenter -> item.copy(
+                                onClick = {
+                                    shutterFeedback.shutter() // rung + tieng chup (DESIGN.md 0.4)
+                                    captureRequestId++
+                                },
+                                onLongPress = {
+                                    shutterFeedback.shutter()
+                                    startRecordRequestId++
+                                },
+                                // Tha tay o MOI lan bam — preview tu bo qua neu khong dang quay
+                                onPressRelease = { stopRecordRequestId++ },
+                            )
+                            // Nut 🔄: lat camera truoc/sau
+                            item.title == "Change camera" -> item.copy(onClick = { flipRequestId++ })
+                            else -> item
+                        }
+                    },
+                )
+                // Goi y "History" + mui ten (2026-11-15): bao user vuot LEN de sang feed (Post).
+                // Bam vao cung mo feed — tranh lai "UI chet" nhu ban cu (da xoa 2026-07-13).
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(SkinTheme.shapes.pill)
+                        .clickable {
+                            navController.navigate(Screen.Post.route) { launchSingleTop = true }
+                        }
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = null,
+                            tint = SkinTheme.colors.textPrimary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "History",
+                            color = SkinTheme.colors.textPrimary,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                     Icon(
-                        imageVector = Icons.Filled.Group,
-                        contentDescription = null,
-                        tint = SkinTheme.colors.accent,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "Co-op",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Swipe up to open history",
+                        tint = SkinTheme.colors.textPrimary,
+                        modifier = Modifier.size(28.dp),
                     )
                 }
             }
 
-            // Nut center "Take a picture": BAM = chup anh, GIU = quay "anh GIF" <=3s,
-            // THA = dung (khong navigate submit_photo rong)
-            MainBottomBar(
-                navController,
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                items = takePhotoBar.map { item ->
-                    when {
-                        item.isCenter -> item.copy(
-                            onClick = {
-                                shutterFeedback.shutter() // rung + tieng chup (DESIGN.md 0.4)
-                                captureRequestId++
-                            },
-                            onLongPress = {
-                                shutterFeedback.shutter()
-                                startRecordRequestId++
-                            },
-                            // Tha tay o MOI lan bam — preview tu bo qua neu khong dang quay
-                            onPressRelease = { stopRecordRequestId++ },
-                        )
-                        // Nut 🔄: lat camera truoc/sau
-                        item.title == "Change camera" -> item.copy(onClick = { flipRequestId++ })
-                        else -> item
-                    }
-                },
+            // The loi moi chup chung (Accept/Decline + dem nguoc) — Camera la man chinh nen
+            // BAT BUOC co (truoc chi co banner o Feed -> o Camera la lo loi moi 5 phut)
+            CoopInviteBanner(
+                coopViewModel = coopViewModel,
+                navController = navController,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = paddingValues.calculateTopPadding() + 8.dp, start = 16.dp, end = 16.dp),
             )
-            // (Hang "History" + nut mui ten cu da XOA 2026-07-13 — UI chet, bam khong lam gi)
         }
     }
 
     // Sheet quan ly ban be (dung chung voi Feed/Profile): dem ban, QR ket ban, loi moi
-    UserDetailBottomSheet(
-        data = if (showFriendSheet) {
-            UserDetailBottomSheetData(
-                friends = apiFriends,
-                isLoading = friendsStatus is LoadStatus.Loading,
-                inviteCode = inviteLink?.inviteCode,
-                inviteLink = inviteLink?.link,
-                inviteExpiresAt = inviteLink?.expiresAt,
-                requests = friendRequests,
-                onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
-                onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
-                onScanQrClick = {
-                    showFriendSheet = false
-                    navController.navigate(Screen.QrScan.route)
-                },
-                onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
-            )
-        } else {
-            null
-        },
+    FriendsSheetHost(
+        visible = showFriendSheet,
         onDismiss = { showFriendSheet = false },
+        navController = navController,
+        friendsViewModel = friendsViewModel,
     )
 
     // Popup chon ban gui loi moi chup chung -> thanh cong sang man cho/chup coop

@@ -20,8 +20,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -308,7 +308,7 @@ private fun CameraScreenMock() {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.CenterFocusStrong,
+                    imageVector = Icons.Outlined.CenterFocusStrong,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.5f),
                     modifier = Modifier.size(64.dp),
@@ -444,12 +444,7 @@ private fun UserProfileMock() {
         moments = emptyList(),
         profileStatus = LoadStatus.Success(),
         updateStatus = LoadStatus.Init(),
-        apiFriends = emptyList(),
-        apiFriendsStatus = LoadStatus.Init(),
-        inviteLink = null,
         navController = rememberNavController(),
-        onLoadFriends = {},
-        onRemoveFriend = {},
         onUpdateProfile = { _, _ -> },
         onResetUpdateStatus = {},
     )
@@ -577,7 +572,7 @@ private fun QrScanMock() {
                 .align(Alignment.TopStart),
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = Icons.Outlined.Close,
                 contentDescription = "Close",
                 tint = Color.White,
                 modifier = Modifier.size(28.dp),

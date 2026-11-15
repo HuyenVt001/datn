@@ -166,6 +166,34 @@ export class UsersService {
   }
 
   /**
+   * Push DATA-ONLY (khong field `notification` -> Android KHONG tu hien thong bao):
+   * chi de bao app dang song tai lai state (vd loi moi chup chung vua bi huy).
+   * Loi duoc nuot + log, tra ve so thiet bi nhan thanh cong (giong pushToUids).
+   */
+  async pushDataToUids(uids: string[], data: Record<string, string>): Promise<number> {
+    try {
+      const unique = [...new Set(uids)].filter(Boolean);
+      if (unique.length === 0) {
+        return 0;
+      }
+      const users = await Promise.all(unique.map((id) => this.usersRepo.findByUid(id)));
+      const tokens = [...new Set(users.flatMap((u) => u?.fcmTokens ?? []))];
+      if (tokens.length === 0) {
+        return 0;
+      }
+      const res = await this.firebase.messaging().sendEachForMulticast({
+        tokens,
+        data,
+        android: { priority: 'high' },
+      });
+      return res.successCount;
+    } catch (e) {
+      this.logger.warn(`Khong gui duoc FCM data-only: ${(e as Error).message}`);
+      return 0;
+    }
+  }
+
+  /**
    * Cron (2026-11-15 — UI Playful v2 cua app): nhac giu streak cho user co streak > 0
    * ma HOM NAY chua dang bai (lastStreakDate = hom qua -> qua nua dem la mat streak).
    *

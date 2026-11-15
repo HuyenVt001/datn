@@ -55,6 +55,9 @@ class MainViewModel @Inject constructor(
             SkinRegistry.find(settingsPreferences.skinId.value),
         )
 
+    /** Bat/tat hat bay tren nen skin (Settings › Ambient effects) — Navigation doc. */
+    val ambientEffectsEnabled: StateFlow<Boolean> = settingsPreferences.ambientEffectsEnabled
+
     /** Hieu ung cham dang dung — MainActivity doc de bom vao TouchEffectOverlay. */
     val touchEffect: StateFlow<TouchEffect> = settingsPreferences.touchEffectId
         .map { TouchEffectRegistry.find(it) }

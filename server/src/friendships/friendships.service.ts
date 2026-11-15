@@ -70,8 +70,8 @@ export class FriendshipsService {
       case 'REQUESTED':
         void this.notifyUser(
           inviter.uid,
-          'Loi moi ket ban moi',
-          `${await this.displayName(currentUid)} muon ket ban voi ban — mo Snapget de xac nhan!`,
+          'New friend request',
+          `${await this.displayName(currentUid)} wants to be your friend. Open Snapget to respond!`,
           { type: 'FRIEND_REQUEST', requesterUid: currentUid },
         );
         return result.friendship;
@@ -79,8 +79,8 @@ export class FriendshipsService {
         // Nguoi kia da moi minh truoc -> 2 ben cung muon, thanh ban ngay
         void this.notifyUser(
           inviter.uid,
-          'Ket ban thanh cong',
-          `${await this.displayName(currentUid)} da chap nhan loi moi ket ban cua ban! 🎉`,
+          'You have a new friend',
+          `${await this.displayName(currentUid)} accepted your friend request! 🎉`,
           { type: 'FRIEND_ACCEPTED', friendUid: currentUid },
         );
         await this.unlockFriendCountFrames(currentUid, inviter.uid);
@@ -122,8 +122,8 @@ export class FriendshipsService {
       case 'ACCEPTED':
         void this.notifyUser(
           requesterUid,
-          'Ket ban thanh cong',
-          `${await this.displayName(currentUid)} da chap nhan loi moi ket ban cua ban! 🎉`,
+          'You have a new friend',
+          `${await this.displayName(currentUid)} accepted your friend request! 🎉`,
           { type: 'FRIEND_ACCEPTED', friendUid: currentUid },
         );
         await this.unlockFriendCountFrames(currentUid, requesterUid);
@@ -162,10 +162,10 @@ export class FriendshipsService {
     }
   }
 
-  /** Ten hien thi cho noi dung FCM. */
+  /** Ten hien thi cho noi dung FCM (push ket ban viet tieng Anh — khop UI app, 2026-11-15). */
   private async displayName(uid: string): Promise<string> {
     const user = await this.usersRepo.findByUid(uid).catch(() => null);
-    return user?.fullName ?? 'Mot nguoi ban';
+    return user?.fullName ?? 'Someone';
   }
 
   /** Gui FCM best-effort (helper push chung o UsersService — khong bao gio throw). */

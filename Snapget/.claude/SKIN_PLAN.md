@@ -9,6 +9,48 @@
 
 ---
 
+## 🆕 Skin v2 — "Atmosphere" (chốt 2026-11-15 · ✅ CODE XONG 2026-11-15 · ⬜ chưa chạy trên máy thật)
+
+Mục tiêu: skin đổi **toàn diện** (nền, bề mặt, không khí) nhưng **ít asset**. Phần lớn hiệu ứng do code vẽ; asset chỉ là phần nhận diện.
+
+**Tiền đề ✅ XONG 2026-11-15:** đồng bộ icon toàn app sang **Outlined** theo style footer (luật ở `DESIGN.md` mục 6).
+
+**Asset user chọn (mỗi skin):** A1 + A2 + A4. **BỎ mascot** (B1–B4) và mọi 9-patch (E1–E3) — code vẽ thay.
+
+| # | File | Kích thước | Yêu cầu khi vẽ | Dùng ở |
+|---|---|---|---|---|
+| A1 | `skin<N>_particle.webp` | 128×128, nền trong | 1 họa tiết đơn, nhận ra được ở 12dp; vẽ **trắng/rất sáng** để code tint (muốn giữ màu gốc thì báo → `tintParticle = false`) | Hạt bay trên nền, pattern nền chat (rải ~5% alpha), loading, ăn mừng |
+| A2 | `skin<N>_ornament.webp` | 1440×360, nền trong | Chi tiết dồn trong 120dp trên (24dp đầu là status bar); **đáy mờ dần về trong suốt**; mép trái/phải liền khi kéo ngang | Đầu backdrop mọi màn, header Profile, mép trên sheet |
+| A4 | `skin<N>_bg.webp` | 1080×2340 | **Tông tối, giữa ít chi tiết** (chỗ đặt nội dung); app phủ scrim ≥ 0.65 nên vùng sáng sẽ bị dìm | Backdrop toàn app (thay gradient). Không có file → dùng gradient |
+
+Cả 3 cần tương phản ≥ 3:1 với nền skin. Đặt vào `app/src/main/res-skins/skin<N>_<tên>/drawable-nodpi/`. Thiếu file nào → code fallback (hình tròn / không ornament / gradient), app vẫn chạy.
+
+**Checklist của user:**
+- [x] Snow: `skin1_particle.webp`, `skin1_ornament.webp`, `skin1_bg.webp` — user gửi PNG ở `Sources/skin_bosung/`, đã convert WebP (2026-11-15)
+- [x] Forest: `skin2_particle.webp`, `skin2_ornament.webp`, `skin2_bg.webp` — như trên (10MB PNG → ~800KB WebP cho cả 6 file)
+- [x] 12 icon Forest (`skin2_ic_*.xml`) — Claude vẽ vector (glyph be + lá 2 tông), SVG gốc ở `Sources/skin-assets/skin2_forest/`
+- [ ] Chạy trên máy: đổi Default ↔ Snow ↔ Forest, xem Settings/Profile/Quest/Shop/Messages/Chat/Appearance; bật/tắt Settings › **Ambient effects**; thử máy yếu (hạt bay)
+- [ ] (tuỳ chọn) `skin2_thumb.webp`, `skin2_btn_capture.webp` của Forest vẫn là placeholder
+
+> Particle của user **có màu sẵn** (không phải trắng) → code vẽ NGUYÊN MÀU, không tint (bỏ ý `tintParticle`).
+
+**Đã làm (code):**
+1. `SkinColors` thêm `surfaceContainerLow/·/High`, `outline(Variant)`, `scrim` → map đủ vào `toColorScheme()` (sheet/dialog/card M3 hết xám ngả tím). `textSecondary` Snow `#A9C1E3`, Forest `#BCD0BC`.
+2. `AppSkin.atmosphere: SkinAtmosphere` (gradient, glow + tâm, glassTint/alpha/border, `imageScrim`) + `AppSkin.decor: SkinDecor` (particle + `ParticleMotion.FALL/DRIFT` + số hạt + cỡ, ornament + alpha). `SkinImages.screenBackground` giờ được dùng thật.
+3. `skin/SkinBackdrop.kt`: `SkinBackdrop` (gradient → ảnh + scrim nhuộm màu nền skin → glow → hạt bay → ornament + dải tối dưới status bar), crossfade 400ms khi đổi skin; hạt bay = 1 Canvas + `graphicsLayer`, vị trí là hàm của thời gian (không recompose). `GlassLevel` + `glassColor()` + `Modifier.skinGlass()`.
+4. `Navigation.kt`: backdrop vẽ 1 lần sau `Scaffold(containerColor = Transparent)`. **Màn che backdrop (nền đặc, hạt dừng):** Login, Camera, Post (feed), QrScan, EditMedia, SubmitPhoto, CoopCapture (+ PostDetail tự có Scaffold đặc). **Màn lộ backdrop:** Settings, LegalDoc, Profile, Quest, Shop, Messages, Chat, GroupChat, Appearance, WidgetSettings, HowToAddWidget. `SimpleTopBar` trong suốt; footer 90%.
+5. Kính: card Quest (4), card Settings, card lịch Profile. **Giữ đặc có chủ đích:** card Shop (nút chunky có lớp "đáy" bên dưới — trong suốt sẽ lộ đáy), mọi dialog/sheet.
+6. Settings › **Ambient effects** (toggle, mặc định bật) → `SettingsPreferences.ambientEffectsEnabled` (StateFlow, đổi là dừng/chạy ngay). Hạt cũng dừng khi reduced motion.
+7. Forest: card "hình lá" (`shapes.card` 24/6/24/6).
+8. `SkinContrastTest`: chữ chính/phụ ≥ 4.5 trên nền, surface, kính bậc cao nhất; onAccent ≥ 4.5; accent/navBarActive ≥ 3; `imageScrim` ≥ 0.55; ≤ 15 hạt.
+
+9. **Hoa văn nền chat** (`Modifier.skinChatWallpaper()` trong `skin/SkinDecorations.kt`): rải particle thành lưới so le (ô 76dp, lệch/xoay/cỡ theo seed vị trí → đứng yên), alpha `SkinDecor.patternAlpha` (mặc định 0.10, Forest 0.16) + lớp `background` 35% khi skin có ảnh nền cho bong bóng dễ đọc. Gắn ở Scaffold của Chat + GroupChat (trước `imePadding`). Vẽ 1 lần, cache theo kích thước. Default: không vẽ gì.
+10. **Ornament mép sheet** (`SkinSheetDragHandle(sheetColor)`): cắt phần trên ornament thành dải 56dp, mờ dần vào màu sheet, tay kéo nằm trên. Mặc định của `AnimatedBottomSheet` + bọc handle riêng của `UserDetailBottomSheet`, `CaptionBottomSheet` + thêm vào `GroupSettingsSheet`, sheet ⋯ của Feed (`PostScreen`). Skin không có ornament → handle như cũ.
+
+**Chưa làm / để sau:** particle cho loading/ăn mừng, mini-preview "thử trước khi mua" ở Shop.
+
+---
+
 ## 0. Quyết định đã chốt với user
 
 | Hạng mục | Chốt |

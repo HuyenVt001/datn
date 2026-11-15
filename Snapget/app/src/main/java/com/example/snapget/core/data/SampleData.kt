@@ -3,11 +3,11 @@ package com.example.snapget.core.data
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.outlined.Message
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.ui.graphics.Color
 import com.example.snapget.core.model.Friendship
 import com.example.snapget.core.model.FriendshipStatus
@@ -244,7 +244,7 @@ object SampleData {
             description = "${users[2].username} commented on your post: 'This is amazing!'",
             time = LocalDateTime.now().minusHours(1).toString(),
             isRead = false,
-            icon = Icons.AutoMirrored.Filled.Message,
+            icon = Icons.AutoMirrored.Outlined.Message,
             iconColor = Color(0xFF2196F3),
             userId = users[2].id,
         ),
@@ -254,7 +254,7 @@ object SampleData {
             description = "${users[3].username} started following you",
             time = LocalDateTime.now().minusHours(3).toString(),
             isRead = true,
-            icon = Icons.Default.Person,
+            icon = Icons.Outlined.Person,
             iconColor = Color(0xFF4CAF50),
             userId = users[3].id,
         ),
@@ -264,7 +264,7 @@ object SampleData {
             description = "${users[4].username} sent you a friend request",
             time = LocalDateTime.now().minusHours(5).toString(),
             isRead = false,
-            icon = Icons.Default.Person,
+            icon = Icons.Outlined.Person,
             iconColor = Color(0xFF9C27B0),
             userId = users[4].id,
         ),
@@ -274,7 +274,7 @@ object SampleData {
             description = "${users[5].username} sent you a message",
             time = LocalDateTime.now().minusHours(8).toString(),
             isRead = true,
-            icon = Icons.AutoMirrored.Filled.Message,
+            icon = Icons.AutoMirrored.Outlined.Message,
             iconColor = Color(0xFF009688),
             userId = users[5].id,
         ),
@@ -284,7 +284,7 @@ object SampleData {
             description = "Snapget has been updated to version 1.0.1",
             time = LocalDateTime.now().minusDays(1).toString(),
             isRead = false,
-            icon = Icons.Default.Notifications,
+            icon = Icons.Outlined.Notifications,
             iconColor = Color(0xFFFF9800),
             userId = "",
         ),
@@ -294,7 +294,7 @@ object SampleData {
             description = "Your account was accessed from a new device",
             time = LocalDateTime.now().minusDays(2).toString(),
             isRead = true,
-            icon = Icons.Default.Warning,
+            icon = Icons.Outlined.Warning,
             iconColor = Color(0xFFF44336),
             userId = "",
         ),

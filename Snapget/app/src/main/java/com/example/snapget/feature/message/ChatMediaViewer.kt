@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.outlined.Reply
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -137,7 +137,7 @@ fun MediaViewerDialog(
                     .background(Color.Black.copy(alpha = 0.5f)),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = "Close",
                     tint = Color.White,
                 )
@@ -196,7 +196,7 @@ fun ReactionPickerDialog(
                             .padding(horizontal = 8.dp, vertical = 10.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Reply,
+                            imageVector = Icons.AutoMirrored.Outlined.Reply,
                             contentDescription = "Reply",
                             tint = MaterialTheme.colorScheme.onSurface,
                         )

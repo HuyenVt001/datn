@@ -21,6 +21,17 @@ export interface CoopInvite {
   respondedAt?: string;
   /** Legacy (flow cu: server tu tao moment) — khong con ghi moi. */
   momentId?: string;
+  /**
+   * TINH LUC TRA VE (khong luu DB — 2026-11-16): moc het han cua trang thai hien tai
+   * (PENDING = han loi moi 5 phut, ACCEPTED = han phien chup 10 phut).
+   */
+  expiresAt?: string;
+  /**
+   * TINH LUC TRA VE: so giay con lai tinh theo dong ho SERVER. App dem nguoc tu
+   * gia tri nay (luc nhan response) thay vi so expiresAt voi gio may — may lech
+   * gio van dem dung.
+   */
+  remainingSeconds?: number;
 }
 
 /** Loi moi kem thong tin nguoi moi (tra ve cho app hien danh sach cho). */

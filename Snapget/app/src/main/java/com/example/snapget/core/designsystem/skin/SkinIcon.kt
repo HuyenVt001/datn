@@ -16,7 +16,7 @@ import androidx.compose.ui.res.painterResource
  * vo vi thieu asset.
  *
  * ```
- * SkinIcon(SkinTheme.icons.camera, Icons.Filled.PhotoCamera, "Camera")
+ * SkinIcon(SkinTheme.icons.camera, Icons.Outlined.PhotoCamera, "Camera")
  * ```
  *
  * ⚠️ **Icon rieng cua skin ve NGUYEN MAU GOC** (`Color.Unspecified` — chot voi

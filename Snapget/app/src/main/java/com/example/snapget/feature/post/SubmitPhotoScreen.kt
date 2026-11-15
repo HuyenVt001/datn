@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +61,6 @@ import com.example.snapget.core.util.mapToUser
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.navigation.Screen
 import java.io.File
-import kotlinx.coroutines.launch
 
 // ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
 // chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
@@ -161,9 +158,7 @@ fun SubmitPhotoScreen(
     // chon 1 ban = gui kem vao chat voi ban do; chon "everyone" = gui cho TAT CA ban be
     var selectedUser by remember { mutableStateOf<User?>(null) }
 
-    // Add bottom sheet state
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
+    // Sheet Captions tu quan ly SheetState + animation truot (CaptionBottomSheet)
     var showCaptionSheet by remember { mutableStateOf(false) }
 
     // Caption cua bai dang: go truc tiep vao o tren anh HOAC chon chip tu
@@ -207,15 +202,12 @@ fun SubmitPhotoScreen(
         if (showCaptionSheet) {
             CaptionBottomSheet(
                 data = captionBottomSheetData,
-                onDismiss = {
-                    showCaptionSheet = false
-                    coroutineScope.launch { sheetState.hide() }
-                },
+                onDismiss = { showCaptionSheet = false },
                 onCaptionSelected = { item ->
                     // Chip "Text" -> pill rong de tu go; chip khac -> dien noi dung chip, sua tiep duoc
+                    // (goi SAU khi sheet da truot xuong xong)
                     caption = if (item.title == "Text") "" else item.title
                     showCaptionSheet = false
-                    coroutineScope.launch { sheetState.hide() }
                 },
             )
         }
@@ -321,10 +313,7 @@ fun SubmitPhotoScreen(
                 items = submitPhotoBar,
                 onItemClick = { item ->
                     when (item.title) {
-                        "Captions List" -> {
-                            showCaptionSheet = true
-                            coroutineScope.launch { sheetState.show() }
-                        }
+                        "Captions List" -> showCaptionSheet = true
                         // Nut Send: upload anh -> tao moment qua server
                         "Send" -> {
                             when {

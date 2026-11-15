@@ -17,15 +17,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Celebration
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Celebration
+import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -73,42 +74,42 @@ data class CaptionItem(
 val generalCaptionsSample = listOf(
     CaptionItem(
         "Text",
-        iconVector = Icons.Default.TextFields,
+        iconVector = Icons.Outlined.TextFields,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color.DarkGray, Color.Black),
         ),
     ),
     CaptionItem(
         "Review",
-        iconVector = Icons.Default.Star,
+        iconVector = Icons.Outlined.Star,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF444444), Color(0xFF222222)),
         ),
     ),
     CaptionItem(
         "Now Playing",
-        iconVector = Icons.Default.MusicNote,
+        iconVector = Icons.Outlined.MusicNote,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF222222), Color(0xFF111111)),
         ),
     ),
     CaptionItem(
         "Location",
-        iconVector = Icons.Default.Place,
+        iconVector = Icons.Outlined.Place,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF444444), Color(0xFF666666)),
         ),
     ),
     CaptionItem(
         "Weather",
-        iconVector = Icons.Default.WbSunny,
+        iconVector = Icons.Outlined.WbSunny,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF4FC3F7), Color(0xFF0288D1)),
         ),
     ),
     CaptionItem(
         "8:38 AM",
-        iconVector = Icons.Default.AccessTime,
+        iconVector = Icons.Outlined.AccessTime,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF888888), Color(0xFF444444)),
         ),
@@ -123,42 +124,42 @@ fun generalCaptions(): List<CaptionItem> {
 
         CaptionItem(
             "Text",
-            iconVector = Icons.Default.TextFields,
+            iconVector = Icons.Outlined.TextFields,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color.DarkGray, Color.Black),
             ),
         ),
         CaptionItem(
             "Review",
-            iconVector = Icons.Default.Star,
+            iconVector = Icons.Outlined.Star,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color(0xFF444444), Color(0xFF222222)),
             ),
         ),
         CaptionItem(
             "Now Playing",
-            iconVector = Icons.Default.MusicNote,
+            iconVector = Icons.Outlined.MusicNote,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color(0xFF222222), Color(0xFF111111)),
             ),
         ),
         CaptionItem(
             "Location",
-            iconVector = Icons.Default.Place,
+            iconVector = Icons.Outlined.Place,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color(0xFF444444), Color(0xFF666666)),
             ),
         ),
         CaptionItem(
             "Weather",
-            iconVector = Icons.Default.WbSunny,
+            iconVector = Icons.Outlined.WbSunny,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color(0xFF4FC3F7), Color(0xFF0288D1)),
             ),
         ),
         CaptionItem(
             timeNow,
-            iconVector = Icons.Default.AccessTime,
+            iconVector = Icons.Outlined.AccessTime,
             backgroundBrush = Brush.linearGradient(
                 colors = listOf(Color(0xFF888888), Color(0xFF444444)),
             ),
@@ -169,21 +170,21 @@ fun generalCaptions(): List<CaptionItem> {
 val decorativeCaptions = listOf(
     CaptionItem(
         "Party Time!",
-        iconVector = Icons.Default.Celebration,
+        iconVector = Icons.Outlined.Celebration,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFF81C784), Color(0xFF388E3C)),
         ),
     ),
     CaptionItem(
         "Good morning",
-        iconVector = Icons.Default.WbSunny,
+        iconVector = Icons.Outlined.WbSunny,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color(0xFFFFA726), Color(0xFFF57C00)),
         ),
     ),
     CaptionItem(
         "OOTD",
-        iconVector = Icons.Default.Face,
+        iconVector = Icons.Outlined.Face,
         backgroundBrush = Brush.linearGradient(
             colors = listOf(Color.Black, Color.DarkGray),
         ),
@@ -224,13 +225,30 @@ fun CaptionBottomSheet(
     // Bam 1 chip -> tra ve item de man hinh cha dien vao InputCaptionPill tren anh
     onCaptionSelected: (CaptionItem) -> Unit = {},
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val scope = rememberCoroutineScope()
+
+    // Bam chip: cho sheet TRUOT XUONG xong roi moi bao man cha (man cha go sheet
+    // khoi composition ngay khi nhan callback -> goi som thi sheet bien mat dot ngot)
+    val selectAndHide: (CaptionItem) -> Unit = { item ->
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            onCaptionSelected(item)
+        }
+    }
+
+    // value PHAI khac null: AnimatedBottomSheet coi null = "dong sheet" ->
+    // goi hide() + onDismissRequest() ngay va khong ve gi (bug cu: bam icon A khong hien)
     AnimatedBottomSheet(
-        value = null,
+        value = data,
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-        dragHandle = { Box(Modifier.padding(vertical = 8.dp)) },
+        sheetState = sheetState,
+        dragHandle = {
+            SkinSheetDragHandle(sheetColor = SkinTheme.colors.background) {
+                Box(Modifier.padding(vertical = 8.dp))
+            }
+        },
         containerColor = SkinTheme.colors.background,
-    ) {
+    ) { sheetData ->
         Column(
             modifier = Modifier
                 .padding(start = 16.dp),
@@ -256,8 +274,8 @@ fun CaptionBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                data.items.forEach { item ->
-                    CaptionPill(item = item, onClick = { onCaptionSelected(item) })
+                sheetData.items.forEach { item ->
+                    CaptionPill(item = item, onClick = { selectAndHide(item) })
                 }
             }
 
@@ -267,7 +285,7 @@ fun CaptionBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 decorativeCaptions.forEach { item ->
-                    CaptionPill(item = item, onClick = { onCaptionSelected(item) })
+                    CaptionPill(item = item, onClick = { selectAndHide(item) })
                 }
             }
 

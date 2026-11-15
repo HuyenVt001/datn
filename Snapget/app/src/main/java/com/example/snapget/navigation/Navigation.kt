@@ -10,6 +10,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,6 +32,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.snapget.core.designsystem.component.bottombar.AppFooterBar
 import com.example.snapget.core.designsystem.motion.rememberReducedMotion
+import com.example.snapget.core.designsystem.skin.SkinBackdrop
+import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.fcm.CoopPushEvents
+import com.example.snapget.core.fcm.SnapgetMessagingService
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.feature.appearance.AppearanceScreen
@@ -36,6 +43,7 @@ import com.example.snapget.feature.auth.AuthViewModel
 import com.example.snapget.feature.auth.LoginScreen
 import com.example.snapget.feature.camera.CameraScreen
 import com.example.snapget.feature.coop.CoopCaptureScreen
+import com.example.snapget.feature.friends.FriendsSheetLauncher
 import com.example.snapget.feature.friends.QrScanScreen
 import com.example.snapget.feature.message.ChatScreen
 import com.example.snapget.feature.message.GroupChatScreen
@@ -111,6 +119,19 @@ fun Navigation(
     LaunchedEffect(authState, pendingWidgetRoute) {
         if (authState is AuthState.Authenticated && pendingWidgetRoute != null) {
             PendingRouteStore.consume()?.let { route ->
+                if (route == "friends") {
+                    // Bam thong bao ket ban -> ve Camera (man chinh) + mo sheet ban be
+                    FriendsSheetLauncher.request()
+                    navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+                    return@let
+                }
+                if (route == SnapgetMessagingService.ROUTE_COOP_INVITE) {
+                    // Bam thong bao loi moi chup chung -> ve Camera (the Accept/Decline
+                    // nam o do) + bao the tai lai ngay (Camera co the dang mo san)
+                    navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+                    CoopPushEvents.emit(CoopPushEvents.TYPE_COOP_INVITE, null)
+                    return@let
+                }
                 val target = if (route == "camera") Screen.Camera.route else Screen.Post.route
                 navController.navigate(target)
             }
@@ -146,260 +167,291 @@ fun Navigation(
         AuthState.PasswordResetSent -> Screen.Login.route
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            if (showBottomBar) {
-                AppFooterBar(
-                    currentRoute = currentRoute,
-                    onTabSelected = { targetRoute ->
-                        if (targetRoute == Screen.Camera.route) {
-                            if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
-                                navController.navigate(Screen.Camera.route) {
+    // Skin v2 "Atmosphere": nen chung ve 1 lan SAU moi man. Man nen trong suot thi
+    // thay backdrop; man noi dung (camera, feed, sua anh…) giu nen dac va tu che no.
+    // Hat bay chi chay khi backdrop dang lo ra + nguoi dung bat + khong reduced motion.
+    val ambientEnabled by mainViewModel.ambientEffectsEnabled.collectAsState()
+    val reducedMotion = rememberReducedMotion()
+    val backdropCovered = currentRoute == null ||
+        currentRoute.substringBefore('?') in routesCoveringBackdrop
+
+    Box(Modifier.fillMaxSize()) {
+        SkinBackdrop(animateParticles = ambientEnabled && !reducedMotion && !backdropCovered)
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            bottomBar = {
+                if (showBottomBar) {
+                    AppFooterBar(
+                        currentRoute = currentRoute,
+                        onTabSelected = { targetRoute ->
+                            if (targetRoute == Screen.Camera.route) {
+                                if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
+                                    navController.navigate(Screen.Camera.route) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            } else {
+                                navController.navigate(targetRoute) {
+                                    popUpTo(Screen.Camera.route) {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
-                        } else {
-                            navController.navigate(targetRoute) {
-                                popUpTo(Screen.Camera.route) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+                        },
+                    )
+                }
+            },
+        ) { innerPadding ->
+            // Chuyen man (P5 Playful v2): mac dinh Navigation 2.7 fade 700ms -> cham, "lo
+            // mo". Doi sang fade + phong nhe 0.97 -> 1 (220ms) cho man vao, fade nhanh
+            // 150ms cho man ra (exit nhanh hon enter — DESIGN.md 0.2). Reduced motion: tat.
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
+                enterTransition = {
+                    if (reducedMotion) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.97f)
+                    }
+                },
+                exitTransition = {
+                    if (reducedMotion) ExitTransition.None else fadeOut(tween(150))
+                },
+                popEnterTransition = {
+                    if (reducedMotion) EnterTransition.None else fadeIn(tween(220))
+                },
+                popExitTransition = {
+                    if (reducedMotion) {
+                        ExitTransition.None
+                    } else {
+                        fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.97f)
+                    }
+                },
+            ) {
+                composable(Screen.Login.route) {
+                    LoginScreen(
+                        onLoginSuccess = {
+                            // Dang nhap xong -> vao thang camera (vuot len de xem feed)
+                            navController.navigate(Screen.Camera.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
                             }
-                        }
-                    },
-                )
-            }
-        },
-    ) { innerPadding ->
-        // Chuyen man (P5 Playful v2): mac dinh Navigation 2.7 fade 700ms -> cham, "lo
-        // mo". Doi sang fade + phong nhe 0.97 -> 1 (220ms) cho man vao, fade nhanh
-        // 150ms cho man ra (exit nhanh hon enter — DESIGN.md 0.2). Reduced motion: tat.
-        val reducedMotion = rememberReducedMotion()
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding),
-            enterTransition = {
-                if (reducedMotion) {
-                    EnterTransition.None
-                } else {
-                    fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.97f)
+                        },
+                        // PHAI dung chung AuthViewModel scope Navigation (fix 2026-08-03):
+                        // de mac dinh hiltViewModel() thi LoginScreen tao instance RIENG
+                        // (scope theo back stack entry "login") -> dang nhap trong phien chi
+                        // doi state instance rieng do, instance chung van Unauthenticated.
+                        // Lan Sign Out sau, logout() set Unauthenticated vao gia tri Y HET
+                        // (StateFlow khong emit) -> LaunchedEffect khong chay, KHONG ve man
+                        // Login du Firebase da signOut -> moi API deu 401 "Thieu token".
+                        viewModel = authViewModel,
+                        // Link Terms/Privacy cuoi man Login (2026-11-15) — LegalDoc khong can dang nhap
+                        onOpenLegal = { docType -> navController.navigate(Screen.LegalDoc.route(docType)) },
+                    )
                 }
-            },
-            exitTransition = {
-                if (reducedMotion) ExitTransition.None else fadeOut(tween(150))
-            },
-            popEnterTransition = {
-                if (reducedMotion) EnterTransition.None else fadeIn(tween(220))
-            },
-            popExitTransition = {
-                if (reducedMotion) {
-                    ExitTransition.None
-                } else {
-                    fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.97f)
+
+                composable(Screen.Message.route) {
+                    MessageScreen(navController)
                 }
-            },
-        ) {
-            composable(Screen.Login.route) {
-                LoginScreen(
-                    onLoginSuccess = {
-                        // Dang nhap xong -> vao thang camera (vuot len de xem feed)
-                        navController.navigate(Screen.Camera.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
-                        }
-                    },
-                    // PHAI dung chung AuthViewModel scope Navigation (fix 2026-08-03):
-                    // de mac dinh hiltViewModel() thi LoginScreen tao instance RIENG
-                    // (scope theo back stack entry "login") -> dang nhap trong phien chi
-                    // doi state instance rieng do, instance chung van Unauthenticated.
-                    // Lan Sign Out sau, logout() set Unauthenticated vao gia tri Y HET
-                    // (StateFlow khong emit) -> LaunchedEffect khong chay, KHONG ve man
-                    // Login du Firebase da signOut -> moi API deu 401 "Thieu token".
-                    viewModel = authViewModel,
-                    // Link Terms/Privacy cuoi man Login (2026-11-15) — LegalDoc khong can dang nhap
-                    onOpenLegal = { docType -> navController.navigate(Screen.LegalDoc.route(docType)) },
-                )
-            }
 
-            composable(Screen.Message.route) {
-                MessageScreen(navController)
-            }
+                composable(
+                    route = Screen.Chat.route,
+                    arguments = listOf(
+                        navArgument("recipientId") { type = NavType.StringType },
+                    ),
+                ) { backStackEntry ->
+                    val recipientId = backStackEntry.arguments?.getString("recipientId") ?: ""
+                    ChatScreen(
+                        navController = navController,
+                        recipientId = recipientId,
+                    )
+                }
 
-            composable(
-                route = Screen.Chat.route,
-                arguments = listOf(
-                    navArgument("recipientId") { type = NavType.StringType },
-                ),
-            ) { backStackEntry ->
-                val recipientId = backStackEntry.arguments?.getString("recipientId") ?: ""
-                ChatScreen(
-                    navController = navController,
-                    recipientId = recipientId,
-                )
-            }
+                // Chat nhom (<=20 thanh vien) — mo tu section "Nhom chat" man Messages
+                composable(
+                    route = Screen.GroupChat.route,
+                    arguments = listOf(
+                        navArgument("groupId") { type = NavType.StringType },
+                        navArgument("name") {
+                            type = NavType.StringType
+                            defaultValue = "Group chat"
+                        },
+                    ),
+                ) { backStackEntry ->
+                    GroupChatScreen(
+                        navController = navController,
+                        groupId = backStackEntry.arguments?.getString("groupId") ?: "",
+                        groupName = backStackEntry.arguments?.getString("name") ?: "Group chat",
+                    )
+                }
 
-            // Chat nhom (<=20 thanh vien) — mo tu section "Nhom chat" man Messages
-            composable(
-                route = Screen.GroupChat.route,
-                arguments = listOf(
-                    navArgument("groupId") { type = NavType.StringType },
-                    navArgument("name") {
-                        type = NavType.StringType
-                        defaultValue = "Group chat"
-                    },
-                ),
-            ) { backStackEntry ->
-                GroupChatScreen(
-                    navController = navController,
-                    groupId = backStackEntry.arguments?.getString("groupId") ?: "",
-                    groupName = backStackEntry.arguments?.getString("name") ?: "Group chat",
-                )
-            }
+                composable(Screen.Post.route) {
+                    // Feed = noi dung anh -> nen dac, che backdrop (man khong co Scaffold rieng)
+                    Box(Modifier.fillMaxSize().background(SkinTheme.colors.background)) {
+                        PostScreen(navController)
+                    }
+                }
 
-            composable(Screen.Post.route) {
-                PostScreen(navController)
-            }
+                composable(
+                    route = "profile?userId={userId}",
+                    arguments = listOf(navArgument("userId") { nullable = true }),
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId")
+                    UserProfile(navController = navController, userId = userId)
+                }
 
-            composable(
-                route = "profile?userId={userId}",
-                arguments = listOf(navArgument("userId") { nullable = true }),
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")
-                UserProfile(navController = navController, userId = userId)
-            }
+                // Man quet QR ket ban (mo tu dialog "Add new friend" trong sheet ban be)
+                composable(Screen.QrScan.route) {
+                    Box(Modifier.fillMaxSize().background(SkinTheme.colors.background)) {
+                        QrScanScreen(navController = navController)
+                    }
+                }
 
-            // Man quet QR ket ban (mo tu dialog "Add new friend" trong sheet ban be)
-            composable(Screen.QrScan.route) {
-                QrScanScreen(navController = navController)
-            }
+                composable(Screen.Setting.route) {
+                    // PHAI truyen authViewModel scope Navigation de logout doi dung
+                    // authState ma LaunchedEffect o tren dang quan sat
+                    SettingScreen(navController = navController, authViewModel = authViewModel)
+                }
 
-            composable(Screen.Setting.route) {
-                // PHAI truyen authViewModel scope Navigation de logout doi dung
-                // authState ma LaunchedEffect o tren dang quan sat
-                SettingScreen(navController = navController, authViewModel = authViewModel)
-            }
+                composable(Screen.Camera.route) {
+                    CameraScreen(navController = navController)
+                }
 
-            composable(Screen.Camera.route) {
-                CameraScreen(navController = navController)
-            }
+                // Man chinh sua sau khi chup/quay: chon khung + filter + ve tay -> Tiep -> SubmitPhoto
+                composable(
+                    route = Screen.EditMedia.route + "?mediaPath={mediaPath}&isVideo={isVideo}",
+                    arguments = listOf(
+                        navArgument("mediaPath") { type = NavType.StringType },
+                        navArgument("isVideo") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
+                ) { backStackEntry ->
+                    EditMediaScreen(
+                        navController = navController,
+                        mediaPath = backStackEntry.arguments?.getString("mediaPath") ?: "",
+                        isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
+                    )
+                }
 
-            // Man chinh sua sau khi chup/quay: chon khung + filter + ve tay -> Tiep -> SubmitPhoto
-            composable(
-                route = Screen.EditMedia.route + "?mediaPath={mediaPath}&isVideo={isVideo}",
-                arguments = listOf(
-                    navArgument("mediaPath") { type = NavType.StringType },
-                    navArgument("isVideo") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                ),
-            ) { backStackEntry ->
-                EditMediaScreen(
-                    navController = navController,
-                    mediaPath = backStackEntry.arguments?.getString("mediaPath") ?: "",
-                    isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
-                )
-            }
+                composable(
+                    route = Screen.SubmitPhoto.route +
+                        "?photoPath={photoPath}&isVideo={isVideo}&frameId={frameId}&frameUrl={frameUrl}",
+                    arguments = listOf(
+                        navArgument("photoPath") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("isVideo") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                        navArgument("frameId") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("frameUrl") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
+                ) { backStackEntry ->
+                    SubmitPhotoScreen(
+                        navController = navController,
+                        photoPath = backStackEntry.arguments?.getString("photoPath"),
+                        isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
+                        frameId = backStackEntry.arguments?.getString("frameId"),
+                        frameUrl = backStackEntry.arguments?.getString("frameUrl"),
+                    )
+                }
 
-            composable(
-                route = Screen.SubmitPhoto.route +
-                    "?photoPath={photoPath}&isVideo={isVideo}&frameId={frameId}&frameUrl={frameUrl}",
-                arguments = listOf(
-                    navArgument("photoPath") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("isVideo") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                    navArgument("frameId") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("frameUrl") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                ),
-            ) { backStackEntry ->
-                SubmitPhotoScreen(
-                    navController = navController,
-                    photoPath = backStackEntry.arguments?.getString("photoPath"),
-                    isVideo = backStackEntry.arguments?.getBoolean("isVideo") ?: false,
-                    frameId = backStackEntry.arguments?.getString("frameId"),
-                    frameUrl = backStackEntry.arguments?.getString("frameUrl"),
-                )
-            }
+                // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
+                composable(Screen.DailyQuest.route) {
+                    DailyQuestScreen(
+                        // Nut GO (quest dang bai / AI) -> ve Camera (giong tab Home footer)
+                        onOpenCamera = {
+                            if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
+                                navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+                            }
+                        },
+                    )
+                }
 
-            // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
-            composable(Screen.DailyQuest.route) {
-                DailyQuestScreen(
-                    // Nut GO (quest dang bai / AI) -> ve Camera (giong tab Home footer)
-                    onOpenCamera = {
-                        if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
-                            navController.navigate(Screen.Camera.route) { launchSingleTop = true }
-                        }
-                    },
-                )
-            }
+                // Man Shop (SHOP_PLAN.md — thay gacha 2026-11-15): 4 tab Astrite/Skins/Frames/Effects
+                composable(Screen.Shop.route) {
+                    ShopScreen()
+                }
 
-            // Man Shop (SHOP_PLAN.md — thay gacha 2026-11-15): 4 tab Astrite/Skins/Frames/Effects
-            composable(Screen.Shop.route) {
-                ShopScreen()
-            }
+                // Van ban phap ly tinh (Terms / Privacy) — mo tu Settings
+                composable(
+                    route = Screen.LegalDoc.route,
+                    arguments = listOf(navArgument("docType") { type = NavType.StringType }),
+                ) { backStackEntry ->
+                    LegalDocScreen(
+                        navController = navController,
+                        docType = backStackEntry.arguments?.getString("docType") ?: "terms",
+                    )
+                }
 
-            // Van ban phap ly tinh (Terms / Privacy) — mo tu Settings
-            composable(
-                route = Screen.LegalDoc.route,
-                arguments = listOf(navArgument("docType") { type = NavType.StringType }),
-            ) { backStackEntry ->
-                LegalDocScreen(
-                    navController = navController,
-                    docType = backStackEntry.arguments?.getString("docType") ?: "terms",
-                )
-            }
+                // Widget: man cai dat (preview + toggle streak + refresh + pin)
+                composable(Screen.WidgetSettings.route) {
+                    WidgetSettingsScreen(navController = navController)
+                }
 
-            // Widget: man cai dat (preview + toggle streak + refresh + pin)
-            composable(Screen.WidgetSettings.route) {
-                WidgetSettingsScreen(navController = navController)
-            }
+                // Widget: huong dan them widget vao man hinh chinh
+                composable(Screen.HowToAddWidget.route) {
+                    HowToAddWidgetScreen(navController = navController)
+                }
 
-            // Widget: huong dan them widget vao man hinh chinh
-            composable(Screen.HowToAddWidget.route) {
-                HowToAddWidgetScreen(navController = navController)
-            }
+                // Doi giao dien (skin) + hieu ung cham + xem bo suu tap khung
+                composable(Screen.Appearance.route) {
+                    AppearanceScreen(navController = navController)
+                }
 
-            // Doi giao dien (skin) + hieu ung cham + xem bo suu tap khung
-            composable(Screen.Appearance.route) {
-                AppearanceScreen(navController = navController)
-            }
-
-            // Chup chung (redesign 2026-08-02): man cho accept + chup nua anh + doi ghep
-            composable(
-                route = Screen.CoopCapture.route + "?inviteId={inviteId}&name={name}",
-                arguments = listOf(
-                    navArgument("inviteId") { type = NavType.StringType },
-                    navArgument("name") {
-                        type = NavType.StringType
-                        defaultValue = "friend"
-                    },
-                ),
-            ) { backStackEntry ->
-                CoopCaptureScreen(
-                    navController = navController,
-                    inviteId = backStackEntry.arguments?.getString("inviteId") ?: "",
-                    partnerName = backStackEntry.arguments?.getString("name") ?: "friend",
-                )
+                // Chup chung (redesign 2026-08-02): man cho accept + chup nua anh + doi ghep
+                composable(
+                    route = Screen.CoopCapture.route + "?inviteId={inviteId}&name={name}",
+                    arguments = listOf(
+                        navArgument("inviteId") { type = NavType.StringType },
+                        navArgument("name") {
+                            type = NavType.StringType
+                            defaultValue = "friend"
+                        },
+                    ),
+                ) { backStackEntry ->
+                    CoopCaptureScreen(
+                        navController = navController,
+                        inviteId = backStackEntry.arguments?.getString("inviteId") ?: "",
+                        partnerName = backStackEntry.arguments?.getString("name") ?: "friend",
+                    )
+                }
             }
         }
     }
 }
+
+/**
+ * Route co nen DAC che kin backdrop (noi dung la anh/camera — nen skin chi lam
+ * roi mat). O cac man nay hat bay tam dung cho do ton pin. So sanh phan truoc '?'.
+ */
+private val routesCoveringBackdrop = setOf(
+    Screen.Login.route,
+    Screen.Camera.route,
+    Screen.Post.route,
+    Screen.QrScan.route,
+    Screen.EditMedia.route,
+    Screen.SubmitPhoto.route,
+    Screen.CoopCapture.route,
+)

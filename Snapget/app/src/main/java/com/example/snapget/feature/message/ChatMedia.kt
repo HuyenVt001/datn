@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -186,7 +186,7 @@ fun VoiceBubble(
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Icon(
-            imageVector = if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+            imageVector = if (playing) Icons.Outlined.Stop else Icons.Outlined.PlayArrow,
             contentDescription = if (playing) "Stop" else "Play",
             tint = textColor,
             modifier = Modifier.size(24.dp),

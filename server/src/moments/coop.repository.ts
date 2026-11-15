@@ -26,12 +26,31 @@ export class CoopRepository {
     return this.toEntity(snap.id, snap.data() ?? {});
   }
 
-  /** Loi moi dang cho cua 1 nguoi nhan (1-filter equality; loc status trong bo nho). */
+  /**
+   * Loi moi dang cho cua 1 nguoi nhan. Loc status NGAY TREN QUERY (2026-11-16 —
+   * truoc doc TOAN BO lich su loi moi roi loc trong bo nho, cang dung cang cham).
+   * Chi gom cac dieu kien equality -> Firestore tu ghep index don, KHONG can
+   * composite index. Sort trong bo nho (tap PENDING rat nho).
+   */
   async listPendingForInvitee(inviteeId: string): Promise<CoopInvite[]> {
-    const snap = await this.col.where('inviteeId', '==', inviteeId).get();
+    const snap = await this.col
+      .where('inviteeId', '==', inviteeId)
+      .where('status', '==', 'PENDING')
+      .get();
     return snap.docs
       .map((d) => this.toEntity(d.id, d.data()))
-      .filter((i) => i.status === 'PENDING')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  /** Loi moi PENDING cua dung 1 cap nguoi moi -> nguoi nhan (chong gui lap — 2026-11-16). */
+  async listPendingBetween(inviterId: string, inviteeId: string): Promise<CoopInvite[]> {
+    const snap = await this.col
+      .where('inviterId', '==', inviterId)
+      .where('inviteeId', '==', inviteeId)
+      .where('status', '==', 'PENDING')
+      .get();
+    return snap.docs
+      .map((d) => this.toEntity(d.id, d.data()))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 

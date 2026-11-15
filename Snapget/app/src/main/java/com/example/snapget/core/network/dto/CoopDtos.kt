@@ -21,6 +21,11 @@ data class CoopInviteDto(
     // Chi co trong GET /pending (view kem thong tin nguoi moi)
     val inviterName: String? = null,
     val inviterAvatar: String? = null,
+    // (2026-11-16) Server tinh luc tra ve, chi co khi PENDING (han loi moi 5 phut)
+    // hoac ACCEPTED (han phien chup 10 phut). App DEM NGUOC tu remainingSeconds tinh
+    // tu luc nhan response — khong so expiresAt voi gio may (may lech gio van dung).
+    val expiresAt: String? = null,
+    val remainingSeconds: Long? = null,
 )
 
 /** Body POST /moments/coop — gui loi moi (khong kem anh). */

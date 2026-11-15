@@ -20,12 +20,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.constants.MAX_GROUP_SIZE
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDetailDto
@@ -106,6 +107,7 @@ fun GroupSettingsSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { SkinSheetDragHandle(sheetColor = MaterialTheme.colorScheme.surface) },
     ) {
         Column(
             modifier = Modifier
@@ -153,7 +155,7 @@ fun GroupSettingsSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
-                    imageVector = Icons.Default.Edit,
+                    imageVector = Icons.Outlined.Edit,
                     contentDescription = "Change group name",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -188,7 +190,7 @@ fun GroupSettingsSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Outlined.Add,
                         contentDescription = "Invite",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(22.dp),
@@ -246,7 +248,7 @@ fun GroupSettingsSheet(
                             IconButton(onClick = { memberMenuFor = member.uid }) {
                                 SkinIcon(
                                     res = SkinTheme.icons.more,
-                                    fallback = Icons.Default.MoreHoriz,
+                                    fallback = Icons.Outlined.MoreHoriz,
                                     contentDescription = "Member options",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -289,7 +291,7 @@ fun GroupSettingsSheet(
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.NotificationsOff,
+                        imageVector = Icons.Outlined.NotificationsOff,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(22.dp),
@@ -322,7 +324,7 @@ fun GroupSettingsSheet(
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        imageVector = Icons.AutoMirrored.Outlined.Logout,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(22.dp),
@@ -458,7 +460,7 @@ private fun GroupAvatarCircle(
             )
         } else {
             Icon(
-                imageVector = Icons.Default.Groups,
+                imageVector = Icons.Outlined.Groups,
                 contentDescription = "Group photo",
                 tint = SkinTheme.colors.accent,
                 modifier = Modifier.size(iconSize),

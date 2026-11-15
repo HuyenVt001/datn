@@ -1,7 +1,10 @@
 package com.example.snapget.feature.coop
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.snapget.core.constants.COOP_INVITE_TTL_SECONDS
+import com.example.snapget.core.fcm.CoopPushEvents
 import com.example.snapget.core.network.dto.CoopInviteDto
 import com.example.snapget.core.network.serverMessage
 import com.example.snapget.feature.coop.data.CoopRepository
@@ -14,6 +17,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+/**
+ * Loi moi dang cho + MOC HET HAN tren dong ho may (SystemClock.elapsedRealtime —
+ * khong bi anh huong khi user doi gio he thong). Tinh tu `remainingSeconds` server
+ * tra ve luc nhan response, nen may lech gio van dem nguoc dung.
+ */
+data class PendingCoopInvite(
+    val invite: CoopInviteDto,
+    val deadlineElapsedMs: Long,
+) {
+    fun remainingMs(nowElapsedMs: Long = SystemClock.elapsedRealtime()): Long = (deadlineElapsedMs - nowElapsedMs).coerceAtLeast(0)
+}
 
 /**
  * ViewModel coop (redesign 2026-08-02): moi khong kem anh (TTL 5 phut) ->
@@ -29,9 +44,13 @@ class CoopViewModel @Inject constructor(
     /** uid cua minh — man chup coop dung de biet minh la nguoi moi hay nguoi nhan. */
     val myUid: String? get() = auth.currentUser?.uid
 
-    /** Loi moi chup chung dang cho minh tra loi (banner tren feed). */
-    private val _pendingInvites = MutableStateFlow<List<CoopInviteDto>>(emptyList())
-    val pendingInvites: StateFlow<List<CoopInviteDto>> = _pendingInvites.asStateFlow()
+    /** Loi moi chup chung dang cho minh tra loi (the loi moi o Camera + Feed). */
+    private val _pendingInvites = MutableStateFlow<List<PendingCoopInvite>>(emptyList())
+    val pendingInvites: StateFlow<List<PendingCoopInvite>> = _pendingInvites.asStateFlow()
+
+    /** inviteId dang gui accept — the hien spinner tren nut Accept cua dung the do. */
+    private val _acceptingInviteId = MutableStateFlow<String?>(null)
+    val acceptingInviteId: StateFlow<String?> = _acceptingInviteId.asStateFlow()
 
     /** Loi moi dang mo o man chup coop (cap nhat qua polling refreshInvite). */
     private val _invite = MutableStateFlow<CoopInviteDto?>(null)
@@ -45,14 +64,48 @@ class CoopViewModel @Inject constructor(
     private val _coopError = MutableStateFlow<String?>(null)
     val coopError: StateFlow<String?> = _coopError.asStateFlow()
 
+    init {
+        // Push chup chung khi app dang mo (2026-11-16): cap nhat ngay, khong doi poll
+        viewModelScope.launch {
+            CoopPushEvents.events.collect { event ->
+                when (event.type) {
+                    CoopPushEvents.TYPE_COOP_INVITE -> loadPending()
+                    CoopPushEvents.TYPE_COOP_CANCELLED -> {
+                        // Go the ngay, roi dong bo lai voi server
+                        event.inviteId?.let { id -> removePending(id) }
+                        loadPending()
+                    }
+                    // Man chup coop: doi phuong accept / anh ghep xong -> refresh ngay
+                    CoopPushEvents.TYPE_COOP_ACCEPTED, CoopPushEvents.TYPE_COOP_DONE -> {
+                        val current = _invite.value
+                        if (current != null && (event.inviteId == null || event.inviteId == current.inviteId)) {
+                            refreshInvite(current.inviteId)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun loadPending() {
         viewModelScope.launch {
             try {
+                val now = SystemClock.elapsedRealtime()
                 _pendingInvites.value = repository.listPending()
+                    .map { invite ->
+                        val remainingSec = invite.remainingSeconds ?: COOP_INVITE_TTL_SECONDS
+                        PendingCoopInvite(invite, now + remainingSec * 1000)
+                    }
+                    .filter { it.remainingMs(now) > 0 }
             } catch (_: Exception) {
-                // Banner tu an neu loi — khong chan feed
+                // The tu an neu loi — khong chan man dang mo
             }
         }
+    }
+
+    /** Dem nguoc ve 0 -> go the ngay (khong doi lan poll sau moi bien mat). */
+    fun removePending(inviteId: String) {
+        _pendingInvites.value = _pendingInvites.value.filterNot { it.invite.inviteId == inviteId }
     }
 
     /** Gui loi moi (khong kem anh); thanh cong -> callback de man camera navigate. */
@@ -77,16 +130,18 @@ class CoopViewModel @Inject constructor(
         if (_busy.value) return
         viewModelScope.launch {
             _busy.value = true
+            _acceptingInviteId.value = inviteId
             try {
                 val invite = repository.accept(inviteId)
                 _invite.value = invite
-                _pendingInvites.value = _pendingInvites.value.filterNot { it.inviteId == inviteId }
+                removePending(inviteId)
                 onAccepted(invite)
             } catch (e: Exception) {
                 _coopError.value = e.serverMessage("Failed to accept invite.")
-                loadPending() // loi moi co the vua het han -> lam moi banner
+                loadPending() // loi moi co the vua het han / bi huy -> lam moi the
             } finally {
                 _busy.value = false
+                _acceptingInviteId.value = null
             }
         }
     }
@@ -95,10 +150,11 @@ class CoopViewModel @Inject constructor(
         // NonCancellable: man goi ham nay co the popBackStack NGAY sau do ->
         // ViewModel bi clear + viewModelScope bi huy. Thieu NonCancellable thi
         // request decline bi cat giua chung — loi moi van PENDING, banner hien lai.
+        // Go the NGAY (lac quan) — user bam Decline la muon the bien mat luon
+        removePending(inviteId)
         viewModelScope.launch(NonCancellable) {
             try {
                 repository.decline(inviteId)
-                _pendingInvites.value = _pendingInvites.value.filterNot { it.inviteId == inviteId }
             } catch (_: Exception) {
                 // Bo qua — loi moi tu het han sau 5 phut
             }

@@ -22,9 +22,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.outlined.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -89,11 +90,13 @@ fun WidgetSettingsScreenContent(
     onRefreshNow: () -> Unit = {},
 ) {
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         topBar = {
             CommonTopBar(
                 navController = navController,
                 title = "Widget Settings",
-                startIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                startIcon = Icons.AutoMirrored.Outlined.ArrowBack,
                 onStartIconClick = { navController.popBackStack() },
             )
         },
@@ -159,7 +162,7 @@ fun WidgetSettingsScreenContent(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Refresh,
+                            imageVector = Icons.Outlined.Refresh,
                             contentDescription = null,
                             tint = SkinTheme.colors.accent,
                             modifier = Modifier.size(18.dp),
@@ -261,7 +264,7 @@ private fun AddWidgetButton(navController: NavHostController) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.AddToHomeScreen,
+                imageVector = Icons.AutoMirrored.Outlined.AddToHomeScreen,
                 contentDescription = null,
                 tint = SkinTheme.colors.accent,
             )

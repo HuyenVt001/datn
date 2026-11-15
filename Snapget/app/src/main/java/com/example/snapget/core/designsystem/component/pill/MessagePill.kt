@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -132,7 +132,7 @@ fun MessageInputPill(
                 ) {
                     SkinIcon(
                         res = SkinTheme.icons.send,
-                        fallback = Icons.AutoMirrored.Filled.Send,
+                        fallback = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "Send message",
                         tint = SkinTheme.colors.accent,
                         modifier = Modifier.size(26.dp),
@@ -157,7 +157,7 @@ fun MessageInputPill(
                     enabled = onEmojiClick != null,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AddCircle,
+                        imageVector = Icons.Outlined.AddCircle,
                         contentDescription = if (expanded) "Fewer reactions" else "More reactions",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(32.dp),

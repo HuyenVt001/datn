@@ -2,6 +2,7 @@ package com.example.snapget.feature.coop
 
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
@@ -25,10 +26,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -137,6 +141,28 @@ fun CoopCaptureScreen(
         onDispose { coopViewModel.clearInvite() }
     }
 
+    // ==== Dem nguoc (2026-11-16): PENDING = han loi moi, ACCEPTED = han phien chup.
+    // Moc tinh tu remainingSeconds server tra ve (dong bo lai moi lan poll) tren
+    // elapsedRealtime -> khong phu thuoc gio may.
+    var deadlineMs by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(invite?.status, invite?.remainingSeconds) {
+        deadlineMs = invite?.remainingSeconds?.let { SystemClock.elapsedRealtime() + it * 1000 }
+    }
+    var nowMs by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMs = SystemClock.elapsedRealtime()
+            delay(500)
+        }
+    }
+    val remainingSec: Long? = deadlineMs?.let { ((it - nowMs).coerceAtLeast(0) + 999) / 1000 }
+
+    // Da tung vao phien chup (ACCEPTED) — de phan biet "tu choi loi moi" voi "roi phien"
+    var wasAccepted by remember { mutableStateOf(false) }
+    LaunchedEffect(invite?.status) {
+        if (invite?.status == "ACCEPTED" || invite?.status == "COMPLETED") wasAccepted = true
+    }
+
     LaunchedEffect(coopError) {
         coopError?.let {
             messenger.show(it)
@@ -187,15 +213,9 @@ fun CoopCaptureScreen(
     // ket o man "Merging photos…" mai mai (bug 2026-08-03). No chi la co chan lap.
     LaunchedEffect(current?.status, current?.mergedMediaUrl) {
         when {
+            // DECLINED / EXPIRED: KHONG tu thoat nua (2026-11-16) — hien man ket thuc
+            // co nut "Invite again" (xem CoopEndedContent ben duoi)
             current == null -> Unit
-            current.status == "DECLINED" -> {
-                messenger.show("$partnerName declined the invite.")
-                navController.popBackStack()
-            }
-            current.status == "EXPIRED" -> {
-                messenger.show("The invite expired (5 minutes).")
-                navController.popBackStack()
-            }
             current.status == "COMPLETED" && current.mergedMediaUrl != null && !navigatedToEdit -> {
                 navigatedToEdit = true
                 // Tai anh ghep ve cache — mang chap chon thi thu lai vai lan
@@ -231,7 +251,7 @@ fun CoopCaptureScreen(
                 navController = navController,
                 title = "Co-op Capture",
                 titleColor = MaterialTheme.colorScheme.onBackground,
-                startIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                startIcon = Icons.AutoMirrored.Outlined.ArrowBack,
                 // Cung logic voi nut back he thong: roi man = huy phien (co xac nhan)
                 onStartIconClick = leaveScreen,
             )
@@ -250,6 +270,34 @@ fun CoopCaptureScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
                 }
 
+                current.status == "DECLINED" || current.status == "EXPIRED" -> {
+                    val message = when {
+                        current.status == "DECLINED" && wasAccepted -> "$partnerName left the session."
+                        current.status == "DECLINED" -> "$partnerName declined the invite."
+                        wasAccepted -> "The session timed out before both photos were sent."
+                        isInviter -> "The invite expired — $partnerName didn't respond in time."
+                        else -> "The invite expired."
+                    }
+                    CoopEndedContent(
+                        message = message,
+                        partnerName = partnerName,
+                        busy = busy,
+                        onInviteAgain = {
+                            // Moi lai DUNG nguoi kia (ai moi ai cung duoc) -> sang phien moi
+                            val partnerUid = if (isInviter) current.inviteeId else current.inviterId
+                            coopViewModel.createInvite(partnerUid) { newInvite ->
+                                navController.popBackStack()
+                                navController.navigate(
+                                    Screen.CoopCapture.route +
+                                        "?inviteId=" + newInvite.inviteId +
+                                        "&name=" + Uri.encode(partnerName),
+                                )
+                            }
+                        },
+                        onClose = { navController.popBackStack() },
+                    )
+                }
+
                 current.status == "PENDING" -> {
                     // Nguoi moi doi doi phuong chap nhan (nguoi nhan chi vao day sau accept)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -264,9 +312,15 @@ fun CoopCaptureScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Invites expire after 5 minutes.",
+                            text = remainingSec?.let { "Invite expires in ${formatMmSs(it)}" }
+                                ?: "Invites expire after 5 minutes.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            color = if ((remainingSec ?: Long.MAX_VALUE) <= 60) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         TextButton(
@@ -306,6 +360,10 @@ fun CoopCaptureScreen(
                                 } else {
                                     CoopPartnerHalf(partnerUrl = partnerUrl, partnerName = partnerName)
                                 }
+                                CoopHalfLabel(
+                                    text = if (isInviter) "You" else partnerName,
+                                    modifier = Modifier.align(Alignment.TopCenter),
+                                )
                             }
                             Box(
                                 modifier = Modifier
@@ -323,6 +381,10 @@ fun CoopCaptureScreen(
                                         onPhotoTaken = { myPhotoPath = it },
                                     )
                                 }
+                                CoopHalfLabel(
+                                    text = if (isInviter) partnerName else "You",
+                                    modifier = Modifier.align(Alignment.TopCenter),
+                                )
                             }
                         }
 
@@ -398,7 +460,7 @@ fun CoopCaptureScreen(
                                     enabled = !busy,
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Replay,
+                                        imageVector = Icons.Outlined.Replay,
                                         contentDescription = "Retake",
                                         tint = MaterialTheme.colorScheme.onBackground,
                                         modifier = Modifier.size(32.dp),
@@ -426,7 +488,7 @@ fun CoopCaptureScreen(
                                     borderWidth = 3.dp,
                                     modifier = Modifier.rotate(-45F),
                                     iconSetting = IconSetting(
-                                        icon = Icons.AutoMirrored.Filled.Send,
+                                        icon = Icons.AutoMirrored.Outlined.Send,
                                         tint = Color.White,
                                         contentDescription = "Send photo",
                                         skinRes = SkinTheme.icons.send,
@@ -448,6 +510,21 @@ fun CoopCaptureScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+
+                    // Phien chup co han 10 phut — sap het (<= 1 phut) ma chua du 2 nua thi bao
+                    val bothSubmitted = mySubmitted && !partnerUrl.isNullOrBlank()
+                    if (current.status == "ACCEPTED" &&
+                        !bothSubmitted &&
+                        remainingSec != null &&
+                        remainingSec <= 60
+                    ) {
+                        Text(
+                            text = "Session ends in ${formatMmSs(remainingSec)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
@@ -482,6 +559,72 @@ fun CoopCaptureScreen(
                 }
             },
         )
+    }
+}
+
+/** "m:ss" tu so giay. */
+private fun formatMmSs(totalSec: Long): String = "%d:%02d".format(totalSec / 60, totalSec % 60)
+
+/** Nhan nho tren moi nua khung chup: "You" / ten doi phuong (de len camera/anh -> chu trang). */
+@Composable
+private fun CoopHalfLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        color = Color.White,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .padding(top = 10.dp, start = 8.dp, end = 8.dp)
+            .clip(SkinTheme.shapes.pill)
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * Man KET THUC phien (bi tu choi / roi phien / het han) — thay cho toast + tu thoat
+ * truoc day (2026-11-16): cho moi lai NGAY dung nguoi do, hoac dong man.
+ */
+@Composable
+private fun CoopEndedContent(
+    message: String,
+    partnerName: String,
+    busy: Boolean,
+    onInviteAgain: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onInviteAgain,
+            enabled = !busy,
+            shape = SkinTheme.shapes.pill,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = SkinTheme.colors.accent,
+                contentColor = SkinTheme.colors.onAccent,
+            ),
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Text(
+                text = if (busy) "Sending…" else "Invite $partnerName again",
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = onClose) {
+            Text(text = "Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

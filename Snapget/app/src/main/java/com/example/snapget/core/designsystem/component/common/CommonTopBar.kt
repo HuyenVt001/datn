@@ -2,7 +2,7 @@ package com.example.snapget.core.designsystem.component.common
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -106,6 +106,6 @@ fun CommonTopBarPreview() {
     CommonTopBar(
         navController = rememberNavController(),
         title = "Send to...",
-        endIcon = Icons.Default.Settings,
+        endIcon = Icons.Outlined.Settings,
     )
 }

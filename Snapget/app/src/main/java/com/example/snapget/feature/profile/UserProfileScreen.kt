@@ -23,11 +23,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,26 +70,24 @@ import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.empty.EmptyDayItem
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGridItemWithBadge
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
-import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.UserProfileTopBar
 import com.example.snapget.core.designsystem.skin.SkinTheme
-import com.example.snapget.core.model.FriendUi
+import com.example.snapget.core.designsystem.skin.glassColor
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
-import com.example.snapget.core.network.dto.InviteLinkDto
 import com.example.snapget.core.network.dto.MomentDto
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.calculateDaysOfMonthInYear
 import com.example.snapget.core.util.copyUriToCacheFile
 import com.example.snapget.core.util.groupPostsByDay
 import com.example.snapget.core.util.groupPostsByMonthYear
+import com.example.snapget.feature.friends.FriendsSheetHost
 import com.example.snapget.feature.friends.FriendsViewModel
 import com.example.snapget.feature.post.PostDetailScreen
 import com.example.snapget.feature.post.toPost
-import com.example.snapget.navigation.Screen
 import java.io.File
 import java.time.LocalDate
+import java.time.YearMonth
 
 data class MonthPosts(
     val month: Month,
@@ -124,29 +123,21 @@ fun UserProfile(
         profileViewModel.load(userId)
     }
 
-    val apiFriends by friendsViewModel.friends.collectAsState()
-    val apiFriendsStatus by friendsViewModel.friendsStatus.collectAsState()
-    val inviteLink by friendsViewModel.inviteLink.collectAsState()
-    val friendRequests by friendsViewModel.requests.collectAsState()
-
     UserProfileContent(
         profile = profile,
         moments = moments,
         profileStatus = profileStatus,
         updateStatus = updateStatus,
-        apiFriends = apiFriends,
-        apiFriendsStatus = apiFriendsStatus,
-        inviteLink = inviteLink,
-        friendRequests = friendRequests,
         navController = navController,
-        onLoadFriends = {
-            friendsViewModel.loadFriends()
-            friendsViewModel.loadInviteLink()
-            friendsViewModel.loadRequests() // loi moi dang cho minh xac nhan
+        // Sheet ban be dung chung (FriendsSheetHost tu tai data khi mo)
+        friendsSheet = { visible, onDismiss ->
+            FriendsSheetHost(
+                visible = visible,
+                onDismiss = onDismiss,
+                navController = navController,
+                friendsViewModel = friendsViewModel,
+            )
         },
-        onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
-        onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
-        onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
         onUpdateProfile = { newName, avatarFile ->
             profileViewModel.updateProfile(newName, avatarFile)
         },
@@ -164,16 +155,10 @@ fun UserProfileContent(
     moments: List<MomentDto>,
     profileStatus: LoadStatus,
     updateStatus: LoadStatus,
-    apiFriends: List<FriendUi>,
-    apiFriendsStatus: LoadStatus,
-    inviteLink: InviteLinkDto?,
     navController: NavController,
-    onLoadFriends: () -> Unit,
-    onRemoveFriend: (FriendUi) -> Unit,
-    // Loi moi ket ban dang cho minh xac nhan (default rong de preview khong can truyen)
-    friendRequests: List<FriendUi> = emptyList(),
-    onAcceptRequest: (FriendUi) -> Unit = {},
-    onDeclineRequest: (FriendUi) -> Unit = {},
+    // Slot sheet ban be (visible, onDismiss) — man that truyen FriendsSheetHost;
+    // preview de mac dinh rong (khong can hiltViewModel)
+    friendsSheet: @Composable (Boolean, () -> Unit) -> Unit = { _, _ -> },
     onUpdateProfile: (String, File?) -> Unit,
     onResetUpdateStatus: () -> Unit,
     onReloadProfile: () -> Unit = {},
@@ -204,35 +189,24 @@ fun UserProfileContent(
     val posts = moments.map { it.toPost(ownerUser, emptyList()) }
     var selectedPost by remember { mutableStateOf<Post?>(null) }
 
-    // Group posts by month and year
-    val groupedPosts = groupPostsByMonthYear(posts)
+    // Cac thang cua calendar (cu -> moi), LUON co thang hien tai ke ca acc chua dang bai;
+    // lap day ca thang trong o giua de cuon len/xuong lien mach (2026-11-15)
+    val calendarMonths = remember(posts) { buildCalendarMonths(posts) }
+
+    // Mac dinh hien THANG HIEN TAI (item cuoi); cuon len = thang cu hon. State dat
+    // NGOAI `when` de mo/dong PostDetail khong mat vi tri cuon; chi tu cuon ve thang
+    // hien tai khi doi profile / so thang thay doi (reload binh thuong khong nhay)
+    val listState = rememberLazyListState()
+    // Key them so thang: moment co the ve SAU profile -> danh sach dai ra thi cuon lai
+    LaunchedEffect(profile?.uid, calendarMonths.size) {
+        if (profile != null) listState.scrollToItem(calendarMonths.lastIndex.coerceAtLeast(0))
+    }
 
     // Sheet ban be — data that tu API /friendships (FriendsViewModel)
     var showFriendSheet by remember { mutableStateOf(false) }
 
-    // Sheet quan ly ban be: dem ban, QR ket ban, xoa ban (xac nhan trong sheet)
-    UserDetailBottomSheet(
-        data = if (showFriendSheet) {
-            UserDetailBottomSheetData(
-                friends = apiFriends,
-                isLoading = apiFriendsStatus is LoadStatus.Loading,
-                inviteCode = inviteLink?.inviteCode,
-                inviteLink = inviteLink?.link,
-                inviteExpiresAt = inviteLink?.expiresAt,
-                requests = friendRequests,
-                onAcceptRequest = onAcceptRequest,
-                onDeclineRequest = onDeclineRequest,
-                onScanQrClick = {
-                    showFriendSheet = false
-                    navController.navigate(Screen.QrScan.route)
-                },
-                onRemoveFriend = onRemoveFriend,
-            )
-        } else {
-            null
-        },
-        onDismiss = { showFriendSheet = false },
-    )
+    // Sheet quan ly ban be: dem ban, QR ket ban, loi moi, xoa ban (FriendsSheetHost)
+    friendsSheet(showFriendSheet) { showFriendSheet = false }
 
     when {
         selectedPost != null -> {
@@ -276,13 +250,12 @@ fun UserProfileContent(
             Log.d("UserProfile", "Displaying profile for user: ${profileData.name}")
 
             Scaffold(
+                // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+                containerColor = Color.Transparent,
                 topBar = {
                     UserProfileTopBar(
                         navController = navController,
-                        onFriendsClick = {
-                            onLoadFriends()
-                            showFriendSheet = true
-                        },
+                        onFriendsClick = { showFriendSheet = true },
                         showHomeButton = false,
                     )
                 },
@@ -296,10 +269,10 @@ fun UserProfileContent(
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         // Fixed ProfileHeader - never scrolls
+                        // Skin v2: trong suot de lo backdrop + ornament cua skin
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.background,
-                            shadowElevation = 8.dp,
+                            color = Color.Transparent,
                         ) {
                             ProfileHeader(
                                 name = profileData.name,
@@ -323,9 +296,8 @@ fun UserProfileContent(
                         ) {
                             // Scrollable posts content
                             LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.background),
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
                                     end = 16.dp,
@@ -334,7 +306,10 @@ fun UserProfileContent(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(24.dp),
                             ) {
-                                items(groupedPosts.reversed()) { monthPosts ->
+                                items(
+                                    items = calendarMonths,
+                                    key = { "${it.year}-${it.month.ordinal}" },
+                                ) { monthPosts ->
                                     MonthSection(
                                         monthPosts = monthPosts,
                                         onPostClick = { post -> selectedPost = post },
@@ -347,9 +322,11 @@ fun UserProfileContent(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.background,
-                                shadowElevation = 8.dp,
+                                // Skin v2: nen BAN TRONG (85%) thay vi dac — van che list
+                                // cuon ben duoi cho de doc, nhung con thay backdrop
+                                color = Color.Transparent,
                             ) {
+                                val statsBackground = MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
                                 Column {
                                     // Gradient fade
                                     Box(
@@ -358,10 +335,7 @@ fun UserProfileContent(
                                             .height(16.dp)
                                             .background(
                                                 brush = Brush.verticalGradient(
-                                                    colors = listOf(
-                                                        Color.Transparent,
-                                                        MaterialTheme.colorScheme.background,
-                                                    ),
+                                                    colors = listOf(Color.Transparent, statsBackground),
                                                 ),
                                             ),
                                     )
@@ -371,7 +345,9 @@ fun UserProfileContent(
                                         momentCount = posts.size,
                                         streakDays = profileData.personalStreak,
                                         showMoments = profileData.isSelf,
-                                        modifier = Modifier.padding(16.dp),
+                                        modifier = Modifier
+                                            .background(statsBackground)
+                                            .padding(16.dp),
                                     )
                                 }
                             }
@@ -423,7 +399,7 @@ private fun ProfileHeader(
                 if (onEditClick != null) {
                     IconButton(onClick = onEditClick) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
+                            imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit profile",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp),
@@ -444,7 +420,7 @@ private fun ProfileHeader(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        imageVector = Icons.Default.Link,
+                        imageVector = Icons.Outlined.Link,
                         contentDescription = "Link",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
@@ -522,7 +498,7 @@ private fun EditProfileDialog(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Edit,
+                            imageVector = Icons.Outlined.Edit,
                             contentDescription = "Pick avatar",
                             tint = SkinTheme.colors.textPrimary,
                         )
@@ -669,6 +645,29 @@ private fun StatItem(
     }
 }
 
+/**
+ * Danh sach thang cho calendar profile, sap CU -> MOI (thang hien tai o cuoi):
+ * tu thang co bai som nhat (hoac thang hien tai neu chua co bai) den thang hien tai,
+ * gom ca thang KHONG co bai — acc moi van thay calendar thang nay.
+ */
+@RequiresApi(Build.VERSION_CODES.O)
+private fun buildCalendarMonths(posts: List<Post>): List<MonthPosts> {
+    val byMonth = groupPostsByMonthYear(posts).associateBy { YearMonth.of(it.year, it.month.ordinal + 1) }
+    val current = YearMonth.now()
+    val earliest = byMonth.keys.minOrNull()?.takeIf { it < current } ?: current
+    val result = mutableListOf<MonthPosts>()
+    var ym = earliest
+    while (ym <= current) {
+        result += byMonth[ym] ?: MonthPosts(
+            month = Month.entries[ym.monthValue - 1],
+            year = ym.year,
+            posts = emptyList(),
+        )
+        ym = ym.plusMonths(1)
+    }
+    return result
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun MonthSection(
@@ -682,7 +681,7 @@ private fun MonthSection(
         modifier = Modifier.fillMaxWidth()
             .clip(bottomRounded)
             .background(
-                color = MaterialTheme.colorScheme.surface,
+                color = glassColor(),
                 shape = RoundedCornerShape(12.dp),
             ),
     ) {
@@ -763,7 +762,7 @@ private fun MonthCalendarGrid(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surface,
+                color = glassColor(),
                 shape = SkinTheme.shapes.image,
             )
             .padding(16.dp),

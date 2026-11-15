@@ -8,4 +8,6 @@ data class FriendUi(
     val id: String,
     val name: String,
     val avatar: String = "",
+    // Chi co o loi moi ket ban (FriendRequestDto.requestedAt, ISO) -> hien "2h ago"
+    val requestedAt: String? = null,
 )

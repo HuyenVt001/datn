@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -117,7 +117,7 @@ fun PillPreview() {
         ) {
             Pill(data = "Sample Data", endIcon = {
                 Icon(
-                    imageVector = Icons.Filled.ExpandMore,
+                    imageVector = Icons.Outlined.ExpandMore,
                     contentDescription = "Dropdown",
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),
@@ -126,7 +126,7 @@ fun PillPreview() {
 
             Pill(startIcon = {
                 Icon(
-                    imageVector = Icons.Filled.ExpandMore,
+                    imageVector = Icons.Outlined.ExpandMore,
                     contentDescription = "Dropdown",
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),
@@ -135,7 +135,7 @@ fun PillPreview() {
 
             Pill(startIcon = {
                 Icon(
-                    imageVector = Icons.Filled.Group,
+                    imageVector = Icons.Outlined.Group,
                     contentDescription = "Dropdown",
                     tint = Color.White,
                 )

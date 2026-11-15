@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewCozy
 import androidx.compose.material.icons.outlined.Cached
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.IosShare
@@ -302,7 +303,7 @@ private val sampleItems = listOf(
     BottomNavItem(
         title = "Camera",
         selectedIcon = Icons.Filled.CameraAlt,
-        unselectedIcon = Icons.Filled.CameraAlt,
+        unselectedIcon = Icons.Outlined.CameraAlt,
         route = "",
         isCenter = true,
     ),

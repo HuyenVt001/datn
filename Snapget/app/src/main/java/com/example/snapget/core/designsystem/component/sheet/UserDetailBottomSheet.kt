@@ -1,6 +1,7 @@
 package com.example.snapget.core.designsystem.component.sheet
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,13 +47,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.snapget.core.constants.MAX_FRIENDS
 import com.example.snapget.core.designsystem.component.list.ExternalAppComponent
 import com.example.snapget.core.designsystem.component.list.ShareYourLinkComponent
 import com.example.snapget.core.designsystem.component.list.TotalFriendComponent
 import com.example.snapget.core.designsystem.component.list.YourFriendAppComponent
+import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.util.avatarOrDefault
+import com.example.snapget.core.util.timeAgo
+import kotlinx.coroutines.delay
 
 /**
  * Data + callback cua sheet ban be. inviteCode/inviteLink de sinh QR moi ket ban
@@ -69,6 +76,18 @@ data class UserDetailBottomSheetData(
     val onDeclineRequest: (FriendUi) -> Unit = {},
     val onScanQrClick: () -> Unit = {},
     val onRemoveFriend: (FriendUi) -> Unit = {},
+    // Bam hang ban -> mo profile; icon chat -> mo chat 1-1 (navigation do man cha quyet dinh)
+    val onFriendClick: (FriendUi) -> Unit = {},
+    val onMessageFriend: (FriendUi) -> Unit = {},
+    // Tai link moi that bai (chua co link) -> the link hien nut Retry
+    val inviteLinkFailed: Boolean = false,
+    val onRetryInviteLink: () -> Unit = {},
+    // uid loi moi dang xu ly -> khoa nut ✓/✕ + spinner
+    val processingRequestIds: Set<String> = emptySet(),
+    // Ket qua chap nhan/tu choi/xoa (banner trong sheet — Snackbar app bi sheet che)
+    val notice: String? = null,
+    val noticeIsError: Boolean = false,
+    val onNoticeShown: () -> Unit = {},
 )
 
 /**
@@ -87,15 +106,16 @@ fun UserDetailBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         dragHandle = {
-            // Simple drag handle without excessive padding
-            HorizontalDivider(
-                color = SkinTheme.colors.textPrimary,
-                thickness = 3.dp,
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .background(SkinTheme.colors.background)
-                    .width(40.dp),
-            )
+            // Simple drag handle without excessive padding (+ dai ornament cua skin)
+            SkinSheetDragHandle(sheetColor = SkinTheme.colors.background) {
+                HorizontalDivider(
+                    color = SkinTheme.colors.textPrimary,
+                    thickness = 3.dp,
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .width(40.dp),
+                )
+            }
         },
         containerColor = SkinTheme.colors.background,
     ) { sheetData ->
@@ -119,24 +139,43 @@ fun UserDetailBottomSheet(
                 modifier = Modifier.padding(top = 0.dp),
             )
 
+            // Banner ket qua thao tac (tu an sau vai giay)
+            sheetData.notice?.let { text ->
+                NoticeBanner(
+                    text = text,
+                    isError = sheetData.noticeIsError,
+                    onShown = sheetData.onNoticeShown,
+                )
+            }
+
             // Loi moi ket ban dang cho MINH xac nhan (thiet ke 2 buoc — chu link accept/decline)
             if (sheetData.requests.isNotEmpty()) {
                 FriendRequestsSection(
                     requests = sheetData.requests,
+                    processingIds = sheetData.processingRequestIds,
+                    isFull = sheetData.friends.size >= MAX_FRIENDS,
                     onAccept = sheetData.onAcceptRequest,
                     onDecline = sheetData.onDeclineRequest,
                 )
             }
 
-            ExternalAppComponent()
+            ExternalAppComponent(inviteLink = sheetData.inviteLink)
 
             YourFriendAppComponent(
                 friends = sheetData.friends,
                 onRemoveFriend = { friendPendingRemove = it },
+                onFriendClick = sheetData.onFriendClick,
+                onMessageClick = sheetData.onMessageFriend,
                 isLoading = sheetData.isLoading,
             )
 
-            ShareYourLinkComponent(inviteLink = sheetData.inviteLink)
+            ShareYourLinkComponent(
+                inviteLink = sheetData.inviteLink,
+                inviteExpiresAt = sheetData.inviteExpiresAt,
+                isLinkFailed = sheetData.inviteLinkFailed,
+                onRetryLink = sheetData.onRetryInviteLink,
+                onShowQr = { showQrDialog = true },
+            )
         }
 
         if (showQrDialog) {
@@ -198,6 +237,8 @@ fun UserDetailBottomSheet(
 @Composable
 private fun FriendRequestsSection(
     requests: List<FriendUi>,
+    processingIds: Set<String>,
+    isFull: Boolean,
     onAccept: (FriendUi) -> Unit,
     onDecline: (FriendUi) -> Unit,
 ) {
@@ -207,12 +248,21 @@ private fun FriendRequestsSection(
             .padding(horizontal = 16.dp),
     ) {
         Text(
-            text = "💌 Friend requests",
+            text = "💌 Friend requests (${requests.size})",
             color = SkinTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
             modifier = Modifier.padding(bottom = 8.dp),
         )
+        // Du 20 ban thi server se tu choi accept -> bao truoc thay vi de user bam roi moi loi
+        if (isFull) {
+            Text(
+                text = "Your friend list is full. Remove a friend before accepting new requests.",
+                color = SkinTheme.colors.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
         Surface(
             shape = SkinTheme.shapes.input,
             color = SkinTheme.colors.surface,
@@ -247,37 +297,89 @@ private fun FriendRequestsSection(
                                 color = SkinTheme.colors.onSurfaceVariant,
                                 fontSize = 12.sp,
                             )
-                        }
-                        // ✓ chap nhan — nut tron trang (hanh dong chinh)
-                        Surface(shape = CircleShape, color = SkinTheme.colors.textPrimary) {
-                            IconButton(
-                                onClick = { onAccept(request) },
-                                modifier = Modifier.size(36.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Accept ${request.name}",
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(20.dp),
+                            // Thoi diem gui loi moi ("2h ago"); khong parse duoc -> an
+                            timeAgo(request.requestedAt)?.let { ago ->
+                                Text(
+                                    text = ago,
+                                    color = SkinTheme.colors.onSurfaceVariant.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        // ✕ tu choi — vien do, xoa im lang
-                        IconButton(
-                            onClick = { onDecline(request) },
-                            modifier = Modifier.size(36.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Decline ${request.name}",
-                                tint = SkinTheme.colors.error,
+                        if (request.id in processingIds) {
+                            // Dang goi API -> spinner thay 2 nut (chan bam lap)
+                            CircularProgressIndicator(
+                                color = SkinTheme.colors.textPrimary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier
+                                    .padding(horizontal = 26.dp)
+                                    .size(24.dp),
                             )
+                        } else {
+                            // ✓ chap nhan — nut tron trang (hanh dong chinh); mo khi du 20 ban
+                            Surface(
+                                shape = CircleShape,
+                                color = SkinTheme.colors.textPrimary.copy(alpha = if (isFull) 0.35f else 1f),
+                            ) {
+                                IconButton(
+                                    onClick = { onAccept(request) },
+                                    enabled = !isFull,
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = "Accept ${request.name}",
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // ✕ tu choi — xoa im lang (nguoi gui khong duoc bao)
+                            IconButton(
+                                onClick = { onDecline(request) },
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Decline ${request.name}",
+                                    tint = SkinTheme.colors.error,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/** Banner ket qua trong sheet: tu goi [onShown] (an) sau 3.5s; bam de an ngay. */
+@Composable
+private fun NoticeBanner(
+    text: String,
+    isError: Boolean,
+    onShown: () -> Unit,
+) {
+    LaunchedEffect(text) {
+        delay(3_500)
+        onShown()
+    }
+    Surface(
+        shape = SkinTheme.shapes.input,
+        color = if (isError) SkinTheme.colors.error else SkinTheme.colors.accent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable { onShown() },
+    ) {
+        Text(
+            text = text,
+            color = if (isError) Color.White else Color.Black,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+        )
     }
 }
 

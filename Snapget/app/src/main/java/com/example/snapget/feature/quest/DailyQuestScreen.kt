@@ -23,11 +23,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CenterFocusStrong
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.WavingHand
+import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.WavingHand
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -66,6 +67,8 @@ import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.motion.staggerEnter
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.glassColor
+import com.example.snapget.core.designsystem.skin.skinGlass
 import com.example.snapget.core.designsystem.theme.NumberDisplay
 import com.example.snapget.core.network.dto.TodayQuestDto
 import java.util.Calendar
@@ -119,7 +122,7 @@ fun DailyQuestScreenContent(
 ) {
     Scaffold(
         topBar = { SimpleTopBar(title = "Daily Quest", onBackClick = onBackClick) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
     ) { padding ->
         when {
             uiState.status is LoadStatus.Error && uiState.quests.isEmpty() -> Box(
@@ -230,7 +233,7 @@ private fun StreakHero(streak: Int, postedToday: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(SkinTheme.shapes.card)
-            .background(colors.surface)
+            .skinGlass(SkinTheme.shapes.card)
             .border(1.dp, colors.streak.copy(alpha = 0.35f), SkinTheme.shapes.card)
             .padding(vertical = 18.dp, horizontal = 16.dp)
             .semantics(mergeDescendants = true) {},
@@ -301,7 +304,7 @@ private fun WeekStrip(streak: Int, postedToday: Boolean) {
                 ) {
                     if (filled) {
                         Icon(
-                            imageVector = Icons.Filled.Check,
+                            imageVector = Icons.Outlined.Check,
                             contentDescription = null,
                             tint = colors.onAccent,
                             modifier = Modifier.size(16.dp),
@@ -344,7 +347,7 @@ private fun QuestCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(SkinTheme.shapes.card)
-            .background(colors.surface)
+            .background(glassColor())
             .border(
                 width = 2.dp,
                 color = if (quest.completed) colors.success.copy(alpha = 0.6f) else colors.surfaceVariant,
@@ -362,10 +365,10 @@ private fun QuestCard(
             ) {
                 Icon(
                     imageVector = when {
-                        quest.completed -> Icons.Filled.Check
-                        quest.type == "POST_MOMENT" -> Icons.Filled.PhotoCamera
-                        isAi -> Icons.Filled.CenterFocusStrong
-                        else -> Icons.Filled.WavingHand
+                        quest.completed -> Icons.Outlined.Check
+                        quest.type == "POST_MOMENT" -> Icons.Outlined.PhotoCamera
+                        isAi -> Icons.Outlined.CenterFocusStrong
+                        else -> Icons.Outlined.WavingHand
                     },
                     contentDescription = null,
                     tint = if (quest.completed) colors.onAccent else colors.textPrimary,
@@ -480,7 +483,7 @@ private fun DailyChest(
         modifier = Modifier
             .fillMaxWidth()
             .clip(SkinTheme.shapes.card)
-            .background(colors.surface)
+            .background(glassColor())
             .border(
                 width = 2.dp,
                 color = if (unlocked) colors.accentGold else colors.surfaceVariant,
@@ -501,7 +504,7 @@ private fun DailyChest(
                 )
                 if (!unlocked) {
                     Icon(
-                        imageVector = Icons.Filled.Lock,
+                        imageVector = Icons.Outlined.Lock,
                         contentDescription = null,
                         tint = colors.textSecondary,
                         modifier = Modifier
@@ -574,7 +577,7 @@ private fun MilestonePath(streak: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(SkinTheme.shapes.card)
-            .background(colors.surface)
+            .skinGlass(SkinTheme.shapes.card)
             .padding(16.dp),
     ) {
         Text(
@@ -629,7 +632,7 @@ private fun MilestonePath(streak: Int) {
                                 },
                         ) {
                             Icon(
-                                imageVector = if (reached) Icons.Filled.Check else Icons.Filled.Lock,
+                                imageVector = if (reached) Icons.Outlined.Check else Icons.Outlined.Lock,
                                 contentDescription = null,
                                 tint = if (reached) colors.onAccent else colors.textSecondary,
                                 modifier = Modifier.size(14.dp),

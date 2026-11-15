@@ -4,7 +4,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.skin.skinChatWallpaper
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.copyUriToCacheFile
 import kotlinx.coroutines.delay
@@ -154,8 +155,11 @@ fun GroupChatScreen(
     AutoScrollToBottom(listState = listState, itemCount = thread.size)
 
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
-        modifier = Modifier.imePadding(),
+        // Skin v2: hoa van particle + lop diu nen, ve TRUOC imePadding de phu ca man
+        modifier = Modifier.skinChatWallpaper().imePadding(),
         topBar = {
             GroupChatTopBar(
                 navController = navController,
@@ -210,8 +214,7 @@ fun GroupChatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
+                .padding(paddingValues),
         ) {
             when {
                 threadStatus is LoadStatus.Loading && thread.isEmpty() -> {
@@ -371,7 +374,7 @@ private fun GroupChatTopBar(
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = "Back",
                 )
             }
@@ -380,7 +383,7 @@ private fun GroupChatTopBar(
             // ⋯ mo sheet cai dat nhom (doi ten/avatar, thanh vien, mute, roi nhom)
             IconButton(onClick = onSettingsClick) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
+                    imageVector = Icons.Outlined.MoreVert,
                     contentDescription = "Group settings",
                 )
             }

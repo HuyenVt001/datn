@@ -24,9 +24,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.outlined.GroupAdd
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -120,6 +120,8 @@ fun MessageScreen(
     }
 
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         topBar = {
             CommonTopBar(
                 navController = navController,
@@ -127,7 +129,7 @@ fun MessageScreen(
                 // Theo theme: hardcode trang la vo hinh o Light mode
                 titleColor = MaterialTheme.colorScheme.onBackground,
                 // Nut tao nhom chat (<=20 thanh vien)
-                endIcon = Icons.Default.GroupAdd,
+                endIcon = Icons.Outlined.GroupAdd,
                 onEndIconClick = { showCreateGroupDialog = true },
             )
         },
@@ -264,7 +266,7 @@ private fun GroupItem(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.Default.Groups,
+                    imageVector = Icons.Outlined.Groups,
                     contentDescription = "Group",
                     tint = SkinTheme.colors.accent,
                     modifier = Modifier.size(28.dp),
@@ -292,7 +294,7 @@ private fun GroupItem(
 
         SkinIcon(
             res = SkinTheme.icons.chevronRight,
-            fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
+            fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
             contentDescription = "Open group",
             tint = MaterialTheme.colorScheme.onBackground,
         )
@@ -490,7 +492,7 @@ fun ConversationItem(
             } else {
                 SkinIcon(
                     res = SkinTheme.icons.chevronRight,
-                    fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
                     contentDescription = null,
                     tint = SkinTheme.colors.textSecondary,
                     modifier = Modifier.size(16.dp),

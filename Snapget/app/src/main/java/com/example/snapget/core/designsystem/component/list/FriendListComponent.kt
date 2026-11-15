@@ -1,6 +1,14 @@
 package com.example.snapget.core.designsystem.component.list
 
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.widget.Toast
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,19 +16,29 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,19 +54,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.constants.MAX_FRIENDS
 import com.example.snapget.core.constants.MeasurementConfig
 import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.component.button.ShowMoreShowLessButton
 import com.example.snapget.core.designsystem.component.circle.Circle
-import com.example.snapget.core.designsystem.component.circle.ImageSetting
+import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.container.BlurredContainer
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -56,6 +79,11 @@ import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.trimUsername
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
+import java.util.concurrent.TimeUnit
 
 // Generic interface for list items
 interface ListItem {
@@ -206,85 +234,135 @@ fun ThirdPartyAppItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    // Icon app ngoai = drawable LOCAL (truoc tai URL wikimedia/icons8 -> hay loi, mat icon)
     Circle(
         outerSize = 56.dp,
         gap = 1.dp,
-        backgroundColor = Color.Gray,
+        backgroundColor = Color.White,
         borderColor = if (isSelected) SkinTheme.colors.accent else SkinTheme.colors.pill,
         onClick = onClick,
-        imageSetting = ImageSetting(
-            imageUrl = app.imageUrl,
-        ),
+        innerContent = {
+            Image(
+                painter = painterResource(app.icon),
+                contentDescription = app.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        },
     )
 }
 
-// Keep your original data classes
+/** Kenh chia se link moi ket ban: mo thang app dich, khong co app -> share chooser he thong. */
+enum class ShareTarget { MESSENGER, INSTAGRAM, SMS, OTHER }
+
 data class ThirdPartyApp(
     val name: String,
-    val imageUrl: String = "",
-    val icon: Int,
-    val onClick: () -> Unit,
+    @DrawableRes val icon: Int,
+    val target: ShareTarget,
 )
 
 val listThirdPartyApp = listOf(
-    ThirdPartyApp(
-        name = "Messenger",
-        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Facebook_Messenger_logo_2020.svg/512px-Facebook_Messenger_logo_2020.svg.png",
-        icon = R.drawable.fb,
-        onClick = {},
-    ),
-    ThirdPartyApp(
-        name = "Instagram",
-        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/2048px-Instagram_logo_2016.svg.png",
-        icon = R.drawable.insta,
-        onClick = {},
-    ),
-    ThirdPartyApp(
-        name = "Messages",
-        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/IMessage_logo.svg/234px-IMessage_logo.svg.png",
-        icon = R.drawable.message,
-        onClick = {},
-    ),
-    ThirdPartyApp(
-        name = "Others",
-        imageUrl = "https://img.icons8.com/windows/50/link.png",
-        icon = R.drawable.ic_connection,
-        onClick = {},
-    ),
+    ThirdPartyApp(name = "Messenger", icon = R.drawable.fb, target = ShareTarget.MESSENGER),
+    ThirdPartyApp(name = "Instagram", icon = R.drawable.insta, target = ShareTarget.INSTAGRAM),
+    ThirdPartyApp(name = "Messages", icon = R.drawable.message, target = ShareTarget.SMS),
+    ThirdPartyApp(name = "Others", icon = R.drawable.ic_connection, target = ShareTarget.OTHER),
 )
 
-@Preview(showBackground = true, backgroundColor = 0xFF1C1611)
+private const val PACKAGE_MESSENGER = "com.facebook.orca"
+private const val PACKAGE_INSTAGRAM = "com.instagram.android"
+private const val LINK_LOADING_MESSAGE = "Your invite link is still loading. Try again in a moment."
+
+/**
+ * Chia se link moi ket ban toi [target]. App dich chua cai (ActivityNotFound) -> lui ve
+ * share chooser. Link chua tai xong -> bao nhe. Dung Toast (khong phai AppMessenger) vi
+ * sheet la cua so modal rieng, Snackbar cua MainActivity bi che phia sau.
+ */
+fun shareInviteLink(context: Context, link: String?, target: ShareTarget = ShareTarget.OTHER) {
+    if (link.isNullOrBlank()) {
+        Toast.makeText(context, LINK_LOADING_MESSAGE, Toast.LENGTH_SHORT).show()
+        return
+    }
+    val text = "Add me on Snapget! $link"
+    fun sendText() = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    val chooser = Intent.createChooser(sendText(), "Share invite link")
+    val direct: Intent? = when (target) {
+        ShareTarget.MESSENGER -> sendText().setPackage(PACKAGE_MESSENGER)
+        ShareTarget.INSTAGRAM -> sendText().setPackage(PACKAGE_INSTAGRAM)
+        ShareTarget.SMS -> Intent(Intent.ACTION_SENDTO, "smsto:".toUri()).putExtra("sms_body", text)
+        ShareTarget.OTHER -> null
+    }
+    try {
+        context.startActivity(direct ?: chooser)
+    } catch (_: ActivityNotFoundException) {
+        context.startActivity(chooser)
+    }
+}
+
+/** Copy link moi vao clipboard (Android 13+ tu hien popup he thong, duoi 13 -> Toast). */
+fun copyInviteLink(context: Context, link: String?) {
+    if (link.isNullOrBlank()) {
+        Toast.makeText(context, LINK_LOADING_MESSAGE, Toast.LENGTH_SHORT).show()
+        return
+    }
+    val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(ClipData.newPlainText("Snapget invite link", link))
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        Toast.makeText(context, "Invite link copied", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/** "Find friends from other apps": bam icon app -> gui link moi qua app do. */
 @Composable
-fun ExternalAppComponent() {
+fun ExternalAppComponent(inviteLink: String? = null) {
+    val context = LocalContext.current
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.ZoomIn,
-                contentDescription = "More",
-                tint = SkinTheme.colors.textPrimary,
-                modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
-            )
-
-            Text(
-                text = "Find Friend From other Apps",
-                color = SkinTheme.colors.textPrimary,
-                fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        SectionHeader(icon = Icons.Outlined.TravelExplore, title = "Find friends from other apps")
 
         BlurredContainer {
             ThirdPartyAppList(
                 apps = listThirdPartyApp,
-                onAppSelected = { app ->
-                    println("Selected app: ${app.name}")
-                },
+                onAppSelected = { app -> shareInviteLink(context, inviteLink, app.target) },
+            )
+        }
+    }
+}
+
+/** Tieu de section dung chung trong sheet ban be: icon + chu dam (+ phu de mo tuy chon). */
+@Composable
+private fun SectionHeader(
+    icon: ImageVector,
+    title: String,
+    trailing: String? = null,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = SkinTheme.colors.textPrimary,
+            modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
+        )
+        Text(
+            text = title,
+            color = SkinTheme.colors.textPrimary,
+            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+            fontWeight = FontWeight.Bold,
+        )
+        if (trailing != null) {
+            Text(
+                text = trailing,
+                color = SkinTheme.colors.onSurfaceVariant,
+                style = MaterialTheme.typography.titleSmall,
             )
         }
     }
@@ -294,44 +372,47 @@ fun ExternalAppComponent() {
 fun YourFriendAppComponent(
     friends: List<FriendUi> = emptyList(),
     onRemoveFriend: (FriendUi) -> Unit = {},
+    onFriendClick: (FriendUi) -> Unit = {},
+    onMessageClick: (FriendUi) -> Unit = {},
     isLoading: Boolean = false,
     initialShowCount: Int = 3,
 ) {
     var showAll by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
 
-    // Determine how many friends to show
-    val friendsToShow = if (showAll || friends.size <= initialShowCount) {
-        friends
+    // Loc theo ten (khong phan biet hoa thuong); dang tim -> hien het ket qua, bo "Show more"
+    val filtered = remember(friends, query) {
+        if (query.isBlank()) friends else friends.filter { it.name.contains(query.trim(), ignoreCase = true) }
+    }
+    val friendsToShow = if (showAll || query.isNotBlank() || filtered.size <= initialShowCount) {
+        filtered
     } else {
-        friends.take(initialShowCount)
+        filtered.take(initialShowCount)
     }
 
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Group,
-                contentDescription = "Friends",
-                tint = SkinTheme.colors.textPrimary,
-                modifier = Modifier.size(30.dp),
-            )
+        SectionHeader(
+            icon = Icons.Outlined.Group,
+            title = "Your friends",
+            trailing = if (friends.isNotEmpty()) "(${friends.size})" else null,
+        )
 
-            Text(
-                text = "Your Friends",
-                color = SkinTheme.colors.textPrimary,
-                fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                fontWeight = FontWeight.Bold,
+        // O tim kiem chi hien khi danh sach du dai de can loc
+        if (friends.size > initialShowCount) {
+            FriendSearchField(
+                query = query,
+                onQueryChange = { query = it },
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
 
         when {
             isLoading -> {
-                // Show loading state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -346,28 +427,37 @@ fun YourFriendAppComponent(
             }
             friends.isEmpty() -> {
                 Text(
-                    text = "You don't have any friends yet",
+                    text = "You don't have any friends yet. Share your link to invite someone!",
+                    color = SkinTheme.colors.textPrimary.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+            filtered.isEmpty() -> {
+                Text(
+                    text = "No friends match \"${query.trim()}\"",
                     color = SkinTheme.colors.textPrimary.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
             }
             else -> {
-                // Friends list - use Column since parent is already scrollable
+                // Column (khong Lazy) vi sheet cha da verticalScroll; toi da 20 ban
                 Column {
                     friendsToShow.forEach { friend ->
                         FriendListItem(
                             friend = friend,
+                            onClick = { onFriendClick(friend) },
+                            onMessageClick = { onMessageClick(friend) },
                             onRemoveFriend = onRemoveFriend,
                         )
                     }
                 }
 
-                // Show More/Show Less button
-                if (friends.size > initialShowCount) {
+                if (query.isBlank() && filtered.size > initialShowCount) {
                     ShowMoreShowLessButton(
                         showAll = showAll,
-                        totalCount = friends.size,
+                        totalCount = filtered.size,
                         visibleCount = friendsToShow.size,
                         onToggle = { showAll = !showAll },
                     )
@@ -377,50 +467,127 @@ fun YourFriendAppComponent(
     }
 }
 
+/** O tim ban theo ten — nen `surface`, bo goc `input` theo skin. */
+@Composable
+private fun FriendSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(SkinTheme.shapes.input)
+            .background(SkinTheme.colors.surface)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = null,
+            tint = SkinTheme.colors.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Box(modifier = Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(
+                    text = "Search friends",
+                    color = SkinTheme.colors.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = SkinTheme.colors.textPrimary),
+                cursorBrush = SolidColor(SkinTheme.colors.textPrimary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (query.isNotEmpty()) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Clear search",
+                tint = SkinTheme.colors.onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .clickable { onQueryChange("") },
+            )
+        }
+    }
+}
+
+/**
+ * 1 hang ban: bam hang -> mo profile ban; icon chat -> nhan tin; icon xoa -> hoi xac nhan
+ * (dialog do sheet cha hien). Nut 40dp cho de bam (truoc 24dp, icon X de bam nham).
+ */
 @Composable
 fun FriendListItem(
     friend: FriendUi,
     onRemoveFriend: (FriendUi) -> Unit,
+    onClick: () -> Unit = {},
+    onMessageClick: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .padding(12.dp)
-            .clickable { /* Navigate to friend's profile */ },
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(15.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Friend's avatar
+        // Avatar: chua co anh -> avatar mac dinh theo ten (truoc de trong khi avatar rong)
         Circle(
             outerSize = 56.dp,
             gap = 5.dp,
             backgroundColor = SkinTheme.colors.pill,
-            onClick = {},
-            imageSetting = ImageSetting(
-                imageUrl = friend.avatar,
-            ),
+            borderColor = SkinTheme.colors.onSurfaceVariant,
+            onClick = onClick,
+            innerContent = {
+                AsyncImage(
+                    model = avatarOrDefault(friend.avatar, friend.name),
+                    contentDescription = "Avatar ${friend.name}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            },
         )
 
-        // Friend's name
         Text(
             text = friend.name,
             color = SkinTheme.colors.textPrimary,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
 
-        // Remove friend button
         IconButton(
-            onClick = { onRemoveFriend(friend) },
-            modifier = Modifier.size(24.dp),
+            onClick = onMessageClick,
+            modifier = Modifier.size(40.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Remove Friend",
+                imageVector = Icons.AutoMirrored.Outlined.Chat,
+                contentDescription = "Message ${friend.name}",
                 tint = SkinTheme.colors.textPrimary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+
+        IconButton(
+            onClick = { onRemoveFriend(friend) },
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.PersonRemove,
+                contentDescription = "Remove ${friend.name}",
+                tint = SkinTheme.colors.error,
+                modifier = Modifier.size(22.dp),
             )
         }
     }
@@ -486,91 +653,246 @@ fun HorizontalShowMoreComponent() {
     }
 }
 
-/** Section chia se link moi ket ban — moi hang mo share chooser cua he thong. */
+/**
+ * Section chia se link moi ket ban: moi hang mo dung app dich (khong co -> share chooser),
+ * hang cuoi "Copy link" chep link vao clipboard.
+ */
 @Composable
-fun ShareYourLinkComponent(inviteLink: String? = null) {
+fun ShareYourLinkComponent(
+    inviteLink: String? = null,
+    inviteExpiresAt: String? = null,
+    isLinkFailed: Boolean = false,
+    onRetryLink: () -> Unit = {},
+    onShowQr: () -> Unit = {},
+) {
     val context = LocalContext.current
 
-    // Mo share sheet he thong voi link moi (nguoi nhan bam link -> deep link ket ban)
-    fun shareLink() {
-        val link = inviteLink ?: return
-        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, "Add me on Snapget! $link")
-        }
-        context.startActivity(Intent.createChooser(sendIntent, "Share invite link"))
-    }
-
     Column(
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Upload,
-                contentDescription = "Friends",
-                tint = SkinTheme.colors.textPrimary,
-                modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
-            )
+        SectionHeader(icon = Icons.Outlined.Upload, title = "Share your Snapget link")
 
-            Text(
-                text = "Share your Snapget link",
-                color = SkinTheme.colors.textPrimary,
-                fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                fontWeight = FontWeight.Bold,
+        InviteLinkCard(
+            inviteLink = inviteLink,
+            expiresAt = inviteExpiresAt,
+            isFailed = isLinkFailed,
+            onCopy = { copyInviteLink(context, inviteLink) },
+            onShowQr = onShowQr,
+            onRetry = onRetryLink,
+        )
+
+        listThirdPartyApp.forEach { app ->
+            ShareRow(
+                label = app.name,
+                onClick = { shareInviteLink(context, inviteLink, app.target) },
+                leading = {
+                    ThirdPartyAppItem(
+                        app = app,
+                        isSelected = false,
+                        onClick = { shareInviteLink(context, inviteLink, app.target) },
+                    )
+                },
             )
         }
 
-        val index = listThirdPartyApp.indexOfFirst { it.name == "Instagram" }
-        val instagram = listThirdPartyApp[index]
-
-        val uiList = listThirdPartyApp.toMutableList().apply {
-            add(index + 1, instagram.copy(name = "Instagram Story"))
-            this[index] = instagram.copy(name = "Instagram DMs")
-        }
-
-        uiList.forEach { item ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { shareLink() },
-            ) {
+        ShareRow(
+            label = "Copy link",
+            onClick = { copyInviteLink(context, inviteLink) },
+            leading = {
                 Circle(
                     outerSize = 56.dp,
-                    gap = 5.dp,
+                    gap = 14.dp,
                     backgroundColor = SkinTheme.colors.pill,
-                    borderColor = Color.Gray,
-                    onClick = { shareLink() },
-                    imageSetting = ImageSetting(
-                        imageUrl = item.imageUrl,
-                        contentDescription = "Example Image",
-                    ),
+                    borderColor = SkinTheme.colors.onSurfaceVariant,
+                    onClick = { copyInviteLink(context, inviteLink) },
+                    iconSetting = IconSetting(icon = Icons.Outlined.ContentCopy, contentDescription = null),
                 )
+            },
+        )
+    }
+}
 
-                // Username text with special handling for "Everyone" and "You"
-                Text(
-                    text = item.name,
-                    color = SkinTheme.colors.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-
-                // Flexible spacer to push the arrow to the end
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Arrow icon (always visible)
-                SkinIcon(
-                    res = SkinTheme.icons.chevronRight,
-                    fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = "Select",
-                    tint = SkinTheme.colors.textPrimary,
-                    modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
-                )
+/**
+ * The link moi cua minh: link rut gon (bo https://), han con lai (link song 30 ngay,
+ * het han server tu sinh ma moi), nut Copy + QR. Dang tai -> spinner; loi -> Retry.
+ */
+@Composable
+private fun InviteLinkCard(
+    inviteLink: String?,
+    expiresAt: String?,
+    isFailed: Boolean,
+    onCopy: () -> Unit,
+    onShowQr: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(SkinTheme.shapes.input)
+            .background(SkinTheme.colors.surface)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        when {
+            inviteLink != null -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Link,
+                        contentDescription = null,
+                        tint = SkinTheme.colors.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        text = inviteLink.removePrefix("https://").removePrefix("http://"),
+                        color = SkinTheme.colors.textPrimary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                inviteExpiryLabel(expiresAt)?.let { label ->
+                    Text(
+                        text = label,
+                        color = SkinTheme.colors.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LinkCardButton(
+                        icon = Icons.Outlined.ContentCopy,
+                        label = "Copy",
+                        onClick = onCopy,
+                        modifier = Modifier.weight(1f),
+                    )
+                    LinkCardButton(
+                        icon = Icons.Outlined.QrCode2,
+                        label = "QR code",
+                        onClick = onShowQr,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            isFailed -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Couldn't load your invite link.",
+                        color = SkinTheme.colors.textPrimary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    LinkCardButton(icon = Icons.Outlined.Refresh, label = "Retry", onClick = onRetry)
+                }
+            }
+            else -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CircularProgressIndicator(
+                        color = SkinTheme.colors.textPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = "Generating your invite link...",
+                        color = SkinTheme.colors.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun LinkCardButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clip(SkinTheme.shapes.pill)
+            .background(SkinTheme.colors.pill)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = SkinTheme.colors.textPrimary,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = label,
+            color = SkinTheme.colors.textPrimary,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+/**
+ * "Expires in N days" tu ISO expiresAt — chi doc phan ngay (UTC) bang SimpleDateFormat
+ * (tranh java.time vi minSdk 24). Loi parse -> null (an dong han).
+ */
+internal fun inviteExpiryLabel(iso: String?): String? {
+    val datePart = iso?.take(10) ?: return null
+    val expiry = try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.parse(datePart)
+    } catch (_: ParseException) {
+        null
+    } ?: return null
+    val msLeft = expiry.time - System.currentTimeMillis()
+    val daysLeft = TimeUnit.MILLISECONDS.toDays(msLeft).toInt()
+    return when {
+        msLeft <= 0 -> "Expired — a new link will be generated"
+        daysLeft <= 0 -> "Expires today"
+        daysLeft == 1 -> "Expires in 1 day"
+        else -> "Expires in $daysLeft days"
+    }
+}
+
+@Composable
+private fun ShareRow(
+    label: String,
+    onClick: () -> Unit,
+    leading: @Composable () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+    ) {
+        leading()
+        Text(
+            text = label,
+            color = SkinTheme.colors.textPrimary,
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        SkinIcon(
+            res = SkinTheme.icons.chevronRight,
+            fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
+            contentDescription = null,
+            tint = SkinTheme.colors.textPrimary,
+            modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
+        )
     }
 }
 
@@ -616,9 +938,10 @@ fun TotalFriendComponent(
     // `modifier` phai la tham so TUY CHON DAU TIEN (quy uoc Compose) — de nguoi
     // goi truyen duoc theo vi tri ma khong phai dat ten moi tham so truoc no
     modifier: Modifier = Modifier,
-    maxFriends: Int = 20,
+    maxFriends: Int = MAX_FRIENDS,
     onAddFriendClick: () -> Unit = {},
 ) {
+    val isFull = totalFriends >= maxFriends
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -631,50 +954,36 @@ fun TotalFriendComponent(
             style = MaterialTheme.typography.titleLarge,
         )
 
+        // Day 20 ban -> nhac phai xoa bot moi ket ban moi duoc (rule PDF)
         Text(
-            text = "Invite a friend to continue",
-            color = SkinTheme.colors.textPrimary,
+            text = if (isFull) "Your friend list is full. Remove a friend to add someone new." else "Invite a friend to continue",
+            color = if (isFull) SkinTheme.colors.error else SkinTheme.colors.textPrimary,
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 16.dp),
         )
-        Box(
+        Row(
             modifier = Modifier
-                .padding(start = 16.dp, end = 16.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .clip(SkinTheme.shapes.image)
-                .clickable { onAddFriendClick() },
-            contentAlignment = Alignment.Center,
+                .background(SkinTheme.colors.pill)
+                .clickable { onAddFriendClick() }
+                .padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Color.DarkGray),
+            Icon(
+                imageVector = Icons.Outlined.PersonAdd,
+                contentDescription = null,
+                tint = SkinTheme.colors.textPrimary,
+                modifier = Modifier.size(26.dp),
             )
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.large)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Friends",
-                        tint = SkinTheme.colors.textPrimary,
-                        modifier = Modifier.size(30.dp),
-                    )
-                    Text(
-                        text = "Add new friend",
-                        color = SkinTheme.colors.textPrimary,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    )
-                }
-            }
+            Text(
+                text = "Add new friend",
+                color = SkinTheme.colors.textPrimary,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            )
         }
     }
 }

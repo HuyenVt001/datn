@@ -25,8 +25,8 @@ import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +63,7 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
+import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -343,8 +344,20 @@ fun PostDetailScreen(
         }
     }
 
+    // Ten chu profile cho tieu de top bar
+    val ownerName = userPosts.firstOrNull()?.user?.username.orEmpty()
+
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold { paddingValues ->
+        Scaffold(
+            // Top bar co dinh (2026-11-15): truoc khong co -> anh post/grid bi day lech
+            // len sat status bar. Back: grid -> pager; pager -> calendar profile
+            topBar = {
+                SimpleTopBar(
+                    title = if (showGrid) "All posts (${userPosts.size})" else ownerName,
+                    onBackClick = { if (showGrid) showGrid = false else onBack() },
+                )
+            },
+        ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -431,7 +444,7 @@ fun PostDetailScreen(
                     IconButton(onClick = { showGrid = true }) {
                         SkinIcon(
                             res = SkinTheme.icons.grid,
-                            fallback = Icons.Default.GridView,
+                            fallback = Icons.Outlined.GridView,
                             contentDescription = "All posts",
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(32.dp),
@@ -445,7 +458,7 @@ fun PostDetailScreen(
                     ) {
                         SkinIcon(
                             res = SkinTheme.icons.more,
-                            fallback = Icons.Default.MoreHoriz,
+                            fallback = Icons.Outlined.MoreHoriz,
                             contentDescription = "Post options",
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(32.dp),

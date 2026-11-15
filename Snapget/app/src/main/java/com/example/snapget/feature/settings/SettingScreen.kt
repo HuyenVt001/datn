@@ -21,33 +21,34 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AddToHomeScreen
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AlternateEmail
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.EmojiEmotions
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.automirrored.outlined.AddToHomeScreen
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.Help
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Cake
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Policy
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,6 +66,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +81,7 @@ import com.example.snapget.core.data.SettingIds
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.topbar.SettingScreenTopBar
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.glassColor
 import com.example.snapget.core.model.Setting
 import com.example.snapget.core.model.SettingType
 import com.example.snapget.feature.auth.AuthViewModel
@@ -189,6 +192,8 @@ fun SettingScreenContent(
     onSettingClick: (Setting) -> Unit = {},
 ) {
     Scaffold(
+        // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
+        containerColor = Color.Transparent,
         topBar = {
             SettingScreenTopBar(navController)
         },
@@ -231,13 +236,13 @@ fun SettingScreenContent(
 @Composable
 fun SettingSectionHeader(settingType: SettingType) {
     val (icon, label) = when (settingType) {
-        SettingType.WIDGET -> Pair(Icons.Default.EmojiEmotions, "Widgets")
-        SettingType.CUSTOMIZE -> Pair(Icons.Default.Build, "Customize")
-        SettingType.GENERAL -> Pair(Icons.Default.Settings, "General")
-        SettingType.PRIVACY_SAFETY -> Pair(Icons.Default.Security, "Privacy & Safety")
-        SettingType.SUPPORT -> Pair(Icons.AutoMirrored.Filled.Help, "Support")
-        SettingType.ABOUT -> Pair(Icons.Default.Info, "About")
-        SettingType.DANGER_ZONE -> Pair(Icons.Default.Warning, "Danger Zone")
+        SettingType.WIDGET -> Pair(Icons.Outlined.EmojiEmotions, "Widgets")
+        SettingType.CUSTOMIZE -> Pair(Icons.Outlined.Build, "Customize")
+        SettingType.GENERAL -> Pair(Icons.Outlined.Settings, "General")
+        SettingType.PRIVACY_SAFETY -> Pair(Icons.Outlined.Security, "Privacy & Safety")
+        SettingType.SUPPORT -> Pair(Icons.AutoMirrored.Outlined.Help, "Support")
+        SettingType.ABOUT -> Pair(Icons.Outlined.Info, "About")
+        SettingType.DANGER_ZONE -> Pair(Icons.Outlined.Warning, "Danger Zone")
     }
 
     Row(
@@ -276,7 +281,7 @@ fun SettingItem(
             containerColor = if (isDangerZone) {
                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
             } else {
-                MaterialTheme.colorScheme.surface
+                glassColor()
             },
         ),
         shape = RoundedCornerShape(8.dp),
@@ -355,7 +360,7 @@ fun SettingItem(
                 )
             } else {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = "Navigate",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
@@ -368,29 +373,30 @@ fun SettingItem(
 /** Icon tung muc — map theo id ON DINH (truoc day match title nen sai gan het). */
 @Composable
 fun getSettingIcon(setting: Setting): ImageVector = when (setting.id) {
-    SettingIds.WIDGET_SETTINGS -> Icons.Default.Widgets
-    SettingIds.APP_ICON -> Icons.Default.Palette
-    SettingIds.APPEARANCE -> Icons.Default.Palette
-    SettingIds.STREAK_ON_WIDGET -> Icons.Default.LocalFireDepartment
-    SettingIds.STREAK_REMINDERS -> Icons.Default.NotificationsActive
-    SettingIds.EDIT_NAME -> Icons.Default.Badge
-    SettingIds.EDIT_BIRTHDAY -> Icons.Default.Cake
-    SettingIds.HOW_TO_ADD_WIDGET -> Icons.AutoMirrored.Filled.AddToHomeScreen
-    SettingIds.BLOCKED_ACCOUNTS -> Icons.Default.Block
-    SettingIds.ACCOUNT_VISIBILITY -> Icons.Default.Visibility
-    SettingIds.PRIVACY_CHOICES -> Icons.Default.Lock
-    SettingIds.REPORT_A_PROBLEM -> Icons.AutoMirrored.Filled.Help
-    SettingIds.MAKE_A_SUGGESTION -> Icons.AutoMirrored.Filled.Help
-    SettingIds.ABOUT_TIKTOK -> Icons.Default.MusicNote
-    SettingIds.ABOUT_INSTAGRAM -> Icons.Default.PhotoCamera
-    SettingIds.ABOUT_TWITTER -> Icons.Default.AlternateEmail
-    SettingIds.SHARE_SNAPGET -> Icons.Default.Share
-    SettingIds.RATE_SNAPGET -> Icons.Default.Star
-    SettingIds.TERMS_OF_SERVICE -> Icons.Default.Description
-    SettingIds.PRIVACY_POLICY -> Icons.Default.Policy
-    SettingIds.DELETE_ACCOUNT -> Icons.Default.Delete
-    SettingIds.SIGN_OUT -> Icons.AutoMirrored.Filled.Logout
-    else -> Icons.Default.Settings
+    SettingIds.WIDGET_SETTINGS -> Icons.Outlined.Widgets
+    SettingIds.APP_ICON -> Icons.Outlined.Palette
+    SettingIds.APPEARANCE -> Icons.Outlined.Palette
+    SettingIds.AMBIENT_EFFECTS -> Icons.Outlined.AutoAwesome
+    SettingIds.STREAK_ON_WIDGET -> Icons.Outlined.LocalFireDepartment
+    SettingIds.STREAK_REMINDERS -> Icons.Outlined.NotificationsActive
+    SettingIds.EDIT_NAME -> Icons.Outlined.Badge
+    SettingIds.EDIT_BIRTHDAY -> Icons.Outlined.Cake
+    SettingIds.HOW_TO_ADD_WIDGET -> Icons.AutoMirrored.Outlined.AddToHomeScreen
+    SettingIds.BLOCKED_ACCOUNTS -> Icons.Outlined.Block
+    SettingIds.ACCOUNT_VISIBILITY -> Icons.Outlined.Visibility
+    SettingIds.PRIVACY_CHOICES -> Icons.Outlined.Lock
+    SettingIds.REPORT_A_PROBLEM -> Icons.AutoMirrored.Outlined.Help
+    SettingIds.MAKE_A_SUGGESTION -> Icons.AutoMirrored.Outlined.Help
+    SettingIds.ABOUT_TIKTOK -> Icons.Outlined.MusicNote
+    SettingIds.ABOUT_INSTAGRAM -> Icons.Outlined.PhotoCamera
+    SettingIds.ABOUT_TWITTER -> Icons.Outlined.AlternateEmail
+    SettingIds.SHARE_SNAPGET -> Icons.Outlined.Share
+    SettingIds.RATE_SNAPGET -> Icons.Outlined.Star
+    SettingIds.TERMS_OF_SERVICE -> Icons.Outlined.Description
+    SettingIds.PRIVACY_POLICY -> Icons.Outlined.Policy
+    SettingIds.DELETE_ACCOUNT -> Icons.Outlined.Delete
+    SettingIds.SIGN_OUT -> Icons.AutoMirrored.Outlined.Logout
+    else -> Icons.Outlined.Settings
 }
 
 /** Mo URL trong browser; khong co browser thi bao toast (khong crash). */

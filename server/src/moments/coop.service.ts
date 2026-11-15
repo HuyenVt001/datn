@@ -6,7 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import sharp from 'sharp';
-import { COOP_INVITE_TTL_MINUTES } from '../common/constants';
+import {
+  COOP_INVITE_TTL_MINUTES,
+  COOP_MEDIA_ALLOWED_HOSTS,
+  COOP_SESSION_TTL_MINUTES,
+} from '../common/constants';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
 import { UploadService } from '../upload/upload.service';
@@ -19,6 +23,9 @@ import { CoopRepository } from './coop.repository';
 /** Kich thuoc anh ghep (vuong, chia doi trai/phai). */
 const MERGED_SIZE = 1080;
 
+/** data.type cua push data-only bao nguoi nhan: loi moi vua bi nguoi moi huy. */
+const PUSH_COOP_CANCELLED = 'COOP_CANCELLED';
+
 /**
  * Co-op Capture (REDESIGN 2026-08-02 theo yeu cau user):
  * 1. A moi B (KHONG kem anh) — loi moi co hieu luc 5 PHUT.
@@ -30,6 +37,10 @@ const MERGED_SIZE = 1080;
  *    ve va di dang bai theo luong thuong (edit -> caption -> POST /moments);
  *    streak/quest tinh luc dang bai. Khung COOP_FIRST + friend streak van
  *    duoc cong ngay khi ghep xong.
+ * 5. (2026-11-16) Phien ACCEPTED co han 10 phut (COOP_SESSION_TTL_MINUTES) — qua
+ *    han chua ghep xong -> EXPIRED. Moi response kem expiresAt + remainingSeconds
+ *    (tinh luc tra ve) de app dem nguoc. Gui lai loi moi cho CUNG 1 nguoi khi
+ *    loi moi cu con PENDING -> tra ve loi moi cu (khong spam push).
  */
 @Injectable()
 export class CoopService {
@@ -54,6 +65,20 @@ export class CoopService {
       throw new ForbiddenException('Chi moi chup chung duoc voi ban be.');
     }
 
+    // Chong gui lap (2026-11-16): da co loi moi CON HAN cho dung nguoi nay -> tra
+    // ve loi moi do (idempotent, khong push lan nua). Loi moi cu da qua han -> danh
+    // dau EXPIRED roi tao moi binh thuong.
+    const existing = await this.repo.listPendingBetween(inviterId, dto.friendUid);
+    for (const old of existing.filter((invite) => this.isExpired(invite))) {
+      await this.repo
+        .transition(old.inviteId, 'PENDING', 'EXPIRED')
+        .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
+    }
+    const stillValid = existing.find((invite) => !this.isExpired(invite));
+    if (stillValid) {
+      return this.present(stillValid);
+    }
+
     const invite = await this.repo.create({
       inviterId,
       inviteeId: dto.friendUid,
@@ -61,14 +86,17 @@ export class CoopService {
       createdAt: new Date().toISOString(),
     });
 
+    // Push kem TEN nguoi moi (truoc chi "A friend" — nguoi nhan khong biet ai moi)
+    const inviter = await this.usersRepo.findByUid(inviterId).catch(() => null);
+    const inviterName = inviter?.fullName || 'A friend';
     await this.pushToUser(
       dto.friendUid,
-      'Loi moi chup chung 📸',
-      'Ban be vua moi ban chup chung — loi moi co hieu luc 5 phut!',
+      `${inviterName} wants to snap together 📸`,
+      `Tap to join the co-op capture — the invite expires in ${COOP_INVITE_TTL_MINUTES} minutes!`,
       { type: 'COOP_INVITE', inviteId: invite.inviteId },
     ).catch((e) => this.logger.warn(`Khong gui duoc FCM loi moi: ${e.message}`));
 
-    return invite;
+    return this.present(invite);
   }
 
   /** Danh sach loi moi dang cho minh tra loi (kem ten/avatar nguoi moi; bo loi moi het han). */
@@ -98,7 +126,7 @@ export class CoopService {
     return invites.map((invite) => {
       const inviter = inviters.get(invite.inviterId);
       return {
-        ...invite,
+        ...this.present(invite),
         inviterName: inviter?.fullName ?? 'Snapget user',
         inviterAvatar: inviter?.avatar,
       };
@@ -123,9 +151,17 @@ export class CoopService {
         return { ...invite, status: 'EXPIRED' };
       }
       // Thua transition = trang thai vua doi (accept/decline) — tra ve ban that
-      return (await this.repo.findById(inviteId)) ?? invite;
+      return this.present((await this.repo.findById(inviteId)) ?? invite);
     }
-    return invite;
+    if (invite.status === 'ACCEPTED' && this.isSessionExpired(invite)) {
+      // Phien chup qua 10 phut chua ghep xong (vd 2 ben bi kill app) -> EXPIRED
+      const marked = await this.repo.transition(inviteId, 'ACCEPTED', 'EXPIRED').catch(() => false);
+      if (marked) {
+        return { ...invite, status: 'EXPIRED' };
+      }
+      return this.present((await this.repo.findById(inviteId)) ?? invite);
+    }
+    return this.present(invite);
   }
 
   /** Nguoi nhan chap nhan -> ACCEPTED; nguoi moi dang poll se thay va vao man chup. */
@@ -139,12 +175,13 @@ export class CoopService {
 
     await this.pushToUser(
       invite.inviterId,
-      'Loi moi chup chung duoc chap nhan 🎉',
-      'Ban be da dong y — vao chup nua anh cua ban ngay!',
+      'Co-op invite accepted 🎉',
+      'Your friend is in! Jump in and snap your half now.',
       { type: 'COOP_ACCEPTED', inviteId },
     ).catch((e) => this.logger.warn(`Khong gui duoc FCM chap nhan: ${e.message}`));
 
-    return { ...invite, status: 'ACCEPTED' };
+    // Han phien 10 phut tinh tu luc accept (transition vua ghi respondedAt ~ bay gio)
+    return this.present({ ...invite, status: 'ACCEPTED', respondedAt: new Date().toISOString() });
   }
 
   /**
@@ -163,6 +200,15 @@ export class CoopService {
       // Trang thai vua doi duoi tay minh (accept / ghep xong / ben kia huy truoc)
       throw new BadRequestException('Loi moi da duoc xu ly roi.');
     }
+
+    // NGUOI MOI huy loi moi con PENDING -> bao nguoi nhan (data-only, khong hien
+    // thong bao) de app go the loi moi ngay, khong doi lan poll sau (2026-11-16).
+    // Cac truong hop khac ben kia dang o man chup va tu poll thay DECLINED.
+    if (invite.status === 'PENDING' && invite.inviterId === uid) {
+      await this.usersService
+        .pushDataToUids([invite.inviteeId], { type: PUSH_COOP_CANCELLED, inviteId })
+        .catch((e) => this.logger.warn(`Khong gui duoc FCM huy: ${(e as Error).message}`));
+    }
   }
 
   /**
@@ -172,11 +218,16 @@ export class CoopService {
    * ghep), ghep + upload -> mergedMediaUrl; fail -> tra ve ACCEPTED de thu lai.
    */
   async submitMedia(uid: string, inviteId: string, dto: SubmitCoopMediaDto): Promise<CoopInvite> {
+    this.assertAllowedMediaUrl(dto.mediaUrl);
     const invite = await this.assertParticipant(uid, inviteId);
     if (invite.status !== 'ACCEPTED') {
       throw new BadRequestException(
         invite.status === 'PENDING' ? 'Loi moi chua duoc chap nhan.' : 'Loi moi da duoc xu ly roi.',
       );
+    }
+    if (this.isSessionExpired(invite)) {
+      await this.repo.transition(inviteId, 'ACCEPTED', 'EXPIRED').catch(() => false);
+      throw new BadRequestException('Phien chup chung da het han.');
     }
 
     const isInviter = invite.inviterId === uid;
@@ -188,7 +239,7 @@ export class CoopService {
     // DOC LAI tu DB: ben kia co the vua nop nua cua ho xong (2 request dan xen)
     const updated = await this.repo.findById(inviteId);
     if (!updated?.inviterMediaUrl || !updated.inviteeMediaUrl) {
-      return updated ?? invite; // con thieu 1 nua — client hien "doi ban be chup"
+      return this.present(updated ?? invite); // con thieu 1 nua — client hien "doi ban be chup"
     }
 
     const locked = await this.repo.transition(inviteId, 'ACCEPTED', 'COMPLETED');
@@ -196,7 +247,9 @@ export class CoopService {
       // Khong gianh duoc quyen ghep: HOAC ben kia dang ghep, HOAC phien vua bi
       // huy (DECLINED) — doc lai trang thai THAT thay vi doan COMPLETED
       // (doan bua thi client huy-phien lai tuong ghep xong — fix 2026-08-03)
-      return (await this.repo.findById(inviteId)) ?? { ...updated, status: 'COMPLETED' };
+      return this.present(
+        (await this.repo.findById(inviteId)) ?? { ...updated, status: 'COMPLETED' },
+      );
     }
 
     try {
@@ -206,9 +259,11 @@ export class CoopService {
       updated.mergedMediaUrl = uploaded.url;
       updated.status = 'COMPLETED';
     } catch (e) {
-      // Ghep/upload fail -> tra ve ACCEPTED de 1 trong 2 ben nop lai kich hoat ghep
+      // Ghep/upload fail -> tra ve ACCEPTED de 1 trong 2 ben nop lai kich hoat ghep.
+      // Dung TRANSITION co khoa (2026-11-16, truoc la update tran) — dong bo voi moi
+      // lan doi trang thai khac, khong bao gio ghi de len trang thai la.
       await this.repo
-        .update(inviteId, { status: 'ACCEPTED' })
+        .transition(inviteId, 'COMPLETED', 'ACCEPTED')
         .catch(() => this.logger.warn(`Khong revert duoc loi moi ${inviteId} ve ACCEPTED.`));
       throw e;
     }
@@ -224,8 +279,8 @@ export class CoopService {
     const other = isInviter ? invite.inviteeId : invite.inviterId;
     await this.pushToUser(
       other,
-      'Chup chung hoan tat 🎉',
-      'Anh ghep da san sang — vao chinh sua va dang bai ngay!',
+      'Co-op capture complete 🎉',
+      'Your combined photo is ready. Edit and post it now!',
       { type: 'COOP_DONE', inviteId },
     ).catch((e) => this.logger.warn(`Khong gui duoc FCM hoan tat: ${e.message}`));
 
@@ -266,6 +321,54 @@ export class CoopService {
   private isExpired(invite: CoopInvite): boolean {
     const ageMs = Date.now() - new Date(invite.createdAt).getTime();
     return ageMs > COOP_INVITE_TTL_MINUTES * 60 * 1000;
+  }
+
+  /** Moc het han phien ACCEPTED (10 phut tu luc accept); thieu respondedAt -> tinh tu createdAt. */
+  private sessionDeadline(invite: CoopInvite): number {
+    const start = new Date(invite.respondedAt || invite.createdAt).getTime();
+    return start + COOP_SESSION_TTL_MINUTES * 60 * 1000;
+  }
+
+  private isSessionExpired(invite: CoopInvite): boolean {
+    return Date.now() > this.sessionDeadline(invite);
+  }
+
+  /**
+   * Gan expiresAt + remainingSeconds (khong luu DB) cho trang thai con dem gio:
+   * PENDING = han loi moi, ACCEPTED = han phien chup. Trang thai khac giu nguyen.
+   */
+  private present<T extends CoopInvite>(invite: T): T {
+    let deadline: number | null = null;
+    if (invite.status === 'PENDING') {
+      deadline = new Date(invite.createdAt).getTime() + COOP_INVITE_TTL_MINUTES * 60 * 1000;
+    } else if (invite.status === 'ACCEPTED') {
+      deadline = this.sessionDeadline(invite);
+    }
+    if (deadline === null || Number.isNaN(deadline)) {
+      return invite;
+    }
+    return {
+      ...invite,
+      expiresAt: new Date(deadline).toISOString(),
+      remainingSeconds: Math.max(0, Math.floor((deadline - Date.now()) / 1000)),
+    };
+  }
+
+  /**
+   * Chong SSRF (SECURITY.md P13, 2026-11-16): server se TAI anh tu URL nay de ghep
+   * -> chi nhan https tu host Cloudinary (URL ma POST /upload tra ve), khong cho
+   * tro vao mang noi bo / metadata endpoint.
+   */
+  private assertAllowedMediaUrl(mediaUrl: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(mediaUrl);
+    } catch {
+      throw new BadRequestException('URL anh khong hop le.');
+    }
+    if (parsed.protocol !== 'https:' || !COOP_MEDIA_ALLOWED_HOSTS.includes(parsed.hostname)) {
+      throw new BadRequestException('URL anh phai la anh da upload qua Snapget.');
+    }
   }
 
   /** Ghep split-screen: moi nua crop 'cover' ve 540x1080, dat canh nhau thanh anh vuong 1080. */

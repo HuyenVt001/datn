@@ -20,12 +20,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -364,7 +364,7 @@ fun LoginScreenContent(
                             label = { Text("Email") },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.Email,
+                                    imageVector = Icons.Outlined.Email,
                                     contentDescription = "Email Icon",
                                 )
                             },
@@ -400,7 +400,7 @@ fun LoginScreenContent(
                                 label = { Text("Full Name") },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Person,
+                                        imageVector = Icons.Outlined.Person,
                                         contentDescription = "Name Icon",
                                     )
                                 },
@@ -429,14 +429,14 @@ fun LoginScreenContent(
                                 label = { Text("Password") },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Lock,
+                                        imageVector = Icons.Outlined.Lock,
                                         contentDescription = "Password Icon",
                                     )
                                 },
                                 trailingIcon = {
                                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                         Icon(
-                                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            imageVector = if (passwordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                             contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
                                         )
                                     }
@@ -586,7 +586,7 @@ fun LoginScreenContent(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ErrorOutline,
+                                    imageVector = Icons.Outlined.ErrorOutline,
                                     contentDescription = "Error",
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(16.dp),

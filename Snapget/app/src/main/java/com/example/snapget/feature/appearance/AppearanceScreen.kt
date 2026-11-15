@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +48,9 @@ import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.navigation.Screen
 
 private val TABS = listOf("Frames", "Skins", "Effects")
+
+// Route pattern cua man Profile trong NavHost (Navigation.kt) — dung de popBackStack ve Profile
+private const val PROFILE_ROUTE_PATTERN = "profile?userId={userId}"
 
 /**
  * Man Appearance (SKIN_PLAN.md muc 4) — noi doi giao dien va hieu ung cham.
@@ -73,7 +77,12 @@ fun AppearanceScreen(
         onApplyEffect = viewModel::applyEffect,
         onRetry = { viewModel.load() },
         onOpenShop = {
-            // Shop la 1 tab footer -> dieu huong y nhu bam tab (giu state cac tab)
+            // Shop la 1 tab footer -> dieu huong y nhu bam tab (giu state cac tab).
+            // Fix 2026-11-15: rut stack ve Profile TRUOC (bo Setting/Appearance), neu
+            // khong saveState se luu ca Appearance -> bam lai tab Profile hien Appearance
+            if (!navController.popBackStack(PROFILE_ROUTE_PATTERN, inclusive = false)) {
+                navController.popBackStack()
+            }
             navController.navigate(Screen.Shop.route) {
                 popUpTo(Screen.Camera.route) { saveState = true }
                 launchSingleTop = true
@@ -98,12 +107,12 @@ fun AppearanceScreenContent(
         topBar = {
             SimpleTopBar(title = "Appearance", onBackClick = onBackClick)
         },
-        containerColor = SkinTheme.colors.background,
+        containerColor = Color.Transparent,
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = SkinTheme.colors.background,
+                containerColor = Color.Transparent,
                 contentColor = SkinTheme.colors.accent,
                 indicator = { positions ->
                     TabRowDefaults.SecondaryIndicator(

@@ -19,13 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -105,6 +107,8 @@ fun MainTopBar(
     // (so ban that = [friendCount]) va bam mo sheet ban be, KHONG con dropdown.
     // Dung o man Camera — dropdown "Everyone" o do truoc day khong co tac dung.
     friendCount: Int = 0,
+    // So loi moi ket ban dang cho minh xac nhan -> cham badge tren pill "N Friends"
+    pendingRequestCount: Int = 0,
     onFriendsPillClick: (() -> Unit)? = null,
 ) {
     var titleWidth by remember { mutableIntStateOf(0) }
@@ -180,7 +184,7 @@ fun MainTopBar(
                 ) {
                     if (onFriendsPillClick != null) {
                         Icon(
-                            imageVector = Icons.Filled.Group,
+                            imageVector = Icons.Outlined.Group,
                             contentDescription = null,
                             tint = SkinTheme.colors.accent,
                             modifier = Modifier.size(18.dp),
@@ -191,6 +195,22 @@ fun MainTopBar(
                             color = SkinTheme.colors.textPrimary,
                             style = MaterialTheme.typography.titleMedium,
                         )
+                        if (pendingRequestCount > 0) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Badge(
+                                containerColor = SkinTheme.colors.badge,
+                                contentColor = SkinTheme.colors.onBadge,
+                                modifier = Modifier.semantics {
+                                    contentDescription = "$pendingRequestCount pending friend requests"
+                                },
+                            ) {
+                                Text(
+                                    text = if (pendingRequestCount > 9) "9+" else pendingRequestCount.toString(),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
                     } else {
                         Text(
                             text = trimUsername(selectedFriend?.username ?: user?.username ?: title),
@@ -203,7 +223,7 @@ fun MainTopBar(
                         // Chevron trang tri: pill da co onClickLabel -> khong doc lai
                         SkinIcon(
                             res = SkinTheme.icons.chevronDown,
-                            fallback = Icons.Filled.ExpandMore,
+                            fallback = Icons.Outlined.ExpandMore,
                             contentDescription = null,
                             tint = SkinTheme.colors.textPrimary,
                             modifier = Modifier.size(18.dp),
@@ -247,7 +267,7 @@ fun MainTopBar(
                                             borderColor = SkinTheme.colors.onSurfaceVariant,
                                             onClick = {},
                                             iconSetting = IconSetting(
-                                                icon = Icons.Filled.Group,
+                                                icon = Icons.Outlined.Group,
                                                 contentDescription = "Everyone",
                                             ),
                                         )
@@ -341,7 +361,7 @@ fun MainTopBar(
                                         borderColor = SkinTheme.colors.accent,
                                         onClick = {},
                                         iconSetting = IconSetting(
-                                            icon = Icons.Filled.PersonAdd,
+                                            icon = Icons.Outlined.PersonAdd,
                                             contentDescription = "Add friends",
                                         ),
                                     )
@@ -359,7 +379,7 @@ fun MainTopBar(
 
                                     SkinIcon(
                                         res = SkinTheme.icons.chevronRight,
-                                        fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                        fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
                                         contentDescription = "Select",
                                         tint = SkinTheme.colors.textPrimary,
                                         modifier = Modifier.size(16.dp),
@@ -405,7 +425,7 @@ fun MainTopBar(
                     shape = CircleShape,
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.EmojiEvents,
+                        imageVector = Icons.Outlined.EmojiEvents,
                         contentDescription = "Daily Quest",
                         tint = SkinTheme.colors.accentGold,
                         modifier = Modifier.size(24.dp),
@@ -457,7 +477,7 @@ fun MainTopBar(
                     ) {
                         SkinIcon(
                             res = SkinTheme.icons.chat,
-                            fallback = Icons.Filled.ChatBubbleOutline,
+                            fallback = Icons.Outlined.ChatBubbleOutline,
                             contentDescription = "Messages",
                             tint = SkinTheme.colors.textPrimary,
                             modifier = Modifier.size(24.dp),

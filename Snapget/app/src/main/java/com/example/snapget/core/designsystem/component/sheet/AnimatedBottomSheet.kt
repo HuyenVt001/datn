@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.node.Ref
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,8 @@ fun <T> AnimatedBottomSheet(
     contentColor: Color = contentColorFor(containerColor),
     tonalElevation: Dp = 0.dp,
     scrimColor: Color = BottomSheetDefaults.ScrimColor,
-    dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
+    // Skin v2: tay keo mac dinh kem dai ornament cua skin (Default skin = nhu cu)
+    dragHandle: @Composable (() -> Unit)? = { SkinSheetDragHandle(sheetColor = containerColor) },
     contentWindowInsets: @Composable () -> WindowInsets = { BottomSheetDefaults.windowInsets },
     properties: ModalBottomSheetProperties = ModalBottomSheetDefaults.properties,
     content: @Composable ColumnScope.(T & Any) -> Unit,

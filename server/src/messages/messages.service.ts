@@ -396,17 +396,17 @@ export class MessagesService {
     }
     const sender = await this.usersRepo.findByUid(senderUid);
     const preview = dto.messageType === 'TEXT' ? dto.content.slice(0, 80) : this.previewOf(dto);
-    await this.usersService.pushToUids(uids, sender?.fullName ?? 'Tin nhan moi', preview);
+    await this.usersService.pushToUids(uids, sender?.fullName ?? 'New message', preview);
   }
 
   private previewOf(dto: SendMessageDto): string {
     switch (dto.messageType) {
       case 'VOICE':
-        return '[Tin nhan thoai]';
+        return '🎤 Voice message';
       case 'STICKER':
-        return '[Sticker]';
+        return 'Sent a sticker';
       case 'PHOTO':
-        return '[Hinh anh]';
+        return '📷 Photo';
       default:
         return dto.content.slice(0, 80);
     }

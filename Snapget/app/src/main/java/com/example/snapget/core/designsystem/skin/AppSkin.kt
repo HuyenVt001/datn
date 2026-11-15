@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
 
 /**
@@ -31,6 +32,10 @@ data class AppSkin(
     val icons: SkinIcons = SkinIcons(),
     val shapes: SkinShapes = SkinShapes(),
     val images: SkinImages = SkinImages(),
+    /** Khong khi nen: gradient, vang sang, kinh (Skin v2 — SKIN_PLAN.md muc "Atmosphere"). */
+    val atmosphere: SkinAtmosphere = SkinAtmosphere(),
+    /** Trang tri: hat bay + dai ornament mep tren. Mac dinh = khong co. */
+    val decor: SkinDecor = SkinDecor(),
     /** null = Roboto mac dinh. */
     val fontFamily: FontFamily? = null,
 )
@@ -86,6 +91,20 @@ data class SkinColors(
     val onBadge: Color = onAccent,
     /** Day "day" cua nut chunky — accent toi 30% (DESIGN.md 0.3). */
     val accentShadow: Color = accent.darken(0.7f),
+    // ---- Bac be mat M3 (Skin v2 — 2026-11-15) ----
+    // Truoc day KHONG khai -> ModalBottomSheet/AlertDialog/Card/NavigationBar cua M3
+    // roi ve mau xam ngau tim baseline, lech tong skin. Mac dinh suy tu token san co.
+    /** Nen ModalBottomSheet. */
+    val surfaceContainerLow: Color = surface,
+    /** Nen Card/NavigationBar M3. */
+    val surfaceContainer: Color = lerp(surface, surfaceVariant, 0.5f),
+    /** Nen AlertDialog. */
+    val surfaceContainerHigh: Color = surfaceVariant,
+    /** Vien o nhap OutlinedTextField, divider M3. */
+    val outline: Color = onSurfaceVariant,
+    val outlineVariant: Color = surfaceVariant,
+    /** Lop toi sau sheet/dialog. */
+    val scrim: Color = Color.Black.copy(alpha = 0.6f),
 ) {
     /**
      * Do token sang ColorScheme cua Material 3 — component M3 chua refactor
@@ -110,6 +129,18 @@ data class SkinColors(
         onSurfaceVariant = onSurfaceVariant,
         error = error,
         onError = textPrimary,
+        surfaceDim = background,
+        surfaceBright = surfaceVariant,
+        surfaceContainerLowest = background,
+        surfaceContainerLow = surfaceContainerLow,
+        surfaceContainer = surfaceContainer,
+        surfaceContainerHigh = surfaceContainerHigh,
+        surfaceContainerHighest = surfaceVariant,
+        outline = outline,
+        outlineVariant = outlineVariant,
+        scrim = scrim,
+        inverseSurface = onSurface,
+        inverseOnSurface = surface,
     )
 }
 
@@ -174,4 +205,65 @@ data class SkinShapes(
     val image: Shape = SkinShapeDefaults.Image,
     val sheet: Shape = SkinShapeDefaults.Sheet,
     val input: Shape = SkinShapeDefaults.Input,
+)
+
+/**
+ * Khong khi nen cua skin (Skin v2 "Atmosphere" — SKIN_PLAN.md, chot 2026-11-15).
+ *
+ * Ve boi [SkinBackdrop] MOT lan o goc app (sau NavHost). Thu tu uu tien:
+ * anh [SkinImages.screenBackground] (+ lop toi [imageScrim]) -> [gradient] -> mau
+ * phang `colors.background`. [glow] la vang sang radial ve de len tren.
+ *
+ * Kinh ([glassTint]/[glassAlpha]) KHONG blur that: `Modifier.blur` chi chay tu
+ * API 31 va chi lam mo chinh no -> dung lop to mau trong + vien 1px, chay tu API 24.
+ */
+@Immutable
+data class SkinAtmosphere(
+    /** Gradient doc (tren -> duoi). It hon 2 mau = dung `colors.background` phang. */
+    val gradient: List<Color> = emptyList(),
+    /** Vang sang radial; [Color.Unspecified] = khong co. Alpha nam san trong mau. */
+    val glow: Color = Color.Unspecified,
+    /** Tam vang sang theo ti le man hinh (0..1). */
+    val glowCenterX: Float = 0.85f,
+    val glowCenterY: Float = 0.0f,
+    /** Mau to kinh cho card/pill dat tren backdrop. */
+    val glassTint: Color = Color.White,
+    /** Do mo lop kinh bac co ban (bac 2/3 cong them 0.04/0.08). */
+    val glassAlpha: Float = 0.06f,
+    /** Do mo vien 1px cua kinh (cung mau [glassTint]). */
+    val glassBorderAlpha: Float = 0.10f,
+    /**
+     * Do mo lop `colors.background` phu len anh nen. Do bang contrast: >= 0.65
+     * thi chu phu #B0B0B0 dat 4.5:1 ca tren vung anh sang (#C0C0C0).
+     */
+    val imageScrim: Float = 0.65f,
+)
+
+/** Kieu chuyen dong cua hat bay tren nen. */
+enum class ParticleMotion {
+    /** Roi thang, lac nhe, xoay cham — tuyet, hoa. */
+    FALL,
+
+    /** Roi cheo, lac rong, lat qua lat lai — la. */
+    DRIFT,
+}
+
+/**
+ * Trang tri cua skin — tat ca TUY CHON, `null` = khong ve (app van dep nho
+ * [SkinAtmosphere]). Asset nam trong `res-skins/skin<N>_<ten>/drawable-nodpi/`.
+ */
+@Immutable
+data class SkinDecor(
+    /** Hat bay (128x128, nen trong). Ve NGUYEN MAU, khong tint. */
+    @DrawableRes val particle: Int? = null,
+    val particleMotion: ParticleMotion = ParticleMotion.FALL,
+    /** So hat cung luc — giu <= 15 (guideline "Excessive Motion"). */
+    val particleCount: Int = 12,
+    val particleMinDp: Float = 10f,
+    val particleMaxDp: Float = 20f,
+    /** Dai trang tri mep tren (1440x360, nen trong, day mo dan). */
+    @DrawableRes val ornament: Int? = null,
+    val ornamentAlpha: Float = 0.9f,
+    /** Do mo particle khi rai thanh hoa van nen chat ([skinChatWallpaper]). */
+    val patternAlpha: Float = 0.10f,
 )

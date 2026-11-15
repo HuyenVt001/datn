@@ -45,6 +45,9 @@ import com.example.snapget.core.designsystem.effect.LocalTouchEffectController
 import com.example.snapget.core.designsystem.effect.TouchEffectController
 import com.example.snapget.core.designsystem.effect.TouchEffectOverlay
 import com.example.snapget.core.designsystem.theme.AppTheme
+import com.example.snapget.core.fcm.CoopPushEvents
+import com.example.snapget.core.fcm.FriendPushEvents
+import com.example.snapget.core.fcm.SnapgetMessagingService
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.edgeToEdgeWithStyle
@@ -119,6 +122,18 @@ class MainActivity : ComponentActivity() {
     private fun handleWidgetRoute(intent: Intent?) {
         intent?.getStringExtra(SnapgetWidget.EXTRA_WIDGET_ROUTE)?.let { route ->
             PendingRouteStore.set(route)
+            return
+        }
+        // Push co field `notification` khi app o NEN: Android tu hien thong bao, bam vao
+        // mo launcher activity kem data FCM thanh extras (onMessageReceived KHONG chay)
+        // -> doc `type` de van mo sheet ban be dung nhu khi app dang mo
+        val pushType = intent?.getStringExtra("type")
+        if (FriendPushEvents.isFriendType(pushType)) {
+            PendingRouteStore.set(SnapgetMessagingService.ROUTE_FRIENDS)
+        }
+        // Bam thong bao loi moi chup chung (app o nen) -> ve Camera, the loi moi hien o do
+        if (pushType == CoopPushEvents.TYPE_COOP_INVITE) {
+            PendingRouteStore.set(SnapgetMessagingService.ROUTE_COOP_INVITE)
         }
     }
 

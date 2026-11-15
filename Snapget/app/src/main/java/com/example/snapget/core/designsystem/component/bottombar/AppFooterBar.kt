@@ -118,7 +118,8 @@ fun AppFooterBar(
     val feedback = rememberFeedback()
 
     Surface(
-        color = SkinTheme.colors.background,
+        // Skin v2: 90% -> backdrop cua skin hoi lo qua footer, van doc ro icon
+        color = SkinTheme.colors.background.copy(alpha = 0.9f),
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
