@@ -58,21 +58,56 @@ local.properties
 # ------------------------------------------------------------------
 # 2. Rác build / cache / tool
 # ------------------------------------------------------------------
+# Node / web
 node_modules/
 dist/
+dist-ssr/
+coverage/
+*.tsbuildinfo
+.eslintcache
+.firebase/
+
+# Android / Gradle / Kotlin
 build/
 .gradle/
-coverage/
-.firebase/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+captures/
+*.apk
+*.aab
+
+# Python / ML
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# Log (gồm cả JVM crash log hs_err_pid*.log, firebase-debug.log...)
 *.log
+
+# Index CodeGraph (chỉ dùng local)
 .codegraph/
 
 
 # ------------------------------------------------------------------
-# 3. IDE / OS
+# 3. IDE / OS / AI tool
 # ------------------------------------------------------------------
 .idea/
-.vscode/*
-!.vscode/extensions.json
+*.iml
+**/.vscode/*
+!**/.vscode/extensions.json
+*.swp
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Claude Code: skill cài cục bộ + setting riêng từng máy.
+# (Snapget/.claude, server/.claude, admin/.claude — tài liệu dự án — VẪN commit.)
+/.claude/
+/skills-lock.json
+**/.claude/settings.local.json
