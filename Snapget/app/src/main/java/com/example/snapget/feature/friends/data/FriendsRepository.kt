@@ -21,7 +21,7 @@ class FriendsRepository @Inject constructor(
     private val friendshipApi: FriendshipApi,
 ) {
 
-    /** Danh sach ban be kem friend streak (server gioi han 20). */
+    /** Danh sach ban be (server gioi han 20). */
     suspend fun listFriends(): List<FriendSummaryDto> = friendshipApi.listFriends().unwrap()
 
     /** Ma moi + link chia se cua chinh minh (hieu luc 30 ngay — het han server tu sinh ma moi). */
@@ -52,7 +52,7 @@ class FriendsRepository @Inject constructor(
         friendshipApi.declineRequest(requesterUid).ensureSuccess()
     }
 
-    /** Xoa ban — friend streak chung mat vinh vien. */
+    /** Xoa ban. */
     suspend fun removeFriend(friendUid: String) {
         friendshipApi.removeFriend(friendUid).ensureSuccess()
     }

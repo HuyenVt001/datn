@@ -2,7 +2,6 @@ package com.example.snapget.feature.profile
 
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -68,6 +67,7 @@ import com.example.snapget.core.constants.Month
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.empty.EmptyDayItem
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGridItemWithBadge
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
@@ -179,17 +179,18 @@ fun UserProfileContent(
     onReloadProfile: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     var showEditDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(updateStatus) {
         when (val status = updateStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Profile updated!", Toast.LENGTH_SHORT).show()
+                messenger.show("Profile updated!")
                 showEditDialog = false
                 onResetUpdateStatus()
             }
             is LoadStatus.Error -> {
-                Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
+                messenger.show(status.error)
                 onResetUpdateStatus()
             }
             else -> Unit
@@ -244,7 +245,7 @@ fun UserProfileContent(
                 navController = navController,
                 // Xoa bai thanh cong -> toast + dong detail + tai lai calendar
                 onDeleted = {
-                    Toast.makeText(context, "Post deleted.", Toast.LENGTH_SHORT).show()
+                    messenger.show("Post deleted.")
                     selectedPost = null
                     onReloadProfile()
                 },
@@ -480,6 +481,7 @@ private fun EditProfileDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     var name by remember { mutableStateOf(currentName) }
     var avatarFile by remember { mutableStateOf<File?>(null) }
 
@@ -573,11 +575,12 @@ private fun ProfileStats(
     showMoments: Boolean, // false khi xem profile nguoi khac (chi hien streak)
     modifier: Modifier = Modifier,
 ) {
+    // Gradient vien theo token (2026-11-15): truoc hardcode cam/vang chanh -> lech tong
+    // khi doi sang Honey Gold va khi doi skin
     val goldColors = listOf(
-        SkinTheme.colors.accentGold, // Gold
-        Color(0xFFFFA500), // Orange Gold
-        Color(0xFFFFE55C), // Light Gold
-        SkinTheme.colors.accentGold, // Gold
+        SkinTheme.colors.accentGold,
+        SkinTheme.colors.accent,
+        SkinTheme.colors.accentGold,
     )
 
     Column(

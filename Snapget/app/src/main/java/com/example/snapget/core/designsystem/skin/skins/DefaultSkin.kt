@@ -28,8 +28,10 @@ val DefaultSkin = AppSkin(
         onBackground = Color(0xFFFFFFFF), // GrayOnBackground
         onSurface = Color(0xFFE0E0E0), // GrayOnSurface
         onSurfaceVariant = Color(0xFFB0B0B0), // GrayOnSurfaceVariant (17 cho)
-        accent = Color.Yellow, // SnapYellow — chon/chup/vien active (33 cho)
-        accentGold = Color(0xFFFFD700), // SnapGold — streak/badge/moc (19 cho)
+        // Honey Gold (user chot 2026-11-15, DESIGN.md muc 0.7) — thay vang chanh
+        // #FFFF00 / #FFD700 qua choi tren nen toi. Contrast tren #121212: 11.6 / 9.1.
+        accent = Color(0xFFF5C542), // chon/chup/vien active/nut chinh
+        accentGold = Color(0xFFE8A93A), // streak/badge/moc/Astrite
         pill = Color(0xFF404137), // nen pill o liu (27 cho — nhieu nhat)
         pillTranslucent = Color(0xFF424242).copy(alpha = 0.5f), // BackgroundPreview
         overlay = Color.Black.copy(alpha = 0.5f), // lop phu tren anh (~20 cho)

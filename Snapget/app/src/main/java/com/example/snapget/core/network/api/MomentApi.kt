@@ -50,7 +50,7 @@ interface MomentApi {
     @POST("moments/{id}/seen")
     suspend fun markSeen(@Path("id") momentId: String): ApiResponse<Map<String, String>>
 
-    /** Tha emoji — server cap nhat friend streak voi chu bai. */
+    /** Tha emoji len bai. */
     @POST("moments/{id}/reactions")
     suspend fun react(
         @Path("id") momentId: String,

@@ -17,6 +17,11 @@ data class MomentDto(
      * (server tat AI / da xong quest / khong phai anh). Nullable + default = an toan Gson.
      */
     val aiQuest: AiQuestResultDto? = null,
+    /**
+     * CHI co trong response POST /moments (server 2026-11-15): ket qua streak cua lan
+     * dang nay -> app hien man an mung "streak +1" / moc streak. Vang = khong an mung.
+     */
+    val streak: MomentStreakDto? = null,
 )
 
 /**
@@ -33,6 +38,16 @@ data class AiQuestResultDto(
 )
 
 /** Body POST /moments. mediaUrl lay tu ket qua POST /upload. */
+/** Streak sau khi dang (POST /moments). `increased` = bai DAU TIEN trong ngay. */
+data class MomentStreakDto(
+    val personalStreak: Int,
+    val increased: Boolean,
+    /** 3 | 7 | 14 | 30 khi vua cham moc (chi khi increased), nguoc lai null. */
+    val milestone: Int? = null,
+    /** Khung moc streak vua mo khoa (null neu khong co). */
+    val unlockedFrameId: String? = null,
+)
+
 data class CreateMomentRequest(
     val contentType: String, // PHOTO | VIDEO
     val mediaUrl: String,

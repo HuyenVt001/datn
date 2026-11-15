@@ -67,6 +67,7 @@ import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
@@ -99,6 +100,7 @@ fun CoopCaptureScreen(
     coopViewModel: CoopViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val invite by coopViewModel.invite.collectAsState()
@@ -137,7 +139,7 @@ fun CoopCaptureScreen(
 
     LaunchedEffect(coopError) {
         coopError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             coopViewModel.clearError()
         }
     }
@@ -187,11 +189,11 @@ fun CoopCaptureScreen(
         when {
             current == null -> Unit
             current.status == "DECLINED" -> {
-                Toast.makeText(context, "$partnerName declined the invite.", Toast.LENGTH_SHORT).show()
+                messenger.show("$partnerName declined the invite.")
                 navController.popBackStack()
             }
             current.status == "EXPIRED" -> {
-                Toast.makeText(context, "The invite expired (5 minutes).", Toast.LENGTH_SHORT).show()
+                messenger.show("The invite expired (5 minutes).")
                 navController.popBackStack()
             }
             current.status == "COMPLETED" && current.mergedMediaUrl != null && !navigatedToEdit -> {

@@ -9,7 +9,6 @@ import sharp from 'sharp';
 import { COOP_INVITE_TTL_MINUTES } from '../common/constants';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { UploadService } from '../upload/upload.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
@@ -39,7 +38,6 @@ export class CoopService {
   constructor(
     private readonly repo: CoopRepository,
     private readonly friendshipsRepo: FriendshipsRepository,
-    private readonly friendshipsService: FriendshipsService,
     private readonly usersRepo: UsersRepository,
     private readonly usersService: UsersService,
     private readonly framesService: FramesService,
@@ -215,11 +213,8 @@ export class CoopService {
       throw e;
     }
 
-    // Chup chung = tuong tac qua lai -> friend streak; khung COOP_FIRST mo cho
-    // CA 2 (best-effort — anh ghep DA xong, loi hook khong duoc lam client 500)
-    await this.friendshipsService
-      .registerInteraction(invite.inviterId, invite.inviteeId)
-      .catch((e) => this.logger.warn(`Khong cap nhat duoc friend streak: ${(e as Error).message}`));
+    // Khung COOP_FIRST mo cho CA 2 (best-effort — anh ghep DA xong, loi hook khong
+    // duoc lam client 500). Friend streak da bo 2026-11-15.
     await Promise.all([
       this.framesService.unlockCoopFrames(invite.inviterId),
       this.framesService.unlockCoopFrames(invite.inviteeId),

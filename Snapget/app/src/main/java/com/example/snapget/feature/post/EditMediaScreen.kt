@@ -6,7 +6,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,12 +23,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -38,6 +40,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -70,6 +74,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +85,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
@@ -161,8 +169,12 @@ private val DOODLE_COLORS = listOf(
     Color(0xFFE040FB),
 )
 
+/** Ten mau cho TalkBack (cung thu tu DOODLE_COLORS). */
+private val DOODLE_COLOR_NAMES = listOf("White", "Black", "Red", "Yellow", "Green", "Blue", "Purple")
+
 /** Do day net ve (px tren preview): nho / vua / to. */
 private val DOODLE_WIDTHS = listOf(8f, 12f, 20f)
+private val DOODLE_WIDTH_NAMES = listOf("Thin brush", "Medium brush", "Thick brush")
 
 /**
  * Man chinh sua SAU KHI CHUP (user chot 2026-07-13): giong submit_photo_screen.png nhung
@@ -180,6 +192,7 @@ fun EditMediaScreen(
     postViewModel: PostViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val coroutineScope = rememberCoroutineScope()
 
     // Catalog khung (chi khung DA MO KHOA duoc chon)
@@ -242,12 +255,20 @@ fun EditMediaScreen(
                         frameParam,
                 )
             } catch (e: Exception) {
-                Toast.makeText(context, "Failed to process image: ${e.message}", Toast.LENGTH_LONG).show()
+                messenger.show("Failed to process image: ${e.message}")
             } finally {
                 isBaking = false
             }
         }
     }
+
+    // Da chinh sua gi chua -> quyet dinh co hoi "Discard changes?" khi thoat
+    val hasEdits = strokes.isNotEmpty() || selectedFrame != null || selectedFilter != PHOTO_FILTERS.first()
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    val requestExit: () -> Unit = {
+        if (hasEdits) showDiscardDialog = true else navController.popBackStack()
+    }
+    BackHandler(enabled = hasEdits) { showDiscardDialog = true }
 
     Scaffold(
         topBar = {
@@ -256,6 +277,8 @@ fun EditMediaScreen(
                 title = "Edit",
             )
         },
+        // Ghim ✕ / Next o day (truoc nam trong verticalScroll -> may nho phai cuon moi thay CTA)
+        bottomBar = { EditBottomBar(onCancel = requestExit, onNext = { goNext() }) },
     ) { paddingValues ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -412,48 +435,68 @@ fun EditMediaScreen(
 
                     // Bang mau khi dang ve
                     if (doodleMode) {
-                        DOODLE_COLORS.forEach { color ->
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(
-                                        width = if (doodleColor == color) 3.dp else 1.dp,
-                                        color = if (doodleColor == color) {
-                                            SkinTheme.colors.accent
-                                        } else {
-                                            Color.White.copy(alpha = 0.4f)
-                                        },
-                                        shape = CircleShape,
-                                    )
-                                    .clickable { doodleColor = color },
-                            )
-                        }
-                        // Chon do day net: cham nho / vua / to
-                        DOODLE_WIDTHS.forEach { width ->
+                        DOODLE_COLORS.forEachIndexed { i, color ->
+                            // Vung cham 44dp (o mau van ve 26dp) + nhan TalkBack + trang thai chon
+                            val selected = doodleColor == color
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(26.dp)
+                                    .size(44.dp)
                                     .clip(CircleShape)
-                                    .border(
-                                        width = if (doodleWidth == width) 2.dp else 1.dp,
-                                        color = if (doodleWidth == width) {
-                                            SkinTheme.colors.accent
-                                        } else {
-                                            Color.White.copy(alpha = 0.4f)
-                                        },
-                                        shape = CircleShape,
-                                    )
-                                    .clickable { doodleWidth = width },
+                                    .selectable(selected = selected, role = Role.RadioButton) { doodleColor = color }
+                                    .semantics { contentDescription = DOODLE_COLOR_NAMES[i] },
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size((width / 2).dp)
+                                        .size(26.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White),
+                                        .background(color)
+                                        .border(
+                                            width = if (doodleColor == color) 3.dp else 1.dp,
+                                            color = if (doodleColor == color) {
+                                                SkinTheme.colors.accent
+                                            } else {
+                                                Color.White.copy(alpha = 0.4f)
+                                            },
+                                            shape = CircleShape,
+                                        ),
                                 )
+                            }
+                        }
+                        // Chon do day net: cham nho / vua / to
+                        DOODLE_WIDTHS.forEachIndexed { i, width ->
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .selectable(selected = doodleWidth == width, role = Role.RadioButton) {
+                                        doodleWidth = width
+                                    }
+                                    .semantics { contentDescription = DOODLE_WIDTH_NAMES[i] },
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .border(
+                                            width = if (doodleWidth == width) 2.dp else 1.dp,
+                                            color = if (doodleWidth == width) {
+                                                SkinTheme.colors.accent
+                                            } else {
+                                                Color.White.copy(alpha = 0.4f)
+                                            },
+                                            shape = CircleShape,
+                                        ),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size((width / 2).dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White),
+                                    )
+                                }
                             }
                         }
                         IconButton(
@@ -516,7 +559,7 @@ fun EditMediaScreen(
                             Text(
                                 text = filter.name,
                                 color = if (selectedFilter == filter) SkinTheme.colors.accent else Color.White,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                         }
@@ -557,44 +600,77 @@ fun EditMediaScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ==== Bottom: ✕ Huy · nut TIEP 80dp vien vang ====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Cancel",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.9f),
-                    modifier = Modifier
-                        .size(80.dp)
-                        .border(3.dp, SkinTheme.colors.accent, CircleShape),
-                ) {
-                    IconButton(onClick = { goNext() }, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Next",
-                            tint = Color.Black,
-                            modifier = Modifier.size(36.dp),
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.width(48.dp)) // can giua nut Tiep
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // Hoi truoc khi bo chinh sua (2026-11-15: truoc bam ✕/Back la mat net ve/khung/filter)
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            containerColor = SkinTheme.colors.surface,
+            title = { Text("Discard changes?", color = SkinTheme.colors.textPrimary) },
+            text = {
+                Text(
+                    "Your drawing, frame and filter will be lost.",
+                    color = SkinTheme.colors.textSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardDialog = false
+                    navController.popBackStack()
+                }) { Text("Discard", color = SkinTheme.colors.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) {
+                    Text("Keep editing", color = SkinTheme.colors.textPrimary)
+                }
+            },
+        )
+    }
+}
+
+/** Hang day man Edit: ✕ Huy · nut TIEP 80dp vien vang — GHIM ngoai vung cuon. */
+@Composable
+private fun EditBottomBar(
+    onCancel: () -> Unit,
+    onNext: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onCancel) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Cancel",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp),
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        Surface(
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier
+                .size(80.dp)
+                .border(3.dp, SkinTheme.colors.accent, CircleShape),
+        ) {
+            IconButton(onClick = onNext, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Next",
+                    tint = Color.Black,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(48.dp)) // can giua nut Tiep
     }
 }
 
@@ -647,7 +723,7 @@ private fun FrameThumb(
         Text(
             text = label,
             color = if (selected) SkinTheme.colors.accent else Color.White,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             maxLines = 1,
             modifier = Modifier
                 .width(64.dp)

@@ -23,7 +23,7 @@ import retrofit2.http.Query
 /** Endpoint /messages cua server NestJS (chi nhan tin duoc voi ban be). */
 interface MessageApi {
 
-    /** Gui tin — 1-1 server tu cong friend streak + push FCM cho nguoi nhan. */
+    /** Gui tin — 1-1 server push FCM cho nguoi nhan. */
     @POST("messages")
     suspend fun send(@Body body: SendMessageRequest): ApiResponse<MessageDto>
 

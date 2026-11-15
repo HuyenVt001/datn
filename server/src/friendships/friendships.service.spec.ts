@@ -28,7 +28,6 @@ describe('FriendshipsService', () => {
       declineRequest: jest.fn(),
       listPendingRequests: jest.fn(),
       delete: jest.fn(),
-      updateStreak: jest.fn(),
     } as unknown as jest.Mocked<FriendshipsRepository>;
 
     users = {
@@ -236,28 +235,6 @@ describe('FriendshipsService', () => {
     it('bao loi khi khong co loi moi tuong ung', async () => {
       repo.declineRequest.mockResolvedValue(false);
       await expect(service.declineRequest('me', 'a')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('registerInteraction', () => {
-    it('reset streak ve 1 khi qua 24h', async () => {
-      const old = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString();
-      repo.findPair.mockResolvedValue({
-        pairId: 'p',
-        status: 'ACCEPTED',
-        friendStreak: 5,
-        lastInteractionAt: old,
-      } as never);
-
-      await service.registerInteraction('a', 'b');
-
-      expect(repo.updateStreak).toHaveBeenCalledWith('p', 1, expect.any(String));
-    });
-
-    it('bo qua khi chua la ban', async () => {
-      repo.findPair.mockResolvedValue(null);
-      await service.registerInteraction('a', 'b');
-      expect(repo.updateStreak).not.toHaveBeenCalled();
     });
   });
 });

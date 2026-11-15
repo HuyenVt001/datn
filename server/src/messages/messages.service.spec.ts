@@ -2,7 +2,6 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { MAX_GROUP_SIZE } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -14,7 +13,6 @@ describe('MessagesService', () => {
   let repo: jest.Mocked<MessagesRepository>;
   let usersRepo: jest.Mocked<UsersRepository>;
   let usersService: jest.Mocked<UsersService>;
-  let friendshipsService: jest.Mocked<FriendshipsService>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
 
   const me: AuthUser = { uid: 'me' };
@@ -39,9 +37,6 @@ describe('MessagesService', () => {
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<UsersRepository>;
-    friendshipsService = {
-      registerInteraction: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<FriendshipsService>;
     friendshipsRepo = {
       findPair: jest.fn(),
       listAccepted: jest.fn().mockResolvedValue([]),
@@ -52,13 +47,7 @@ describe('MessagesService', () => {
       getPublicProfile: jest.fn().mockResolvedValue({ uid: 'x', fullName: 'X' }),
     } as unknown as jest.Mocked<UsersService>;
 
-    service = new MessagesService(
-      repo,
-      usersRepo,
-      usersService,
-      friendshipsService,
-      friendshipsRepo,
-    );
+    service = new MessagesService(repo, usersRepo, usersService, friendshipsRepo);
   });
 
   describe('send', () => {
@@ -84,7 +73,6 @@ describe('MessagesService', () => {
       expect(repo.createMessage).toHaveBeenCalledWith(
         expect.objectContaining({ senderId: 'me', receiverId: 'friend', isSeen: false }),
       );
-      expect(friendshipsService.registerInteraction).toHaveBeenCalledWith('me', 'friend');
       expect(result.messageId).toBe('msg1');
     });
 

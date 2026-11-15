@@ -31,6 +31,15 @@ export class UsersRepository {
     return this.toEntity(uid, snap.data() ?? {});
   }
 
+  /**
+   * User co lan cuoi tang streak dung ngay [dateKey] (vd hom qua = streak con song
+   * nhung HOM NAY chua dang). 1 dieu kien equality -> khong can composite index.
+   */
+  async listByLastStreakDate(dateKey: string): Promise<User[]> {
+    const snap = await this.col.where('lastStreakDate', '==', dateKey).get();
+    return snap.docs.map((d) => this.toEntity(d.id, d.data()));
+  }
+
   /** Tim user theo ma moi ket ban (phuc vu luong ket ban qua link). */
   async findByInviteCode(inviteCode: string): Promise<User | null> {
     const snap = await this.col.where('inviteCode', '==', inviteCode).limit(1).get();

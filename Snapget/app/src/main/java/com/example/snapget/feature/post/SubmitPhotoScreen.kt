@@ -45,7 +45,9 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.submitPhotoBar
+import com.example.snapget.core.designsystem.component.celebration.StreakCelebration
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.input.InputCaptionPill
 import com.example.snapget.core.designsystem.component.list.FriendList
 import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheet
@@ -88,18 +90,24 @@ fun SubmitPhotoScreen(
     friendsViewModel: FriendsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val submitStatus by postViewModel.submitStatus.collectAsState()
     val chatSendError by postViewModel.chatSendError.collectAsState()
     val aiQuestMessage by postViewModel.aiQuestMessage.collectAsState()
+    val celebration by postViewModel.celebration.collectAsState()
     val apiFriends by friendsViewModel.friends.collectAsState()
 
     // Tai ban be 1 lan khi mo man (de list chon nguoi gui kem co data that)
-    LaunchedEffect(Unit) { friendsViewModel.loadFriends() }
+    LaunchedEffect(Unit) {
+        friendsViewModel.loadFriends()
+        // Catalog khung: de man an mung moc streak hien duoc anh khung vua mo khoa
+        postViewModel.loadFrames()
+    }
 
     // Loi gui kem vao chat (bai dang VAN thanh cong) -> toast rieng
     LaunchedEffect(chatSendError) {
         chatSendError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             postViewModel.clearChatSendError()
         }
     }
@@ -107,7 +115,7 @@ fun SubmitPhotoScreen(
     // Ket qua quest AI cua bai vua dang (server xac minh anh) -> toast rieng, khong chan luong
     LaunchedEffect(aiQuestMessage) {
         aiQuestMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             postViewModel.clearAiQuestMessage()
         }
     }
@@ -119,20 +127,30 @@ fun SubmitPhotoScreen(
 
     val frameImageUrl = frameUrl
 
-    // Xu ly ket qua dang bai: thanh cong -> ve feed; loi -> bao message tu server
+    // Ve feed xem bai vua dang; don EditMedia/SubmitPhoto khoi stack,
+    // giu Camera lam man goc (back tu feed -> camera)
+    val goToFeed: () -> Unit = {
+        navController.navigate(Screen.Post.route) {
+            popUpTo(Screen.Camera.route)
+        }
+    }
+    // Man an mung (streak +1 / moc / quest AI) dang hien -> doi dong roi moi ve feed
+    var showCelebration by remember { mutableStateOf(false) }
+
+    // Xu ly ket qua dang bai: thanh cong -> (an mung) -> ve feed; loi -> bao message tu server
     LaunchedEffect(submitStatus) {
         when (val status = submitStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Posted successfully!", Toast.LENGTH_SHORT).show()
                 postViewModel.resetSubmitStatus()
-                // Ve feed xem bai vua dang; don EditMedia/SubmitPhoto khoi stack,
-                // giu Camera lam man goc (back tu feed -> camera)
-                navController.navigate(Screen.Post.route) {
-                    popUpTo(Screen.Camera.route)
+                if (celebration != null) {
+                    showCelebration = true
+                } else {
+                    messenger.show("Posted! 🔥")
+                    goToFeed()
                 }
             }
             is LoadStatus.Error -> {
-                Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
+                messenger.show(status.error)
                 postViewModel.resetSubmitStatus()
             }
             else -> Unit
@@ -382,9 +400,25 @@ fun SubmitPhotoScreen(
                     else -> "Posts to the feed + sends to ${selectedUser?.username ?: "a friend"} in chat"
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = SkinTheme.colors.textSecondary,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
         }
+    }
+
+    // Man an mung toan man (streak +1 / moc streak / quest AI khop) — DESIGN.md 0.5
+    val c = celebration
+    if (showCelebration && c != null) {
+        StreakCelebration(
+            streak = c.streak,
+            milestone = c.milestone,
+            unlockedFrameUrl = c.unlockedFrameUrl,
+            aiChallengeComplete = c.aiChallengeComplete,
+            onDismiss = {
+                showCelebration = false
+                postViewModel.clearCelebration()
+                goToFeed()
+            },
+        )
     }
 }

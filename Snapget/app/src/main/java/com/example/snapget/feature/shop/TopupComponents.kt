@@ -109,7 +109,7 @@ internal fun AstriteTab(
                 text = "Astrite is added automatically once the payment is confirmed. " +
                     "It can take a few seconds.\nFree Astrite: finish your daily quests.",
                 color = SkinTheme.colors.textSecondary,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 modifier = Modifier.padding(top = 6.dp),
             )
         }

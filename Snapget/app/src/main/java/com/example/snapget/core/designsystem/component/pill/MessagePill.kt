@@ -15,21 +15,27 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
@@ -39,23 +45,29 @@ val extraReactionEmojis = listOf("😄", "❤️", "🔥", "👍", "🎉", "😮
 
 /**
  * Thanh "Send message…" duoi post detail (asset: post_detail_screen.png).
- * - [onEmojiClick]: emoji tha REACTION (server cong friend streak); ⊕ xoe hang mo rong.
+ * - [onEmojiClick]: emoji tha REACTION; ⊕ xoe hang mo rong.
  * - [onSendMessage]: bat o GO TEXT that — go noi dung roi bam Send de nhan tin
- *   1-1 toi tac gia bai (co text thi emoji nhuong cho cho nut Send).
+ *   1-1 toi tac gia bai (co text thi emoji nhuong cho cho nut Send). Tham so thu 2
+ *   la `restore`: goi khi gui LOI de tra lai chu da go (2026-11-15).
  * Khong truyen gi -> thanh tinh nhu cu.
+ *
+ * (2026-11-15 Playful v2) Vung cham emoji/Send/⊕ >= 48dp (truoc ~28dp), emoji
+ * "pop" + haptic khi tha, placeholder khong in dam.
  */
 @Composable
 fun MessageInputPill(
     modifier: Modifier = Modifier,
     onEmojiClick: ((String) -> Unit)? = null,
     selectedEmoji: String? = null,
-    onSendMessage: ((String) -> Unit)? = null,
+    onSendMessage: ((text: String, restore: () -> Unit) -> Unit)? = null,
 ) {
     // Hang emoji mo rong (chi bat duoc khi co onEmojiClick)
     var expanded by remember { mutableStateOf(false) }
 
     // Noi dung dang go (chi dung khi onSendMessage != null)
-    var messageText by remember { mutableStateOf("") }
+    // rememberSaveable: xoay man / app bi kill khong mat chu dang go (2026-11-15)
+    var messageText by rememberSaveable { mutableStateOf("") }
+    val feedback = rememberFeedback()
 
     Column(
         modifier = modifier
@@ -65,7 +77,7 @@ fun MessageInputPill(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = SkinTheme.shapes.sheet,
             )
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -88,7 +100,6 @@ fun MessageInputPill(
                                 Text(
                                     text = "Send message...",
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -102,7 +113,6 @@ fun MessageInputPill(
                 Text(
                     text = "Send message...",
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
@@ -112,44 +122,47 @@ fun MessageInputPill(
 
             if (onSendMessage != null && messageText.isNotBlank()) {
                 // Dang go -> emoji nhuong cho cho nut Send (giong ChatInputPill)
-                SkinIcon(
-                    res = SkinTheme.icons.send,
-                    fallback = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send message",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            onSendMessage(messageText)
-                            messageText = ""
-                        }
-                        .padding(4.dp),
-                )
+                IconButton(
+                    onClick = {
+                        val draft = messageText
+                        feedback.tap()
+                        onSendMessage(draft) { if (messageText.isEmpty()) messageText = draft }
+                        messageText = ""
+                    },
+                ) {
+                    SkinIcon(
+                        res = SkinTheme.icons.send,
+                        fallback = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send message",
+                        tint = SkinTheme.colors.accent,
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
             } else {
                 quickReactionEmojis.forEach { emoji ->
                     ReactionEmoji(
                         emoji = emoji,
                         isSelected = selectedEmoji == emoji,
-                        onClick = onEmojiClick,
+                        onClick = onEmojiClick?.let { click ->
+                            { e: String ->
+                                feedback.pop()
+                                click(e)
+                            }
+                        },
                     )
                 }
 
-                Icon(
-                    imageVector = Icons.Default.AddCircle,
-                    contentDescription = "More",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .then(
-                            if (onEmojiClick != null) {
-                                Modifier.clickable { expanded = !expanded }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                )
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    enabled = onEmojiClick != null,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = if (expanded) "Fewer reactions" else "More reactions",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
             }
         }
 
@@ -157,7 +170,7 @@ fun MessageInputPill(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(bottom = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -166,6 +179,7 @@ fun MessageInputPill(
                         emoji = emoji,
                         isSelected = selectedEmoji == emoji,
                         onClick = { e ->
+                            feedback.pop()
                             onEmojiClick(e)
                             expanded = false
                         },
@@ -176,35 +190,44 @@ fun MessageInputPill(
     }
 }
 
-/** 1 emoji tha duoc: highlight nen vang mo khi la emoji minh vua tha. */
+/**
+ * 1 emoji tha duoc: highlight nen vang mo khi la emoji minh vua tha.
+ * Vung cham 48dp (minimumInteractiveComponentSize), emoji "pop" khi duoc chon.
+ */
 @Composable
 private fun ReactionEmoji(
     emoji: String,
     isSelected: Boolean,
     onClick: ((String) -> Unit)?,
 ) {
-    Text(
-        text = emoji,
-        style = MaterialTheme.typography.bodyLarge,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .padding(horizontal = 2.dp)
+            .minimumInteractiveComponentSize()
             .clip(CircleShape)
             .then(
-                if (isSelected) {
-                    Modifier.background(SkinTheme.colors.accent.copy(alpha = 0.25f), CircleShape)
-                } else {
-                    Modifier
-                },
-            )
-            .then(
                 if (onClick != null) {
-                    Modifier.clickable { onClick(emoji) }
+                    Modifier.clickable(role = Role.Button, onClickLabel = "React $emoji") { onClick(emoji) }
                 } else {
                     Modifier
                 },
-            )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-    )
+            ),
+    ) {
+        Text(
+            text = emoji,
+            fontSize = 22.sp,
+            modifier = Modifier
+                .popOnChange(isSelected)
+                .then(
+                    if (isSelected) {
+                        Modifier.background(SkinTheme.colors.accent.copy(alpha = 0.25f), CircleShape)
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(horizontal = 5.dp, vertical = 3.dp),
+        )
+    }
 }
 
 @Preview(showBackground = true)

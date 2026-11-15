@@ -3,17 +3,18 @@ package com.example.snapget.feature.post
 import android.net.Uri
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +36,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,10 +66,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
+import com.example.snapget.core.designsystem.component.state.EmptyState
+import com.example.snapget.core.designsystem.component.state.ErrorState
+import com.example.snapget.core.designsystem.component.state.SkeletonBlock
+import com.example.snapget.core.designsystem.component.state.SkeletonGrid
+import com.example.snapget.core.designsystem.component.state.skeleton
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -109,6 +116,7 @@ fun PostScreen(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val scope = rememberCoroutineScope()
 
     // Feed tu API server — tab Everyone doc feed, tab You/ban be doc userMoments
@@ -127,7 +135,7 @@ fun PostScreen(
 
     LaunchedEffect(coopError) {
         coopError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             coopViewModel.clearError()
         }
     }
@@ -245,7 +253,7 @@ fun PostScreen(
     val actionMessage by postViewModel.actionMessage.collectAsState()
     LaunchedEffect(actionMessage) {
         actionMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            messenger.show(it)
             postViewModel.clearActionMessage()
         }
     }
@@ -254,6 +262,15 @@ fun PostScreen(
     val goBackToCamera: () -> Unit = {
         if (!navController.popBackStack(Screen.Camera.route, false)) {
             navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+        }
+    }
+
+    // Tai lai tab dang xem (Retry o error state + keo-de-refresh o grid)
+    val reloadCurrentTab: () -> Unit = {
+        when (val id = selectedUser?.id) {
+            null, "everyone" -> postViewModel.loadFeed()
+            "you" -> postViewModel.loadUserMoments(null)
+            else -> postViewModel.loadUserMoments(id)
         }
     }
 
@@ -296,18 +313,27 @@ fun PostScreen(
         if (showGrid) {
             // ==== GRID MODE: tong hop tat ca post (bam icon luoi tu pager) ====
             when {
-                isCurrentlyLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                isCurrentlyLoading && displayPosts.isEmpty() -> {
+                    // Skeleton luoi 3 cot (P5) — giu bo cuc, khong nhay layout
+                    SkeletonGrid(columns = 3, modifier = Modifier.padding(top = (50 + 80).dp))
                 }
                 displayPosts.isEmpty() -> {
                     EmptyFeedMessage(
                         isEveryoneTab = isEveryoneTab,
+                        feedStatus = feedStatus,
                         userMomentsStatus = userMomentsStatus,
                         selectedUser = selectedUser,
+                        onRetry = reloadCurrentTab,
+                        onOpenCamera = goBackToCamera,
                         modifier = Modifier.align(Alignment.Center),
                     )
                 }
-                else -> {
+                // Keo xuong de tai lai (2026-11-15 — truoc khong co cach refresh)
+                else -> PullToRefreshBox(
+                    isRefreshing = isCurrentlyLoading,
+                    onRefresh = reloadCurrentTab,
+                    modifier = Modifier.fillMaxSize().padding(top = (50 + 80).dp),
+                ) {
                     PostGrid(
                         posts = displayPosts,
                         // Bam 1 o -> quay ve pager dung post do
@@ -318,7 +344,6 @@ fun PostScreen(
                             }
                             showGrid = false
                         },
-                        modifier = Modifier.padding(top = (50 + 80).dp),
                         frameUrls = frameUrls,
                         // Mark-seen khi o anh hien len (khong mark bai cua CHINH MINH)
                         onPostVisible = { post ->
@@ -333,7 +358,22 @@ fun PostScreen(
             // ==== PAGER MODE (mac dinh): moi post 1 trang, vuot doc ====
             when {
                 isCurrentlyLoading && displayPosts.isEmpty() -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    // Skeleton 1 bai (anh vuong + dong ten) dung vi tri PostDetailContent
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 110.dp, bottom = 165.dp, start = 16.dp, end = 16.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .skeleton(SkinTheme.shapes.image),
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        SkeletonBlock(width = 160.dp, height = 16.dp)
+                    }
                 }
                 displayPosts.isEmpty() -> {
                     // Van cho vuot xuong de ve camera du khong co bai nao
@@ -353,8 +393,11 @@ fun PostScreen(
                     ) {
                         EmptyFeedMessage(
                             isEveryoneTab = isEveryoneTab,
+                            feedStatus = feedStatus,
                             userMomentsStatus = userMomentsStatus,
                             selectedUser = selectedUser,
+                            onRetry = reloadCurrentTab,
+                            onOpenCamera = goBackToCamera,
                             modifier = Modifier.align(Alignment.Center),
                         )
                     }
@@ -410,9 +453,9 @@ fun PostScreen(
                                 postViewModel.react(currentPost.id, emoji)
                                 flyingEmojis.add(newFlyingEmoji(emoji))
                             },
-                            onSendMessage = { text ->
-                                // Reply gui KEM anh/video cua bai (attachment)
-                                postViewModel.sendMessageToAuthor(currentPost, text)
+                            onSendMessage = { text, restore ->
+                                // Reply gui KEM anh/video cua bai (attachment); loi -> tra lai chu
+                                postViewModel.sendMessageToAuthor(currentPost, text, onFailed = restore)
                             },
                         )
                     }
@@ -630,7 +673,7 @@ fun PostScreen(
                     try {
                         MediaActions.share(context, post.thumbnailUrl, isVideo)
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Share failed.", Toast.LENGTH_SHORT).show()
+                        messenger.show("Share failed.")
                     }
                 }
             },
@@ -671,40 +714,47 @@ fun PostScreen(
     }
 }
 
-/** Trang thai feed rong (dung chung pager + grid). */
+/**
+ * Trang thai feed rong / loi (dung chung pager + grid).
+ * (2026-11-15) Tach LOI khoi RONG: truoc day loi tai tab Everyone hien "No posts to
+ * show" -> nguoi dung tuong ban be khong dang gi, va khong co cach thu lai.
+ */
 @Composable
 private fun EmptyFeedMessage(
     isEveryoneTab: Boolean,
+    feedStatus: LoadStatus,
     userMomentsStatus: LoadStatus,
     selectedUser: User?,
+    onRetry: () -> Unit,
+    onOpenCamera: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = when {
-                // Tab Everyone KHONG duoc hien loi dinh lai tu tab khac
-                isEveryoneTab -> "No posts to show"
-                // Loi tai tab (vd 403 cua server) -> hien message truc tiep
-                userMomentsStatus is LoadStatus.Error -> userMomentsStatus.error
-                selectedUser?.id == "you" -> "You haven't posted anything yet"
-                else -> "${selectedUser?.username ?: "This user"} hasn't posted anything yet"
-            },
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(16.dp),
+    val tabStatus = if (isEveryoneTab) feedStatus else userMomentsStatus
+    when {
+        tabStatus is LoadStatus.Error -> ErrorState(
+            message = tabStatus.error,
+            onRetry = onRetry,
+            modifier = modifier,
         )
-        if (selectedUser?.id == "you") {
-            Text(
-                text = "Tap the camera button to create your first post",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-        }
+        isEveryoneTab -> EmptyState(
+            title = "Nothing here yet",
+            message = "Be the first to share a moment with your friends today!",
+            actionLabel = "Open camera",
+            onAction = onOpenCamera,
+            modifier = modifier,
+        )
+        selectedUser?.id == "you" -> EmptyState(
+            title = "No moments yet",
+            message = "Snap your first moment to start your streak 🔥",
+            actionLabel = "Open camera",
+            onAction = onOpenCamera,
+            modifier = modifier,
+        )
+        else -> EmptyState(
+            title = "No moments yet",
+            message = "${selectedUser?.username ?: "This friend"} hasn't posted anything yet.",
+            modifier = modifier,
+        )
     }
 }
 

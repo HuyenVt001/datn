@@ -165,6 +165,43 @@ export class UsersService {
     }
   }
 
+  /**
+   * Cron (2026-11-15 — UI Playful v2 cua app): nhac giu streak cho user co streak > 0
+   * ma HOM NAY chua dang bai (lastStreakDate = hom qua -> qua nua dem la mat streak).
+   *
+   * Gui **DATA-ONLY** (khong field `notification`): app tu dung thong bao + loc theo
+   * toggle "Streak reminders" cuc bo (push co notification thi Android tu hien khi
+   * app o nen, khong tat duoc). Noi dung ca nhan hoa so streak -> gui tung user.
+   * @returns so user da gui thanh cong >= 1 thiet bi.
+   */
+  async sendStreakReminders(): Promise<{ candidates: number; notified: number }> {
+    const yesterday = dateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const users = (await this.usersRepo.listByLastStreakDate(yesterday)).filter(
+      (u) => u.personalStreak > 0 && (u.fcmTokens?.length ?? 0) > 0,
+    );
+    let notified = 0;
+    for (const user of users) {
+      try {
+        const res = await this.firebase.messaging().sendEachForMulticast({
+          tokens: [...new Set(user.fcmTokens)],
+          data: {
+            type: 'STREAK_REMINDER',
+            title: `🔥 Your ${user.personalStreak}-day streak ends at midnight`,
+            body: 'Snap a quick moment to keep it alive!',
+          },
+          android: { priority: 'high' },
+        });
+        if (res.successCount > 0) {
+          notified++;
+        }
+      } catch (e) {
+        this.logger.warn(`Khong gui duoc nhac streak cho ${user.uid}: ${(e as Error).message}`);
+      }
+    }
+    this.logger.log(`Nhac streak: ${notified}/${users.length} user.`);
+    return { candidates: users.length, notified };
+  }
+
   async addFcmToken(uid: string, token: string): Promise<void> {
     await this.usersRepo.addFcmToken(uid, token);
   }
@@ -208,6 +245,18 @@ export class UsersService {
    * Duoc goi tu MomentsService khi dang bai (se noi day o buoc sau).
    */
   async registerActivityForStreak(uid: string): Promise<number> {
+    return (await this.registerActivityForStreakDetailed(uid)).personalStreak;
+  }
+
+  /**
+   * Nhu registerActivityForStreak nhung bao them `increased` = streak VUA doi o lan
+   * goi nay (bai dau tien trong ngay). App dung de hien man an mung "streak +1"
+   * (UI Playful v2 — Snapget/.claude/UI_UPGRADE_PLAN.md, 2026-11-15).
+   * Luu y: reset ve 1 sau khi dut chuoi cung tinh la increased (bat dau chuoi moi).
+   */
+  async registerActivityForStreakDetailed(
+    uid: string,
+  ): Promise<{ personalStreak: number; increased: boolean }> {
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
       throw new NotFoundException('Khong tim thay nguoi dung.');
@@ -215,11 +264,11 @@ export class UsersService {
     // dateKey CHUNG voi daily quest (common/constants) — 2 he thong phai khop ngay
     const today = dateKey();
     if (user.lastStreakDate === today) {
-      return user.personalStreak;
+      return { personalStreak: user.personalStreak, increased: false };
     }
     const yesterday = dateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const nextStreak = user.lastStreakDate === yesterday ? user.personalStreak + 1 : 1;
     await this.usersRepo.update(uid, { personalStreak: nextStreak, lastStreakDate: today });
-    return nextStreak;
+    return { personalStreak: nextStreak, increased: true };
   }
 }

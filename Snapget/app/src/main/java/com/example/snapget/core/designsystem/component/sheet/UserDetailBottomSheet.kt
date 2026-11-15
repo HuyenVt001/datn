@@ -73,7 +73,7 @@ data class UserDetailBottomSheetData(
 
 /**
  * Sheet quan ly ban be (asset: user_detail_bottom_sheet.png): "X out of 20 friends",
- * pill "Add new friend" (mo dialog QR), danh sach ban (streak + xoa co xac nhan),
+ * pill "Add new friend" (mo dialog QR), danh sach ban (xoa co xac nhan),
  * cac section share. Ket ban CHI qua ma moi QR — khop server /friendships.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,7 +152,7 @@ fun UserDetailBottomSheet(
             )
         }
 
-        // Xoa ban la hanh dong mat mat (streak chung ve 0) -> luon hoi xac nhan
+        // Xoa ban la hanh dong kho hoan tac -> luon hoi xac nhan
         friendPendingRemove?.let { friend ->
             AlertDialog(
                 onDismissRequest = { friendPendingRemove = null },
@@ -167,7 +167,7 @@ fun UserDetailBottomSheet(
                 text = {
                     Text(
                         text = "Remove ${friend.name} from your friends? " +
-                            "Your shared streak will be lost and you'll need to scan QR to reconnect.",
+                            "You'll need to scan their QR code again to reconnect.",
                         color = SkinTheme.colors.textPrimary.copy(alpha = 0.8f),
                     )
                 },
@@ -291,8 +291,8 @@ private fun DemoScreen() {
         Button(onClick = {
             sheetData = UserDetailBottomSheetData(
                 friends = listOf(
-                    FriendUi(id = "1", name = "An Nguyen", streak = 5),
-                    FriendUi(id = "2", name = "Binh Tran", streak = 0),
+                    FriendUi(id = "1", name = "An Nguyen"),
+                    FriendUi(id = "2", name = "Binh Tran"),
                 ),
                 isLoading = false,
                 inviteCode = "ABC123",

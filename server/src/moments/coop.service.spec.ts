@@ -1,7 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { UploadService } from '../upload/upload.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
@@ -12,7 +11,6 @@ describe('CoopService', () => {
   let service: CoopService;
   let repo: jest.Mocked<CoopRepository>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
-  let friendshipsService: jest.Mocked<FriendshipsService>;
   let usersRepo: jest.Mocked<UsersRepository>;
   let usersService: jest.Mocked<UsersService>;
   let framesService: jest.Mocked<FramesService>;
@@ -60,9 +58,6 @@ describe('CoopService', () => {
     friendshipsRepo = {
       findPair: jest.fn().mockResolvedValue({ status: 'ACCEPTED' }),
     } as unknown as jest.Mocked<FriendshipsRepository>;
-    friendshipsService = {
-      registerInteraction: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<FriendshipsService>;
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue({ uid: 'x', fcmTokens: [], fullName: 'X' }),
     } as unknown as jest.Mocked<UsersRepository>;
@@ -79,7 +74,6 @@ describe('CoopService', () => {
     service = new CoopService(
       repo,
       friendshipsRepo,
-      friendshipsService,
       usersRepo,
       usersService,
       framesService,
@@ -227,8 +221,7 @@ describe('CoopService', () => {
       expect(repo.update).toHaveBeenCalledWith('i1', { mergedMediaUrl: 'https://cdn/merged.jpg' });
       expect(result.status).toBe('COMPLETED');
       expect(result.mergedMediaUrl).toBe('https://cdn/merged.jpg');
-      // Friend streak + khung COOP_FIRST cho CA 2
-      expect(friendshipsService.registerInteraction).toHaveBeenCalledWith('alice', 'bob');
+      // Khung COOP_FIRST cho CA 2 (friend streak da bo 2026-11-15)
       expect(framesService.unlockCoopFrames).toHaveBeenCalledWith('alice');
       expect(framesService.unlockCoopFrames).toHaveBeenCalledWith('bob');
     });

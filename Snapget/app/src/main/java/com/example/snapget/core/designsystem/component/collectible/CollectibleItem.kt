@@ -88,7 +88,7 @@ fun CollectibleItem(
                 Text(
                     text = "In use",
                     color = SkinTheme.colors.onAccent,
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .align(Alignment.TopEnd)

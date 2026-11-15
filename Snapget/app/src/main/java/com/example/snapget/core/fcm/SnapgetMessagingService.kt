@@ -10,9 +10,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.snapget.MainActivity
 import com.example.snapget.R
+import com.example.snapget.core.data.SettingIds
 import com.example.snapget.core.network.api.UserApi
 import com.example.snapget.core.network.dto.FcmTokenRequest
 import com.example.snapget.core.network.ensureSuccess
+import com.example.snapget.feature.widget.SnapgetWidget
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -43,6 +45,12 @@ class SnapgetMessagingService : FirebaseMessagingService() {
     companion object {
         const val CHANNEL_ID = "snapget_default"
         private const val TAG = "SnapgetFCM"
+
+        /** data.type cua push nhac giu streak (server: UsersService.sendStreakReminders). */
+        private const val TYPE_STREAK_REMINDER = "STREAK_REMINDER"
+
+        /** Trung PREFS_NAME cua SettingsPreferences (toggle luu theo setting id). */
+        private const val SETTINGS_PREFS = "snapget_settings"
 
         /**
          * Create the default notification channel (Android O+). Call once at app start.
@@ -94,10 +102,20 @@ class SnapgetMessagingService : FirebaseMessagingService() {
             ?: message.data["body"]
             ?: ""
 
+        // Nhac giu streak (2026-11-15): server gui DATA-ONLY de app tu quyet hien hay
+        // khong theo toggle "Streak reminders" (push co `notification` thi Android tu
+        // hien khi app o nen, khong loc duoc). Bam -> mo thang Camera.
+        if (message.data["type"] == TYPE_STREAK_REMINDER) {
+            val enabled = getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE)
+                .getBoolean(SettingIds.STREAK_REMINDERS, true)
+            if (enabled) showNotification(title, body, route = "camera")
+            return
+        }
+
         showNotification(title, body)
     }
 
-    private fun showNotification(title: String, body: String) {
+    private fun showNotification(title: String, body: String, route: String? = null) {
         // Android 13+ requires the POST_NOTIFICATIONS runtime permission.
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
@@ -106,11 +124,17 @@ class SnapgetMessagingService : FirebaseMessagingService() {
             return
         }
 
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-            ?: android.content.Intent(this, MainActivity::class.java)
+        val intent = (
+            packageManager.getLaunchIntentForPackage(packageName)
+                ?: android.content.Intent(this, MainActivity::class.java)
+            ).apply {
+            // Dung chung co che route cua widget (MainActivity.handleWidgetRoute)
+            route?.let { putExtra(SnapgetWidget.EXTRA_WIDGET_ROUTE, it) }
+        }
         val pendingIntent = android.app.PendingIntent.getActivity(
             this,
-            0,
+            // requestCode rieng theo route: UPDATE_CURRENT khong de extra cua thong bao khac
+            route?.hashCode() ?: 0,
             intent,
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
         )

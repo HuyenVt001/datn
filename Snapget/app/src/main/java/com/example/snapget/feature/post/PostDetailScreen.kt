@@ -1,7 +1,6 @@
 package com.example.snapget.feature.post
 
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
@@ -61,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
@@ -280,6 +280,7 @@ fun PostDetailScreen(
     postViewModel: PostViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val scope = rememberCoroutineScope()
 
     // false = pager (mac dinh); true = GRID tong hop tat ca post cu (icon luoi)
@@ -337,7 +338,7 @@ fun PostDetailScreen(
     val actionMessage by postViewModel.actionMessage.collectAsState()
     LaunchedEffect(actionMessage) {
         actionMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            messenger.show(it)
             postViewModel.clearActionMessage()
         }
     }
@@ -410,8 +411,8 @@ fun PostDetailScreen(
                             postViewModel.react(currentPost.id, emoji)
                             flyingEmojis.add(newFlyingEmoji(emoji))
                         },
-                        onSendMessage = { text ->
-                            postViewModel.sendMessageToAuthor(currentPost, text)
+                        onSendMessage = { text, restore ->
+                            postViewModel.sendMessageToAuthor(currentPost, text, onFailed = restore)
                         },
                     )
                 }
@@ -467,7 +468,7 @@ fun PostDetailScreen(
                         try {
                             MediaActions.share(context, post.thumbnailUrl, isVideo)
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Share failed.", Toast.LENGTH_SHORT).show()
+                            messenger.show("Share failed.")
                         }
                     }
                 },

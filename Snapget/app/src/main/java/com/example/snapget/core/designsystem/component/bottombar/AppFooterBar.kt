@@ -1,7 +1,9 @@
 package com.example.snapget.core.designsystem.component.bottombar
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,18 +31,27 @@ import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.motion.MotionTokens
+import com.example.snapget.core.designsystem.motion.popOnChange
+import com.example.snapget.core.designsystem.motion.pressScale
+import com.example.snapget.core.designsystem.motion.rememberReducedMotion
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.navigation.Screen
 
@@ -64,7 +76,8 @@ private enum class FooterTab(
     ),
     HOME(
         route = Screen.Camera.route,
-        label = "Home",
+        // Nhan TalkBack "Camera" (icon "+" = tao moment) — truoc la "Home" gay nham
+        label = "Camera",
         selectedIcon = Icons.Default.Add,
         unselectedIcon = Icons.Default.Add,
         isCenter = true,
@@ -83,9 +96,17 @@ private enum class FooterTab(
     ),
 }
 
+private val IconSizeIdle = 26.dp
+private val IconSizeSelected = 32.dp
+
 /**
  * Thanh footer 5 tab chinh: Quest - Chat - Home - Shop - Profile.
  * Mau active/inactive doc tu [SkinTheme.colors] de dong bo khi doi skin.
+ *
+ * (2026-11-15 Playful v2 — user chot) CHI icon, khong nhan chu. Tab dang chon:
+ * doi mau + PHINH TO 26 -> 32dp bang spring nay. Moi tab co ripple + nhan-lun +
+ * haptic (truoc `indication = null` -> bam khong thay gi), semantics `Role.Tab` +
+ * selected. Badge chua doc dung token `badge` (= accentGold, bo do hardcode).
  */
 @Composable
 fun AppFooterBar(
@@ -94,8 +115,7 @@ fun AppFooterBar(
     modifier: Modifier = Modifier,
     unreadMessages: Int = 0,
 ) {
-    val activeColor = SkinTheme.colors.navBarActive
-    val inactiveColor = SkinTheme.colors.navBarInactive
+    val feedback = rememberFeedback()
 
     Surface(
         color = SkinTheme.colors.background,
@@ -116,71 +136,110 @@ fun AppFooterBar(
                     FooterTab.PROFILE -> currentRoute?.startsWith(Screen.Profile.route) == true
                     else -> currentRoute == tab.route
                 }
+                FooterTabItem(
+                    tab = tab,
+                    isSelected = isSelected,
+                    unreadMessages = if (tab == FooterTab.CHAT) unreadMessages else 0,
+                    onClick = {
+                        if (!isSelected) feedback.tap()
+                        onTabSelected(tab.route)
+                    },
+                )
+            }
+        }
+    }
+}
 
-                if (tab.isCenter) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 56.dp, height = 40.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(SkinTheme.colors.surfaceVariant)
-                            .clickable { onTabSelected(tab.route) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = tab.selectedIcon,
-                            contentDescription = tab.label,
-                            tint = if (isSelected) activeColor else inactiveColor,
-                            modifier = Modifier.size(26.dp),
-                        )
-                    }
-                } else {
-                    val interactionSource = remember { MutableInteractionSource() }
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                                onClick = { onTabSelected(tab.route) },
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        val iconModifier = if (tab == FooterTab.CHAT) {
-                            Modifier
-                                .size(26.dp)
-                                .rotate(-25f)
-                        } else {
-                            Modifier.size(26.dp)
-                        }
+@Composable
+private fun FooterTabItem(
+    tab: FooterTab,
+    isSelected: Boolean,
+    unreadMessages: Int,
+    onClick: () -> Unit,
+) {
+    val colors = SkinTheme.colors
+    val reduced = rememberReducedMotion()
+    val interaction = remember { MutableInteractionSource() }
+    val tint by animateColorAsState(
+        targetValue = if (isSelected) colors.navBarActive else colors.navBarInactive,
+        label = "tabTint",
+    )
+    val iconSize by animateDpAsState(
+        targetValue = if (isSelected) IconSizeSelected else IconSizeIdle,
+        animationSpec = if (reduced) spring(stiffness = 10_000f) else spring(dampingRatio = 0.45f, stiffness = 500f),
+        label = "tabSize",
+    )
+    val a11yLabel = if (unreadMessages > 0) "${tab.label}, $unreadMessages unread" else tab.label
 
-                        Icon(
-                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                            contentDescription = tab.label,
-                            tint = if (isSelected) activeColor else inactiveColor,
-                            modifier = iconModifier,
-                        )
+    val selectableModifier = Modifier
+        .selectable(
+            selected = isSelected,
+            interactionSource = interaction,
+            indication = ripple(bounded = false, radius = 28.dp),
+            role = Role.Tab,
+            onClick = onClick,
+        )
+        .semantics { contentDescription = a11yLabel }
+        .pressScale(interaction, pressedScale = MotionTokens.PRESSED_SCALE)
 
-                        if (tab == FooterTab.CHAT && unreadMessages > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = (-2).dp, y = 4.dp)
-                                    .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFF3B30))
-                                    .padding(horizontal = 4.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-                        }
-                    }
+    if (tab.isCenter) {
+        // Nut giua: khoi bo goc nen surfaceVariant chua dau "+" — vung cham 56x48dp
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 48.dp)
+                .then(selectableModifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 56.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isSelected) colors.accent else colors.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = tab.selectedIcon,
+                    contentDescription = null,
+                    tint = if (isSelected) colors.onAccent else colors.navBarInactive,
+                    modifier = Modifier.size(iconSize - 2.dp),
+                )
+            }
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .then(selectableModifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier
+                    .size(iconSize)
+                    .then(if (tab == FooterTab.CHAT) Modifier.rotate(-25f) else Modifier),
+            )
+
+            if (unreadMessages > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-2).dp, y = 4.dp)
+                        .popOnChange(unreadMessages)
+                        .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                        .clip(CircleShape)
+                        .background(colors.badge)
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
+                        color = colors.onBadge,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         }

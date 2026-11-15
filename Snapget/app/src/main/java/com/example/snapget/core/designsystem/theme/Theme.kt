@@ -27,7 +27,8 @@ fun AppTheme(
     CompositionLocalProvider(LocalAppSkin provides skin) {
         MaterialTheme(
             colorScheme = skin.colors.toColorScheme(),
-            typography = Typography,
+            // Skin co the ghi de font (AppSkin.fontFamily); mac dinh Nunito
+            typography = skin.fontFamily?.let { appTypography(it) } ?: Typography,
             content = content,
         )
     }

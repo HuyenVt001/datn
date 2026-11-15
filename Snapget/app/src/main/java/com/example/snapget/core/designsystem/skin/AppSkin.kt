@@ -73,6 +73,19 @@ data class SkinColors(
     val navBarActive: Color = textPrimary,
     /** Mau icon tab footer chua chon. */
     val navBarInactive: Color = onSurfaceVariant,
+    // ---- Token CHUC NANG "Playful Dark" (DESIGN.md muc 0.7 — chot 2026-11-15) ----
+    // Co gia tri mac dinh nen skin cu khong phai sua; skin muon hop tong thi khai rieng.
+    /** Thanh cong: quest xong, check, thao tac OK. */
+    val success: Color = Color(0xFF58CC7A),
+    /** Rieng streak 🔥 — tach khoi [accentGold] de streak luon "nong". */
+    val streak: Color = Color(0xFFFF9F1C),
+    /** Thong tin trung tinh, link phu. */
+    val info: Color = Color(0xFF4FC3F7),
+    /** Badge chua doc o MOI noi (user chot = accentGold, bo do cua footer). */
+    val badge: Color = accentGold,
+    val onBadge: Color = onAccent,
+    /** Day "day" cua nut chunky — accent toi 30% (DESIGN.md 0.3). */
+    val accentShadow: Color = accent.darken(0.7f),
 ) {
     /**
      * Do token sang ColorScheme cua Material 3 — component M3 chua refactor
@@ -99,6 +112,14 @@ data class SkinColors(
         onError = textPrimary,
     )
 }
+
+/** Nhan RGB voi [factor] (giu alpha) — dung tao mau "day" cho nut chunky. */
+fun Color.darken(factor: Float): Color = Color(
+    red = red * factor,
+    green = green * factor,
+    blue = blue * factor,
+    alpha = alpha,
+)
 
 /**
  * 12 icon Nhom 1 (SKIN_PLAN.md muc 6.13.1) — nhung icon duoc VE RIENG cho skin.

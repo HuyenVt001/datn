@@ -24,6 +24,17 @@ import kotlinx.coroutines.launch
  * ViewModel cua feature post — thay the dan phan post trong MainViewModel (god-VM).
  * Du lieu di qua server NestJS: dang bai (upload -> create), feed, seen, reaction.
  */
+/** Du lieu man an mung sau khi dang bai (xem [PostViewModel.celebration]). */
+data class PostCelebration(
+    /** Streak moi (chi khi vua tang). */
+    val streak: Int?,
+    /** 3/7/14/30 khi vua cham moc. */
+    val milestone: Int?,
+    /** Anh khung moc vua mo khoa (neu catalog khung da tai). */
+    val unlockedFrameUrl: String?,
+    val aiChallengeComplete: Boolean,
+)
+
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val postRepository: PostRepository,
@@ -51,6 +62,17 @@ class PostViewModel @Inject constructor(
      */
     private val _aiQuestMessage = MutableStateFlow<String?>(null)
     val aiQuestMessage: StateFlow<String?> = _aiQuestMessage.asStateFlow()
+
+    /**
+     * Khoanh khac an mung sau khi dang (UI Playful v2, 2026-11-15): streak vua tang
+     * (bai dau ngay) va/hoac quest AI khop. null = khong an mung, ve feed luon.
+     */
+    private val _celebration = MutableStateFlow<PostCelebration?>(null)
+    val celebration: StateFlow<PostCelebration?> = _celebration.asStateFlow()
+
+    fun clearCelebration() {
+        _celebration.value = null
+    }
 
     fun clearAiQuestMessage() {
         _aiQuestMessage.value = null
@@ -113,8 +135,22 @@ class PostViewModel @Inject constructor(
                     frameId = frameId,
                     clientRequestId = clientRequestId,
                 )
-                // Quest AI: server da tu xac minh anh vua dang — chi viec bao ket qua
-                _aiQuestMessage.value = aiQuestMessageOf(created.aiQuest)
+                // Streak vua tang / quest AI khop -> man an mung (thay toast)
+                val aiMatched = created.aiQuest?.result == "MATCHED"
+                val streak = created.streak?.takeIf { it.increased }
+                if (streak != null || aiMatched) {
+                    _celebration.value = PostCelebration(
+                        streak = streak?.personalStreak,
+                        milestone = streak?.milestone,
+                        unlockedFrameUrl = streak?.unlockedFrameId?.let { id ->
+                            _frames.value.firstOrNull { it.frameId == id }?.imageUrl
+                        },
+                        aiChallengeComplete = aiMatched,
+                    )
+                }
+                // Quest AI: server da tu xac minh anh vua dang — MATCHED da hien trong man
+                // an mung; NOT_MATCHED van toast goi y dang lai
+                _aiQuestMessage.value = if (aiMatched) null else aiQuestMessageOf(created.aiQuest)
                 // Gui kem vao chat neu co chon nguoi nhan — loi o buoc nay KHONG lam
                 // fail bai dang (moment da len feed roi), chi bao rieng qua chatSendError
                 if (sendToUids.isNotEmpty() && isVideo) {
@@ -246,7 +282,11 @@ class PostViewModel @Inject constructor(
      * Gui tin nhan reply toi tac gia bai dang (thanh "Send message..." duoi post).
      * Tin gui KEM anh/video cua bai (attachment) de nguoi nhan biet dang reply bai nao.
      */
-    fun sendMessageToAuthor(post: Post, text: String) {
+    /**
+     * @param onFailed goi khi gui loi — UI tra lai chu da go (2026-11-15: truoc day
+     * o nhap bi xoa ngay khi bam Send, gui loi la mat chu).
+     */
+    fun sendMessageToAuthor(post: Post, text: String, onFailed: () -> Unit = {}) {
         if (text.isBlank()) return
         viewModelScope.launch {
             try {
@@ -263,6 +303,7 @@ class PostViewModel @Inject constructor(
                 _actionMessage.value = "Message sent."
             } catch (e: Exception) {
                 _actionMessage.value = e.serverMessage("Failed to send message.")
+                onFailed()
             }
         }
     }

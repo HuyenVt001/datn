@@ -9,7 +9,6 @@ import { MAX_GROUP_SIZE } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { AddGroupMembersDto } from './dto/add-group-members.dto';
@@ -32,7 +31,6 @@ export class MessagesService {
     private readonly repo: MessagesRepository,
     private readonly usersRepo: UsersRepository,
     private readonly usersService: UsersService,
-    private readonly friendshipsService: FriendshipsService,
     private readonly friendshipsRepo: FriendshipsRepository,
   ) {}
 
@@ -78,11 +76,6 @@ export class MessagesService {
       attachmentUrl: dto.attachmentUrl,
       attachmentType: dto.attachmentType,
       ...replyFields,
-    });
-
-    // Nhan tin = tuong tac qua lai -> cap nhat friend streak.
-    await this.friendshipsService.registerInteraction(authUser.uid, receiverId).catch((e) => {
-      this.logger.warn(`Khong cap nhat duoc friend streak: ${e.message}`);
     });
 
     await this.pushTo([receiverId], authUser.uid, dto).catch((e) => {

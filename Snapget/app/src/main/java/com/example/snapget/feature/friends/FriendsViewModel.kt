@@ -24,7 +24,7 @@ class FriendsViewModel @Inject constructor(
     private val friendsRepository: FriendsRepository,
 ) : ViewModel() {
 
-    /** Danh sach ban be (kem friend streak) — nguon cho sheet ban be. */
+    /** Danh sach ban be — nguon cho sheet ban be. */
     private val _friends = MutableStateFlow<List<FriendUi>>(emptyList())
     val friends: StateFlow<List<FriendUi>> = _friends.asStateFlow()
 
@@ -73,7 +73,6 @@ class FriendsViewModel @Inject constructor(
                         id = dto.uid,
                         name = dto.fullName ?: "Snapget user",
                         avatar = dto.avatar.orEmpty(),
-                        streak = dto.friendStreak ?: 0,
                     )
                 }
                 _friendsStatus.value = LoadStatus.Success()
@@ -159,7 +158,6 @@ class FriendsViewModel @Inject constructor(
                         id = dto.uid,
                         name = dto.fullName ?: "Snapget user",
                         avatar = dto.avatar.orEmpty(),
-                        streak = 0,
                     )
                 }
             } catch (_: Exception) {

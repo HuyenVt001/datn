@@ -13,8 +13,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,13 +27,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.config.statusBarConfig
+import com.example.snapget.core.designsystem.component.feedback.AppMessenger
+import com.example.snapget.core.designsystem.component.feedback.AppSnackbarHost
+import com.example.snapget.core.designsystem.component.feedback.LocalAppMessenger
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
 import com.example.snapget.core.designsystem.effect.LocalTouchEffectController
 import com.example.snapget.core.designsystem.effect.TouchEffectController
@@ -199,8 +210,16 @@ fun SnapgetApp(
     // hai ben BAT BUOC phai thay cung mot doi tuong.
     val touchEffectController = remember { TouchEffectController() }
 
+    // Snackbar dung chung toan app (P5 — thay Toast): man nao cung goi rememberMessenger()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val messengerScope = rememberCoroutineScope()
+    val appMessenger = remember { AppMessenger(snackbarHostState, messengerScope) }
+
     AppTheme(skin = skin) {
-        CompositionLocalProvider(LocalTouchEffectController provides touchEffectController) {
+        CompositionLocalProvider(
+            LocalTouchEffectController provides touchEffectController,
+            LocalAppMessenger provides appMessenger,
+        ) {
             // Overlay hieu ung cham BOC NGOAI Navigation -> viet 1 lan, moi man deu co.
             // Chi "nghe lom" su kien cham (khong consume) nen nut/pager/giu-quay-GIF
             // ben duoi van chay y nhu cu — xem ghi chu trong TouchEffectOverlay.
@@ -211,6 +230,17 @@ fun SnapgetApp(
                 ) {
                     Navigation(mainViewModel, authViewModel)
                 }
+            }
+
+            // Host Snackbar: day man, NOI TREN footer 64dp (+ thanh dieu huong he thong)
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                AppSnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .imePadding()
+                        .padding(bottom = 76.dp),
+                )
             }
 
             // Dialog xac nhan ket ban tu deep link — de len tren moi man hinh

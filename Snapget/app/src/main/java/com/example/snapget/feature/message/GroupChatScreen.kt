@@ -1,7 +1,6 @@
 package com.example.snapget.feature.message
 
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -37,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.network.dto.MessageDto
 import com.example.snapget.core.util.copyUriToCacheFile
 import kotlinx.coroutines.delay
@@ -64,6 +65,7 @@ fun GroupChatScreen(
     messageViewModel: MessageViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val thread by messageViewModel.thread.collectAsState()
     val threadStatus by messageViewModel.threadStatus.collectAsState()
     val friendsById by messageViewModel.friendsById.collectAsState()
@@ -75,7 +77,8 @@ fun GroupChatScreen(
     val myUid = messageViewModel.myUid
 
     val listState = rememberLazyListState()
-    var messageText by remember { mutableStateOf("") }
+    // rememberSaveable: xoay man / app bi kill khong mat chu dang go (2026-11-15)
+    var messageText by rememberSaveable { mutableStateOf("") }
 
     // Sheet cai dat nhom (mo tu nut ⋯ tren header)
     var showGroupSettings by remember { mutableStateOf(false) }
@@ -143,16 +146,12 @@ fun GroupChatScreen(
 
     LaunchedEffect(sendError) {
         sendError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             messageViewModel.clearSendError()
         }
     }
 
-    LaunchedEffect(thread.size) {
-        if (thread.isNotEmpty()) {
-            listState.animateScrollToItem(thread.size - 1)
-        }
-    }
+    AutoScrollToBottom(listState = listState, itemCount = thread.size)
 
     Scaffold(
         // imePadding: ban phim mo -> thanh nhap noi len tren ban phim

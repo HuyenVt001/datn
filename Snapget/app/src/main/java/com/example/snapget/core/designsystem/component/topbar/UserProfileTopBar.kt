@@ -74,7 +74,7 @@ fun UserProfileTopBar(
                     ) {
                         Icon(
                             imageVector = icon,
-                            contentDescription = description,
+                            contentDescription = if (description == "FRIEND") "Friends" else description,
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(30.dp),
                         )

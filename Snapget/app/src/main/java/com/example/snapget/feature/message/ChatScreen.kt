@@ -1,7 +1,6 @@
 package com.example.snapget.feature.message
 
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -26,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,8 +56,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,9 +68,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +79,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.designsystem.component.button.ChunkyButton
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.component.lottie.SnapAnim
 import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
+import com.example.snapget.core.designsystem.component.state.EmptyState
+import com.example.snapget.core.designsystem.component.state.ErrorState
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.MessageDto
@@ -100,6 +109,7 @@ fun ChatScreen(
     messageViewModel: MessageViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val thread by messageViewModel.thread.collectAsState()
     val threadStatus by messageViewModel.threadStatus.collectAsState()
     val friendsById by messageViewModel.friendsById.collectAsState()
@@ -111,7 +121,8 @@ fun ChatScreen(
     val recipientAvatar = recipient?.avatar.orEmpty()
 
     val listState = rememberLazyListState()
-    var messageText by remember { mutableStateOf("") }
+    // rememberSaveable: xoay man / app bi kill khong mat chu dang go (2026-11-15)
+    var messageText by rememberSaveable { mutableStateOf("") }
     val sendingMedia by messageViewModel.sendingMedia.collectAsState()
 
     // Xem media full-screen (bam anh trong chat) — Pair(url, isVideo)
@@ -158,17 +169,13 @@ fun ChatScreen(
     // Loi gui tin (vd: "Chi nhan tin duoc voi ban be.") -> Toast message cua server
     LaunchedEffect(sendError) {
         sendError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             messageViewModel.clearSendError()
         }
     }
 
     // Scroll to bottom when new messages arrive
-    LaunchedEffect(thread.size) {
-        if (thread.isNotEmpty()) {
-            listState.animateScrollToItem(thread.size - 1)
-        }
-    }
+    AutoScrollToBottom(listState = listState, itemCount = thread.size)
 
     Scaffold(
         // imePadding: ban phim mo -> thanh nhap noi len tren ban phim
@@ -187,10 +194,19 @@ fun ChatScreen(
                 messageText = messageText,
                 onTextChange = { messageText = it },
                 onSend = {
+                    val draft = messageText
+                    val draftReply = replyTarget
                     messageViewModel.sendMessage(
                         recipientId,
                         messageText,
                         replyToId = replyTarget?.messageId,
+                        // Gui loi -> tra lai chu + reply (neu nguoi dung chua go gi moi)
+                        onFailed = {
+                            if (messageText.isEmpty()) {
+                                messageText = draft
+                                replyTarget = draftReply
+                            }
+                        },
                     )
                     messageText = ""
                     replyTarget = null
@@ -236,33 +252,25 @@ fun ChatScreen(
                     )
                 }
 
+                // Loi tai thread -> Error + Retry (2026-11-15: truoc hien chung voi "trong")
+                thread.isEmpty() && threadStatus is LoadStatus.Error -> {
+                    ErrorState(
+                        message = (threadStatus as LoadStatus.Error).error,
+                        onRetry = { messageViewModel.refreshThread(recipientId, showLoading = true) },
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
+
+                // Chat trong -> goi y "Say hi 👋" (bam = gui luon)
                 thread.isEmpty() -> {
-                    // Show empty state
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Text(
-                            text = "No messages yet",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (threadStatus is LoadStatus.Error) {
-                                (threadStatus as LoadStatus.Error).error
-                            } else {
-                                "Send a message to start a conversation"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
+                    EmptyState(
+                        title = "Say hi to ${takeFirstNameOfUser(recipientName)}!",
+                        message = "Start the conversation — they'll get a notification.",
+                        actionLabel = "Say hi 👋",
+                        onAction = { messageViewModel.sendMessage(recipientId, "Hi 👋") },
+                        anim = SnapAnim.FRIENDS,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
                 }
 
                 else -> {
@@ -340,6 +348,30 @@ fun ChatScreen(
     }
 }
 
+/**
+ * Vung cham nut/emoji trong o nhap chat (2026-11-15). 44dp thay vi 48dp: hang co toi
+ * 5 nut (2 emoji + anh + sticker + mic), 48dp se bop o chu con ~60dp tren may 360dp.
+ * Thiet ke lai Chat (UI_UPGRADE_PLAN.md) se gom nut media de dat 48dp.
+ */
+internal val ChatTouchTarget = 44.dp
+
+/**
+ * Tu cuon xuong tin moi NHAT — chi khi lan dau tai hoac nguoi dung DANG o gan cuoi.
+ * (2026-11-15) Truoc day polling 5s co tin moi la giat ve day du nguoi dung dang keo
+ * len doc tin cu.
+ */
+@Composable
+internal fun AutoScrollToBottom(listState: LazyListState, itemCount: Int) {
+    var previousCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(itemCount) {
+        if (itemCount == 0) return@LaunchedEffect
+        val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+        val wasNearBottom = previousCount == 0 || lastVisible >= previousCount - 2
+        if (wasNearBottom) listState.animateScrollToItem(itemCount - 1)
+        previousCount = itemCount
+    }
+}
+
 // Helper function to determine if avatar should be shown
 internal fun shouldShowAvatar(
     currentMessage: MessageDto,
@@ -408,13 +440,6 @@ fun ChatTopBar(
                             text = takeFirstNameOfUser(recipientName),
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        // Online status (optional)
-                        Text(
-                            text = "Active now",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 1.dp),
-                        )
                     }
                 }
             }
@@ -427,14 +452,7 @@ fun ChatTopBar(
                 )
             }
         },
-        actions = {
-            IconButton(onClick = { /* Show options */ }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                )
-            }
-        },
+        // Nut ⋮ "More options" DA XOA (2026-11-15): bam khong lam gi (nut chet)
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
@@ -513,7 +531,7 @@ fun ChatInputPill(
                     )
                 }
                 if (onCancelReply != null) {
-                    IconButton(onClick = onCancelReply, modifier = Modifier.size(28.dp)) {
+                    IconButton(onClick = onCancelReply, modifier = Modifier.size(ChatTouchTarget)) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Cancel reply",
@@ -588,7 +606,7 @@ fun ChatInputPill(
                                     "Send message..."
                                 },
                                 color = if (voiceRecorder?.isRecording == true) {
-                                    Color.Red
+                                    SkinTheme.colors.error
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
@@ -616,18 +634,20 @@ fun ChatInputPill(
                         quickReactionEmojis
                     }
                     quickEmojis.forEach { emoji ->
-                        Text(
-                            text = emoji,
-                            style = MaterialTheme.typography.bodyLarge,
+                        // Vung cham 44dp (truoc ~28dp) — xem ChatTouchTarget
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
+                                .size(ChatTouchTarget)
                                 .clip(CircleShape)
-                                .clickable { onEmojiSend(emoji) }
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                        )
+                                .clickable(onClickLabel = "Send $emoji") { onEmojiSend(emoji) },
+                        ) {
+                            Text(text = emoji, style = MaterialTheme.typography.bodyLarge)
+                        }
                     }
 
                     if (onPhotoClick != null) {
-                        IconButton(onClick = onPhotoClick, modifier = Modifier.size(32.dp)) {
+                        IconButton(onClick = onPhotoClick, modifier = Modifier.size(ChatTouchTarget)) {
                             Icon(
                                 imageVector = Icons.Default.Image,
                                 contentDescription = "Send photo",
@@ -638,7 +658,7 @@ fun ChatInputPill(
                     if (onStickerSend != null) {
                         IconButton(
                             onClick = { showStickers = !showStickers },
-                            modifier = Modifier.size(32.dp),
+                            modifier = Modifier.size(ChatTouchTarget),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.EmojiEmotions,
@@ -654,13 +674,13 @@ fun ChatInputPill(
                     if (voiceRecorder != null) {
                         IconButton(
                             onClick = voiceRecorder.toggle,
-                            modifier = Modifier.size(32.dp),
+                            modifier = Modifier.size(ChatTouchTarget),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Record voice",
                                 tint = if (voiceRecorder.isRecording) {
-                                    Color.Red
+                                    SkinTheme.colors.error
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
@@ -669,15 +689,29 @@ fun ChatInputPill(
                     }
                 }
             } else {
-                IconButton(
-                    onClick = onSend,
-                    modifier = Modifier.size(32.dp),
+                // Nut gui TRON CHUNKY nen accent (Chat redesign 2026-11-15) — "pop" khi
+                // vua xuat hien (bat dau go) + haptic khi bam
+                val sendFeedback = rememberFeedback()
+                ChunkyButton(
+                    onClick = {
+                        sendFeedback.tap()
+                        onSend()
+                    },
+                    height = 40.dp,
+                    depth = 3.dp,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .width(44.dp)
+                        .popOnChange(true)
+                        .semantics { contentDescription = "Send message" },
                 ) {
                     SkinIcon(
                         res = SkinTheme.icons.send,
                         fallback = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send message",
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = null,
+                        tint = SkinTheme.colors.onAccent,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
@@ -946,7 +980,8 @@ fun MessageBubble(
                     Text(
                         text = message.content,
                         color = textColor,
-                        style = MaterialTheme.typography.bodyMedium,
+                        // DESIGN.md muc 3: bubble = bodyLarge 16sp (truoc 14sp)
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                 }
             }
@@ -963,7 +998,8 @@ fun MessageBubble(
                 Text(
                     text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    // Bo alpha 0.6 (contrast ~3.8:1 < AA) -> textSecondary ~8.6:1
+                    color = SkinTheme.colors.textSecondary,
                     modifier = Modifier.padding(
                         top = 4.dp,
                     ).padding(horizontal = 16.dp),
@@ -1008,7 +1044,7 @@ private fun MessageActionRow(
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
             if (onReactClick != null) {
-                IconButton(onClick = onReactClick, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onReactClick) {
                     Icon(
                         imageVector = Icons.Default.EmojiEmotions,
                         contentDescription = "React to message",
@@ -1018,7 +1054,7 @@ private fun MessageActionRow(
                 }
             }
             if (onReplyClick != null) {
-                IconButton(onClick = onReplyClick, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onReplyClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Reply,
                         contentDescription = "Reply to message",

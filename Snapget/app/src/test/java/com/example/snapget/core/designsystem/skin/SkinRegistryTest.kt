@@ -72,7 +72,8 @@ class SkinRegistryTest {
             .first { it.title == title }
             .skinIcon!!
 
-        assertEquals(3, selectorOf("Photo Library")(probe))
+        // "Photo Library" da XOA khoi takePhotoBar (user chot 2026-11-15 — mo nham Feed)
+        assertEquals(null, (takePhotoBar + submitPhotoBar).firstOrNull { it.title == "Photo Library" })
         assertEquals(4, selectorOf("Change camera")(probe))
         assertEquals(5, selectorOf("Cancel")(probe))
         assertEquals(6, selectorOf("Captions List")(probe))

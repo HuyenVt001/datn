@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.snapget.core.designsystem.skin.SkinTheme
 
 @Composable
 fun EmptyDayItem(dayNumber: Int? = null) {
@@ -43,9 +44,9 @@ fun EmptyDayItem(dayNumber: Int? = null) {
                 Text(
                     text = dayNumber.toString(),
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
+                    fontSize = 12.sp, // toi thieu 12sp (2026-11-15, truoc 10sp)
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    color = SkinTheme.colors.textSecondary, // bo alpha 0.5 (contrast ~3:1)
                     modifier = Modifier.padding(4.dp),
                 )
             }

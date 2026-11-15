@@ -2,7 +2,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { QuestsService } from '../quests/quests.service';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
@@ -15,7 +14,6 @@ describe('MomentsService', () => {
   let repo: jest.Mocked<MomentsRepository>;
   let usersService: jest.Mocked<UsersService>;
   let usersRepo: jest.Mocked<UsersRepository>;
-  let friendshipsService: jest.Mocked<FriendshipsService>;
   let friendshipsRepo: jest.Mocked<FriendshipsRepository>;
   let questsService: jest.Mocked<QuestsService>;
   let framesService: jest.Mocked<FramesService>;
@@ -35,15 +33,14 @@ describe('MomentsService', () => {
       listReactions: jest.fn(),
     } as unknown as jest.Mocked<MomentsRepository>;
     usersService = {
-      registerActivityForStreak: jest.fn().mockResolvedValue(1),
+      registerActivityForStreakDetailed: jest
+        .fn()
+        .mockResolvedValue({ personalStreak: 1, increased: true }),
       pushToUids: jest.fn().mockResolvedValue(0),
     } as unknown as jest.Mocked<UsersService>;
     usersRepo = {
       findByUid: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<UsersRepository>;
-    friendshipsService = {
-      registerInteraction: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<FriendshipsService>;
     friendshipsRepo = {
       listAccepted: jest.fn().mockResolvedValue([]),
       findPair: jest.fn().mockResolvedValue(null),
@@ -60,7 +57,6 @@ describe('MomentsService', () => {
       repo,
       usersService,
       usersRepo,
-      friendshipsService,
       friendshipsRepo,
       questsService,
       framesService,
@@ -81,10 +77,71 @@ describe('MomentsService', () => {
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'me', contentType: 'PHOTO' }),
       );
-      expect(usersService.registerActivityForStreak).toHaveBeenCalledWith('me');
+      expect(usersService.registerActivityForStreakDetailed).toHaveBeenCalledWith('me');
       // Dang bai -> hoan thanh quest POST_MOMENT voi streak vua tinh
       expect(questsService.registerMomentPosted).toHaveBeenCalledWith('me', 1);
       expect(result.momentId).toBe('m1');
+    });
+
+    // ==== Field streak cho man an mung cua app (2026-11-15) ====
+
+    it('bai dau ngay -> streak.increased true, khong cham moc -> milestone null', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+
+      const result = await service.create(me, dto);
+
+      expect(result.streak).toEqual({
+        personalStreak: 1,
+        increased: true,
+        milestone: null,
+        unlockedFrameId: null,
+      });
+    });
+
+    it('cham moc 7 + mo khung -> milestone 7 va unlockedFrameId', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+      usersService.registerActivityForStreakDetailed.mockResolvedValue({
+        personalStreak: 7,
+        increased: true,
+      });
+      questsService.registerMomentPosted.mockResolvedValue('frame_streak_7');
+
+      const result = await service.create(me, dto);
+
+      expect(result.streak).toEqual({
+        personalStreak: 7,
+        increased: true,
+        milestone: 7,
+        unlockedFrameId: 'frame_streak_7',
+      });
+    });
+
+    it('bai thu 2 trong ngay -> increased false, khong bao moc du streak = 7', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+      usersService.registerActivityForStreakDetailed.mockResolvedValue({
+        personalStreak: 7,
+        increased: false,
+      });
+      questsService.registerMomentPosted.mockResolvedValue('frame_streak_7');
+
+      const result = await service.create(me, dto);
+
+      expect(result.streak).toEqual({
+        personalStreak: 7,
+        increased: false,
+        milestone: null,
+        unlockedFrameId: null,
+      });
+    });
+
+    it('loi cap nhat streak -> response KHONG co field streak, van dang bai', async () => {
+      repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
+      usersService.registerActivityForStreakDetailed.mockRejectedValue(new Error('db down'));
+
+      const result = await service.create(me, dto);
+
+      expect(result.momentId).toBe('m1');
+      expect('streak' in result).toBe(false);
     });
 
     it('van dang bai thanh cong khi quest service loi', async () => {
@@ -170,7 +227,7 @@ describe('MomentsService', () => {
       await expect(service.react('bad', 'me', '❤️')).rejects.toThrow(NotFoundException);
     });
 
-    it('tha reaction (la ban be voi chu bai) + cap nhat friend streak', async () => {
+    it('tha reaction (la ban be voi chu bai)', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'owner' } as never);
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.addReaction.mockResolvedValue({ reactionId: 'r1', emojiType: '❤️' } as never);
@@ -178,7 +235,6 @@ describe('MomentsService', () => {
       await service.react('m1', 'me', '❤️');
 
       expect(repo.addReaction).toHaveBeenCalledWith('m1', 'me', '❤️');
-      expect(friendshipsService.registerInteraction).toHaveBeenCalledWith('me', 'owner');
     });
 
     it('NGUOI LA (khong phai ban be) tha reaction -> 403, khong ghi gi', async () => {
@@ -204,13 +260,11 @@ describe('MomentsService', () => {
       await expect(service.react('m1', 'partner-friend', '❤️')).resolves.toBeDefined();
     });
 
-    it('khong tinh streak khi tu tha emoji bai cua minh', async () => {
+    it('tu tha emoji bai cua minh van duoc', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       repo.addReaction.mockResolvedValue({ reactionId: 'r1' } as never);
 
-      await service.react('m1', 'me', '🔥');
-
-      expect(friendshipsService.registerInteraction).not.toHaveBeenCalled();
+      await expect(service.react('m1', 'me', '🔥')).resolves.toBeDefined();
     });
   });
 

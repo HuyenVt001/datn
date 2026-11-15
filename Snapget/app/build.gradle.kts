@@ -235,6 +235,8 @@ dependencies {
 
     implementation(libs.androidx.browser)
     implementation(libs.androidx.animation)
+    // Lottie: animation an mung/empty state (file JSON trong res/raw/lottie_*.json)
+    implementation(libs.lottie.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

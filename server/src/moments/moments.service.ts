@@ -1,9 +1,9 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { STREAK_MILESTONES } from '../common/constants';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FramesService } from '../frames/frames.service';
 import { FriendshipsRepository } from '../friendships/friendships.repository';
-import { FriendshipsService } from '../friendships/friendships.service';
 import { AiQuestResult } from '../quests/entities/quest.entity';
 import { QuestsService } from '../quests/quests.service';
 import { UsersRepository } from '../users/users.repository';
@@ -17,7 +17,22 @@ import { MomentsRepository } from './moments.repository';
  * hom nay (2026-08-15). `aiQuest` CHI co khi server bat AI, moment la PHOTO, hom nay
  * co quest AI va user chua xong — con lai y het Moment (app cu bo qua field la).
  */
-export type CreatedMoment = Moment & { aiQuest?: AiQuestResult };
+/**
+ * Ket qua streak cua lan dang bai (2026-11-15 — UI Playful v2 cua app): app dung de
+ * hien man an mung "streak +1" / moc streak + khung vua mo. Chi co khi tinh duoc
+ * streak (loi cap nhat streak -> khong co field). THEM field = an toan voi app cu.
+ */
+export interface MomentStreakResult {
+  personalStreak: number;
+  /** true chi o bai DAU TIEN trong ngay (streak vua doi). */
+  increased: boolean;
+  /** Moc 3/7/14/30 vua cham (chi khi increased), nguoc lai null. */
+  milestone: number | null;
+  /** Khung moc streak vua mo khoa (null neu khong cham moc / admin chua tao khung). */
+  unlockedFrameId: string | null;
+}
+
+export type CreatedMoment = Moment & { aiQuest?: AiQuestResult; streak?: MomentStreakResult };
 
 @Injectable()
 export class MomentsService {
@@ -27,7 +42,6 @@ export class MomentsService {
     private readonly repo: MomentsRepository,
     private readonly usersService: UsersService,
     private readonly usersRepo: UsersRepository,
-    private readonly friendshipsService: FriendshipsService,
     private readonly friendshipsRepo: FriendshipsRepository,
     private readonly questsService: QuestsService,
     private readonly framesService: FramesService,
@@ -65,16 +79,34 @@ export class MomentsService {
 
     // Business rule: mo app + upload >= 1 moment/ngay -> tang personal streak.
     let personalStreak = 0;
+    let streakIncreased = false;
+    let streakKnown = false;
     try {
-      personalStreak = await this.usersService.registerActivityForStreak(authUser.uid);
+      const result = await this.usersService.registerActivityForStreakDetailed(authUser.uid);
+      personalStreak = result.personalStreak;
+      streakIncreased = result.increased;
+      streakKnown = true;
     } catch (e) {
       this.logger.warn(`Khong cap nhat duoc personal streak: ${(e as Error).message}`);
     }
 
     // Quest: dang bai = hoan thanh POST_MOMENT; dong thoi xet thuong khung theo moc streak.
-    await this.questsService.registerMomentPosted(authUser.uid, personalStreak).catch((e) => {
-      this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
-    });
+    const unlockedFrameId = await this.questsService
+      .registerMomentPosted(authUser.uid, personalStreak)
+      .catch((e: Error) => {
+        this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
+        return undefined;
+      });
+
+    const streak: MomentStreakResult | undefined = streakKnown
+      ? {
+          personalStreak,
+          increased: streakIncreased,
+          milestone:
+            streakIncreased && STREAK_MILESTONES.includes(personalStreak) ? personalStreak : null,
+          unlockedFrameId: (streakIncreased && unlockedFrameId) || null,
+        }
+      : undefined;
 
     // Quest AI (2026-08-15): anh vua dang co chua vat the cua quest AI hom nay khong?
     // Await vi user can thay ket qua ngay trong response (toast) — QuestsService tu
@@ -96,7 +128,11 @@ export class MomentsService {
       this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
     });
 
-    return aiQuest ? { ...moment, aiQuest } : moment;
+    return {
+      ...moment,
+      ...(aiQuest ? { aiQuest } : {}),
+      ...(streak ? { streak } : {}),
+    };
   }
 
   /**
@@ -186,20 +222,10 @@ export class MomentsService {
     await this.repo.markSeen(moment.momentId, viewerId);
   }
 
-  /**
-   * Tha emoji (reaction bay). Day la "tuong tac qua lai" -> cap nhat friend streak
-   * giua nguoi tha va chu bai dang.
-   */
+  /** Tha emoji (reaction bay). (Friend streak khi tha reaction da bo 2026-11-15.) */
   async react(momentId: string, reactorId: string, emojiType: string): Promise<Reaction> {
-    const moment = await this.getMomentForInteraction(momentId, reactorId);
-    const reaction = await this.repo.addReaction(momentId, reactorId, emojiType);
-
-    if (moment.userId !== reactorId) {
-      await this.friendshipsService.registerInteraction(reactorId, moment.userId).catch((e) => {
-        this.logger.warn(`Khong cap nhat duoc friend streak: ${e.message}`);
-      });
-    }
-    return reaction;
+    await this.getMomentForInteraction(momentId, reactorId);
+    return this.repo.addReaction(momentId, reactorId, emojiType);
   }
 
   async listReactions(momentId: string, viewerId: string): Promise<Reaction[]> {

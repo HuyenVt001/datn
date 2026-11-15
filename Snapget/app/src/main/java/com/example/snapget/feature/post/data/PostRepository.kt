@@ -66,7 +66,7 @@ class PostRepository @Inject constructor(
         momentApi.markSeen(momentId)
     }
 
-    /** Tha emoji — server cap nhat friend streak voi chu bai. */
+    /** Tha emoji len bai. */
     suspend fun react(momentId: String, emojiType: String) = momentApi.react(momentId, ReactRequest(emojiType)).unwrap()
 
     /** Xoa moment cua chinh minh (server enforce chu bai — 403 neu khong phai). */

@@ -60,17 +60,24 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.component.button.ChunkyButton
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.feature.auth.AuthViewModel
@@ -110,6 +117,8 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel = hiltViewModel(),
+    // Mo Terms/Privacy tu dong chu cuoi man (docType = "terms" | "privacy")
+    onOpenLegal: (String) -> Unit = {},
 ) {
     val authState by viewModel.authState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -151,6 +160,7 @@ fun LoginScreen(
         uiState = uiState,
         actions = actions,
         modifier = modifier,
+        onOpenLegal = onOpenLegal,
     )
 }
 
@@ -160,8 +170,10 @@ fun LoginScreenContent(
     uiState: AuthUIState,
     actions: AuthUIActions,
     modifier: Modifier = Modifier,
+    onOpenLegal: (String) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val feedback = rememberFeedback()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
 
@@ -200,6 +212,10 @@ fun LoginScreenContent(
             AuthMode.FORGOT_PASSWORD -> isEmailValid
         }
 
+    val clearErrorOnEdit: () -> Unit = {
+        if (uiState.authState is AuthState.Error) actions.clearError()
+    }
+
     // Dung chung cho nut Submit va phim Done tren ban phim (truoc day 2 cho
     // goi rieng, de lech nhau khi doi dieu kien)
     val submit: () -> Unit = {
@@ -220,13 +236,10 @@ fun LoginScreenContent(
                 actions.onLoginSuccess()
             }
 
-            is AuthState.Error -> {
-                snackbarHostState.showSnackbar(
-                    message = (uiState.authState as AuthState.Error).message,
-                    actionLabel = "Dismiss",
-                )
-                actions.clearError()
-            }
+            // (2026-11-15) Loi CHI hien inline duoi nut (gan field), khong snackbar nua —
+            // truoc hien 2 lan va clearError() ngay sau snackbar lam dong inline bien mat.
+            // Loi tu xoa khi nguoi dung go lai (xem clearErrorOnEdit).
+            is AuthState.Error -> feedback.error()
 
             is AuthState.PasswordResetSent -> {
                 snackbarHostState.showSnackbar(
@@ -343,7 +356,10 @@ fun LoginScreenContent(
                         // Email Field - common for all modes
                         OutlinedTextField(
                             value = email,
-                            onValueChange = { email = it },
+                            onValueChange = {
+                                email = it
+                                clearErrorOnEdit()
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("Email") },
                             leadingIcon = {
@@ -364,11 +380,10 @@ fun LoginScreenContent(
                                         focusManager.moveFocus(FocusDirection.Down)
                                     }
                                 },
+                                // (2026-11-15) Qua submit() de co validate + trim nhu nut bam
+                                // (truoc goi onResetPassword(email) tho, bo qua kiem tra)
                                 onDone = {
-                                    if (authMode == AuthMode.FORGOT_PASSWORD) {
-                                        actions.onResetPassword(email)
-                                        focusManager.clearFocus()
-                                    }
+                                    if (authMode == AuthMode.FORGOT_PASSWORD) submit()
                                 },
                             ),
                             shape = RoundedCornerShape(cornerShape),
@@ -406,7 +421,10 @@ fun LoginScreenContent(
                             Spacer(modifier = Modifier.height(16.dp))
                             OutlinedTextField(
                                 value = password,
-                                onValueChange = { password = it },
+                                onValueChange = {
+                                    password = it
+                                    clearErrorOnEdit()
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 label = { Text("Password") },
                                 leadingIcon = {
@@ -436,33 +454,19 @@ fun LoginScreenContent(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Primary Button - behavior changes based on mode
-                        Button(
+                        // Nut chinh = ChunkyButton (Playful v2, DESIGN.md 0.3) — doi chu theo mode
+                        val authBusy = uiState.isLoading || uiState.authState is AuthState.Loading
+                        ChunkyButton(
+                            text = when (authMode) {
+                                AuthMode.LOGIN -> "Sign In"
+                                AuthMode.REGISTER -> "Create Account"
+                                AuthMode.FORGOT_PASSWORD -> "Reset Password"
+                            },
                             onClick = submit,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            enabled = canSubmit,
-                            shape = RoundedCornerShape(cornerShape),
-                        ) {
-                            if (uiState.isLoading || uiState.authState is AuthState.Loading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            } else {
-                                Text(
-                                    text = when (authMode) {
-                                        AuthMode.LOGIN -> "Sign In"
-                                        AuthMode.REGISTER -> "Create Account"
-                                        AuthMode.FORGOT_PASSWORD -> "Reset Password"
-                                    },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            }
-                        }
+                            enabled = canSubmit || authBusy,
+                            loading = authBusy,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
 
                         // Helper links - different based on mode
                         Spacer(modifier = Modifier.height(16.dp))
@@ -544,10 +548,11 @@ fun LoginScreenContent(
                                 shape = RoundedCornerShape(cornerShape),
                             ) {
                                 if (uiState.isLoading || uiState.authState is AuthState.Loading) {
+                                    // Den tren nen trang (truoc: vang tren trang gan nhu vo hinh)
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(20.dp),
                                         strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = Color.Black,
                                     )
                                 } else {
                                     Row(
@@ -599,13 +604,28 @@ fun LoginScreenContent(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Privacy Notice
+                // Privacy Notice — (2026-11-15) bo maxLines=1 (bi cat tren may hep) + 2 cum
+                // chu thanh LINK mo LegalDocScreen (truoc khong bam duoc)
+                val linkStyle = TextLinkStyles(
+                    style = SpanStyle(
+                        color = SkinTheme.colors.accent,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
                 Text(
-                    text = "By continuing, you agree to our Terms of Service and Privacy Policy",
+                    text = buildAnnotatedString {
+                        append("By continuing, you agree to our ")
+                        withLink(LinkAnnotation.Clickable("terms", linkStyle) { onOpenLegal("terms") }) {
+                            append("Terms of Service")
+                        }
+                        append(" and ")
+                        withLink(LinkAnnotation.Clickable("privacy", linkStyle) { onOpenLegal("privacy") }) {
+                            append("Privacy Policy")
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
                     modifier = Modifier.padding(horizontal = 10.dp),
                 )
             }

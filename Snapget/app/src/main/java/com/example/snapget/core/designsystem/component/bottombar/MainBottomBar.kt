@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MotionPhotosAuto
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewCozy
 import androidx.compose.material.icons.outlined.Cached
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.MotionPhotosAuto
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ViewCozy
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -368,12 +366,13 @@ val sampleItems3 = listOf(
 )
 
 val takePhotoBar = listOf(
+    // Icon "Photo Library" DA XOA (user chot 2026-11-15): truoc nay no mo nham Feed
+    // chu khong phai thu vien anh. Giu placeholder de nut chup van o GIUA.
     BottomNavItem(
-        title = "Photo Library",
-        selectedIcon = Icons.Filled.PhotoLibrary,
-        unselectedIcon = Icons.Outlined.PhotoLibrary,
-        route = Screen.Post.route,
-        skinIcon = { it.gallery },
+        title = null,
+        selectedIcon = null,
+        unselectedIcon = null,
+        route = "",
     ),
     BottomNavItem(
         title = "Take a picture",

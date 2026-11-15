@@ -87,9 +87,9 @@ helmet (security headers, CSP off cho Swagger)
 | `common` | Envelope, filter, interceptor, guards, decorators, constants (MAX_FRIENDS=20, MAX_GROUP_SIZE=20, MAX_VIDEO_SECONDS=3 (ảnh GIF)…) | dùng chung, không business logic |
 | `auth` | Login admin, phát JWT; export JwtModule cho AdminJwtGuard | firebase |
 | `users` | Hồ sơ, fcm-tokens, personal streak, inviteCode TTL 30 ngày, **`pushToUids()` = helper FCM DUY NHẤT toàn server** | moments/messages/coop/friendships gọi qua UsersService |
-| `friendships` | Kết bạn 2 bước qua invite link (PENDING → accept/decline), limit 20 trong transaction, friend streak reset 24h | users (FCM, profile) |
+| `friendships` | Kết bạn 2 bước qua invite link (PENDING → accept/decline), limit 20 trong transaction (friend streak đã bỏ 2026-11-15) | users (FCM, profile) |
 | `upload` | Multipart ≤25MB → Cloudinary; enforce ảnh GIF ≤3s từ metadata; route riêng cho admin | cloudinary |
-| `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal+friend streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
+| `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
 | `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-11-15)** tự đồng bộ Shop khi CRUD khung (SHOP ⇒ có mặt hàng trong `shopItems`, khác/xóa ⇒ gỡ khỏi Shop) | users, audit, shop (forwardRef) |
 | `quests` | **3 quest/ngày (2026-08-15)**: 2 quest cố định (LOGIN + POST_MOMENT) lazy tạo, tự hoàn thành, xong 2/2 = **+60 Astrite** (giữ nguyên) + **quest AI `AI_CHALLENGE`** ("Chụp một chiếc cốc"): nội dung do LLM trên HF Space viết (cron `POST /quests/ai/generate`) hoặc template fallback; hoàn thành khi ảnh user đăng lên feed được model AI xác minh có chứa `targetClass` → **+30 Astrite riêng**; log mọi lần verify vào `aiVerifications`; mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames, **ai** |
@@ -131,8 +131,8 @@ server/
 │   ├── auth/                ✅ POST /auth/admin/login (verify Firebase → check claim admin hiện hành + disabled → JWT + uid)
 │   ├── users/               ✅ me (GET/PATCH kèm birthday, sync displayName/photoURL lên Auth), fcm-tokens, /:uid,
 │   │                           ensureUser (tự tạo/backfill doc), personal streak, inviteCode TTL 30 ngày, pushToUids (FCM helper)
-│   ├── friendships/         ✅ list, invite-link/-info, connect (PENDING, transaction limit 20), requests accept/decline, remove,
-│   │                           registerInteraction (friend streak 24h)
+│   ├── friendships/         ✅ list, invite-link/-info, connect (PENDING, transaction limit 20), requests accept/decline, remove
+│   │                           (registerInteraction / friend streak đã XOÁ 2026-11-15)
 │   ├── upload/              ✅ POST /upload (app) + /upload/admin; Cloudinary; ảnh GIF ≤3s enforce
 │   ├── moments/             ✅ đăng bài, feed, mine, user/:uid, delete (chủ bài), seen, reactions
 │   │   └── (coop)           ✅ coop.controller/service/repository — mời (TTL 5')/accept/nộp nửa ảnh (sharp ghép)/poll :id/decline
@@ -183,7 +183,7 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 | Collection | Vai trò |
 |---|---|
 | `users/{uid}` | hồ sơ + game (personalStreak, unlockedFrames[], inviteCode + inviteCodeExpiresAt TTL 30 ngày, fcmTokens[], birthday) · **(2026-08-05)** `astrite` số dư, `unlockedSkins[]`/`unlockedEffects[]` (id kiểu số), `signupBonusClaimed` · ~~`gachaPity`~~ bỏ 2026-11-15 |
-| `friendships/{pairId}` | quan hệ 2 user, friendStreak, lastInteractionAt, status (PENDING = lời mời chờ chủ link xác nhận), requesterUid |
+| `friendships/{pairId}` | quan hệ 2 user, status (PENDING = lời mời chờ chủ link xác nhận), requesterUid |
 | `posts/{id}` (Moment) | bài đăng; `+ /views/{viewerId}`, `+ /reactions/{id}` (subcollection) |
 | `messages/{id}` | tin nhắn (receiverId? / groupId?), messageType, isSeen, reactions{uid: emoji}, attachmentUrl/Type, replyTo* (snapshot tin gốc) |
 | `chatGroups/{id}` | nhóm chat (memberIds[] ≤20, `avatar?` URL Cloudinary, `mutedBy[]` uid tắt thông báo, `createdBy` = người quản lý) |
@@ -209,7 +209,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | users | ✅ | personal streak, inviteCode TTL, sync Auth, ensureUser backfill | ✅ | ✅ |
 | friendships | ✅ | kết bạn 2 bước, limit 20 transaction 2 phía, streak 24h, mã hết hạn | ✅ | ✅ |
 | moments | ✅ | ảnh GIF ≤3s (tại upload), seen/reaction chỉ người thấy được bài, xóa chỉ chủ bài, streak + FCM wired | ✅ | ✅ |
-| coop | ✅ | chỉ bạn bè ACCEPTED; TTL **5 phút**; accept chỉ invitee (hủy được cả 2 phía); mỗi bên nộp nửa ảnh riêng; sharp ghép → mergedMediaUrl (KHÔNG tự tạo moment); friend streak + khung COOP_FIRST lúc ghép | ✅ | ✅ |
+| coop | ✅ | chỉ bạn bè ACCEPTED; TTL **5 phút**; accept chỉ invitee (hủy được cả 2 phía); mỗi bên nộp nửa ảnh riêng; sharp ghép → mergedMediaUrl (KHÔNG tự tạo moment); khung COOP_FIRST lúc ghép | ✅ | ✅ |
 | messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè — cả lúc tạo lẫn lúc mời thêm), seen, reaction toggle, reply cùng-hội-thoại, quản lý nhóm (rename/avatar/mời/xóa — chỉ creator/rời/mute) | ✅ | ✅ |
 | frames | ✅ | 6 unlockType + hook tự mở ở moments/friendships/coop | ✅ | ✅ |
 | quests | ✅ | 2 quest/ngày lazy; **(G2)** thưởng 2/2 = +60 Astrite (claim atomic 1 lần/ngày; cộng tiền fail → trả lại claim, cộng xong → GIỮ claim để không cộng 2 lần); mốc streak = khung. **(2026-08-15 — AI)** quest thứ 3 `AI_CHALLENGE`: sinh idempotent (create atomic, không ghi đè), fallback template seed theo ngày tránh lặp 3 ngày; verify chỉ PHOTO + chưa xong; MATCHED → complete atomic + **+30 Astrite** (`AI_QUEST_REWARD`), cộng fail → xoá doc quest để thử lại; Space lỗi → SKIPPED; LLM trả rác → fallback | ✅ 33 test | ✅ |
@@ -233,8 +233,9 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | PATCH | `/api/users/me` | Cập nhật hồ sơ (fullName/avatar/birthday `yyyy-MM-dd`) | Firebase |
 | POST | `/api/users/me/fcm-tokens` | Đăng ký FCM token | Firebase |
 | DELETE | `/api/users/me/fcm-tokens/:token` | Gỡ FCM token | Firebase |
+| POST | `/api/users/streak-reminders/send` | **[Cron] (2026-11-15)** Push nhắc giữ streak: user `personalStreak > 0` có `lastStreakDate` = hôm qua (hôm nay chưa đăng). Push **DATA-ONLY** `{type: STREAK_REMINDER, title, body}` — app tự hiện theo toggle "Streak reminders". Trả `{candidates, notified}`. Query 1 equality `lastStreakDate` (không cần index). Gọi mỗi tối ~13:00 UTC (20:00 VN) | `x-cron-secret` |
 | GET | `/api/users/:uid` | Xem hồ sơ công khai user khác | Firebase |
-| GET | `/api/friendships` | Danh sách bạn bè (kèm friend streak) | Firebase |
+| GET | `/api/friendships` | Danh sách bạn bè (uid, fullName, avatar — không còn `friendStreak` từ 2026-11-15) | Firebase |
 | GET | `/api/friendships/invite-link` | Link mời của mình (`https://snapget-d8693.web.app/invite/{code}`, TTL 30 ngày, kèm `expiresAt`) | Firebase |
 | GET | `/api/friendships/invite-info/:code` | Tên + avatar người mời + hạn link (dialog xác nhận trước khi connect) | Firebase |
 | POST | `/api/friendships/connect` | GỬI LỜI MỜI kết bạn qua inviteCode → PENDING (mutual → ACCEPTED luôn; limit 20 transaction; FCM) | Firebase |
@@ -244,7 +245,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | DELETE | `/api/friendships/:friendUid` | Xóa bạn bè | Firebase |
 | POST | `/api/upload` | Upload ảnh/video (multipart `file`, ≤25MB, ảnh GIF ≤3s) → `{url, publicId, resourceType, duration}` | Firebase |
 | POST | `/api/upload/admin` | [Admin] Upload ảnh (khung ảnh…) — cùng format với /upload | Admin JWT |
-| POST | `/api/moments` | Đăng moment (mediaUrl từ /upload; tăng streak + quest rồi trả NGAY — mở khung POST_COUNT + FCM bạn bè chạy sau response; `clientRequestId?` chống đăng trùng khi retry) **(2026-08-15)** response thêm `aiQuest?: {result: MATCHED\|NOT_MATCHED\|SKIPPED, score?, questContent?}` khi có quest AI & user chưa xong (Gson app cũ bỏ qua) | Firebase |
+| POST | `/api/moments` | Đăng moment (mediaUrl từ /upload; tăng streak + quest rồi trả NGAY — mở khung POST_COUNT + FCM bạn bè chạy sau response; `clientRequestId?` chống đăng trùng khi retry) **(2026-08-15)** response thêm `aiQuest?: {result: MATCHED\|NOT_MATCHED\|SKIPPED, score?, questContent?}` khi có quest AI & user chưa xong (Gson app cũ bỏ qua) **(2026-11-15)** response thêm `streak?: {personalStreak, increased, milestone: 3\|7\|14\|30\|null, unlockedFrameId\|null}` cho màn ăn mừng của app (vắng khi lỗi cập nhật streak) | Firebase |
 | GET | `/api/moments/feed` | Feed mình + bạn bè (`?page&limit`) | Firebase |
 | GET | `/api/moments/mine` | Moment của chính mình (profile calendar, `?page&limit`) | Firebase |
 | GET | `/api/moments/user/:uid` | Moment của 1 user — CHỈ bạn bè (hoặc chính mình), 403 nếu không | Firebase |
@@ -256,7 +257,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/moments/coop/:id/media` | Nộp nửa ảnh của mình (`{mediaUrl}`) — đủ 2 nửa server ghép → `mergedMediaUrl` | Firebase |
 | DELETE | `/api/moments/:id` | Xóa moment — CHỈ chủ bài (403 nếu không); xóa cả subcollection | Firebase |
 | POST | `/api/moments/:id/seen` | Đánh dấu đã xem (chỉ người thấy được bài) | Firebase |
-| POST | `/api/moments/:id/reactions` | Thả emoji (chỉ người thấy được bài; cập nhật friend streak) | Firebase |
+| POST | `/api/moments/:id/reactions` | Thả emoji (chỉ người thấy được bài) | Firebase |
 | GET | `/api/moments/:id/reactions` | Danh sách reaction (chỉ người thấy được bài) | Firebase |
 | POST | `/api/messages` | Gửi tin 1-1 (`receiverId`, chỉ bạn bè) hoặc nhóm (`groupId`); optional `attachmentUrl/Type` + `replyToId` | Firebase |
 | GET | `/api/messages/conversations` | Danh sách hội thoại 1-1 (tin mới nhất từng người) | Firebase |
@@ -358,6 +359,10 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-15 — BỎ friend streak (user chốt — chỉ giữ personal streak)**. Xoá `FriendshipsService.registerInteraction` + `isSameDay`, `FriendshipsRepository.updateStreak`, `STREAK_WINDOW_HOURS`; entity `Friendship` bỏ `friendStreak`/`lastInteractionAt` (doc cũ còn field — bỏ qua), `FriendSummary` bỏ `friendStreak`; 3 hook gọi streak ở `MessagesService.send`, `CoopService` (lúc ghép ảnh — khung COOP_FIRST giữ), `MomentsService.react` đã gỡ, kèm dependency `FriendshipsService` thừa ở 3 service đó. `scripts/schema-metadata.ts` bỏ 2 field. ⚠️ Contract: `GET /friendships` **không còn `friendStreak`** — APK cũ đọc nullable `?: 0` nên không crash; APK mới đã bỏ. Spec cập nhật → **257 test / 13 suite pass**.
+
+- **2026-11-15 — `POST /moments` trả thêm `streak` (cho UI Playful v2 của app — `Snapget/.claude/UI_UPGRADE_PLAN.md`)**. `UsersService.registerActivityForStreakDetailed()` trả `{personalStreak, increased}` (method cũ giữ làm wrapper); `QuestsService.registerMomentPosted()`/`rewardStreakMilestone()` trả `frameId` khung mốc vừa mở; `MomentsService.create` gắn `streak: {personalStreak, increased, milestone, unlockedFrameId}` (milestone/frame chỉ khi `increased` — bài thứ 2 trong ngày không báo lại mốc), vắng field khi lỗi streak. ⚠️ Contract: THÊM field, không breaking — app đã sync (`MomentDto.streak`). +4 test. **Cùng đợt: cron nhắc giữ streak** `POST /users/streak-reminders/send` (`@Public` + `CronSecretGuard`; `UsersRepository.listByLastStreakDate`; `UsersService.sendStreakReminders` gửi data-only từng user, lỗi 1 user không dừng cả lượt) — FCM vẫn chỉ qua `UsersService` (luật mục 3). ⚙️ Việc vận hành: tạo job cron-job.org 13:00 UTC hằng ngày, header `x-cron-secret`. **259 test / 13 suite pass**.
 
 - **2026-11-15 — Bỏ hệ thống gacha, thay bằng Shop mua đứt (phần SERVER của `Snapget/.claude/SHOP_PLAN.md`)**. Xoá module `gacha/` + `seed-gacha.ts`; module mới `shop/` (controller/service/repository + 4 DTO + 2 entity): app `GET /shop/items` · `POST /shop/buy` · `GET /shop/history`; admin `items/admin` · `POST/PATCH/DELETE items` · `owners` · `grant/:uid` · `history/admin`. Collection `shopItems` (thêm `price`, bỏ `rarity`, unique (itemType, refId)) + `shopPurchases`; sổ cái thay `GACHA_SPEND/GACHA_REFUND` bằng `SHOP_PURCHASE`; audit `GACHA_ITEM_*` → `SHOP_ITEM_*`; `User` bỏ `gachaPity`; frames `unlockType` `GACHA` → **`SHOP`** (repo map `GACHA`/`QUEST_RANDOM` cũ → SHOP), `syncGachaPool` → `syncShopListing` (không ghi đè giá admin); `/admin/stats` `gachaRolls*` → `shopPurchases*`. Constants: bỏ toàn bộ `GACHA_*` + `Collections.CONFIG`, thêm `SHOP_DEFAULT_PRICE_FRAME/EFFECT/SKIN` (320/1600/4800). Script mới `seed:shop` (idempotent) + `cleanup:gacha` (dry-run mặc định, `--confirm` mới xoá). `schema-metadata` + `docs/firestore-*` sinh lại. 27 test shop mới, frames viết lại phần đồng bộ → **251 test / 13 suite**, e2e **12 pass**. 🔐 SECURITY.md cập nhật (mục Shop).
   - ⚠️ **BREAKING contract**: `/api/gacha/*` biến mất, `GET /admin/stats` đổi tên field, `unlockType` `GACHA` → `SHOP`, audit action đổi tên. Admin + app **chưa sync** — làm tiếp theo SHOP_PLAN (A → P). APK cũ mở màn Gacha sẽ 404.

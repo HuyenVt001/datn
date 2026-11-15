@@ -138,8 +138,6 @@ export const STATIC_COLLECTIONS: StaticCollectionDef[] = [
       },
       { name: 'user1Id', dbmlType: 'varchar', jsonType: 'string', required: true },
       { name: 'user2Id', dbmlType: 'varchar', jsonType: 'string', required: true },
-      { name: 'friendStreak', dbmlType: 'int', jsonType: 'integer', required: true },
-      { name: 'lastInteractionAt', dbmlType: 'timestamp', jsonType: 'string', format: 'date-time' },
       {
         name: 'status',
         dbmlType: 'varchar',

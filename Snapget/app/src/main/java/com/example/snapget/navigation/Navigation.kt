@@ -3,6 +3,13 @@ package com.example.snapget.navigation
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.snapget.core.designsystem.component.bottombar.AppFooterBar
+import com.example.snapget.core.designsystem.motion.rememberReducedMotion
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.feature.appearance.AppearanceScreen
@@ -166,12 +174,36 @@ fun Navigation(
             }
         },
     ) { innerPadding ->
+        // Chuyen man (P5 Playful v2): mac dinh Navigation 2.7 fade 700ms -> cham, "lo
+        // mo". Doi sang fade + phong nhe 0.97 -> 1 (220ms) cho man vao, fade nhanh
+        // 150ms cho man ra (exit nhanh hon enter — DESIGN.md 0.2). Reduced motion: tat.
+        val reducedMotion = rememberReducedMotion()
         NavHost(
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding),
+            enterTransition = {
+                if (reducedMotion) {
+                    EnterTransition.None
+                } else {
+                    fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.97f)
+                }
+            },
+            exitTransition = {
+                if (reducedMotion) ExitTransition.None else fadeOut(tween(150))
+            },
+            popEnterTransition = {
+                if (reducedMotion) EnterTransition.None else fadeIn(tween(220))
+            },
+            popExitTransition = {
+                if (reducedMotion) {
+                    ExitTransition.None
+                } else {
+                    fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.97f)
+                }
+            },
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(
@@ -189,6 +221,8 @@ fun Navigation(
                     // (StateFlow khong emit) -> LaunchedEffect khong chay, KHONG ve man
                     // Login du Firebase da signOut -> moi API deu 401 "Thieu token".
                     viewModel = authViewModel,
+                    // Link Terms/Privacy cuoi man Login (2026-11-15) — LegalDoc khong can dang nhap
+                    onOpenLegal = { docType -> navController.navigate(Screen.LegalDoc.route(docType)) },
                 )
             }
 
@@ -308,7 +342,14 @@ fun Navigation(
 
             // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
             composable(Screen.DailyQuest.route) {
-                DailyQuestScreen()
+                DailyQuestScreen(
+                    // Nut GO (quest dang bai / AI) -> ve Camera (giong tab Home footer)
+                    onOpenCamera = {
+                        if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
+                            navController.navigate(Screen.Camera.route) { launchSingleTop = true }
+                        }
+                    },
+                )
             }
 
             // Man Shop (SHOP_PLAN.md — thay gacha 2026-11-15): 4 tab Astrite/Skins/Frames/Effects

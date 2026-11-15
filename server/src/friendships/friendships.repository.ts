@@ -98,7 +98,6 @@ export class FriendshipsRepository {
         userIds: [user1Id, user2Id],
         user1Id,
         user2Id,
-        friendStreak: 0,
         status: 'PENDING',
         requesterUid,
         createdAt: new Date().toISOString(),
@@ -183,14 +182,5 @@ export class FriendshipsRepository {
 
   async delete(a: string, b: string): Promise<void> {
     await this.col.doc(FriendshipsRepository.pairId(a, b)).delete();
-  }
-
-  /** Cap nhat friend streak + moc tuong tac gan nhat. */
-  async updateStreak(
-    pairId: string,
-    friendStreak: number,
-    lastInteractionAt: string,
-  ): Promise<void> {
-    await this.col.doc(pairId).update({ friendStreak, lastInteractionAt });
   }
 }

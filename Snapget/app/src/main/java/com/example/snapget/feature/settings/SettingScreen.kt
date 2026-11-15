@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Policy
@@ -75,7 +76,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.data.SettingIds
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.topbar.SettingScreenTopBar
+import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Setting
 import com.example.snapget.core.model.SettingType
 import com.example.snapget.feature.auth.AuthViewModel
@@ -94,6 +97,7 @@ fun SettingScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val settings by settingsViewModel.settings.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val saveStatus by settingsViewModel.saveStatus.collectAsState()
@@ -106,14 +110,14 @@ fun SettingScreen(
     LaunchedEffect(saveStatus) {
         when (val status = saveStatus) {
             is LoadStatus.Success -> {
-                Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                messenger.show("Saved")
                 showEditNameDialog = false
                 showBirthdayPicker = false
                 settingsViewModel.resetSaveStatus()
             }
 
             is LoadStatus.Error -> {
-                Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
+                messenger.show(status.error)
                 settingsViewModel.resetSaveStatus()
             }
 
@@ -141,7 +145,7 @@ fun SettingScreen(
                         shareInviteLink(context, link)
                     } else {
                         settingsViewModel.reloadInviteLink()
-                        Toast.makeText(context, "Couldn't get your invite link — try again", Toast.LENGTH_SHORT).show()
+                        messenger.show("Couldn't get your invite link — try again")
                     }
                 }
                 SettingIds.RATE_SNAPGET -> openPlayStore(context)
@@ -152,7 +156,7 @@ fun SettingScreen(
                 SettingIds.PRIVACY_POLICY -> navController.navigate(Screen.LegalDoc.route("privacy"))
                 SettingIds.SIGN_OUT -> authViewModel.logout()
                 // Chua lam dot nay (Privacy & Safety + Delete Account) -> bao ro thay vi im lang
-                else -> Toast.makeText(context, "Coming soon", Toast.LENGTH_SHORT).show()
+                else -> messenger.show("Coming soon")
             }
         },
     )
@@ -240,17 +244,18 @@ fun SettingSectionHeader(settingType: SettingType) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 8.dp),
     ) {
+        // (2026-11-15) Bot vang: header dung textSecondary — vang de danh cho
+        // toggle dang bat + gamification (DESIGN.md 1.2). Icon trang tri -> null.
         Icon(
             imageVector = icon,
-            contentDescription = label,
-            tint = MaterialTheme.colorScheme.primary,
+            contentDescription = null,
+            tint = SkinTheme.colors.textSecondary,
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleSmall,
+            color = SkinTheme.colors.textSecondary,
         )
     }
 }
@@ -295,9 +300,9 @@ fun SettingItem(
                     .size(40.dp)
                     .background(
                         color = if (isDangerZone) {
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
                         } else {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            SkinTheme.colors.pill
                         },
                         shape = CircleShape,
                     ),
@@ -305,11 +310,11 @@ fun SettingItem(
             ) {
                 Icon(
                     imageVector = getSettingIcon(setting),
-                    contentDescription = setting.title,
+                    contentDescription = null, // tieu de da doc — tranh TalkBack doc 2 lan
                     tint = if (isDangerZone) {
                         MaterialTheme.colorScheme.error
                     } else {
-                        MaterialTheme.colorScheme.primary
+                        SkinTheme.colors.textPrimary
                     },
                     modifier = Modifier.size(20.dp),
                 )
@@ -367,6 +372,7 @@ fun getSettingIcon(setting: Setting): ImageVector = when (setting.id) {
     SettingIds.APP_ICON -> Icons.Default.Palette
     SettingIds.APPEARANCE -> Icons.Default.Palette
     SettingIds.STREAK_ON_WIDGET -> Icons.Default.LocalFireDepartment
+    SettingIds.STREAK_REMINDERS -> Icons.Default.NotificationsActive
     SettingIds.EDIT_NAME -> Icons.Default.Badge
     SettingIds.EDIT_BIRTHDAY -> Icons.Default.Cake
     SettingIds.HOW_TO_ADD_WIDGET -> Icons.AutoMirrored.Filled.AddToHomeScreen

@@ -14,6 +14,9 @@ object SettingIds {
     /** Thay cho "theme" cu (go giao dien Light 2026-08-05) — mo man Appearance. */
     const val APPEARANCE = "appearance"
     const val STREAK_ON_WIDGET = "streak_on_widget"
+
+    /** Push nhac giu streak luc toi (data-only, SnapgetMessagingService loc theo toggle nay). */
+    const val STREAK_REMINDERS = "streak_reminders"
     const val EDIT_NAME = "edit_name"
     const val EDIT_BIRTHDAY = "edit_birthday"
     const val CHANGE_PHONE_NUMBER = "change_phone_number"
@@ -76,6 +79,15 @@ object SettingDefaults {
             title = "Streak on widget",
             icon = "ICON_COLOR",
             description = "Show your streak on the home screen widget",
+            isToggleable = true,
+            isToggled = true,
+        ),
+        Setting(
+            id = SettingIds.STREAK_REMINDERS,
+            type = SettingType.CUSTOMIZE,
+            title = "Streak reminders",
+            icon = "ICON_BELL",
+            description = "Get a nudge in the evening if you haven't posted yet",
             isToggleable = true,
             isToggled = true,
         ),

@@ -87,11 +87,12 @@ export class QuestsService {
    * Hook tu MomentsService.create: hoan thanh quest POST_MOMENT + xet thuong moc streak.
    * personalStreak = gia tri SAU khi da tang boi registerActivityForStreak.
    */
-  async registerMomentPosted(uid: string, personalStreak: number): Promise<void> {
+  /** @returns frameId khung moc streak vua mo (undefined neu khong cham moc / chua co khung). */
+  async registerMomentPosted(uid: string, personalStreak: number): Promise<string | undefined> {
     const date = this.todayKey();
     await this.repo.ensureDailyQuests(date);
     await this.completeQuest(uid, date, 'POST_MOMENT');
-    await this.rewardStreakMilestone(uid, personalStreak);
+    return this.rewardStreakMilestone(uid, personalStreak);
   }
 
   /**
@@ -404,19 +405,20 @@ export class QuestsService {
   }
 
   /** Dat dung moc streak (3/7/14/30) -> mo khung cua moc (unlockFrame arrayUnion nen idempotent). */
-  private async rewardStreakMilestone(uid: string, streak: number): Promise<void> {
+  private async rewardStreakMilestone(uid: string, streak: number): Promise<string | undefined> {
     if (!STREAK_MILESTONES.includes(streak)) {
-      return;
+      return undefined;
     }
     const frames = await this.framesRepo.list();
     const frame = frames.find(
       (f) => f.unlockType === 'STREAK_MILESTONE' && f.unlockValue === streak,
     );
     if (!frame) {
-      return; // admin chua tao khung cho moc nay
+      return undefined; // admin chua tao khung cho moc nay
     }
     await this.framesService.unlockForUser(uid, frame.frameId);
     this.logger.log(`Mo khung moc streak ${streak} (${frame.frameId}) cho ${uid}`);
+    return frame.frameId;
   }
 
   /** YYYY-MM-DD — dung dateKey CHUNG voi personal streak (common/constants). */

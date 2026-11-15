@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
@@ -100,6 +101,11 @@ fun MainTopBar(
     onQuestClick: (() -> Unit)? = null,
     showProfileIcon: Boolean = true,
     showMessageIcon: Boolean = true,
+    // (2026-11-15, user chot) Truyen callback nay -> pill giua thanh "N Friends"
+    // (so ban that = [friendCount]) va bam mo sheet ban be, KHONG con dropdown.
+    // Dung o man Camera — dropdown "Everyone" o do truoc day khong co tac dung.
+    friendCount: Int = 0,
+    onFriendsPillClick: (() -> Unit)? = null,
 ) {
     var titleWidth by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current.density
@@ -155,8 +161,12 @@ fun MainTopBar(
                         shape = SkinTheme.shapes.pill,
                     )
                     .clip(SkinTheme.shapes.pill)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .clickable { showFriendDropdown = true },
+                    .clickable(
+                        onClickLabel = if (onFriendsPillClick != null) "Open friends" else "Choose whose posts to show",
+                    ) {
+                        if (onFriendsPillClick != null) onFriendsPillClick() else showFriendDropdown = true
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -168,21 +178,37 @@ fun MainTopBar(
                             titleWidth = coordinates.size.width
                         },
                 ) {
-                    Text(
-                        text = trimUsername(selectedFriend?.username ?: user?.username ?: title),
-                        color = SkinTheme.colors.textPrimary,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    if (onFriendsPillClick != null) {
+                        Icon(
+                            imageVector = Icons.Filled.Group,
+                            contentDescription = null,
+                            tint = SkinTheme.colors.accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (friendCount == 1) "1 Friend" else "$friendCount Friends",
+                            color = SkinTheme.colors.textPrimary,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    } else {
+                        Text(
+                            text = trimUsername(selectedFriend?.username ?: user?.username ?: title),
+                            color = SkinTheme.colors.textPrimary,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.5.sp,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
 
-                    SkinIcon(
-                        res = SkinTheme.icons.chevronDown,
-                        fallback = Icons.Filled.ExpandMore,
-                        contentDescription = "Dropdown",
-                        tint = SkinTheme.colors.textPrimary,
-                        modifier = Modifier.size(18.dp),
-                    )
+                        // Chevron trang tri: pill da co onClickLabel -> khong doc lai
+                        SkinIcon(
+                            res = SkinTheme.icons.chevronDown,
+                            fallback = Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = SkinTheme.colors.textPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
 
                 // Dropdown menu for friend selection
@@ -204,12 +230,10 @@ fun MainTopBar(
                         ),
                 ) {
                     friendsList.forEachIndexed { index, friend ->
+                        // (2026-11-15) Bo nen pillTranslucent RIENG tung item — chong len nen
+                        // menu cung pillTranslucent lam do dam cong don, lo vien item
                         DropdownMenuItem(
-                            modifier = Modifier
-                                .padding(vertical = 5.dp)
-                                .background(
-                                    color = SkinTheme.colors.pillTranslucent,
-                                ),
+                            modifier = Modifier.padding(vertical = 5.dp),
                             text = {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -267,14 +291,16 @@ fun MainTopBar(
                                     // Flexible spacer to push the arrow to the end
                                     Spacer(modifier = Modifier.weight(1f))
 
-                                    // Arrow icon (always visible)
-                                    SkinIcon(
-                                        res = SkinTheme.icons.chevronRight,
-                                        fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                        contentDescription = "Select",
-                                        tint = SkinTheme.colors.textPrimary,
-                                        modifier = Modifier.size(16.dp),
-                                    )
+                                    // Dau ✓ o nguoi DANG chon (truoc: mui ten › o moi dong —
+                                    // goi y "dieu huong" va khong biet dang chon ai)
+                                    if (friend.id == selectedFriend?.id) {
+                                        Icon(
+                                            imageVector = Icons.Filled.CheckCircle,
+                                            contentDescription = "Selected",
+                                            tint = SkinTheme.colors.accent,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
                                 }
                             },
                             onClick = {
@@ -404,15 +430,15 @@ fun MainTopBar(
                     badge = {
                         if (unreadMessages > 0) {
                             Badge(
-                                containerColor = SkinTheme.colors.accentGold,
-                                contentColor = SkinTheme.colors.onAccent,
+                                containerColor = SkinTheme.colors.badge,
+                                contentColor = SkinTheme.colors.onBadge,
                                 modifier = Modifier
                                     .offset(x = 0.dp, y = (-4).dp)
                                     .then(badgeSize),
                             ) {
                                 Text(
                                     text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
-                                    fontSize = 10.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     textAlign = TextAlign.Center,
                                 )

@@ -6,12 +6,11 @@ package com.example.snapget.core.network.dto
  * xem thu muc server/src/friendships tren server.
  */
 
-/** 1 nguoi ban trong GET /friendships (kem friend streak cua cap). */
+/** 1 nguoi ban trong GET /friendships. (Friend streak da bo 2026-11-15.) */
 data class FriendSummaryDto(
     val uid: String,
     val fullName: String?,
     val avatar: String?,
-    val friendStreak: Int?,
 )
 
 /**
@@ -48,7 +47,6 @@ data class ConnectFriendRequest(
 data class FriendshipDto(
     val pairId: String?,
     val userIds: List<String>?,
-    val friendStreak: Int?,
     val status: String?,
 )
 

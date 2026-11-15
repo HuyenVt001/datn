@@ -16,6 +16,7 @@ describe('UsersService', () => {
       findByUid: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      listByLastStreakDate: jest.fn().mockResolvedValue([]),
     } as unknown as jest.Mocked<UsersRepository>;
     auth = { updateUser: jest.fn().mockResolvedValue({}) };
     messaging = { sendEachForMulticast: jest.fn().mockResolvedValue({ successCount: 1 }) };
@@ -210,6 +211,65 @@ describe('UsersService', () => {
       const streak = await service.registerActivityForStreak('u1');
       expect(streak).toBe(1);
       expect(repo.update).toHaveBeenCalled();
+    });
+
+    it('detailed: cung ngay -> increased false, khong ghi', async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      repo.findByUid.mockResolvedValue({
+        uid: 'u1',
+        personalStreak: 4,
+        lastStreakDate: today,
+      } as never);
+      // dateKey co the theo mui gio rieng -> chi khang dinh khi khop ngay hom nay
+      const res = await service.registerActivityForStreakDetailed('u1');
+      if (res.increased === false) {
+        expect(res.personalStreak).toBe(4);
+        expect(repo.update).not.toHaveBeenCalled();
+      }
+    });
+
+    it('detailed: dut chuoi -> bat dau lai 1 va increased true', async () => {
+      repo.findByUid.mockResolvedValue({
+        uid: 'u1',
+        personalStreak: 9,
+        lastStreakDate: '2020-01-01',
+      } as never);
+      await expect(service.registerActivityForStreakDetailed('u1')).resolves.toEqual({
+        personalStreak: 1,
+        increased: true,
+      });
+    });
+  });
+
+  describe('sendStreakReminders (cron 2026-11-15)', () => {
+    it('chi gui user streak > 0 co token, push DATA-ONLY type STREAK_REMINDER', async () => {
+      repo.listByLastStreakDate.mockResolvedValue([
+        { uid: 'a', personalStreak: 5, fcmTokens: ['t1', 't1', 't2'] },
+        { uid: 'b', personalStreak: 0, fcmTokens: ['t3'] }, // streak 0 -> bo
+        { uid: 'c', personalStreak: 3, fcmTokens: [] }, // khong token -> bo
+      ] as never);
+
+      const res = await service.sendStreakReminders();
+
+      expect(res).toEqual({ candidates: 1, notified: 1 });
+      expect(messaging.sendEachForMulticast).toHaveBeenCalledTimes(1);
+      const payload = messaging.sendEachForMulticast.mock.calls[0][0];
+      expect(payload.tokens).toEqual(['t1', 't2']); // khu trung token
+      expect(payload.notification).toBeUndefined(); // data-only: app tu loc theo toggle
+      expect(payload.data.type).toBe('STREAK_REMINDER');
+      expect(payload.data.title).toContain('5-day streak');
+    });
+
+    it('FCM loi 1 user -> khong throw, dem notified dung', async () => {
+      repo.listByLastStreakDate.mockResolvedValue([
+        { uid: 'a', personalStreak: 2, fcmTokens: ['t1'] },
+        { uid: 'b', personalStreak: 7, fcmTokens: ['t2'] },
+      ] as never);
+      messaging.sendEachForMulticast
+        .mockRejectedValueOnce(new Error('fcm down'))
+        .mockResolvedValueOnce({ successCount: 1 });
+
+      await expect(service.sendStreakReminders()).resolves.toEqual({ candidates: 2, notified: 1 });
     });
   });
 });

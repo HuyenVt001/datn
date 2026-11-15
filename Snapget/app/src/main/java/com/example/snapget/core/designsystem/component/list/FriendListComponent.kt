@@ -412,16 +412,6 @@ fun FriendListItem(
             overflow = TextOverflow.Ellipsis,
         )
 
-        // Friend streak chung — gamification dung vang gold (DESIGN.md muc 2)
-        if (friend.streak > 0) {
-            Text(
-                text = "🔥 ${friend.streak}",
-                color = SkinTheme.colors.accentGold,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-
         // Remove friend button
         IconButton(
             onClick = { onRemoveFriend(friend) },
@@ -441,9 +431,9 @@ fun FriendListItem(
 fun YourFriendAppComponentPreview() {
     YourFriendAppComponent(
         friends = listOf(
-            FriendUi(id = "1", name = "An Nguyen", streak = 5),
-            FriendUi(id = "2", name = "Binh Tran", streak = 0),
-            FriendUi(id = "3", name = "Chi Le", streak = 12),
+            FriendUi(id = "1", name = "An Nguyen"),
+            FriendUi(id = "2", name = "Binh Tran"),
+            FriendUi(id = "3", name = "Chi Le"),
         ),
     )
 }

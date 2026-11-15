@@ -2,18 +2,25 @@ package com.example.snapget.feature.camera
 
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -31,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -39,10 +45,14 @@ import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
 import com.example.snapget.core.designsystem.component.bottombar.takePhotoBar
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
+import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheetData
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.motion.pressScale
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
 import com.example.snapget.core.designsystem.skin.SkinTheme
-import com.example.snapget.core.model.User
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.feature.coop.CoopFriendPickerDialog
@@ -68,17 +78,11 @@ fun CameraScreen(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+    val messenger = rememberMessenger()
 
-    var selectedUser by remember {
-        mutableStateOf<User?>(
-            User(
-                id = "everyone",
-                username = "Everyone",
-                avatar = "",
-            ),
-        )
-    }
-    // Use the passed onCameraClick instead of navigating to CameraXScreen
+    // Pill "N Friends" giua top bar -> sheet ban be (user chot 2026-11-15; thay dropdown
+    // "Everyone" truoc day chon xong khong co tac dung gi)
+    var showFriendSheet by remember { mutableStateOf(false) }
 
     // Get current user from auth state
     val currentUser by mainViewModel.currentUser.collectAsState()
@@ -98,10 +102,15 @@ fun CameraScreen(
     val coopError by coopViewModel.coopError.collectAsState()
     val apiFriends by friendsViewModel.friends.collectAsState()
     val friendsStatus by friendsViewModel.friendsStatus.collectAsState()
+    val inviteLink by friendsViewModel.inviteLink.collectAsState()
+    val friendRequests by friendsViewModel.requests.collectAsState()
+
+    // So ban hien tren pill — tai ngay khi vao camera (truoc chi tai khi mo popup coop)
+    LaunchedEffect(Unit) { friendsViewModel.loadFriends() }
 
     LaunchedEffect(coopError) {
         coopError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             coopViewModel.clearError()
         }
     }
@@ -117,6 +126,7 @@ fun CameraScreen(
 
     // Nut 🔄 "Change camera" -> doi camera truoc/sau (truoc 2026-07-26 nut nay chet)
     var flipRequestId by remember { mutableIntStateOf(0) }
+    val shutterFeedback = rememberFeedback()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -131,9 +141,15 @@ fun CameraScreen(
                         navController.navigate("profile?userId=$userId")
                     } ?: navController.navigate("profile")
                 },
-                onUserSelected = { user -> selectedUser = user },
                 showProfileIcon = false,
                 showMessageIcon = false,
+                friendCount = apiFriends.size,
+                onFriendsPillClick = {
+                    friendsViewModel.loadFriends()
+                    friendsViewModel.loadInviteLink()
+                    friendsViewModel.loadRequests()
+                    showFriendSheet = true
+                },
             )
         },
     ) { paddingValues ->
@@ -206,21 +222,38 @@ fun CameraScreen(
             }
 
             // Nut CHUP CHUNG (co-op): mo popup chon ban + gui loi moi (TTL 5 phut)
+            // (2026-11-15) Surface(onClick) thay clickable ngoai Surface (ripple tran goc bo),
+            // icon that thay emoji 👥, cao >= 48dp, co nhan-lun
+            val coopInteraction = remember { MutableInteractionSource() }
             Surface(
-                shape = SkinTheme.shapes.sheet,
-                color = Color.Black.copy(alpha = 0.6f),
-                modifier = Modifier.clickable {
+                onClick = {
                     friendsViewModel.loadFriends()
                     showCoopPicker = true
                 },
+                shape = SkinTheme.shapes.pill,
+                color = Color.Black.copy(alpha = 0.6f),
+                interactionSource = coopInteraction,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .pressScale(coopInteraction),
             ) {
-                Text(
-                    text = "👥 Co-op",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Group,
+                        contentDescription = null,
+                        tint = SkinTheme.colors.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Co-op",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
 
             // Nut center "Take a picture": BAM = chup anh, GIU = quay "anh GIF" <=3s,
@@ -231,8 +264,14 @@ fun CameraScreen(
                 items = takePhotoBar.map { item ->
                     when {
                         item.isCenter -> item.copy(
-                            onClick = { captureRequestId++ },
-                            onLongPress = { startRecordRequestId++ },
+                            onClick = {
+                                shutterFeedback.shutter() // rung + tieng chup (DESIGN.md 0.4)
+                                captureRequestId++
+                            },
+                            onLongPress = {
+                                shutterFeedback.shutter()
+                                startRecordRequestId++
+                            },
                             // Tha tay o MOI lan bam — preview tu bo qua neu khong dang quay
                             onPressRelease = { stopRecordRequestId++ },
                         )
@@ -245,6 +284,30 @@ fun CameraScreen(
             // (Hang "History" + nut mui ten cu da XOA 2026-07-13 — UI chet, bam khong lam gi)
         }
     }
+
+    // Sheet quan ly ban be (dung chung voi Feed/Profile): dem ban, QR ket ban, loi moi
+    UserDetailBottomSheet(
+        data = if (showFriendSheet) {
+            UserDetailBottomSheetData(
+                friends = apiFriends,
+                isLoading = friendsStatus is LoadStatus.Loading,
+                inviteCode = inviteLink?.inviteCode,
+                inviteLink = inviteLink?.link,
+                inviteExpiresAt = inviteLink?.expiresAt,
+                requests = friendRequests,
+                onAcceptRequest = { request -> friendsViewModel.acceptRequest(request.id) },
+                onDeclineRequest = { request -> friendsViewModel.declineRequest(request.id) },
+                onScanQrClick = {
+                    showFriendSheet = false
+                    navController.navigate(Screen.QrScan.route)
+                },
+                onRemoveFriend = { friend -> friendsViewModel.removeFriend(friend.id) },
+            )
+        } else {
+            null
+        },
+        onDismiss = { showFriendSheet = false },
+    )
 
     // Popup chon ban gui loi moi chup chung -> thanh cong sang man cho/chup coop
     if (showCoopPicker) {

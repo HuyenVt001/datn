@@ -2,18 +2,26 @@ package com.example.snapget.feature.shop
 
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,8 +30,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,19 +49,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -62,13 +72,20 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import com.example.snapget.R
 import com.example.snapget.core.common.LoadStatus
-import com.example.snapget.core.designsystem.component.collectible.CollectibleItem
-import com.example.snapget.core.designsystem.component.collectible.CollectibleState
+import com.example.snapget.core.designsystem.component.button.ChunkyButton
+import com.example.snapget.core.designsystem.component.button.ChunkyStyle
 import com.example.snapget.core.designsystem.component.collectible.EffectDemoCell
 import com.example.snapget.core.designsystem.component.collectible.SkinThumbnail
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.component.lottie.SnapAnim
+import com.example.snapget.core.designsystem.component.lottie.SnapLottie
+import com.example.snapget.core.designsystem.component.state.SkeletonGrid
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.darken
 import com.example.snapget.core.network.dto.ShopItemDto
 import kotlinx.coroutines.delay
 
@@ -92,6 +109,7 @@ private const val TOPUP_POLL_MAX_ATTEMPTS = 60
 fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Moi lan vao tab la doc lai so du (co the vua doi do quest/nap o noi khac)
@@ -99,7 +117,7 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             viewModel.dismissMessage()
         }
     }
@@ -255,9 +273,14 @@ fun ShopScreenContent(
                 )
 
                 uiState.status is LoadStatus.Loading && uiState.items.isEmpty() -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = SkinTheme.colors.accent)
-                    }
+                    // P5: skeleton luoi 2 cot (o skin 9:16 — tab mac dinh Skins)
+                    SkeletonGrid(
+                        columns = 2,
+                        count = 4,
+                        aspectRatio = 9f / 16f,
+                        spacing = 12.dp,
+                        contentPadding = PaddingValues(16.dp),
+                    )
                 }
 
                 uiState.status is LoadStatus.Error -> {
@@ -311,11 +334,16 @@ private fun AstriteBalance(astrite: Int, onClick: () -> Unit) {
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(6.dp))
+        // So du DEM len/xuong khi doi (mua -> thay tru dan) — Playful v2
+        val shown by animateIntAsState(
+            targetValue = astrite,
+            animationSpec = tween(durationMillis = 700),
+            label = "astriteCount",
+        )
         Text(
-            text = formatAstrite(astrite),
+            text = formatAstrite(shown),
             color = SkinTheme.colors.accentGold,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
         )
         Spacer(Modifier.width(6.dp))
         Icon(
@@ -368,6 +396,11 @@ private fun ItemsGrid(
     }
 }
 
+/**
+ * 1 o hang (Shop redesign "chi nang cap o item" — user chot 2026-11-15):
+ * THE CHUNKY (day day 4dp, nhan lun) chua anh + ten + nut gia; huy hieu goc
+ * ✓ Owned / Equipped; vua mua xong -> o "pop" + Lottie lap lanh + rung.
+ */
 @Composable
 private fun ShopItemCard(
     item: ShopItemDto,
@@ -379,34 +412,149 @@ private fun ShopItemCard(
 ) {
     // Bam o hieu ung -> chay lai demo (cham thu truoc khi mua)
     var replay by remember(item.itemId) { mutableIntStateOf(0) }
+    val colors = SkinTheme.colors
+    val shape = SkinTheme.shapes.card
+    val feedback = rememberFeedback()
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        CollectibleItem(
-            name = item.itemName,
-            // Hang dang ban KHONG dung LOCKED (lam mo + 🔒) — o Shop moi thu chua
-            // mua deu "chua so huu", lam mo het thi ca ke hang xam xit.
-            state = if (inUse) CollectibleState.IN_USE else CollectibleState.OWNED,
-            aspectRatio = if (item.itemType == ShopItemDto.TYPE_SKIN) 9f / 16f else 1f,
-            onClick = {
-                when {
-                    item.itemType == ShopItemDto.TYPE_EFFECT -> replay++
-                    !item.isOwned -> onBuy()
-                }
-            },
-        ) {
-            ItemPreview(item = item, replay = replay)
+    // Phat hien "vua mua xong": isOwned false -> true trong luc man dang mo
+    var wasOwned by remember(item.itemId) { mutableStateOf(item.isOwned) }
+    var celebrate by remember(item.itemId) { mutableIntStateOf(0) }
+    LaunchedEffect(item.isOwned) {
+        if (item.isOwned && !wasOwned) {
+            celebrate++
+            feedback.success()
         }
+        wasOwned = item.isOwned
+    }
 
-        Spacer(Modifier.height(6.dp))
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val depth = 4.dp
+    val pressOffset by animateDpAsState(
+        targetValue = if (pressed) depth else 0.dp,
+        animationSpec = tween(70),
+        label = "cardPress",
+    )
 
-        PriceButton(
-            item = item,
-            inUse = inUse,
-            canAfford = canAfford,
-            isBuying = isBuying,
-            onBuy = onBuy,
-            onApply = onApply,
+    Box(modifier = Modifier.padding(bottom = depth).popOnChange(celebrate)) {
+        // Day the (bong) — dung yen
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(y = depth)
+                .clip(shape)
+                .background(if (inUse) colors.accentShadow else colors.surfaceVariant.darken(0.6f)),
         )
+        // Mat the — dich xuong khi nhan
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .offset(y = pressOffset)
+                .clip(shape)
+                .background(colors.surface)
+                .border(2.dp, if (inUse) colors.accent else colors.surfaceVariant, shape)
+                .clickable(
+                    interactionSource = interaction,
+                    indication = null,
+                    onClickLabel = when {
+                        item.itemType == ShopItemDto.TYPE_EFFECT -> "Preview effect"
+                        !item.isOwned -> "Buy"
+                        else -> null
+                    },
+                ) {
+                    feedback.tap()
+                    when {
+                        item.itemType == ShopItemDto.TYPE_EFFECT -> replay++
+                        !item.isOwned -> onBuy()
+                    }
+                }
+                .padding(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(if (item.itemType == ShopItemDto.TYPE_SKIN) 9f / 16f else 1f)
+                    .clip(SkinTheme.shapes.input)
+                    .background(colors.surfaceVariant),
+            ) {
+                ItemPreview(item = item, replay = replay)
+
+                // Huy hieu goc: Equipped (dang dung) / Owned (da mua)
+                when {
+                    inUse -> CornerBadge(
+                        text = "Equipped",
+                        background = colors.accent,
+                        content = colors.onAccent,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                    item.isOwned -> CornerBadge(
+                        text = "Owned",
+                        background = colors.success,
+                        content = colors.onAccent,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                }
+
+                // Lap lanh khi vua mua (chay 1 lan)
+                if (celebrate > 0) {
+                    androidx.compose.runtime.key(celebrate) {
+                        SnapLottie(
+                            anim = SnapAnim.SPARKLE,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = item.itemName,
+                color = colors.textPrimary,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            PriceButton(
+                item = item,
+                inUse = inUse,
+                canAfford = canAfford,
+                isBuying = isBuying,
+                onBuy = onBuy,
+                onApply = onApply,
+            )
+        }
+    }
+}
+
+/** Huy hieu nho goc tren the hang (✓ Owned / Equipped). */
+@Composable
+private fun CornerBadge(
+    text: String,
+    background: Color,
+    content: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .padding(6.dp)
+            .clip(SkinTheme.shapes.pill)
+            .background(background)
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = null,
+            tint = content,
+            modifier = Modifier.size(12.dp),
+        )
+        Spacer(Modifier.width(3.dp))
+        Text(text = text, color = content, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -452,28 +600,19 @@ private fun PriceButton(
     onBuy: () -> Unit,
     onApply: () -> Unit,
 ) {
-    val base = Modifier.fillMaxWidth().height(36.dp).clip(SkinTheme.shapes.pill)
-
+    // (2026-11-15) Nut CHUNKY 44dp (truoc pill phang 36dp — duoi nguong vung cham)
+    val height = 40.dp
     when {
-        isBuying -> Box(
-            modifier = base.background(SkinTheme.colors.accent),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-                color = SkinTheme.colors.onAccent,
-            )
-        }
-
-        !item.isOwned -> Row(
-            modifier = base
-                .background(SkinTheme.colors.accent)
+        !item.isOwned || isBuying -> ChunkyButton(
+            onClick = onBuy,
+            loading = isBuying,
+            height = height,
+            depth = 3.dp,
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
                 // Thieu tien VAN bam duoc: dialog se goi y sang tab Astrite
-                .alpha(if (canAfford) 1f else 0.6f)
-                .clickable(onClick = onBuy),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+                .alpha(if (canAfford || isBuying) 1f else 0.6f),
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_astrite),
@@ -483,35 +622,32 @@ private fun PriceButton(
             Spacer(Modifier.width(6.dp))
             Text(
                 text = formatAstrite(item.price),
-                color = SkinTheme.colors.onAccent,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
             )
         }
 
         item.itemType == ShopItemDto.TYPE_FRAME || inUse -> Box(
-            modifier = base.background(SkinTheme.colors.surfaceVariant),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height)
+                .clip(SkinTheme.shapes.input)
+                .background(SkinTheme.colors.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = if (inUse) "In use" else "Owned",
                 color = SkinTheme.colors.textSecondary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
 
-        else -> Box(
-            modifier = base.background(SkinTheme.colors.pill).clickable(onClick = onApply),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "Apply",
-                color = SkinTheme.colors.accent,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-            )
-        }
+        else -> ChunkyButton(
+            text = "Apply",
+            onClick = onApply,
+            style = ChunkyStyle.Secondary,
+            height = height,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

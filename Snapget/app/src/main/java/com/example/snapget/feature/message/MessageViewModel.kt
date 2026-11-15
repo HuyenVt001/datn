@@ -95,7 +95,6 @@ class MessageViewModel @Inject constructor(
                         id = dto.uid,
                         name = dto.fullName ?: "Snapget user",
                         avatar = dto.avatar.orEmpty(),
-                        streak = dto.friendStreak ?: 0,
                     )
                 }
                 _friendsById.value = friends
@@ -189,6 +188,8 @@ class MessageViewModel @Inject constructor(
         content: String,
         messageType: String = "TEXT",
         replyToId: String? = null,
+        // Gui loi -> UI tra lai chu da go (2026-11-15)
+        onFailed: () -> Unit = {},
     ) {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return
@@ -198,6 +199,7 @@ class MessageViewModel @Inject constructor(
                 _thread.value = _thread.value + sent
             } catch (e: Exception) {
                 _sendError.value = e.serverMessage("Failed to send message.")
+                onFailed()
             }
         }
     }
@@ -445,7 +447,6 @@ class MessageViewModel @Inject constructor(
                         id = dto.uid,
                         name = dto.fullName ?: "Snapget user",
                         avatar = dto.avatar.orEmpty(),
-                        streak = dto.friendStreak ?: 0,
                     )
                 }
             } catch (_: Exception) {

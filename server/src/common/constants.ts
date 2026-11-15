@@ -5,7 +5,6 @@
 export const MAX_FRIENDS = 20; // Gioi han ban be moi user
 export const MAX_GROUP_SIZE = 20; // Thanh vien toi da 1 nhom chat
 export const MAX_VIDEO_SECONDS = 3; // Do dai "anh GIF" (clip ngan, lap vo han, khong tieng) toi da — chot 2026-08-03 (truoc la 5)
-export const STREAK_WINDOW_HOURS = 24; // Qua 24h khong tuong tac -> reset friend streak
 export const DAILY_QUESTS_PER_DAY = 3; // 2 quest co dinh (LOGIN + POST_MOMENT) + 1 quest AI (AI_CHALLENGE) — nang tu 2 len 3 theo thiet ke goc (2026-08-15, QUEST_AI_PLAN.md)
 export const STREAK_MILESTONES = [3, 7, 14, 30]; // Moc streak ca nhan duoc thuong khung
 export const COOP_INVITE_TTL_MINUTES = 5; // Loi moi chup chung qua 5 phut chua tra loi -> het han

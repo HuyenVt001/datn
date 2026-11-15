@@ -118,7 +118,7 @@ fun InviteConfirmDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Once ${info.fullName ?: "your friend"} confirms, you'll see each other's moments and start a friend streak together.",
+                            text = "Once ${info.fullName ?: "your friend"} confirms, you'll see each other's moments.",
                             color = SkinTheme.colors.onSurfaceVariant,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,

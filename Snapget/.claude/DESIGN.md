@@ -41,7 +41,7 @@
 - ✅ Animate bằng API Compose (`animate*AsState`, `AnimatedVisibility`, `updateTransition`), logic animation nằm ở UI, **không** ở ViewModel (skill stack jetpack-compose).
 - ✅ Chỉ animate `graphicsLayer` (scale/alpha/translation) — không animate width/height gây re-layout.
 
-### 0.3 Nút "chunky" (component mới `core/designsystem/component/button/ChunkyButton.kt`) — ⏳ chờ chốt kiểu
+### 0.3 Nút "chunky" (component mới `core/designsystem/component/button/ChunkyButton.kt`) — ✅ chốt 2026-11-15
 - Thân nút màu `accent`, **đáy dày 4dp** màu `accent` tối hơn ~30% (token mới `accentShadow`); nhấn → thân dịch xuống 4dp, đáy biến mất = cảm giác "lún". Bo `shapes.input` (16dp), cao **52dp**, chữ Bold 16sp.
 - Biến thể: `Primary` (accent) · `Secondary` (nền `pill`, đáy `surfaceVariant`) · `Danger` (error) · `Disabled` (phẳng, không đáy, `textSecondary`).
 - Áp cho CTA chính: Sign In, Buy/Apply (Shop), Next (Edit), Accept (coop), Retry. **Không** áp cho nút chụp 80dp (giữ vòng tròn viền vàng — bản sắc camera).
@@ -56,7 +56,12 @@
 | Lỗi (shake) | `Reject` (API 30+), fallback không rung |
 Tôn trọng cài đặt rung hệ thống (dùng `LocalHapticFeedback`, không gọi `Vibrator` trực tiếp). ⏳ Có thể thêm toggle "Haptics" trong Settings.
 
-### 0.5 Khoảnh khắc ăn mừng (celebration moments) — ⏳ chờ chốt danh sách + mức độ
+**Âm thanh — ❌ KHÔNG CÓ (user chốt 2026-11-15, đổi ý sau khi đã làm):** app **không phát bất kỳ âm thanh nào** (đã xóa `SoundEffects`, `res/raw/sfx_*`, setting "Sound effects"). Phản hồi chỉ bằng **hình (Lottie/motion) + rung**. Đừng thêm âm thanh lại nếu user chưa yêu cầu.
+
+### 0.5 Khoảnh khắc ăn mừng (celebration moments) — ✅ chốt "kết hợp" 2026-11-15
+- **Lớn** (streak +1, mốc 3/7/14/30, mở khóa khung) = **overlay toàn màn** + Lottie + haptic `Confirm` (không âm thanh).
+- **Nhỏ** (xong 1 quest, mua item, kết bạn, AI challenge) = **hiệu ứng tại chỗ** (`pop`, lấp lánh, số đếm) — không cắt ngang luồng.
+- Animation = **Lottie** (`lottie-compose`, user cho phép 2026-11-15) lấy từ LottieFiles free; **không dùng linh vật**. File JSON đặt `res/raw/lottie_*.json`; đổi màu theo skin bằng `LottieDynamicProperties` (key màu chính → `accent`/`accentGold`). Quy trình tìm & thêm file: `UI_UPGRADE_PLAN.md` mục "Lottie".
 | Khoảnh khắc | Đề xuất hiển thị |
 |---|---|
 | Đăng moment đầu tiên trong ngày → **streak +1** | Màn phủ toàn màn: 🔥 to nảy (`pop`), số streak **đếm lên** (N-1 → N), chữ "N day streak!", tự đóng 2s hoặc chạm để đóng |
@@ -71,24 +76,38 @@ Tôn trọng cài đặt rung hệ thống (dùng `LocalHapticFeedback`, không 
 - Streak: **thanh tiến độ tới mốc kế tiếp** ("5 / 7 → unlock frame"), không chỉ số trần.
 - Quest: vòng tiến độ tổng `completed/total`; phần thưởng (+60 / +30 Astrite) **hiện trước** khi làm, không chỉ sau.
 - Card quest chưa xong có **CTA đi làm ngay** (vd "Post a moment" → camera).
-- ⏳ Nhắc giữ streak: badge/nhấp nháy ở tab Quest khi hôm nay chưa đăng bài.
+- ✅ Nhắc giữ streak = **push notification** từ server (user chốt 2026-11-15), không chèn banner/chấm trong app; chi tiết + contract `POST /moments.streak`: `UI_UPGRADE_PLAN.md`.
 
-### 0.7 Màu bổ sung — ⏳ chờ chốt (đụng nguyên tắc 1.2 "vàng là accent duy nhất")
-Đề xuất thêm **token chức năng** (không phải accent trang trí), có giá trị riêng mỗi skin:
-| Token đề xuất | Default skin | Vai trò |
-|---|---|---|
-| `success` | `#58CC7A` (xanh lá dịu) | Quest xong, thao tác thành công, check |
-| `streak` | `#FF9F1C` (cam lửa) | Riêng streak 🔥 — tách khỏi `accentGold` |
-| `info` | `#4FC3F7` | Thông tin trung tính, link phụ |
-| `badge` | ⏳ đỏ `#FF3B30` **hoặc** `accentGold` | Badge chưa đọc — thống nhất 1 màu (hiện footer đỏ, top bar vàng) |
-| `accentShadow` | accent tối 30% | Đáy nút chunky (0.3) |
+### 0.7 Màu bổ sung — ✅ chốt 2026-11-15 (nới nguyên tắc 1.2: vàng vẫn là màu THƯƠNG HIỆU duy nhất; thêm màu CHỨC NĂNG)
+**Token chức năng** (không phải accent trang trí), có giá trị riêng mỗi skin:
+| Token | Default skin | Contrast / `#121212` | Vai trò |
+|---|---|---|---|
+| `success` | `#58CC7A` (xanh lá dịu) | 9.2:1 | Quest xong, thao tác thành công, check |
+| `streak` | `#FF9F1C` (cam lửa) | 9.1:1 | Riêng streak 🔥 — tách khỏi `accentGold` |
+| `info` | `#4FC3F7` | — | Thông tin trung tính, link phụ |
+| `badge` | = **`accentGold`** (✅ user chốt) | — | Badge chưa đọc ở MỌI nơi (bỏ đỏ `0xFFFF3B30` của footer), chữ `onAccent` |
+| `accentShadow` | accent × 0.7 | — | Đáy nút chunky (0.3) |
 Kiểm contrast ≥ 4.5:1 cho chữ, ≥ 3:1 cho icon/viền trên `#121212`.
 
-### 0.8 Typography v2 — ⏳ chờ chốt font
-- Skill gợi ý cặp **Fredoka (tiêu đề) + Nunito (nội dung)** — tròn, thân thiện, có Google Fonts (OFL), hỗ trợ tiếng Việt cần kiểm tra Fredoka. Phương án khác: **Nunito** cho cả hai (an toàn tiếng Việt).
+**Tông vàng mới — ✅ chốt A · Honey Gold (2026-11-15):** `accent = #F5C542`, `accentGold = #E8A93A`, `accentShadow = #AB892E` (trang so sánh: https://claude.ai/artifact/CQEpwAGRYGdpcp8Y3hDgDq). Lý do đổi: `#FFFF00` là vàng chanh thuần, quá chói trên nền tối. Mọi chỗ trong file này còn ghi `#FFFF00`/`#FFD700`/`Color.Yellow` = giá trị CŨ, đọc là `accent`/`accentGold`.
+| Phương án | `accent` | `accentGold` | Contrast accent / gold |
+|---|---|---|---|
+| Hiện tại | `#FFFF00` | `#FFD700` | 17.4 / 13.4 |
+| A · Honey Gold (đề xuất) | `#F5C542` | `#E8A93A` | 11.6 / 9.1 |
+| B · Champagne Gold | `#E6C068` | `#D4A24C` | 10.8 / 8.1 |
+| C · Antique Gold | `#D4A94E` | `#B8893A` | 8.6 / 6.0 |
+Đổi = sửa 2 dòng trong `skins/DefaultSkin.kt` (mọi chỗ đã đọc qua token) + gradient gold avatar profile (mục 2, chưa token hóa) cho cùng tông.
+
+### 0.8 Typography v2 — ✅ chốt **Nunito cho cả app** (2026-11-15)
+- Nunito (Google Fonts, OFL, đủ dấu tiếng Việt) — file `.ttf` các weight 400/600/700/800/900 vào `res/font/`, khai `FontFamily` trong `Type.kt` (không dùng Downloadable Fonts để app chạy offline). `AppSkin.fontFamily` vẫn cho skin ghi đè.
 - Bổ sung đủ thang M3 vào `Type.kt` (display/headline/title/body/label) **kèm fontWeight** — bỏ thói quen set `fontWeight` tại chỗ.
 - Số gamification (streak, Astrite, đếm quest) dùng style riêng `numberDisplay`: 28–40sp ExtraBold, `fontFeatureSettings = "tnum"` để số đếm lên không nhảy bề ngang.
 - ✅ Chữ tối thiểu **12sp**; không dùng alpha để làm mờ chữ (dùng `textSecondary`).
+
+### 0.8b Thay đổi điều hướng đã chốt (2026-11-15)
+- **Footer 5 tab:** giữ **chỉ icon** (không nhãn chữ). Tab đang chọn: đổi màu `navBarActive` **và phình to** 26dp → 32dp bằng `Motion.pop` (spring nảy nhẹ); bỏ `indication = null`, có semantics `Role.Tab` + `selected`.
+- **Camera top bar:** pill giữa **không còn là dropdown "Everyone"** → hiển thị **"N Friends"** (số bạn bè thật); bấm = mở **sheet bạn bè** (`UserDetailBottomSheet`, giống icon 👥 ở profile).
+- **Camera bottom bar:** **xóa** icon "Photo Library" (trước mở nhầm Feed). Còn lại: nút chụp giữa + nút lật camera.
 
 ### 0.9 Giọng văn (UX copy) — ✅
 Ngắn, ấm, khích lệ, ngôi thứ hai. Empty/error state luôn có **1 hành động**:
@@ -101,7 +120,8 @@ Ngắn, ấm, khích lệ, ngôi thứ hai. Empty/error state luôn có **1 hàn
 - Icon trang trí cạnh chữ: `contentDescription = null`; tab/chip có `selected` + `Role` trong semantics.
 - 3 trạng thái tách bạch **Loading (skeleton) / Error (+Retry) / Empty (+CTA)**; danh sách có pull-to-refresh.
 - Không xóa nội dung người dùng trước khi thao tác thành công; màn chỉnh sửa có "Discard changes?".
-- Phản hồi = **Snackbar** (có action Undo/Retry) thay Toast trong màn có Scaffold.
+- Phản hồi = **Snackbar dùng chung** qua `rememberMessenger().show(...)` (`component/feedback/AppMessenger.kt`, host ở `MainActivity`) — **không dùng Toast** trong Composable mới.
+- Loading = **skeleton** (`component/state/Skeleton.kt`) giữ đúng bố cục, không spinner giữa màn (trừ thao tác ngắn trong nút).
 - Màu mới → token `SkinColors` trước (luật SKIN), không hardcode trong `feature/`.
 
 ---
@@ -282,7 +302,7 @@ Giá trị thật trong code:
 Ảnh: `settings_screen.png`. Title giữa; section: icon + label Bold; item card `colorScheme.surface` bo **8dp**: icon tròn 40dp + title **Medium** + subtitle xám + chevron 16dp/toggle.
 
 ### 7.12 Friend sheet (quản lý bạn bè) — ✅ ĐÃ NỐI API + QR (2026-07-12)
-Ảnh: `user_detail_bottom_sheet.png` → `component/sheet/UserDetailBottomSheet.kt`. Bottom sheet full: **"X out of 20 friends"** to Bold giữa; "Invite a friend to continue" phụ; **pill "Add new friend"** = MỞ `AddFriendQrDialog` (khác asset: không search — server chỉ hỗ trợ mã mời); "Your Friends": avatar + tên + **🔥 streak vàng `#FFD700`** (khi > 0) + **✕ xóa (có AlertDialog xác nhận, nút Xóa màu `GrayError`)**; "Find Friend From other Apps" + "Share your Snapget link" (trang trí). Data: `FriendsViewModel` → API `/friendships`. Entry: hàng "Add friends" cuối dropdown MainTopBar (feed) + icon 👥 `UserProfileTopBar`.
+Ảnh: `user_detail_bottom_sheet.png` → `component/sheet/UserDetailBottomSheet.kt`. Bottom sheet full: **"X out of 20 friends"** to Bold giữa; "Invite a friend to continue" phụ; **pill "Add new friend"** = MỞ `AddFriendQrDialog` (khác asset: không search — server chỉ hỗ trợ mã mời); "Your Friends": avatar + tên + **✕ xóa (có AlertDialog xác nhận, nút Xóa màu `GrayError`)**; "Find Friend From other Apps" + "Share your Snapget link" (trang trí). Data: `FriendsViewModel` → API `/friendships`. Entry: hàng "Add friends" cuối dropdown MainTopBar (feed) + icon 👥 `UserProfileTopBar`.
 
 ### 7.12b Kết bạn QR — `AddFriendQrDialog.kt` + `feature/friends/QrScanScreen.kt`
 - **Dialog QR**: surface `GraySurface` bo 20dp; title "Add new friend" Bold; QR đen-trên-trắng (sinh bằng zxing từ invite link) trong thẻ trắng bo 16dp; mã mời chữ xám letterSpacing 2sp; divider "hoặc"; **nút pill TRẮNG chữ đen** "Quét QR của bạn bè" (cùng họ nút Sign In / Google của login).
@@ -315,7 +335,7 @@ Các tính năng sau **không có ảnh mẫu**; khi làm phải: (1) đề xu�
 - ~~Co-op capture (chụp chung)~~ → ✅ đã làm theo spec chữ user chốt 2026-08-02: popup chọn bạn (dialog `#2C2C2C`, avatar viền vàng khi chọn) → `CoopCaptureScreen` nửa camera + nửa xám `#2C2C2C` spinner chờ; nút chụp 80dp viền vàng → nút Send tròn mũi tên (xoay -45° như màn đăng bài) + icon Again trái; ảnh ghép → luồng edit/đăng bài thường
 - **Daily Quest** — màn quest, nộp ảnh, trạng thái hoàn thành
 - ~~Chat nhóm~~ → ✅ màn chat nhóm + **sheet cài đặt nhóm** đã làm (7.15 — user gửi ảnh mẫu Messenger 2026-08-02: đổi tên/avatar, mời/xóa thành viên, mute, rời nhóm); tạo nhóm vẫn là dialog GroupAdd ở Messages (chưa có asset riêng)
-- ~~Friend streak cạnh tên bạn~~ → ✅ đã làm trong sheet bạn bè (7.12); nếu muốn hiện thêm chỗ khác (dropdown, chat) thì hỏi lại
+- ~~Friend streak~~ → ❌ **ĐÃ BỎ HẲN (user chốt 2026-11-15)** — chỉ còn streak cá nhân; không hiện 🔥 cạnh bạn bè ở sheet/Messages/Chat
 - ~~Màn `relationship`~~ → ✅ đã làm = sheet 7.12 + QR 7.12b (user chốt 2026-07-12: chỉ mã mời, QR, bottom sheet)
 - **Thông báo (notifications) UI**
 
@@ -326,7 +346,7 @@ Gợi ý mặc định khi đề xuất: tái dùng component mục 7, màu mụ
 ## 9. Khác biệt assets ↔ code cần nhớ
 
 1. **Branding:** ảnh ghi "Nocket"/"Locket" (app tham khảo) → mọi chữ trong code dùng **"Snapget"**. Chữ "Lockets" ở profile (`UserProfileScreen`) cũng cần đổi → "Moments".
-2. ~~Profile calendar + streak pill chạy mock~~ → ✅ **đã nối data thật** (2026-07-12): `personalStreak` + moments từ API; chữ "Lockets" đã đổi "Moments". Friend streak hiện ở sheet bạn bè (7.12).
+2. ~~Profile calendar + streak pill chạy mock~~ → ✅ **đã nối data thật** (2026-07-12): `personalStreak` + moments từ API; chữ "Lockets" đã đổi "Moments". (Friend streak đã bỏ 2026-11-15.)
 3. `messages_screen_old.png` là bản CŨ — bỏ qua, chỉ theo `messages_screen.png`.
 4. Code hiện có `DarkBrownTheme.kt` (nâu + Amber) **không khớp assets** — chuẩn là Gray scheme trong `Theme.kt`; đừng dùng DarkBrown cho màn mới. (Dấu vết nâu còn sót: pill `#404137`, Gold pill `#74512D` — chấp nhận, không lan thêm.)
 5. **Nút chụp giữa bottom bar ĐÃ viền vàng** (`MainBottomBar` → `Circle`, 80dp/3dp/`Color.Yellow`). ~~Nút shutter trong `CameraPreview.kt`~~ → **đã XÓA hẳn** (2026-07-26, trùng nút — chụp/quay đều qua nút center bottom bar).

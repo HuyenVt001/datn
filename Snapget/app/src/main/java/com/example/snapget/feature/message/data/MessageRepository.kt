@@ -31,7 +31,7 @@ class MessageRepository @Inject constructor(
 ) {
 
     /**
-     * Gui tin 1-1 (server kiem tra ban be, cong friend streak, push FCM).
+     * Gui tin 1-1 (server kiem tra ban be, push FCM).
      * [attachmentUrl]/[attachmentType]: media dinh kem — dung cho tin reply bai dang
      * (gui kem anh/video cua bai; attachmentType = PHOTO | VIDEO).
      */

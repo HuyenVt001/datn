@@ -16,7 +16,7 @@ import retrofit2.http.Path
 /** Endpoint /friendships cua server NestJS (gioi han 20 ban — server enforce). */
 interface FriendshipApi {
 
-    /** Danh sach ban be kem friend streak. */
+    /** Danh sach ban be (ten + avatar). */
     @GET("friendships")
     suspend fun listFriends(): ApiResponse<List<FriendSummaryDto>>
 
@@ -47,7 +47,7 @@ interface FriendshipApi {
     @POST("friendships/requests/{requesterUid}/decline")
     suspend fun declineRequest(@Path("requesterUid") requesterUid: String): ApiResponse<Map<String, String>>
 
-    /** Xoa ban (mat friend streak chung). */
+    /** Xoa ban. */
     @DELETE("friendships/{friendUid}")
     suspend fun removeFriend(@Path("friendUid") friendUid: String): ApiResponse<Map<String, String>>
 }

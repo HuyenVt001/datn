@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { INVITE_LINK_BASE_URL, MAX_FRIENDS, STREAK_WINDOW_HOURS } from '../common/constants';
+import { INVITE_LINK_BASE_URL, MAX_FRIENDS } from '../common/constants';
 import { FramesService } from '../frames/frames.service';
 import { PublicUser, User } from '../users/entities/user.entity';
 import { UsersRepository } from '../users/users.repository';
@@ -178,7 +178,7 @@ export class FriendshipsService {
     await this.usersService.pushToUids([uid], title, body, data);
   }
 
-  /** Danh sach ban be (kem ten/avatar + friend streak). */
+  /** Danh sach ban be (kem ten/avatar). Friend streak da bo 2026-11-15. */
   async listMyFriends(uid: string): Promise<FriendSummary[]> {
     const friendships = await this.repo.listAccepted(uid);
     const summaries = await Promise.all(
@@ -189,7 +189,6 @@ export class FriendshipsService {
           uid: friendUid,
           fullName: profile?.fullName ?? 'Nguoi dung',
           avatar: profile?.avatar,
-          friendStreak: f.friendStreak,
         };
       }),
     );
@@ -203,36 +202,5 @@ export class FriendshipsService {
       throw new NotFoundException('Hai ban chua ket ban.');
     }
     await this.repo.delete(currentUid, friendUid);
-  }
-
-  /**
-   * Ghi nhan tuong tac giua 2 ban -> cap nhat friend streak.
-   * Trong 24h ke tu lan truoc: +1 (neu qua ngay); >24h: reset ve 1.
-   * Duoc goi tu moments/messages khi co tuong tac (noi day o buoc sau).
-   */
-  async registerInteraction(a: string, b: string): Promise<void> {
-    const pair = await this.repo.findPair(a, b);
-    if (!pair || pair.status !== 'ACCEPTED') {
-      return;
-    }
-    const now = new Date();
-    const last = pair.lastInteractionAt ? new Date(pair.lastInteractionAt) : null;
-    const withinWindow =
-      last !== null && now.getTime() - last.getTime() <= STREAK_WINDOW_HOURS * 60 * 60 * 1000;
-
-    let nextStreak: number;
-    if (!last) {
-      nextStreak = 1;
-    } else if (withinWindow) {
-      // Cung "phien" tuong tac — chi tang khi sang ngay moi.
-      nextStreak = this.isSameDay(last, now) ? pair.friendStreak : pair.friendStreak + 1;
-    } else {
-      nextStreak = 1; // Qua 24h khong tuong tac -> reset.
-    }
-    await this.repo.updateStreak(pair.pairId, nextStreak, now.toISOString());
-  }
-
-  private isSameDay(a: Date, b: Date): boolean {
-    return a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
   }
 }

@@ -2,7 +2,6 @@ package com.example.snapget.feature.friends
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -56,13 +55,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.snapget.core.common.LoadStatus
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.component.lottie.SnapAnim
+import com.example.snapget.core.designsystem.component.lottie.SnapLottie
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
+import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.delay
 
 // ⚠️ `Color.White` trong file nay la CO Y, KHONG doi sang token skin:
 // chu/icon o day nam de len ANH hoac CAMERA cua nguoi dung nen phai trang
@@ -82,6 +86,7 @@ fun QrScanScreen(
     friendsViewModel: FriendsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val messenger = rememberMessenger()
     val lifecycleOwner = LocalLifecycleOwner.current
     val connectStatus by friendsViewModel.connectStatus.collectAsState()
     val inviteConfirm by friendsViewModel.inviteConfirm.collectAsState()
@@ -111,17 +116,28 @@ fun QrScanScreen(
         }
     }
 
-    // Phan hoi ket qua gui loi moi: thanh cong -> Toast + quay lai; loi -> Toast + cho quet tiep
+    // An mung nho khi ket noi thanh cong (Playful v2 — DESIGN.md 0.5): Lottie "high five"
+    // + rung ~1.8s roi moi quay lai (truoc: toast + quay lai ngay)
+    val feedback = rememberFeedback()
+    var connectedMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(connectedMessage) {
+        if (connectedMessage != null) {
+            delay(1800)
+            navController.popBackStack()
+        }
+    }
+
+    // Phan hoi ket qua gui loi moi: thanh cong -> an mung + quay lai; loi -> Toast + cho quet tiep
     LaunchedEffect(connectStatus) {
         when (val status = connectStatus) {
             is LoadStatus.Success -> {
                 // "Da gui loi moi — cho X xac nhan" (PENDING) / "Ket ban thanh cong" (mutual)
-                Toast.makeText(context, friendsViewModel.lastConnectMessage, Toast.LENGTH_LONG).show()
-                navController.popBackStack()
+                feedback.success()
+                connectedMessage = friendsViewModel.lastConnectMessage
             }
 
             is LoadStatus.Error -> {
-                Toast.makeText(context, status.error, Toast.LENGTH_LONG).show()
+                messenger.show(status.error)
                 friendsViewModel.resetConnectStatus()
             }
 
@@ -290,6 +306,28 @@ fun QrScanScreen(
             onConfirm = { friendsViewModel.confirmInvite() },
             onDismiss = { friendsViewModel.dismissInviteConfirm() },
         )
+    }
+
+    // Overlay an mung ket noi thanh cong (tu dong quay lai sau ~1.8s)
+    connectedMessage?.let { message ->
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.85f)),
+        ) {
+            SnapLottie(anim = SnapAnim.CONFETTI, modifier = Modifier.fillMaxSize())
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                SnapLottie(anim = SnapAnim.FRIENDS, modifier = Modifier.size(180.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                )
+            }
+        }
     }
 }
 

@@ -2,10 +2,10 @@ package com.example.snapget.feature.message
 
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
@@ -30,7 +31,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,8 +53,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +65,13 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
+import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
+import com.example.snapget.core.designsystem.component.state.EmptyState
+import com.example.snapget.core.designsystem.component.state.ErrorState
+import com.example.snapget.core.designsystem.component.state.SkeletonList
+import com.example.snapget.core.designsystem.motion.popOnChange
+import com.example.snapget.core.designsystem.motion.pressScale
+import com.example.snapget.core.designsystem.motion.staggerEnter
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
@@ -77,6 +86,7 @@ import java.time.format.DateTimeFormatter
  * Danh sach hoi thoai 1-1 — doc tu API /messages/conversations (da migrate
  * khoi Firestore 2026-07-12). Avatar VIEN VANG khi co tin chua doc (DESIGN 7.8).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MessageScreen(
@@ -89,20 +99,22 @@ fun MessageScreen(
     val friendsById by messageViewModel.friendsById.collectAsState()
     val sendError by messageViewModel.sendError.collectAsState()
     val context = LocalContext.current
+    val messenger = rememberMessenger()
 
     // Dialog tao nhom chat (chon ban + dat ten)
     var showCreateGroupDialog by remember { mutableStateOf(false) }
 
-    // Refresh moi lan mo man (khong realtime — REST thuan)
-    LaunchedEffect(Unit) {
+    // Refresh moi lan mo man (khong realtime — REST thuan); dung chung Retry + keo-de-refresh
+    val reload: () -> Unit = {
         messageViewModel.loadConversations()
         messageViewModel.loadGroups()
     }
+    LaunchedEffect(Unit) { reload() }
 
     // Loi tao nhom / gui tin -> Toast message cua server
     LaunchedEffect(sendError) {
         sendError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            messenger.show(it)
             messageViewModel.clearSendError()
         }
     }
@@ -139,58 +151,38 @@ fun MessageScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
+                    SkeletonList() // P5: skeleton hang hoi thoai thay spinner
+                }
+            }
+
+            // Loi tai -> Error + Retry (2026-11-15: truoc hien duoi chu "No messages yet")
+            conversations.isEmpty() && groups.isEmpty() && status is LoadStatus.Error -> {
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    ErrorState(message = (status as LoadStatus.Error).error, onRetry = reload)
                 }
             }
 
             conversations.isEmpty() && groups.isEmpty() -> {
-                // Empty state when no conversations are available
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "No messages",
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "No messages yet",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = if (status is LoadStatus.Error) {
-                            (status as LoadStatus.Error).error
-                        } else {
-                            "Your conversations will appear here"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
+                Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                    EmptyState(
+                        title = "No chats yet",
+                        message = "Add friends from the Camera screen, then say hi here 👋",
                     )
                 }
             }
 
-            else -> {
+            // Keo xuong de tai lai (2026-11-15)
+            else -> PullToRefreshBox(
+                isRefreshing = status is LoadStatus.Loading,
+                onRefresh = reload,
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+            ) {
                 // Nhom chat truoc, roi den hoi thoai 1-1
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     if (groups.isNotEmpty()) {
                         item {
@@ -222,9 +214,10 @@ fun MessageScreen(
                         }
                     }
 
-                    items(conversations) { conversation ->
+                    itemsIndexed(conversations, key = { _, c -> c.counterpartId }) { index, conversation ->
                         ConversationItem(
                             conversation = conversation,
+                            modifier = Modifier.staggerEnter(index),
                             onClick = {
                                 navController.navigate("chat/${conversation.counterpartId}")
                             },
@@ -400,19 +393,22 @@ private fun CreateGroupDialog(
 @Composable
 fun ConversationItem(
     conversation: ConversationUi,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().pressScale(interaction, pressedScale = 0.98f),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(12.dp),
+        shape = SkinTheme.shapes.input,
         onClick = onClick,
+        interactionSource = interaction,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Avatar — vien VANG khi co tin chua doc (DESIGN 7.8)
@@ -443,10 +439,13 @@ fun ConversationItem(
                     Text(
                         text = conversation.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
+
+                    Spacer(Modifier.weight(1f))
 
                     // Ban moi ket chua co tin nhan (sendTime rong) -> khong hien gio
                     // (formatTime se fallback "Now" gay hieu nham la co tin moi)
@@ -454,7 +453,7 @@ fun ConversationItem(
                         Text(
                             text = formatTime(conversation.sendTime),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (conversation.unread) SkinTheme.colors.badge else SkinTheme.colors.textSecondary,
                         )
                     }
                 }
@@ -478,13 +477,25 @@ fun ConversationItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Arrow indicator
-            SkinIcon(
-                res = SkinTheme.icons.chevronRight,
-                fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                contentDescription = "Open conversation",
-                tint = MaterialTheme.colorScheme.onBackground,
-            )
+            // Chua doc = cham vang (badge) thay chevron; da doc = chevron chim.
+            // Chevron trang tri -> contentDescription null (Card da co onClick).
+            if (conversation.unread) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .popOnChange(conversation.unread)
+                        .background(SkinTheme.colors.badge, CircleShape)
+                        .semantics { contentDescription = "Unread" },
+                )
+            } else {
+                SkinIcon(
+                    res = SkinTheme.icons.chevronRight,
+                    fallback = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    contentDescription = null,
+                    tint = SkinTheme.colors.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
