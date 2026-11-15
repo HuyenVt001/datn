@@ -187,7 +187,7 @@ Loss:     BCEWithLogitsLoss(pos_weight per-class)
 
 | Sai kiểu | Hậu quả | Chi phí |
 |---|---|---|
-| False accept (ảnh không có cốc nhưng nhận) | user được 30 Astrite "hời" | ~0 (30 Astrite < 1/5 lần quay gacha) |
+| False accept (ảnh không có cốc nhưng nhận) | user được 30 Astrite "hời" | ~0 (30 Astrite < 1/10 giá khung rẻ nhất ở Shop — 320) |
 | False reject (ảnh CÓ cốc mà không nhận) | user bực, quest cảm giác "gian lận" | **cao — đây là trải nghiệm chính** |
 
 → Chọn **ngưỡng riêng từng lớp** trên PR curve của tập val theo quy tắc: **precision ≥ 0.70, tối đa hóa recall** (~~0.80~~ hạ xuống 0.70 ngày 2026-08-19 — user chốt sau khi xem PR curve v0: giữ 0.8 thì recall chỉ 15–30%/lớp, ảnh đúng trượt liên tục; 0.7 kéo macro-F1 test 0.46 → 0.535, đổi lấy thêm false-accept giá rẻ 30 Astrite — đúng chiều mục 5.2). Thiên recall có chủ đích — ngược hoàn toàn với bài toán kiểm duyệt (nơi thiên precision); phân tích "policy theo chi phí sai lệch" này là một mục báo cáo hay. 12 ngưỡng nằm trong `thresholds.json` **đi cùng model trên Space** (ngưỡng là artifact của từng phiên bản model, đổi model phải calibrate lại — không hardcode ở server).
@@ -370,7 +370,7 @@ App cũ gặp quest thứ 3 chỉ bị **sai icon** và **không có toast** (v�
 | Chọn ảnh có sẵn từ gallery | ✅ **đã xác nhận trong code** (2026-08-14) | Luồng đăng moment chỉ nhận ảnh từ callback CameraX (`CameraScreen.kt` → route `edit_media` bắt buộc `mediaPath`); photo picker `GetContent()` chỉ tồn tại ở avatar/chat, không dẫn vào moment |
 | Chụp lại màn hình máy khác đang hiển thị cái cốc | ❌ v1 | **Nêu thành limitation trong báo cáo** + hướng xử lý (phát hiện moiré, phân tích phổ tần số) — không làm ở DATN |
 | Đăng lặp cùng một cảnh nhiều ngày | ⚠️ | pHash ảnh submission, so trùng với chính user 7 ngày gần nhất — **nice-to-have M8**, không cam kết |
-| Chi phí gian lận tối đa | — | 30 Astrite/ngày < 1/5 lần quay gacha → động cơ gian lận thấp bằng thiết kế kinh tế |
+| Chi phí gian lận tối đa | — | 30 Astrite/ngày < 1/10 giá khung rẻ nhất ở Shop (320; trước 2026-11-15 là < 1/5 lần quay gacha) → động cơ gian lận thấp bằng thiết kế kinh tế |
 
 ---
 
@@ -525,7 +525,7 @@ Khớp ngân sách 5–7$ user đã chốt. ⚠️ Vận hành: **bật gói tr�
 | D1 | Điền env | **Local** `server/.env`: `AI_SERVICE_URL=<Service URL của Cloud Run>` · `AI_SERVICE_API_KEY=<Chuỗi 1>` · `CRON_SECRET=<Chuỗi 2>` (chuỗi 2 chỉ cần nếu dùng cron tuỳ chọn E1). **Render**: Dashboard → service → *Environment* → thêm biến y hệt → *Save* (Render tự redeploy) | log boot có dòng `AI service da cau hinh — xac minh anh quest AI BAT.` |
 | D2 | (Tuỳ chọn) sinh trước quest | `Invoke-RestMethod -Method Post -Uri https://datn-8810.onrender.com/api/quests/ai/generate -Headers @{'x-cron-secret'='<Chuỗi 2>'}` | `data` có 2 phần tử (hôm nay + mai), `source: "FALLBACK"`. **Bỏ qua bước này cũng được** — quest tự sinh khi mở app |
 | D3 | Mở app → màn quest | thấy **3 quest**, quest thứ 3 icon 🎯 nội dung tiếng Việt | ✅ |
-| D4 | Đăng 1 ảnh có vật thể của quest | toast `🎯 Challenge complete! +30 Astrite`, quest tick, số dư +30 (màn gacha); ảnh không có → toast "doesn't match…" bài vẫn lên feed | ✅ — nếu toast không hiện: kiểm tra Firestore `aiVerifications` xem `outcome`/`error` |
+| D4 | Đăng 1 ảnh có vật thể của quest | toast `🎯 Challenge complete! +30 Astrite`, quest tick, số dư +30 (màn Shop — trước 2026-11-15 là màn gacha); ảnh không có → toast "doesn't match…" bài vẫn lên feed | ✅ — nếu toast không hiện: kiểm tra Firestore `aiVerifications` xem `outcome`/`error` |
 
 ### E. Cron (5 phút) — cron-job.org → *Create cronjob*
 

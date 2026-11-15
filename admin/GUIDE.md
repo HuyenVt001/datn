@@ -9,13 +9,13 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
-> Cập nhật lần cuối: **2026-08-11**.
+> Cập nhật lần cuối: **2026-11-15**.
 
 ---
 
 ## 0. Trạng thái tổng quát
 
-- 🟢 **Admin hoàn chỉnh 10 trang** (Login / Tổng quan / Người dùng / Bài đăng / Khung ảnh / **Kho vật phẩm** / **Lịch sử quay** / **Gói nạp** / **Lịch sử nạp** / Nhật ký) — build + lint sạch.
+- 🟢 **Admin hoàn chỉnh 11 trang** (Login / Tổng quan / Người dùng / Bài đăng / Khung ảnh / nhóm **Cửa hàng**: Vật phẩm · Gói nạp · Lịch sử mua · Lịch sử nạp / AI quest / Nhật ký) — build + lint sạch. **(2026-11-15)** Gacha đã bỏ, thay bằng Shop mua đứt (`Snapget/.claude/SHOP_PLAN.md`).
 - Deploy đích: Firebase Hosting site riêng (`snapget-admin-d8693.web.app`), server trên Render — xem `../DEPLOY.md`.
 - ⬜ Còn lại: **test end-to-end** (seed admin + đăng nhập thật + thao tác từng trang).
 
@@ -64,15 +64,15 @@ Server re-check quyền admin + disabled **mỗi request** → bị thu quyền/
 ```
 /login                    ── public (LoginPage)
 <RequireAuth>             ── chưa có JWT → redirect /login
-  └── / (AdminLayout: Sider menu 10 mục + Header email/đăng xuất + <Outlet/>)
+  └── / (AdminLayout: Sider menu + submenu "Cửa hàng" + Header email/đăng xuất + <Outlet/>)
         ├── /               DashboardPage     (stats + 2 biểu đồ cột 7 ngày)
         ├── /users          UsersPage         (khóa/mở, cấp/thu admin, cột Astrite)
         ├── /moments        MomentsPage       (kiểm duyệt bài đăng)
         ├── /frames         FramesPage        (CRUD khung + grant + owners)
-        ├── /gacha          GachaItemsPage    (kho vật phẩm quay)
-        ├── /gacha-history  GachaHistoryPage  (lịch sử quay toàn hệ thống)
-        ├── /topup          TopupPackagesPage (CRUD gói nạp — TIỀN THẬT)
-        ├── /topup-history  TopupHistoryPage  (lịch sử nạp + doanh thu)
+        ├── /shop           ShopItemsPage     (Cửa hàng › Vật phẩm: niêm yết/giá/bật-tắt/tặng/owners — 2026-11-15)
+        ├── /topup          TopupPackagesPage (Cửa hàng › Gói nạp: CRUD — TIỀN THẬT)
+        ├── /shop-history   ShopHistoryPage   (Cửa hàng › Lịch sử mua — 2026-11-15)
+        ├── /topup-history  TopupHistoryPage  (Cửa hàng › Lịch sử nạp + doanh thu)
         ├── /ai-verifications AiVerificationsPage (log AI xác minh ảnh quest — 2026-08-16)
         └── /logs           LogsPage          (audit log admin)
 ```
@@ -107,21 +107,21 @@ admin/
 ├── GUIDE.md               # file này
 ├── src/
 │   ├── main.tsx           # bootstrap: ConfigProvider viVN + theme sáng (#8C6239), react-query, router
-│   ├── App.tsx            # router: /login public; RequireAuth → AdminLayout → 7 trang; errorElement chống white-screen
+│   ├── App.tsx            # router: /login public; RequireAuth → AdminLayout → 11 trang; errorElement chống white-screen
 │   ├── api/
 │   │   ├── client.ts      # axios instance: baseURL từ env, Bearer JWT, bóc envelope, 401 → logout
 │   │   ├── auth.api.ts    # adminLogin(idToken) → POST /auth/admin/login (trả kèm uid)
 │   │   ├── admin.api.ts   # listUsers / getStats / getDailyStats / setUserDisabled / grantAdmin / revokeAdmin
 │   │   │                  #   + listMoments / deleteMoment / listLogs (kiểm duyệt + audit log)
 │   │   ├── frames.api.ts  # listFrames / createFrame / updateFrame (unlockType+unlockValue) / deleteFrame / grantFrame / listFrameOwners
-│   │   ├── gacha.api.ts   # (2026-08-05) listGachaItems / create / update / delete / listGachaRolls
-│   │   │                  #   + (2026-08-06) grantGachaItem / listGachaItemOwners (kho thưởng)
+│   │   ├── shop.api.ts    # (2026-11-15) listShopItems / createShopItem / updateShopItem / deleteShopItem
+│   │   │                  #   / grantShopItem / listShopItemOwners / listShopPurchases (thay gacha.api.ts)
 │   │   └── upload.api.ts  # uploadImage(file) → POST /upload/admin (multipart, Admin JWT)
 │   ├── auth/
 │   │   ├── firebase.ts    # init Firebase web app từ VITE_FIREBASE_*
 │   │   ├── AuthContext.tsx# giữ JWT + email + uid (localStorage) + login()/logout(); uid fallback decode từ payload JWT
 │   │   └── RequireAuth.tsx# guard route, chưa đăng nhập → /login
-│   ├── layouts/AdminLayout.tsx  # Sider menu 7 mục + Header (email admin, đăng xuất) + <Outlet/>
+│   ├── layouts/AdminLayout.tsx  # Sider menu (nhóm "Cửa hàng" là submenu) + Header (email admin, đăng xuất) + <Outlet/>
 │   ├── pages/
 │   │   ├── LoginPage.tsx      # form email/password → Firebase → đổi JWT; fail → signOut Firebase
 │   │   ├── DashboardPage.tsx  # thẻ thống kê GET /admin/stats + 2 biểu đồ cột 7 ngày (SVG thuần DailyBarChart,
@@ -129,22 +129,22 @@ admin/
 │   │   ├── UsersPage.tsx      # bảng user: search, phân trang server-side, cột Vai trò/Đăng nhập cuối/**Astrite** (sort được),
 │   │   │                      #   khóa/mở, cấp + THU quyền admin, chặn thao tác lên chính mình (tag "Bạn")
 │   │   ├── MomentsPage.tsx    # KIỂM DUYỆT: lưới bài mọi user (ảnh/video, tác giả, caption) + xóa bài vi phạm
-│   │   ├── FramesPage.tsx     # grid khung: thêm/sửa (6 điều kiện mở khóa + ngưỡng N, reset ngưỡng khi đổi loại),
+│   │   ├── FramesPage.tsx     # grid khung: thêm/sửa (6 điều kiện mở khóa — mặc định SHOP — + ngưỡng N, reset ngưỡng khi đổi loại),
 │   │   │                      #   xóa, cấp cho user (search debounce 300ms), drawer 👥 "Ai đang sở hữu?"
-│   │   ├── GachaItemsPage.tsx # (2026-08-05) KHO VẬT PHẨM gacha: lọc theo loại, sửa tên/phẩm chất/ảnh/thứ tự, công tắc
-│   │   │                      #   bật-tắt tại chỗ, xóa, tặng, owners. (2026-08-11) BỎ nút thêm khung — server tự đồng bộ
-│   │   │                      #   khung GACHA vào/ra kho theo điều kiện mở khóa (quản lý ở FramesPage)
-│   │   ├── GachaHistoryPage.tsx # (2026-08-05) LỊCH SỬ QUAY toàn hệ thống: lọc uid/bậc/ngày, 4 ô tổng hợp + đếm theo bậc
-│   │   │                      #   (tính trên đúng tập đang lọc); 1 dòng = 1 lượt bấm nút, x10 hiện 10 thẻ kết quả
+│   │   ├── ShopItemsPage.tsx  # (2026-11-15) VẬT PHẨM CỬA HÀNG: lọc loại, cột GIÁ (sort), công tắc mở bán, sửa
+│   │   │                      #   tên/giá/ảnh/thứ tự, gỡ, tặng, owners. NIÊM YẾT mới: SKIN/EFFECT chọn id có trong APK
+│   │   │                      #   (bảng `APK_IDS` — app thêm id thì cập nhật), FRAME chọn khung SHOP chưa lên kệ
+│   │   ├── ShopHistoryPage.tsx  # (2026-11-15) LỊCH SỬ MUA: lọc uid/loại/ngày, 4 ô tổng hợp trên đúng tập đang lọc
 │   │   ├── TopupPackagesPage.tsx # (2026-08-05 — G6) GÓI NẠP: CRUD, công tắc hiện-trong-app, cột "Astrite / 1.000đ"
 │   │   │                      #   để so gói to có đáng tiền hơn gói nhỏ không; banner cảnh báo TIỀN THẬT
 │   │   ├── TopupHistoryPage.tsx  # (2026-08-05 — G6) LỊCH SỬ NẠP: lọc uid/trạng thái/ngày, 4 ô doanh thu + theo ngày;
 │   │   │                      #   hiện orderCode + mã giao dịch ngân hàng để đối soát với dashboard PayOS
 │   │   └── LogsPage.tsx       # NHẬT KÝ admin: bảng audit log từ GET /admin/logs
 │   ├── types/index.ts     # AdminUser, AdminStats, DailyStat, Frame, FrameOwner, AdminMoment, AdminLog, Paginated<T>,
-│   │                      #   GachaItem, AdminRoll, ItemType/ItemRarity/RollTier,
+│   │                      #   ShopItem, ShopItemType, ShopItemOwnersResult, AdminPurchase,
 │   │                      #   TopupPackage, AdminTopupOrder, TopupOrderStatus, TopupRevenueSummary… khớp DTO server
-│   └── components/        # (trống — chỉ thêm khi dùng lại ≥2 trang)
+│   └── components/        # chỉ chứa component dùng lại ≥2 trang
+│       └── ImageUploadField.tsx # (2026-11-15) ô tải ảnh lên /upload/admin + xem trước nền ca-rô — FramesPage + ShopItemsPage
 ├── .env.example / .env.production.example
 ├── firebase.json / .firebaserc    # deploy Hosting site admin (xem ../DEPLOY.md)
 └── vite.config.ts
@@ -162,9 +162,9 @@ admin/
 | FramesPage: CRUD + 6 điều kiện mở khóa + grant + drawer owners | ✅ | |
 | MomentsPage: kiểm duyệt + xóa bài vi phạm | ✅ | |
 | LogsPage: audit log | ✅ | |
-| **GachaItemsPage**: kho vật phẩm (lọc loại, sửa, bật-tắt, xóa, tặng, owners) | ✅ | 2026-08-05 — G3. Skin/hiệu ứng chỉ sửa (asset trong APK). 2026-08-11: bỏ nút thêm khung — server tự đồng bộ theo điều kiện mở khóa |
-| **GachaHistoryPage**: lịch sử quay + lọc uid/bậc/ngày + tổng hợp | ✅ | 2026-08-05 — G3 |
-| UsersPage cột Astrite · Dashboard ô lượt quay | ✅ | 2026-08-05 — G3 |
+| **ShopItemsPage**: niêm yết + giá + bật-tắt + gỡ + tặng + owners | ✅ | 2026-11-15 — thay GachaItemsPage. Khung SHOP tự lên kệ từ FramesPage |
+| **ShopHistoryPage**: lịch sử mua + lọc uid/loại/ngày + tổng hợp | ✅ | 2026-11-15 — thay GachaHistoryPage |
+| UsersPage cột Astrite · Dashboard ô lượt mua | ✅ | 2026-08-05; ô lượt quay → lượt mua 2026-11-15 |
 | **TopupPackagesPage**: CRUD gói nạp + bật-tắt hiện trong app | ✅ | 2026-08-05 — G6. Sửa giá KHÔNG hồi tố đơn đã tạo |
 | **TopupHistoryPage**: lịch sử nạp + doanh thu (tổng · theo ngày) | ✅ | 2026-08-05 — G6. Doanh thu tính trên toàn bộ tập đã lọc |
 | Alert khi query GET lỗi (cả 4 trang list) | ✅ | |
@@ -179,6 +179,8 @@ admin/
 ---
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-15 — Bỏ gacha → nhóm "Cửa hàng" (phần ADMIN của `Snapget/.claude/SHOP_PLAN.md`)**. Xoá `gacha.api.ts` + `GachaItemsPage` + `GachaHistoryPage` (route `/gacha`, `/gacha-history`). Mới: `shop.api.ts`, **`ShopItemsPage`** (`/shop` — cột giá, niêm yết SKIN/EFFECT theo id có trong APK hoặc FRAME SHOP chưa lên kệ, sửa tên/giá/ảnh, gỡ, tặng, owners), **`ShopHistoryPage`** (`/shop-history`), component dùng chung **`components/ImageUploadField.tsx`** (tách từ FramesPage). Menu: submenu **Cửa hàng** = Vật phẩm · Gói nạp · Lịch sử mua · Lịch sử nạp (tự mở khi vào thẳng trang trong nhóm). `FramesPage`: điều kiện `GACHA` → **`SHOP`** ("Bán tại Cửa hàng", tag 🛍️, mặc định khi thêm khung). Dashboard: 2 ô lượt quay → **Lượt mua hôm nay / Tổng lượt mua** (`shopPurchasesToday/Total`). Types: `UnlockType` `SHOP`, `ShopItem`/`ShopItemType`/`ShopItemOwnersResult`/`AdminPurchase`, `AdminAction` thêm `SHOP_ITEM_*` (giữ `GACHA_ITEM_*` để log cũ hiện đúng nhãn); `LogsPage` thêm 4 nhãn. Khớp server cùng ngày (`server/GUIDE.md` mục 9).
 
 - **2026-08-16 — Trang "AI quest" (`/ai-verifications`)**: bảng log AI xác minh ảnh quest từ `GET /admin/ai-verifications` — thumbnail 224 (đúng ảnh model nhìn), uid + momentId, lớp yêu cầu (tên Việt), kết quả (Khớp/Không khớp/Bỏ qua — tooltip lý do), thanh điểm kèm ngưỡng, **top 3 lớp** model nghĩ là gì (soi vì sao trượt), model/latency; lọc uid/kết quả/ngày; 4 ô tổng hợp trên trang. Dashboard thêm 2 ô "AI xác minh ảnh hôm nay" / "Quest AI khớp hôm nay" (`AdminStats.aiVerificationsToday/aiMatchedToday`). Types `AiVerification`, api `listAiVerifications`. Chỉ đọc — không có hành động, không audit. Bối cảnh: `Snapget/.claude/QUEST_AI_PLAN.md` mục 15.3 (đã đóng), 5.2 (calibrate ngưỡng).
 - **2026-08-11 — Bỏ nút "Thêm khung vào kho" ở `GachaItemsPage`**. Server (`FramesService.syncGachaPool`) giờ TỰ đồng bộ kho gacha theo điều kiện mở khóa: khung `GACHA` tự vào kho khi tạo/sửa ở `FramesPage`, đổi sang điều kiện khác (hoặc xóa khung) thì tự rút khỏi kho — luồng thêm tay thành thừa và dễ lệch. Modal của trang chỉ còn chế độ SỬA (bỏ Select chọn khung từ catalog, bỏ query `frames`, page không còn import `createGachaItem` — hàm vẫn giữ trong `gacha.api.ts` vì endpoint server còn sống); cập nhật mô tả trang + hint loại FRAME; hint điều kiện "Quay gacha" ở `FramesPage` ghi rõ hành vi tự đồng bộ. Mỗi vật phẩm thêm 2 nút: 🎁 **Tặng** (modal tìm user theo email/tên, debounce 300ms — tặng thẳng vào tài khoản, idempotent, KHÔNG cộng Astrite) và 👥 **Ai đang sở hữu?** (drawer). `LogsPage` thêm nhãn `GACHA_ITEM_GRANT`. Nhắc lại đúng phân công: **sửa** vật phẩm chỉ là metadata (tên/ảnh/phẩm chất) — asset thật của skin/hiệu ứng nằm trong APK, ẩn thì dùng công tắc `isActive`.

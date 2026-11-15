@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -120,6 +121,7 @@ fun CameraScreen(
     var flipRequestId by remember { mutableIntStateOf(0) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             MainTopBar(
                 navController = navController,
@@ -132,6 +134,8 @@ fun CameraScreen(
                     } ?: navController.navigate("profile")
                 },
                 onUserSelected = { user -> selectedUser = user },
+                showProfileIcon = false,
+                showMessageIcon = false,
             )
         },
     ) { paddingValues ->
@@ -168,7 +172,7 @@ fun CameraScreen(
             ) {
                 CameraPreviewWithZoom(
                     lifecycleOwner = lifecycleOwner,
-                    height = 400.dp,
+                    height = 360.dp,
                     onPhotoTaken = { photoPath ->
                         // Chan double-tap nut chup (fix 2026-07-26): tam thu 2 ve khi
                         // DA roi man camera -> bo qua, khong chong 2 man EditMedia
@@ -220,6 +224,7 @@ fun CameraScreen(
             // THA = dung (khong navigate submit_photo rong)
             MainBottomBar(
                 navController,
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 items = takePhotoBar.map { item ->
                     when {
                         item.isCenter -> item.copy(
@@ -258,4 +263,3 @@ fun CameraScreen(
         )
     }
 }
-

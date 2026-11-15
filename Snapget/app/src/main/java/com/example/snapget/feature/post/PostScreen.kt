@@ -65,9 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.snapget.core.common.LoadStatus
-import com.example.snapget.core.designsystem.component.bottombar.MainBottomBar
-import com.example.snapget.core.designsystem.component.bottombar.sampleItems2
-import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.sheet.UserDetailBottomSheet
@@ -332,15 +329,6 @@ fun PostScreen(
                     )
                 }
             }
-
-            MainBottomBar(
-                navController = navController,
-                // Center = VE camera bang pop (goBackToCamera) — navigate tran se
-                // day chong Camera/Post len back stack moi lan bam (fix 2026-07-26)
-                items = sampleItems2.map { if (it.isCenter) it.copy(onClick = goBackToCamera) else it },
-                iconTint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
         } else {
             // ==== PAGER MODE (mac dinh): moi post 1 trang, vuot doc ====
             when {
@@ -386,7 +374,7 @@ fun PostScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 // Chua cho top bar (tren) + pill/bottom row (duoi)
-                                .padding(top = 110.dp, bottom = 210.dp),
+                                .padding(top = 110.dp, bottom = 165.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             PostDetailContent(
@@ -430,7 +418,7 @@ fun PostScreen(
                     }
                 }
 
-                // Hang duoi cung (khop mau): luoi | nut chup trang vien vang | ⋯
+                // Hang duoi cung: luoi | ⋯ (nut chup da bo vi co Footer 5 tab)
                 if (!imeVisible) {
                     Row(
                         modifier = Modifier
@@ -449,14 +437,6 @@ fun PostScreen(
                                 modifier = Modifier.size(32.dp),
                             )
                         }
-
-                        // Nut chup (ve camera) — dung chung [CaptureButton] voi bottom
-                        // bar man camera nen skin nao co anh nut chup rieng thi 2 cho
-                        // hien y het nhau
-                        CaptureButton(
-                            onClick = goBackToCamera,
-                            contentDescription = "Take a picture",
-                        )
 
                         IconButton(
                             onClick = { currentPost?.let { optionsPost = it } },
@@ -503,8 +483,9 @@ fun PostScreen(
                 friendsViewModel.loadRequests() // loi moi dang cho minh xac nhan
                 showFriendSheet = true
             },
-            // Nut cup 🏆 -> man Daily Quest (entry chot 2026-07-13)
-            onQuestClick = { navController.navigate(Screen.DailyQuest.route) },
+            onQuestClick = null,
+            showProfileIcon = false,
+            showMessageIcon = false,
             modifier = Modifier.align(Alignment.TopCenter),
         )
 

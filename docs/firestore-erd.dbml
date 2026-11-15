@@ -1,6 +1,6 @@
 Project SnapgetFirestore {
   database_type: 'Cloud Firestore (NoSQL)'
-  Note: 'Auto-generated Snapget Firestore ERD (hybrid: code + live Firestore) on 2026-11-12T08:26:48.999Z. Import into https://dbdiagram.io'
+  Note: 'Auto-generated Snapget Firestore ERD (hybrid: code + live Firestore) on 2026-11-15T03:56:52.492Z. Import into https://dbdiagram.io'
 }
 
 Enum friendships_status {
@@ -45,7 +45,7 @@ Enum messages_reply_to_type {
 }
 
 Enum frames_unlock_type {
-  GACHA
+  SHOP
   STREAK_MILESTONE
   POST_COUNT
   FRIEND_COUNT
@@ -53,21 +53,16 @@ Enum frames_unlock_type {
   DEFAULT
 }
 
-Enum gacha_items_item_type {
+Enum shop_items_item_type {
   FRAME
-  EFFECT
   SKIN
+  EFFECT
 }
 
-Enum gacha_items_rarity {
-  R
-  SR
-  SSR
-}
-
-Enum gacha_rolls_roll_type {
-  SINGLE
-  TEN
+Enum shop_purchases_item_type {
+  FRAME
+  SKIN
+  EFFECT
 }
 
 Enum astrite_transactions_type {
@@ -75,8 +70,7 @@ Enum astrite_transactions_type {
   QUEST_REWARD
   AI_QUEST_REWARD
   TOPUP
-  GACHA_SPEND
-  GACHA_REFUND
+  SHOP_PURCHASE
   ADMIN_ADJUST
 }
 
@@ -127,8 +121,8 @@ Table users {
   astrite int [not null, note: 'Must match sum(astriteTransactions.amount)']
   unlockedSkins jsonb [not null, note: 'number[] matching APK SkinRegistry']
   unlockedEffects jsonb [not null, note: 'number[] matching APK TouchEffectRegistry']
-  gachaPity jsonb [not null, note: '{ R: number, SR: number, SSR: number }']
   signupBonusClaimed boolean [not null]
+  gachaPity jsonb [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
   avatarUrl varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
   name varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
   username varchar [note: 'Discovered in live Firestore (not in TS entity) · [firestore-only]']
@@ -166,7 +160,7 @@ Table posts_views {
   viewerId varchar [pk, not null, note: 'Document ID = viewer UID']
   isSeen boolean [not null]
   seenAt timestamp [not null]
-  Note: 'Firestore path: posts/{momentId}/views (code+firestore, sampled 80 docs). Subcollection of posts tracking which users viewed a moment.'
+  Note: 'Firestore path: posts/{momentId}/views (code+firestore, sampled 77 docs). Subcollection of posts tracking which users viewed a moment.'
 }
 
 Table posts_reactions {
@@ -175,7 +169,7 @@ Table posts_reactions {
   reactorId varchar [not null]
   emojiType varchar [not null]
   createdAt timestamp [not null]
-  Note: 'Firestore path: posts/{momentId}/reactions (code+firestore, sampled 31 docs). Subcollection of posts storing emoji reactions on a moment.'
+  Note: 'Firestore path: posts/{momentId}/reactions (code+firestore, sampled 27 docs). Subcollection of posts storing emoji reactions on a moment.'
 }
 
 Table coopInvites {
@@ -233,29 +227,30 @@ Table frames {
   Note: 'Firestore path: frames (code+firestore, sampled 26 docs). Photo frame catalog managed by admin.'
 }
 
-Table gachaItems {
+Table shopItems {
   itemId varchar [pk, not null, note: 'Document ID']
   itemName varchar [not null]
-  itemType gacha_items_item_type [not null]
-  rarity gacha_items_rarity [not null]
+  itemType shop_items_item_type [not null]
+  refId varchar [not null, note: 'frames.frameId when FRAME, else APK registry ID (>= 1)']
+  price int [not null, note: 'Astrite']
   imageUrl text
-  refId varchar [not null, note: 'frames.frameId when FRAME, else APK registry ID']
   isActive boolean [not null]
   sortOrder int [not null]
   createdAt timestamp [not null]
-  Note: 'Firestore path: gachaItems (code+firestore, sampled 20 docs). Gacha reward pool metadata (FRAME, EFFECT, SKIN).'
+  Note: 'Firestore path: shopItems (code-only, no live docs sampled). Shop catalog (FRAME, SKIN, EFFECT) bought with Astrite. Unique per (itemType, refId).'
 }
 
-Table gachaRolls {
-  rollId varchar [pk, not null, note: 'Document ID']
+Table shopPurchases {
+  purchaseId varchar [pk, not null, note: 'Document ID']
   uid varchar [not null]
-  rollType gacha_rolls_roll_type [not null]
-  cost int [not null]
-  results jsonb [not null, note: 'RollResultEntry[]']
-  refundTotal int [not null]
+  itemId varchar [not null]
+  itemName varchar [not null]
+  itemType shop_purchases_item_type [not null]
+  refId varchar [not null]
+  price int [not null]
   balanceAfter int [not null]
   createdAt timestamp [not null]
-  Note: 'Firestore path: gachaRolls (code+firestore, sampled 50 docs). Gacha roll history (1 doc per SINGLE or TEN roll).'
+  Note: 'Firestore path: shopPurchases (code-only, no live docs sampled). Shop purchase history (snapshot of item name/type/price at purchase time).'
 }
 
 Table astriteTransactions {
@@ -307,7 +302,7 @@ Table dailyQuests {
   targetClass varchar [note: 'COCO class for AI_CHALLENGE']
   source daily_quests_source
   generatedAt timestamp
-  Note: 'Firestore path: dailyQuests (code+firestore, sampled 49 docs). System-wide daily quests; doc ID = `${releaseDate}_${type}`.'
+  Note: 'Firestore path: dailyQuests (code+firestore, sampled 50 docs). System-wide daily quests; doc ID = `${releaseDate}_${type}`.'
 }
 
 Table userQuests {
@@ -343,7 +338,7 @@ Table aiVerifications {
   roundTripMs int
   error text
   createdAt timestamp [not null]
-  Note: 'Firestore path: aiVerifications (code+firestore, sampled 8 docs). AI quest image verification logs for production accuracy metrics.'
+  Note: 'Firestore path: aiVerifications (code+firestore, sampled 12 docs). AI quest image verification logs for production accuracy metrics.'
 }
 
 Table adminLogs {
@@ -355,6 +350,31 @@ Table adminLogs {
   targetLabel varchar
   createdAt timestamp [not null]
   Note: 'Firestore path: adminLogs (code+firestore, sampled 50 docs). Audit log of admin actions.'
+}
+
+Table gachaItems {
+  id varchar [pk, not null, note: 'Firestore Document ID · [firestore-only]']
+  itemName varchar [not null, note: '[firestore-only]']
+  itemType varchar [not null, note: '[firestore-only]']
+  rarity varchar [not null, note: '[firestore-only]']
+  refId varchar [not null, note: '[firestore-only]']
+  imageUrl text [note: '[firestore-only]']
+  isActive boolean [not null, note: '[firestore-only]']
+  sortOrder int [not null, note: '[firestore-only]']
+  createdAt timestamp [not null, note: '[firestore-only]']
+  Note: 'Firestore path: gachaItems (firestore-only, sampled 20 docs). Discovered in live Firestore (not defined in server/src entities).'
+}
+
+Table gachaRolls {
+  id varchar [pk, not null, note: 'Firestore Document ID · [firestore-only]']
+  uid varchar [not null, note: '[firestore-only]']
+  rollType varchar [not null, note: '[firestore-only]']
+  cost int [not null, note: '[firestore-only]']
+  results jsonb [not null, note: '[firestore-only]']
+  refundTotal int [not null, note: '[firestore-only]']
+  balanceAfter int [not null, note: '[firestore-only]']
+  createdAt timestamp [not null, note: '[firestore-only]']
+  Note: 'Firestore path: gachaRolls (firestore-only, sampled 50 docs). Discovered in live Firestore (not defined in server/src entities).'
 }
 
 TableGroup Core_Social {
@@ -374,10 +394,10 @@ TableGroup Chat {
   chatGroups
 }
 
-TableGroup Gacha_Economy {
+TableGroup Shop_Economy {
   frames
-  gachaItems
-  gachaRolls
+  shopItems
+  shopPurchases
   astriteTransactions
   topupPackages
   topupOrders
@@ -391,6 +411,11 @@ TableGroup Quests_AI {
 
 TableGroup Admin_System {
   adminLogs
+}
+
+TableGroup Live_Only_Legacy {
+  gachaItems
+  gachaRolls
 }
 
 Ref: friendships.user1Id > users.uid
@@ -412,8 +437,9 @@ Ref: messages.receiverId > users.uid
 Ref: messages.groupId > chatGroups.groupId
 Ref: messages.replyToId > messages.messageId
 Ref: messages.replyToSenderId > users.uid
-Ref: gachaItems.refId > frames.frameId // When itemType = FRAME
-Ref: gachaRolls.uid > users.uid
+Ref: shopItems.refId > frames.frameId // When itemType = FRAME
+Ref: shopPurchases.uid > users.uid
+Ref: shopPurchases.itemId > shopItems.itemId
 Ref: astriteTransactions.uid > users.uid
 Ref: topupOrders.uid > users.uid
 Ref: topupOrders.packageId > topupPackages.packageId
@@ -423,3 +449,4 @@ Ref: userQuests.momentId > posts.momentId
 Ref: aiVerifications.uid > users.uid
 Ref: aiVerifications.momentId > posts.momentId
 Ref: adminLogs.actorUid > users.uid
+Ref: gachaRolls.uid > users.uid // Inferred from field name

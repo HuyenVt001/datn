@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.GroupAdd
@@ -115,8 +114,6 @@ fun MessageScreen(
                 title = "Messages",
                 // Theo theme: hardcode trang la vo hinh o Light mode
                 titleColor = MaterialTheme.colorScheme.onBackground,
-                startIcon = Icons.AutoMirrored.Filled.ArrowBack,
-                onStartIconClick = { navController.popBackStack() },
                 // Nut tao nhom chat (<=20 thanh vien)
                 endIcon = Icons.Default.GroupAdd,
                 onEndIconClick = { showCreateGroupDialog = true },

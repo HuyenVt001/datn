@@ -5,7 +5,7 @@ import androidx.compose.runtime.Immutable
 
 /**
  * 1 hieu ung cham man hinh. **DOC LAP hoan toan voi skin** (SKIN_PLAN.md muc
- * 2.5.1): luu rieng (`touchEffectId`), mo khoa rieng qua gacha, chon o tab
+ * 2.5.1): luu rieng (`touchEffectId`), mo khoa rieng (mua o Shop), chon o tab
  * rieng — nguoi dung tron tu do "skin xanh + hieu ung hoa".
  *
  * ### Tu 2026-08-11: spritesheet one-shot, KHONG con particle system
@@ -56,7 +56,7 @@ data class TouchEffect(
      */
     val fadeStart: Float = 1f,
     /**
-     * Frame dung lam anh dai dien o the ket qua gacha — thuong la frame animation
+     * Frame dung lam anh dai dien tinh (thumbnail) — thuong la frame animation
      * no to nhat, khong phai frame 0 (frame 0 gan nhu trong tron).
      */
     val thumbFrame: Int = 0,

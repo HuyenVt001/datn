@@ -1,9 +1,9 @@
-# SKIN_PLAN.md — Kế hoạch chức năng "Đổi giao diện" (Skin) + màn Appearance + Gacha
+# SKIN_PLAN.md — Kế hoạch chức năng "Đổi giao diện" (Skin) + màn Appearance
 
 > **Trạng thái (cập nhật 2026-08-05): ✅ XONG P0–P5** — skin engine, token màu/shape, gỡ Light, màn Appearance 3 tab, engine hiệu ứng touch, 2 skin mới (Snow/Forest) đều đã chạy; app build + APK sạch.
 > **Cắm asset thật (cập nhật 2026-08-18):** skin **1 — Snow ✅ XONG** (12 icon + nút chụp + thumbnail đều là art thật của user, dạng WebP — lý do ở mục 6.13.1). Skin **2 — Forest ⏳ vẫn placeholder**. App chạy đủ chức năng ở cả 2 trạng thái, thay file vào là đẹp hơn. Quy cách file: mục 6.13; SVG gốc cất ở `Sources/skin-assets/skin<N>_<tên>/`.
 > Đọc kèm: `.claude/DESIGN.md` (ngôn ngữ thiết kế hiện tại) và `.claude/CLAUDE.md` (luật).
-> **⚠️ Đọc cùng `.claude/GACHA_PLAN.md`** — skin và hiệu ứng touch **chính là vật phẩm SSR/SR của gacha**. Lộ trình gộp của cả hai tính năng nằm ở **GACHA_PLAN mục 9** (bảng đó là bản chính; mục 7 dưới đây chỉ là phần skin tách riêng).
+> **⚠️ (2026-11-15) Gacha đã BỎ** — skin và hiệu ứng touch giờ là **mặt hàng mua đứt bằng Astrite ở màn Shop** (`.claude/SHOP_PLAN.md`, `GACHA_PLAN.md` đã xoá). Mọi chỗ nhắc "gacha" / "bậc SSR/SR" / "quay ra" trong file này là **lịch sử**; mở khóa thật = mua ở Shop hoặc admin tặng. Thêm skin/effect mới: code vào registry trong APK **trước**, rồi niêm yết ở admin (Cửa hàng › Vật phẩm).
 > **Asset đã dựng sẵn placeholder** tại `Sources/skin-assets/` — xem `Sources/skin-assets/README.md` để biết cách thay file.
 > Khi bắt tay thi công: cập nhật `GUIDE.md` sau mỗi phase + thêm mục mới vào `DESIGN.md`, chạy `codegraph init`.
 
@@ -476,9 +476,9 @@ Prefs cũ (`theme_mode` trong `snapget_settings`) để lại cũng vô hại �
 
 ## 5. Phần server cho gacha (BẮT BUỘC làm trước phần app — luật CLAUDE.md mục 4)
 
-> 📌 **Mục này đã được thay thế bằng `.claude/GACHA_PLAN.md`** (lập 2026-08-05, dựa trên file `Snapget - Hệ thống gacha và tiền tệ.xlsx`).
+> 📌 **Mục này đã được thay thế 2 lần**: bằng `GACHA_PLAN.md` (2026-08-05, nay đã xoá) rồi bằng **`.claude/SHOP_PLAN.md`** (2026-11-15 — bỏ gacha, mua đứt ở Shop).
 > Ở đó có đầy đủ: tiền tệ **Astrite**, gói nạp, **PayOS sandbox**, 4 bậc N/R/SR/SSR, pity 10/50/100, quy tắc hoàn, mô hình dữ liệu, thuật toán quay, endpoint, trang admin, và lộ trình gộp cả 2 tính năng.
-> **Chỗ nào 2 file lệch nhau thì GACHA_PLAN đúng.** Phần bên dưới giữ lại làm tham chiếu lịch sử — lưu ý bản cũ dùng khái niệm "vé quay" (`gachaTickets`), bản chốt dùng **Astrite**.
+> **Chỗ nào lệch nhau thì SHOP_PLAN đúng.** Phần bên dưới chỉ là tham chiếu lịch sử (bản cũ dùng "vé quay" `gachaTickets`, sau đó là Astrite + gacha, nay là Astrite + Shop).
 
 Server hiện **chưa có gì về gacha**: `UNLOCK_TYPES` chỉ có `QUEST_RANDOM / STREAK_MILESTONE / POST_COUNT / FRIEND_COUNT / COOP_FIRST / DEFAULT`, không có currency, không có endpoint roll.
 
@@ -863,7 +863,7 @@ error:             #FF5370              lỗi, nút xoá               (Default:
 | ~~4b~~ | ✅ **CHỐT 2026-08-05**: chạy ở **mọi thao tác chạm**, kể cả bấm nút — cho nhất quán | — |
 | ~~4c~~ | ✅ **CHỐT 2026-08-05**: **user tự cung cấp toàn bộ hiệu ứng**; app chỉ dựng sẵn `none`. Hợp đồng đầu vào ở mục 2.5.6 | — |
 | ~~4d~~ | ✅ **CHỐT 2026-08-05**: skin 1 = `Snow`, skin 2 = `Forest`; hiệu ứng 1–5 = `Snowfall`/`Leaf`/`Sparkle`/`Bubble`/`Ember` (bảng 0.2). Asset placeholder đã dựng | — |
-| ~~5–9~~ | ✅ **Toàn bộ câu hỏi về gacha đã chốt** trong `.claude/GACHA_PLAN.md` mục 0 (tiền tệ Astrite thay "vé", tỉ lệ, pity, hoàn trùng, 1 pool chung). Câu hỏi gacha còn mở nằm ở GACHA_PLAN mục 11 | — |
+| ~~5–9~~ | ✅ Câu hỏi về gacha từng chốt trong `GACHA_PLAN.md` (đã xoá). **Gacha bỏ 2026-11-15** — mở khóa skin/effect nay theo `.claude/SHOP_PLAN.md` | — |
 | ~~10~~ | ✅ **CHỐT 2026-08-05**: icon launcher/splash **cố định 1 bộ**, không đổi theo skin (mục 6.1 "bỏ qua") | — |
 | 11 | Bảng màu 11 giá trị cho skin 1 và skin 2 (mẫu ở 6.13.3) — cần trước P5 | P5 |
 

@@ -4,12 +4,12 @@ import { RequireAuth } from './auth/RequireAuth';
 import { AdminLayout } from './layouts/AdminLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { FramesPage } from './pages/FramesPage';
-import { GachaHistoryPage } from './pages/GachaHistoryPage';
-import { GachaItemsPage } from './pages/GachaItemsPage';
 import { LoginPage } from './pages/LoginPage';
 import { AiVerificationsPage } from './pages/AiVerificationsPage';
 import { LogsPage } from './pages/LogsPage';
 import { MomentsPage } from './pages/MomentsPage';
+import { ShopHistoryPage } from './pages/ShopHistoryPage';
+import { ShopItemsPage } from './pages/ShopItemsPage';
 import { TopupHistoryPage } from './pages/TopupHistoryPage';
 import { TopupPackagesPage } from './pages/TopupPackagesPage';
 import { UsersPage } from './pages/UsersPage';
@@ -47,8 +47,8 @@ const router = createBrowserRouter([
           { path: 'users', element: <UsersPage /> },
           { path: 'moments', element: <MomentsPage /> },
           { path: 'frames', element: <FramesPage /> },
-          { path: 'gacha', element: <GachaItemsPage /> },
-          { path: 'gacha-history', element: <GachaHistoryPage /> },
+          { path: 'shop', element: <ShopItemsPage /> },
+          { path: 'shop-history', element: <ShopHistoryPage /> },
           { path: 'topup', element: <TopupPackagesPage /> },
           { path: 'topup-history', element: <TopupHistoryPage /> },
           { path: 'ai-verifications', element: <AiVerificationsPage /> },

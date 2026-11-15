@@ -35,6 +35,8 @@
 | `colors.textPrimary` | `#FFFFFF` | `Color.White` | Chữ/icon chính (tên, tiêu đề) — **Bold** |
 | `colors.textSecondary` | `#B0B0B0` | `GrayOnSurfaceVariant` | Chữ phụ (subtitle, "Now", preview tin nhắn, placeholder) |
 | `colors.onSurfaceVariant` | `#B0B0B0` | `GrayOnSurfaceVariant` | Viền avatar, chữ trên bề mặt phụ |
+| `colors.navBarActive` | `#FFFFFF` | — | Icon Footer 5 tab đang chọn (đổi màu theo skin: Snow `#7EC8FF`, Forest `#E8D9A8`) |
+| `colors.navBarInactive` | `#757575` | — | Icon Footer 5 tab chưa chọn |
 | `colors.error` | `#CF6679` | `GrayError` | Lỗi |
 
 ### Accent vàng — 2 vai trò, đừng gộp làm một
@@ -194,6 +196,12 @@ Giá trị thật trong code:
 
 ### 7.15 Group settings sheet — `feature/message/GroupSettingsSheet.kt` (✅ 2026-08-02, theo ảnh Messenger user gửi)
 Entry: nút **⋯ (MoreVert)** bên phải header `GroupChatScreen` (subtitle header = "N members"). `ModalBottomSheet` nền `surface`, nội dung căn giữa: **avatar nhóm 96dp** (ảnh thật hoặc icon Groups vàng trên nền `#404137`; BẤM = đổi ảnh qua GetContent → upload → PATCH; spinner vàng đè khi busy) · **tên nhóm Bold + bút chì** (dialog đổi tên style CreateGroupDialog) · hàng **Invite** (vòng tròn NÉT ĐỨT `#B0B0B0` + dấu cộng, subtitle "New members can see previous messages"; dialog tick bạn bè chưa trong nhóm, chặn quá 20) · **danh sách thành viên** (avatar 44dp + tên + "(You)"/"Group creator"; menu **⋯ "Remove from group"** màu error — CHỈ người tạo thấy, kèm AlertDialog xác nhận) · **card `#2C2C2C` bo 20dp**: hàng Mute notifications (Switch trung tính trắng/xám — KHÔNG vàng) + divider + hàng **Leave group màu error** (confirm dialog). Mọi mutation → `MessageViewModel.mutateGroup` refetch detail + refresh danh sách nhóm; rời nhóm thành công → `navigateUp()`.
+
+### 7.16 Footer 5 tab — `component/bottombar/AppFooterBar.kt` (✅ 2026-11-13)
+Hiển thị tại `Navigation.kt` cho các màn tab chính: **Quest (`daily_quest`) · Chat (`message`) · Home (`camera` & `post` pager/grid) · Shop (`shop`) · Profile (`profile`)**. Nền `SkinTheme.colors.background` + `navigationBarsPadding()`, cao `64.dp`. Icon active/inactive dùng token `navBarActive`/`navBarInactive` (Filled khi active, Outlined khi inactive); nút giữa Home là khối bo góc `RoundedCornerShape(16.dp)` nền `surfaceVariant` chứa dấu `+`; icon Chat hỗ trợ badge tròn đỏ (`0xFFFF3B30`) khi có tin chưa đọc.
+
+### 7.17 Shop — `feature/shop/ShopScreen.kt` (✅ 2026-11-15 — thay màn Gacha, SHOP_PLAN.md)
+Tab footer → **không nút Back**. `TopAppBar` nền `surface` kiểu `SimpleTopBar` (tiêu đề "Shop" `titleLarge` Medium) + bên phải **ô số dư** pill nền `pill`: `ic_astrite` 18dp + số `accentGold` Bold 14sp + `AddCircle` màu `accent` (bấm = sang tab Astrite). Dưới là `TabRow` y hệt Appearance (nền `background`, chỉ báo `accent` cao 3dp, tab chọn Bold `accent`, tab khác `textSecondary`): **Astrite · Skins · Frames · Effects**, mở vào **Skins**. Tab vật phẩm = `LazyVerticalGrid` **2 cột**, padding 16, khoảng 12/16; mỗi ô = `CollectibleItem` (skin 9:16 · khung & hiệu ứng 1:1 — hình từ `imageUrl`, không có thì `SkinThumbnail`/`EffectDemoCell` vẽ từ APK; bấm ô hiệu ứng = chạy lại demo) + **nút pill cao 36dp** dưới ô: chưa mua = nền `accent` + `ic_astrite` + giá `onAccent` Bold (thiếu tiền thì mờ 0.6 nhưng VẪN bấm được) · đã mua skin/effect = `Apply` chữ `accent` trên nền `pill` · đang dùng = `In use` / khung = `Owned` chữ `textSecondary` trên `surfaceVariant`. **Không dùng trạng thái LOCKED** (mờ + 🔒) ở Shop. Tab Astrite = danh sách thẻ gói nạp (thẻ `surfaceVariant` bo `card`, số Astrite `accentGold`, giá VND pill `accent`) — chuyển nguyên từ popup nạp cũ. Dialog (AlertDialog nền `surface`): "Buy X?" (Buy/Cancel) · "Not enough Astrite" (Top up/Cancel) · "Apply now?" (Apply/Later) sau khi mua skin/effect; mua khung → toast. Đang chờ PayOS → dải "Waiting for payment confirmation..." ngay dưới TabRow.
 
 ---
 

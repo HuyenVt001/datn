@@ -1,18 +1,18 @@
 /**
- * Cac dieu kien mo khoa khung (cap nhat 2026-08-05 — G2 cua GACHA_PLAN):
- * - GACHA:            quay trung o kho vat pham gacha (bac R). THAY CHO `QUEST_RANDOM` cu.
+ * Cac dieu kien mo khoa khung (cap nhat 2026-11-15 — SHOP_PLAN.md):
+ * - SHOP:             mua bang Astrite trong Cua hang. THAY `GACHA` (2026-08-05) va `QUEST_RANDOM` cu.
  * - STREAK_MILESTONE: dat moc streak ca nhan (unlockValue ∈ 3/7/14/30).
  * - POST_COUNT:       dang du unlockValue bai (tong so moment cua user).
  * - FRIEND_COUNT:     dat unlockValue ban be (1..MAX_FRIENDS).
  * - COOP_FIRST:       hoan thanh chup chung (co-op capture) lan dau — mo cho ca 2 nguoi.
  * - DEFAULT:          mo san cho moi user, khong can dieu kien.
  *
- * `QUEST_RANDOM` DA BO: thuong "xong 2/2 quest" gio la +60 Astrite, khong mo
- * khung nua. Doc Firestore cu con gia tri do -> FramesRepository.toEntity map
- * sang `GACHA` (khong can migration, khong can cho chay seed).
+ * `QUEST_RANDOM` va `GACHA` DA BO. Doc Firestore cu con 2 gia tri do ->
+ * FramesRepository.toEntity map sang `SHOP` (khong can migration; script
+ * `seed:shop` chuan hoa lai du lieu cho sach).
  */
 export const UNLOCK_TYPES = [
-  'GACHA',
+  'SHOP',
   'STREAK_MILESTONE',
   'POST_COUNT',
   'FRIEND_COUNT',

@@ -98,6 +98,8 @@ fun MainTopBar(
     onAddFriendsClick: (() -> Unit)? = null,
     // Truyen callback nay de hien nut cup 🏆 (mo man Daily Quest)
     onQuestClick: (() -> Unit)? = null,
+    showProfileIcon: Boolean = true,
+    showMessageIcon: Boolean = true,
 ) {
     var titleWidth by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current.density
@@ -348,19 +350,21 @@ fun MainTopBar(
             }
         },
         navigationIcon = {
-            // Avatar — fallback DiceBear initials theo ten khi chua co avatar that
-            // (truoc day de raw user?.avatar: rong -> o tron trong tren man camera)
-            Circle(
-                imageSetting = ImageSetting(
-                    imageUrl = avatarOrDefault(user?.avatar, user?.username ?: "?"),
-                    contentDescription = "Profile picture",
-                ),
-                gap = 0.dp,
-                outerSize = avatarWidth,
-                backgroundColor = SkinTheme.colors.pillTranslucent,
-                borderColor = SkinTheme.colors.onSurfaceVariant,
-                onClick = onProfileClick,
-            )
+            if (showProfileIcon) {
+                // Avatar — fallback DiceBear initials theo ten khi chua co avatar that
+                // (truoc day de raw user?.avatar: rong -> o tron trong tren man camera)
+                Circle(
+                    imageSetting = ImageSetting(
+                        imageUrl = avatarOrDefault(user?.avatar, user?.username ?: "?"),
+                        contentDescription = "Profile picture",
+                    ),
+                    gap = 0.dp,
+                    outerSize = avatarWidth,
+                    backgroundColor = SkinTheme.colors.pillTranslucent,
+                    borderColor = SkinTheme.colors.onSurfaceVariant,
+                    onClick = onProfileClick,
+                )
+            }
         },
         actions = {
             // Nut cup mo man Daily Quest — icon vang gamification (DESIGN.md muc 2)
@@ -384,53 +388,55 @@ fun MainTopBar(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            val isLargeText = unreadMessages > 9
+            if (showMessageIcon) {
+                val isLargeText = unreadMessages > 9
 
-            val badgeSize = if (isLargeText) {
-                Modifier
-                    .defaultMinSize(minWidth = 24.dp, minHeight = 20.dp)
-                    .padding(horizontal = 4.dp)
-            } else {
-                Modifier
-                    .size(20.dp)
-            }
+                val badgeSize = if (isLargeText) {
+                    Modifier
+                        .defaultMinSize(minWidth = 24.dp, minHeight = 20.dp)
+                        .padding(horizontal = 4.dp)
+                } else {
+                    Modifier
+                        .size(20.dp)
+                }
 
-            BadgedBox(
-                badge = {
-                    if (unreadMessages > 0) {
-                        Badge(
-                            containerColor = SkinTheme.colors.accentGold,
-                            contentColor = SkinTheme.colors.onAccent,
-                            modifier = Modifier
-                                .offset(x = 0.dp, y = (-4).dp)
-                                .then(badgeSize),
-                        ) {
-                            Text(
-                                text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center,
-                            )
+                BadgedBox(
+                    badge = {
+                        if (unreadMessages > 0) {
+                            Badge(
+                                containerColor = SkinTheme.colors.accentGold,
+                                contentColor = SkinTheme.colors.onAccent,
+                                modifier = Modifier
+                                    .offset(x = 0.dp, y = (-4).dp)
+                                    .then(badgeSize),
+                            ) {
+                                Text(
+                                    text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
-                    }
-                },
-            ) {
-                Button(
-                    onClick = { onMessageClick() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SkinTheme.colors.pill,
-                    ),
-                    modifier = Modifier.size(avatarWidth),
-                    contentPadding = PaddingValues(0.dp),
-                    shape = CircleShape,
+                    },
                 ) {
-                    SkinIcon(
-                        res = SkinTheme.icons.chat,
-                        fallback = Icons.Filled.ChatBubbleOutline,
-                        contentDescription = "Messages",
-                        tint = SkinTheme.colors.textPrimary,
-                        modifier = Modifier.size(24.dp),
-                    )
+                    Button(
+                        onClick = { onMessageClick() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SkinTheme.colors.pill,
+                        ),
+                        modifier = Modifier.size(avatarWidth),
+                        contentPadding = PaddingValues(0.dp),
+                        shape = CircleShape,
+                    ) {
+                        SkinIcon(
+                            res = SkinTheme.icons.chat,
+                            fallback = Icons.Filled.ChatBubbleOutline,
+                            contentDescription = "Messages",
+                            tint = SkinTheme.colors.textPrimary,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                 }
             }
         },

@@ -9,12 +9,11 @@ export const ADMIN_ACTIONS = [
   'FRAME_DELETE',
   'FRAME_GRANT',
   'MOMENT_DELETE',
-  // (2026-08-05 — G3) quan ly kho vat pham gacha
-  'GACHA_ITEM_CREATE',
-  'GACHA_ITEM_UPDATE',
-  'GACHA_ITEM_DELETE',
-  // (2026-08-06) kho thuong: admin tang vat pham thang vao tai khoan
-  'GACHA_ITEM_GRANT',
+  // (2026-11-15 — thay GACHA_ITEM_*) quan ly mat hang Shop + tang vat pham
+  'SHOP_ITEM_CREATE',
+  'SHOP_ITEM_UPDATE',
+  'SHOP_ITEM_DELETE',
+  'SHOP_ITEM_GRANT',
   // (2026-08-05 — G6) quan ly goi nap PayOS. Doi gia/so Astrite la hanh dong
   // lien quan TIEN THAT nen bat buoc co dau vet ai sua, luc nao.
   'TOPUP_PACKAGE_CREATE',

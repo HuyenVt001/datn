@@ -12,7 +12,7 @@ data class UserDto(
     val inviteCode: String?,
     val unlockedFrames: List<String> = emptyList(),
     val fcmTokens: List<String> = emptyList(),
-    // ==== Gacha (2026-08-05) ====
+    // ==== Kinh te Astrite (2026-08-05; gacha -> Shop 2026-11-15) ====
     /** So du Astrite. */
     val astrite: Int = 0,
     /** skinId da so huu — skin 0 (Default) KHONG nam trong day, luon co san. */

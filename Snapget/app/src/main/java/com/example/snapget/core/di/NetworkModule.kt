@@ -4,10 +4,10 @@ import com.example.snapget.BuildConfig
 import com.example.snapget.core.network.api.CoopApi
 import com.example.snapget.core.network.api.FrameApi
 import com.example.snapget.core.network.api.FriendshipApi
-import com.example.snapget.core.network.api.GachaApi
 import com.example.snapget.core.network.api.MessageApi
 import com.example.snapget.core.network.api.MomentApi
 import com.example.snapget.core.network.api.QuestApi
+import com.example.snapget.core.network.api.ShopApi
 import com.example.snapget.core.network.api.TopupApi
 import com.example.snapget.core.network.api.UploadApi
 import com.example.snapget.core.network.api.UserApi
@@ -99,7 +99,7 @@ class NetworkModule {
 
     @Provides
     @Singleton
-    fun provideGachaApi(retrofit: Retrofit): GachaApi = retrofit.create(GachaApi::class.java)
+    fun provideShopApi(retrofit: Retrofit): ShopApi = retrofit.create(ShopApi::class.java)
 
     @Provides
     @Singleton

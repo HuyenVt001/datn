@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
-import { GachaModule } from '../gacha/gacha.module';
+import { ShopModule } from '../shop/shop.module';
 import { MomentsModule } from '../moments/moments.module';
 import { QuestsModule } from '../quests/quests.module';
 import { AdminController } from './admin.controller';
@@ -10,9 +10,9 @@ import { AdminService } from './admin.service';
 
 // AuthModule (JwtModule): AdminJwtGuard verify JWT admin. QuestsModule: thong ke quest hom nay.
 // MomentsModule: kiem duyet bai dang (list/xoa). AuditModule: nhat ky hanh dong admin.
-// GachaModule: so luot quay o o thong ke dashboard.
+// ShopModule: so luot mua o o thong ke dashboard.
 @Module({
-  imports: [AuthModule, QuestsModule, MomentsModule, AuditModule, GachaModule],
+  imports: [AuthModule, QuestsModule, MomentsModule, AuditModule, ShopModule],
   controllers: [AdminController],
   providers: [AdminService, AdminRepository],
 })

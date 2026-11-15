@@ -24,7 +24,7 @@ export interface AdminUser {
   admin: boolean;
   createdAt: string;
   lastSignInAt?: string;
-  /** So du Astrite (tien te gacha). */
+  /** So du Astrite (tien te mua vat pham o Shop). */
   astrite: number;
 }
 
@@ -38,9 +38,9 @@ export interface AdminStats {
   chatGroups: number;
   /** So luot hoan thanh quest hom nay. */
   questCompletionsToday?: number;
-  /** So luot BAM NUT quay gacha (quay x10 tinh la 1 luot). */
-  gachaRollsToday?: number;
-  gachaRollsTotal?: number;
+  /** (2026-11-15) So luot mua vat pham o Shop (thay so luot quay gacha). */
+  shopPurchasesToday?: number;
+  shopPurchasesTotal?: number;
   /** (2026-08-16) So lan AI xac minh anh quest hom nay / so lan KHOP (quest AI tick). */
   aiVerificationsToday?: number;
   aiMatchedToday?: number;
@@ -56,7 +56,7 @@ export interface DailyStat {
 
 /** Dieu kien mo khoa khung (khop UNLOCK_TYPES cua server). */
 export type UnlockType =
-  | 'GACHA'
+  | 'SHOP'
   | 'STREAK_MILESTONE'
   | 'POST_COUNT'
   | 'FRIEND_COUNT'
@@ -114,6 +114,11 @@ export type AdminAction =
   | 'FRAME_DELETE'
   | 'FRAME_GRANT'
   | 'MOMENT_DELETE'
+  | 'SHOP_ITEM_CREATE'
+  | 'SHOP_ITEM_UPDATE'
+  | 'SHOP_ITEM_DELETE'
+  | 'SHOP_ITEM_GRANT'
+  // Log cu truoc 2026-11-15 (gacha da bo) — van con trong adminLogs, giu de hien dung nhan
   | 'GACHA_ITEM_CREATE'
   | 'GACHA_ITEM_UPDATE'
   | 'GACHA_ITEM_DELETE'
@@ -122,70 +127,52 @@ export type AdminAction =
   | 'TOPUP_PACKAGE_UPDATE'
   | 'TOPUP_PACKAGE_DELETE';
 
-// ==================== Gacha (2026-08-05) ====================
+// ==================== Shop (2026-11-15 — thay gacha) ====================
 
-/** Loai vat pham quay ra. Skin/hieu ung co asset trong APK, khop qua `refId`. */
-export type ItemType = 'FRAME' | 'EFFECT' | 'SKIN';
+/** Loai mat hang. Skin/hieu ung co asset trong APK, khop qua `refId`. */
+export type ShopItemType = 'FRAME' | 'SKIN' | 'EFFECT';
 
-/** Pham chat vat pham. Bac N khong phai vat pham (chi tra Astrite). */
-export type ItemRarity = 'R' | 'SR' | 'SSR';
-
-/** Bac quay ra duoc: N (Astrite) + 3 bac vat pham. */
-export type RollTier = 'N' | ItemRarity;
-
-/** 1 vat pham trong kho quay (GET /gacha/items/admin). */
-export interface GachaItem {
+/** 1 mat hang trong Shop (GET /shop/items/admin). */
+export interface ShopItem {
   itemId: string;
   itemName: string;
-  itemType: ItemType;
-  rarity: ItemRarity;
-  imageUrl?: string;
-  /** Tro toi vat pham that: FRAME -> frameId · SKIN/EFFECT -> id so trong app. */
+  itemType: ShopItemType;
+  /** Tro toi vat pham that: FRAME -> frameId · SKIN/EFFECT -> id so trong app (>= 1). */
   refId: string;
-  /** Tat = khong quay ra nua (nguoi da so huu van giu). */
+  /** Gia ban (Astrite). */
+  price: number;
+  imageUrl?: string;
+  /** Tat = an khoi Shop (nguoi da mua van giu). */
   isActive: boolean;
   sortOrder: number;
   createdAt?: string;
 }
 
-/** 1 user dang so huu vat pham (GET /gacha/items/:id/owners). */
-export interface GachaItemOwner {
+/** 1 user dang so huu vat pham (GET /shop/items/:id/owners). */
+export interface ShopItemOwner {
   uid: string;
   email?: string;
   fullName: string;
   avatar?: string;
 }
 
-/** Ket qua GET /gacha/items/:id/owners. */
-export interface GachaItemOwnersResult {
-  item: GachaItem;
-  owners: GachaItemOwner[];
+/** Ket qua GET /shop/items/:id/owners. */
+export interface ShopItemOwnersResult {
+  item: ShopItem;
+  owners: ShopItemOwner[];
 }
 
-/** 1 ket qua le trong 1 luot quay. */
-export interface RollResultEntry {
-  tier: RollTier;
-  /** Bac N: so Astrite nhan duoc. */
-  astriteAmount?: number;
-  itemId?: string;
-  itemName?: string;
-  itemType?: ItemType;
-  refId?: string;
-  imageUrl?: string;
-  isDuplicate: boolean;
-  refundAstrite: number;
-}
-
-/** 1 dong lich su quay cua admin (GET /gacha/history/admin) — 1 doc = 1 luot bam nut. */
-export interface AdminRoll {
-  rollId: string;
+/** 1 dong lich su mua (GET /shop/history/admin) — snapshot ten/gia luc mua. */
+export interface AdminPurchase {
+  purchaseId: string;
   uid: string;
-  /** Ten nguoi quay (server enrich tu uid; khong co doc thi bang chinh uid). */
+  /** Ten nguoi mua (server enrich tu uid; khong co doc thi bang chinh uid). */
   fullName: string;
-  rollType: 'SINGLE' | 'TEN';
-  cost: number;
-  results: RollResultEntry[];
-  refundTotal: number;
+  itemId: string;
+  itemName: string;
+  itemType: ShopItemType;
+  refId: string;
+  price: number;
   balanceAfter: number;
   createdAt: string;
 }

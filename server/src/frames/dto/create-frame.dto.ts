@@ -30,9 +30,9 @@ export class CreateFrameDto {
   imageUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'Dieu kien mo khoa; bo trong = GACHA (khung nam trong kho quay, bac R)',
+    description: 'Dieu kien mo khoa; bo trong = SHOP (khung ban trong Cua hang, gia mac dinh 320)',
     enum: UNLOCK_TYPES,
-    default: 'GACHA',
+    default: 'SHOP',
   })
   @IsOptional()
   @IsIn(UNLOCK_TYPES)

@@ -53,8 +53,7 @@ import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.designsystem.theme.AppTheme
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.network.dto.FrameDto
-import com.example.snapget.core.network.dto.GachaPityDto
-import com.example.snapget.core.network.dto.GachaStateDto
+import com.example.snapget.core.network.dto.ShopItemDto
 import com.example.snapget.core.network.dto.TodayQuestDto
 import com.example.snapget.feature.appearance.AppearanceScreenContent
 import com.example.snapget.feature.appearance.AppearanceUiState
@@ -62,7 +61,6 @@ import com.example.snapget.feature.auth.AuthMode
 import com.example.snapget.feature.auth.AuthUIActions
 import com.example.snapget.feature.auth.AuthUIState
 import com.example.snapget.feature.auth.LoginScreenContent
-import com.example.snapget.feature.gacha.GachaContent
 import com.example.snapget.feature.message.ConversationItem
 import com.example.snapget.feature.profile.ProfileUi
 import com.example.snapget.feature.profile.UserProfileContent
@@ -70,6 +68,9 @@ import com.example.snapget.feature.quest.DailyQuestScreenContent
 import com.example.snapget.feature.quest.QuestUiState
 import com.example.snapget.feature.settings.LegalDocScreen
 import com.example.snapget.feature.settings.SettingScreenContent
+import com.example.snapget.feature.shop.ShopScreenContent
+import com.example.snapget.feature.shop.ShopTab
+import com.example.snapget.feature.shop.ShopUiState
 import com.example.snapget.feature.widget.HowToAddWidgetScreen
 import com.example.snapget.feature.widget.WidgetSettingsScreenContent
 import com.example.snapget.feature.widget.data.WidgetSnapshot
@@ -86,7 +87,7 @@ class ScreenTypeProvider : PreviewParameterProvider<String> {
         "Direct Chat",
         "User Profile",
         "Daily Quests",
-        "Gacha",
+        "Shop",
         "Appearance & Themes",
         "Settings",
         "Widget Settings",
@@ -119,7 +120,7 @@ fun AllScreensPreview(
             "Direct Chat" -> ChatScreenMock()
             "User Profile" -> UserProfileMock()
             "Daily Quests" -> DailyQuestMock()
-            "Gacha" -> GachaMock()
+            "Shop" -> ShopMock()
             "Appearance & Themes" -> AppearanceMock()
             "Settings" -> SettingsMock()
             "Widget Settings" -> WidgetSettingsMock()
@@ -180,10 +181,10 @@ fun PreviewDailyQuestScreen() {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview(name = "7. Gacha Screen", showBackground = true, showSystemUi = true)
+@Preview(name = "7. Shop Screen", showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewGachaScreen() {
-    AppTheme { GachaMock() }
+fun PreviewShopScreen() {
+    AppTheme { ShopMock() }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -490,24 +491,26 @@ private fun DailyQuestMock() {
     )
 }
 
-/** 7. Gacha Screen Mock */
+/** 7. Shop Screen Mock (thay Gacha 2026-11-15) */
 @Composable
-private fun GachaMock() {
-    GachaContent(
-        state = GachaStateDto(
+private fun ShopMock() {
+    ShopScreenContent(
+        uiState = ShopUiState(
+            status = LoadStatus.Success(),
             astrite = 1600,
-            costSingle = 160,
-            costTen = 1600,
-            pity = GachaPityDto(R = 4, SR = 22, SSR = 45),
-            pityLimit = GachaPityDto(R = 10, SR = 50, SSR = 90),
+            tab = ShopTab.SKINS,
+            items = listOf(
+                ShopItemDto(itemId = "s1", itemName = "Snow", itemType = "SKIN", refId = "1", price = 4800),
+                ShopItemDto(
+                    itemId = "s2",
+                    itemName = "Forest",
+                    itemType = "SKIN",
+                    refId = "2",
+                    price = 4800,
+                    isOwned = true,
+                ),
+            ),
         ),
-        rollingTimes = null,
-        isAwaitingPayment = false,
-        onBack = {},
-        onShowRules = {},
-        onRoll = {},
-        onTopup = {},
-        onCancelPayment = {},
     )
 }
 

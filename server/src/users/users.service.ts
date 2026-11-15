@@ -5,7 +5,7 @@ import { dateKey, INVITE_LINK_TTL_DAYS } from '../common/constants';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { emptyPity, PublicUser, User } from './entities/user.entity';
+import { PublicUser, User } from './entities/user.entity';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
@@ -54,7 +54,6 @@ export class UsersService {
       patch.fcmTokens = [];
       patch.unlockedSkins = [];
       patch.unlockedEffects = [];
-      patch.gachaPity = emptyPity();
     }
     await this.usersRepo.update(authUser.uid, patch);
 
@@ -75,7 +74,6 @@ export class UsersService {
       astrite: 0,
       unlockedSkins: [],
       unlockedEffects: [],
-      gachaPity: emptyPity(),
       signupBonusClaimed: false,
     };
     // Doc lai de tra ve so du + signupBonusClaimed sau khi tang thuong tan thu

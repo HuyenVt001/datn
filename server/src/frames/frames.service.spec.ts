@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ShopService } from '../shop/shop.service';
 import { UsersRepository } from '../users/users.repository';
-import { GachaRepository } from '../gacha/gacha.repository';
 import { FramesRepository } from './frames.repository';
 import { FramesService } from './frames.service';
 
@@ -8,7 +8,7 @@ describe('FramesService', () => {
   let service: FramesService;
   let repo: jest.Mocked<FramesRepository>;
   let usersRepo: jest.Mocked<UsersRepository>;
-  let gachaRepo: jest.Mocked<GachaRepository>;
+  let shopService: jest.Mocked<ShopService>;
 
   beforeEach(() => {
     repo = {
@@ -23,19 +23,17 @@ describe('FramesService', () => {
       unlockFrame: jest.fn(),
       listByUnlockedFrame: jest.fn(),
     } as unknown as jest.Mocked<UsersRepository>;
-    gachaRepo = {
-      findItemByRef: jest.fn().mockResolvedValue(null),
-      createItem: jest.fn(),
-      deleteItem: jest.fn(),
-    } as unknown as jest.Mocked<GachaRepository>;
+    shopService = {
+      syncFrameListing: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<ShopService>;
 
-    service = new FramesService(repo, usersRepo, gachaRepo);
+    service = new FramesService(repo, usersRepo, shopService);
   });
 
   it('listForUser: gan isUnlocked theo unlockedFrames cua user; khung DEFAULT luon mo', async () => {
     repo.list.mockResolvedValue([
-      { frameId: 'f1', frameName: 'Fire', unlockType: 'GACHA' },
-      { frameId: 'f2', frameName: 'Star', unlockType: 'GACHA' },
+      { frameId: 'f1', frameName: 'Fire', unlockType: 'SHOP' },
+      { frameId: 'f2', frameName: 'Star', unlockType: 'SHOP' },
       { frameId: 'f3', frameName: 'Basic', unlockType: 'DEFAULT' },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: ['f1'] } as never);
@@ -59,53 +57,37 @@ describe('FramesService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('create: mac dinh GACHA, giu milestone legacy dong bo', async () => {
+  it('create: mac dinh SHOP, giu milestone legacy dong bo', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
     const frame = await service.create({ frameName: 'Thuong' });
 
-    expect(frame.unlockType).toBe('GACHA');
+    expect(frame.unlockType).toBe('SHOP');
     expect(frame.milestone).toBeNull();
   });
 
-  it('create khung GACHA: tu dong them vao kho gacha (pham chat R, dang bat)', async () => {
+  it('create khung SHOP: tu dong niem yet vao Shop', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
     await service.create({ frameName: 'Thuong', imageUrl: 'http://t.png' });
 
-    expect(gachaRepo.createItem).toHaveBeenCalledWith(
-      expect.objectContaining({
-        itemName: 'Thuong',
-        itemType: 'FRAME',
-        rarity: 'R',
-        refId: 'new',
-        imageUrl: 'http://t.png',
-        isActive: true,
-      }),
+    expect(shopService.syncFrameListing).toHaveBeenCalledWith(
+      expect.objectContaining({ frameId: 'new', frameName: 'Thuong', imageUrl: 'http://t.png' }),
+      true,
     );
   });
 
-  it('create khung GACHA: khung da co trong kho thi khong them lan 2 (idempotent)', async () => {
-    repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
-    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'new' } as never);
-
-    await service.create({ frameName: 'Thuong' });
-
-    expect(gachaRepo.createItem).not.toHaveBeenCalled();
-  });
-
-  it('create khung khong phai GACHA: khong dong toi kho gacha', async () => {
+  it('create khung khong phai SHOP: khong dong toi Shop', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
     await service.create({ frameName: 'MoSan', unlockType: 'DEFAULT' });
 
-    expect(gachaRepo.findItemByRef).not.toHaveBeenCalled();
-    expect(gachaRepo.createItem).not.toHaveBeenCalled();
+    expect(shopService.syncFrameListing).not.toHaveBeenCalled();
   });
 
-  it('create: loi dong bo kho gacha KHONG lam fail viec tao khung (best-effort)', async () => {
+  it('create: loi dong bo Shop KHONG lam fail viec tao khung (best-effort)', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
-    gachaRepo.createItem.mockRejectedValue(new Error('firestore down'));
+    shopService.syncFrameListing.mockRejectedValue(new Error('firestore down'));
 
     const frame = await service.create({ frameName: 'Thuong' });
 
@@ -169,7 +151,7 @@ describe('FramesService', () => {
     );
   });
 
-  it('update: doi dieu kien sang GACHA -> tu dong them khung vao kho gacha', async () => {
+  it('update: doi dieu kien sang SHOP -> tu dong niem yet khung vao Shop', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -177,39 +159,27 @@ describe('FramesService', () => {
       unlockType: 'DEFAULT',
     } as never);
 
-    await service.update('f1', { unlockType: 'GACHA' });
+    await service.update('f1', { unlockType: 'SHOP' });
 
-    expect(gachaRepo.createItem).toHaveBeenCalledWith(
-      expect.objectContaining({ itemType: 'FRAME', refId: 'f1', itemName: 'Old', rarity: 'R' }),
+    expect(shopService.syncFrameListing).toHaveBeenCalledWith(
+      expect.objectContaining({ frameId: 'f1', unlockType: 'SHOP' }),
+      true,
     );
   });
 
-  it('update: doi dieu kien tu GACHA sang loai khac -> tu dong rut khung khoi kho gacha', async () => {
+  it('update: doi dieu kien tu SHOP sang loai khac -> go khung khoi Shop', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
-      unlockType: 'GACHA',
+      unlockType: 'SHOP',
     } as never);
-    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
 
     await service.update('f1', { unlockType: 'COOP_FIRST' });
 
-    expect(gachaRepo.deleteItem).toHaveBeenCalledWith('g1');
-    expect(gachaRepo.createItem).not.toHaveBeenCalled();
-  });
-
-  it('update: giu nguyen GACHA va khung DA co trong kho -> khong them trung', async () => {
-    repo.findById.mockResolvedValue({
-      frameId: 'f1',
-      frameName: 'Old',
-      unlockType: 'GACHA',
-    } as never);
-    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
-
-    await service.update('f1', { frameName: 'New' });
-
-    expect(gachaRepo.createItem).not.toHaveBeenCalled();
-    expect(gachaRepo.deleteItem).not.toHaveBeenCalled();
+    expect(shopService.syncFrameListing).toHaveBeenCalledWith(
+      expect.objectContaining({ frameId: 'f1', unlockType: 'COOP_FIRST' }),
+      false,
+    );
   });
 
   it('delete: bao loi khi frame khong ton tai', async () => {
@@ -217,18 +187,20 @@ describe('FramesService', () => {
     await expect(service.delete('bad')).rejects.toThrow(NotFoundException);
   });
 
-  it('delete khung GACHA: rut khung khoi kho gacha luon', async () => {
+  it('delete khung SHOP: go mat hang khoi Shop luon', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
-      unlockType: 'GACHA',
+      unlockType: 'SHOP',
     } as never);
-    gachaRepo.findItemByRef.mockResolvedValue({ itemId: 'g1', refId: 'f1' } as never);
 
     await service.delete('f1');
 
     expect(repo.delete).toHaveBeenCalledWith('f1');
-    expect(gachaRepo.deleteItem).toHaveBeenCalledWith('g1');
+    expect(shopService.syncFrameListing).toHaveBeenCalledWith(
+      expect.objectContaining({ frameId: 'f1' }),
+      false,
+    );
   });
 
   it('unlockForUser: mo khoa khi frame ton tai', async () => {
@@ -256,7 +228,7 @@ describe('FramesService', () => {
   it('unlockCoopFrames: mo moi khung COOP_FIRST chua so huu', async () => {
     repo.list.mockResolvedValue([
       { frameId: 'coop1', frameName: 'Duo', unlockType: 'COOP_FIRST' },
-      { frameId: 'other', frameName: 'Khac', unlockType: 'GACHA' },
+      { frameId: 'other', frameName: 'Khac', unlockType: 'SHOP' },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: [] } as never);
 

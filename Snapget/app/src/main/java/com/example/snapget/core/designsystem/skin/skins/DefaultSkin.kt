@@ -16,7 +16,7 @@ import com.example.snapget.core.designsystem.skin.SkinColors
  * mot pixel nao. Moi gia tri duoi day deu lay tu hardcode co san trong code,
  * ghi ro so lan xuat hien de doi chieu.
  *
- * skinId = **0**, luon so huu, khong quay gacha ra duoc, dung dau tab Skins.
+ * skinId = **0**, luon so huu, khong ban o Shop, dung dau tab Skins.
  */
 val DefaultSkin = AppSkin(
     id = 0,
@@ -37,5 +37,7 @@ val DefaultSkin = AppSkin(
         textSecondary = Color(0xFFB0B0B0), // chu phu/caption/placeholder
         error = Color(0xFFCF6679), // GrayError
         onAccent = Color.Black, // chu den tren nut vang
+        navBarActive = Color.White,
+        navBarInactive = Color(0xFF757575),
     ),
 )

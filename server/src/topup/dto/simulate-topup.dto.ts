@@ -8,7 +8,7 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
  * Ly do ton tai: goi FREE-100 cua PayOS chi cho 100 GIAO DICH THANH CONG, moi
  * lan test that tieu 1 giao dich va khong hoan lai duoc. Endpoint nay di dung
  * duong ma webhook that di (verify chu ky -> transaction -> cong Astrite ->
- * ghi so cai), nen test bang no van phu dung logic (GACHA_PLAN.md muc 4.5).
+ * ghi so cai), nen test bang no van phu dung logic (SHOP_PLAN.md phu luc PayOS).
  *
  * Hai cach dung:
  *  - `{ packageId }`  -> tao 1 don gia lap roi thanh toan luon (khong goi PayOS).

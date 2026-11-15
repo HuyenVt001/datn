@@ -288,7 +288,7 @@ export class TopupService {
 
   /**
    * Gia lap PayOS bao "da thanh toan" — tiet kiem han muc 100 giao dich cua goi
-   * FREE-100 (GACHA_PLAN.md muc 4.5). Xem [SimulateTopupDto] de biet 2 cach dung.
+   * FREE-100 (SHOP_PLAN.md phu luc PayOS). Xem [SimulateTopupDto] de biet 2 cach dung.
    */
   async simulate(
     uid: string,

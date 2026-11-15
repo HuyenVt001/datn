@@ -18,7 +18,7 @@ import com.example.snapget.core.designsystem.skin.SkinTheme
 @Composable
 fun SimpleTopBar(
     title: String,
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     TopAppBar(
@@ -30,15 +30,17 @@ fun SimpleTopBar(
             )
         },
         navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                // Icon back RIENG cua skin (P5) — skin chua ve thi fallback
-                // Material, nen 1 cho sua nay an cho MOI man dung SimpleTopBar
-                SkinIcon(
-                    res = SkinTheme.icons.back,
-                    fallback = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+            if (onBackClick != null) {
+                IconButton(onClick = onBackClick) {
+                    // Icon back RIENG cua skin (P5) — skin chua ve thi fallback
+                    // Material, nen 1 cho sua nay an cho MOI man dung SimpleTopBar
+                    SkinIcon(
+                        res = SkinTheme.icons.back,
+                        fallback = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         },
         modifier = modifier,

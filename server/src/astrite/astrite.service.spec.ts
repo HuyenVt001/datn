@@ -76,15 +76,15 @@ describe('AstriteService', () => {
 
   describe('debit', () => {
     it('tru dung so va ghi so cai voi amount AM', async () => {
-      const balance = await service.debit('u1', 160, 'GACHA_SPEND', 'roll-1');
+      const balance = await service.debit('u1', 160, 'SHOP_PURCHASE', 'purchase-1');
 
       expect(balance).toBe(340);
       expect(written?.balance).toBe(340);
-      expect(entries[0]).toMatchObject({ amount: -160, balanceAfter: 340, refId: 'roll-1' });
+      expect(entries[0]).toMatchObject({ amount: -160, balanceAfter: 340, refId: 'purchase-1' });
     });
 
     it('khong du Astrite -> nem loi va KHONG ghi so cai', async () => {
-      await expect(service.debit('u1', 501, 'GACHA_SPEND')).rejects.toThrow(
+      await expect(service.debit('u1', 501, 'SHOP_PURCHASE')).rejects.toThrow(
         'Bạn không đủ Astrite.',
       );
       expect(entries).toHaveLength(0);
@@ -92,7 +92,7 @@ describe('AstriteService', () => {
     });
 
     it('tieu dung het so du -> cho phep, con lai 0', async () => {
-      const balance = await service.debit('u1', 500, 'GACHA_SPEND');
+      const balance = await service.debit('u1', 500, 'SHOP_PURCHASE');
       expect(balance).toBe(0);
     });
   });

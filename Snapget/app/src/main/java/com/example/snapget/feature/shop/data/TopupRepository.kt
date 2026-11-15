@@ -1,4 +1,4 @@
-package com.example.snapget.feature.gacha.data
+package com.example.snapget.feature.shop.data
 
 import com.example.snapget.core.network.api.TopupApi
 import com.example.snapget.core.network.dto.CreateTopupOrderRequest
@@ -10,7 +10,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Data layer nap Astrite (GACHA_PLAN.md muc 4).
+ * Data layer nap Astrite (SHOP_PLAN.md phu luc PayOS).
  *
  * ⚠️ App chi lam 3 viec: lay danh sach goi, xin link thanh toan, hoi trang thai
  * don. **Khong co duong nao khac cong Astrite** — server chi cong khi webhook

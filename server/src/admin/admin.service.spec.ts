@@ -2,7 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { FirebaseService } from '../firebase/firebase.service';
-import { GachaService } from '../gacha/gacha.service';
+import { ShopService } from '../shop/shop.service';
 import { MomentsRepository } from '../moments/moments.repository';
 import { QuestsService } from '../quests/quests.service';
 import { AdminRepository } from './admin.repository';
@@ -23,7 +23,7 @@ describe('AdminService', () => {
   let adminRepo: jest.Mocked<AdminRepository>;
   let momentsRepo: jest.Mocked<MomentsRepository>;
   let questsService: jest.Mocked<QuestsService>;
-  let gachaService: jest.Mocked<GachaService>;
+  let shopService: jest.Mocked<ShopService>;
   let audit: jest.Mocked<AuditService>;
 
   const authUsers = [
@@ -80,9 +80,9 @@ describe('AdminService', () => {
         .mockResolvedValue({ date: 'd', total: 0, matched: 0, notMatched: 0, skipped: 0 }),
       listAiVerifications: jest.fn().mockResolvedValue({ items: [], page: 1, limit: 15, total: 0 }),
     } as unknown as jest.Mocked<QuestsService>;
-    gachaService = {
-      getRollCounts: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
-    } as unknown as jest.Mocked<GachaService>;
+    shopService = {
+      getPurchaseCounts: jest.fn().mockResolvedValue({ today: 0, total: 0 }),
+    } as unknown as jest.Mocked<ShopService>;
     audit = { log: jest.fn().mockResolvedValue(undefined) } as unknown as jest.Mocked<AuditService>;
 
     service = new AdminService(
@@ -90,27 +90,27 @@ describe('AdminService', () => {
       adminRepo,
       momentsRepo,
       questsService,
-      gachaService,
+      shopService,
       audit,
     );
   });
 
-  it('getStats: gop thong ke chung + quest hom nay + so luot quay gacha', async () => {
+  it('getStats: gop thong ke chung + quest hom nay + so luot mua Shop', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 2, moments: 5 } as never);
     questsService.countCompletionsToday.mockResolvedValue(3);
-    gachaService.getRollCounts.mockResolvedValue({ today: 7, total: 42 });
+    shopService.getPurchaseCounts.mockResolvedValue({ today: 7, total: 42 });
 
     const result = await service.getStats();
 
     expect(result.users).toBe(2);
     expect(result.questCompletionsToday).toBe(3);
-    expect(result.gachaRollsToday).toBe(7);
-    expect(result.gachaRollsTotal).toBe(42);
+    expect(result.shopPurchasesToday).toBe(7);
+    expect(result.shopPurchasesTotal).toBe(42);
   });
 
   it('getStats: kem so lan AI verify / khop hom nay (2026-08-16)', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
-    gachaService.getRollCounts.mockResolvedValue({ today: 0, total: 0 });
+    shopService.getPurchaseCounts.mockResolvedValue({ today: 0, total: 0 });
     questsService.getAiVerificationStatsToday.mockResolvedValue({
       date: '2026-08-16',
       total: 5,
@@ -127,7 +127,7 @@ describe('AdminService', () => {
 
   it('getStats: thong ke AI loi (collection chua co) -> 0, dashboard van tra', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
-    gachaService.getRollCounts.mockResolvedValue({ today: 0, total: 0 });
+    shopService.getPurchaseCounts.mockResolvedValue({ today: 0, total: 0 });
     questsService.getAiVerificationStatsToday.mockRejectedValue(new Error('no collection'));
 
     const result = await service.getStats();

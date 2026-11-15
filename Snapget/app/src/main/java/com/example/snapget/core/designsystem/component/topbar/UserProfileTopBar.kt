@@ -38,7 +38,14 @@ val buttons = listOf(
 fun UserProfileTopBar(
     navController: NavController,
     onFriendsClick: () -> Unit = {},
+    showHomeButton: Boolean = false,
 ) {
+    val visibleButtons = if (showHomeButton) {
+        buttons
+    } else {
+        buttons.filter { it.third != "Home" }
+    }
+
     CenterAlignedTopAppBar(
         modifier = Modifier.padding(horizontal = 16.dp),
         title = {},
@@ -48,7 +55,7 @@ fun UserProfileTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp),
             ) {
-                buttons.forEach { (icon, route, description) ->
+                visibleButtons.forEach { (icon, route, description) ->
                     Button(
                         onClick = {
                             if (description == "FRIEND") {

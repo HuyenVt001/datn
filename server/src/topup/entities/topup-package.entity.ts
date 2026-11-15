@@ -1,5 +1,5 @@
 /**
- * Goi nap Astrite (collection `topupPackages`) — GACHA_PLAN.md muc 0.1.
+ * Goi nap Astrite (collection `topupPackages`) — SHOP_PLAN.md phu luc PayOS
  *
  * Gia va so Astrite CHI doc tu day o phia server. App gui len duy nhat
  * `packageId`; neu nhan `amount`/`astrite` tu client thi ai cung tu khai duoc

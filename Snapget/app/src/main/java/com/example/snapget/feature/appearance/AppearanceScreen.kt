@@ -1,10 +1,5 @@
 package com.example.snapget.feature.appearance
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,28 +29,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.collectible.CollectibleItem
 import com.example.snapget.core.designsystem.component.collectible.CollectibleState
+import com.example.snapget.core.designsystem.component.collectible.EffectDemoCell
+import com.example.snapget.core.designsystem.component.collectible.SkinThumbnail
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
-import com.example.snapget.core.designsystem.effect.TouchEffect
-import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
-import com.example.snapget.core.designsystem.effect.drawTouchEffectFrame
-import com.example.snapget.core.designsystem.effect.rememberEffectSheet
-import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
+import com.example.snapget.navigation.Screen
 
 private val TABS = listOf("Frames", "Skins", "Effects")
 
@@ -82,6 +72,14 @@ fun AppearanceScreen(
         onApplySkin = viewModel::applySkin,
         onApplyEffect = viewModel::applyEffect,
         onRetry = { viewModel.load() },
+        onOpenShop = {
+            // Shop la 1 tab footer -> dieu huong y nhu bam tab (giu state cac tab)
+            navController.navigate(Screen.Shop.route) {
+                popUpTo(Screen.Camera.route) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        },
     )
 }
 
@@ -94,6 +92,7 @@ fun AppearanceScreenContent(
     onApplySkin: (Int) -> Unit = {},
     onApplyEffect: (Int) -> Unit = {},
     onRetry: () -> Unit = {},
+    onOpenShop: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -166,9 +165,9 @@ fun AppearanceScreenContent(
                 }
 
                 else -> when (selectedTab) {
-                    0 -> FramesTab(frames = uiState.frames)
-                    1 -> SkinsTab(uiState = uiState, onApply = onApplySkin)
-                    else -> EffectsTab(uiState = uiState, onApply = onApplyEffect)
+                    0 -> FramesTab(frames = uiState.frames, onOpenShop = onOpenShop)
+                    1 -> SkinsTab(uiState = uiState, onApply = onApplySkin, onOpenShop = onOpenShop)
+                    else -> EffectsTab(uiState = uiState, onApply = onApplyEffect, onOpenShop = onOpenShop)
                 }
             }
         }
@@ -177,9 +176,9 @@ fun AppearanceScreenContent(
 
 /** Tab Frames — CHI XEM bo suu tap (khong dung toi luong chon khung luc dang bai). */
 @Composable
-private fun FramesTab(frames: List<FrameDto>) {
+private fun FramesTab(frames: List<FrameDto>, onOpenShop: () -> Unit) {
     if (frames.isEmpty()) {
-        EmptyHint("No frames yet — roll the gacha to collect them!")
+        EmptyHint("No frames yet — visit the Shop to get some!")
         return
     }
     LazyVerticalGrid(
@@ -188,6 +187,7 @@ private fun FramesTab(frames: List<FrameDto>) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) { ShopLink("Get more frames in the Shop", onOpenShop) }
         items(frames, key = { it.frameId }) { frame ->
             CollectibleItem(
                 name = frame.frameName,
@@ -215,13 +215,14 @@ private fun FramesTab(frames: List<FrameDto>) {
 
 /** Tab Skins — luoi 2 cot, thumbnail doc 9:16. O dau tien luon la Default. */
 @Composable
-private fun SkinsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
+private fun SkinsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit, onOpenShop: () -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) { ShopLink("Get more skins in the Shop", onOpenShop) }
         items(uiState.skins, key = { it.id }) { skin ->
             CollectibleItem(
                 name = skin.displayName,
@@ -240,58 +241,25 @@ private fun SkinsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
 }
 
 /**
- * Xem truoc skin. Chua co anh thumbnail thi ve o mau bang CHINH token cua skin
- * do — van thay duoc bang mau that, khong phai o trong.
- */
-@Composable
-private fun SkinThumbnail(skin: AppSkin) {
-    if (skin.thumbnail != null) {
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(skin.thumbnail),
-            contentDescription = skin.displayName,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-        return
-    }
-    Column(
-        modifier = Modifier.fillMaxSize().background(skin.colors.background).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            Modifier.fillMaxWidth().weight(1f)
-                .clip(skin.shapes.image).background(skin.colors.surface),
-        )
-        Box(
-            Modifier.fillMaxWidth().weight(0.35f)
-                .clip(skin.shapes.pill).background(skin.colors.pill),
-        )
-        Box(
-            Modifier.fillMaxWidth().weight(0.35f)
-                .clip(skin.shapes.pill).background(skin.colors.accent),
-        )
-    }
-}
-
-/**
  * Tab Effects — luoi 2 cot, moi o la **khu vuc demo song**: cham vao chinh o do
  * thi hieu ung chay ngay trong o (SKIN_PLAN.md muc 4.2).
  *
- * O chua so huu VAN cham thu duoc (cho nguoi dung thay co dang quay gacha
+ * O chua so huu VAN cham thu duoc (cho nguoi dung thay co dang mua o Shop
  * khong) nhung bam khong ap dung — chan o ViewModel.
  */
 @Composable
-private fun EffectsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
+private fun EffectsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit, onOpenShop: () -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) { ShopLink("Get more effects in the Shop", onOpenShop) }
         items(uiState.effects, key = { it.id }) { effect ->
             // Bam o -> chay lai demo. Voi o CHUA so huu thi day la tac dung duy
             // nhat (ViewModel chan ap dung), nen thieu no la bam vao khong co gi
-            // xay ra — dung ky vong "cham thu truoc khi quyet dinh quay".
+            // xay ra — dung ky vong "cham thu truoc khi quyet dinh mua".
             var replay by remember(effect.id) { mutableIntStateOf(0) }
             CollectibleItem(
                 name = effect.displayName,
@@ -312,74 +280,6 @@ private fun EffectsTab(uiState: AppearanceUiState, onApply: (Int) -> Unit) {
     }
 }
 
-/**
- * O demo hieu ung: chay 1 vong khi o xuat hien, va chay lai moi lan [replay]
- * doi (o duoc bam).
- *
- * Khong dung thumbnail tinh — nguoi dung thay dung thu se nhan duoc, khong phai
- * ap dung roi moi biet.
- */
-@Composable
-private fun EffectDemoCell(effect: TouchEffect, replay: Int) {
-    if (effect.id == TouchEffectRegistry.NONE_ID) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "—", color = SkinTheme.colors.textSecondary, fontSize = 24.sp)
-        }
-        return
-    }
-
-    /*
-     * `Animatable` + `snapTo(0)` chu KHONG phai `animateFloatAsState` toi mot
-     * `round` tang mai.
-     *
-     * Ban cu: moi lan bam thi `round++` va animation chay toi gia tri moi. Bam
-     * 10 phat trong 1 giay -> `round = 10` trong khi `progress` moi toi ~1.3,
-     * `cycle = progress - (round - 1)` am ca chuc -> **o demo tat ngum** cho toi
-     * khi animation duoi kip. Nhin y het "bam nhieu qua thi lag/dung hinh".
-     *
-     * Ban moi: moi lan bam la ve 0 roi chay lai — luon dung 1 animation song,
-     * bam bao nhieu lan cung the.
-     */
-    val progress = remember { Animatable(0f) }
-    val sheet = rememberEffectSheet(effect)
-
-    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay moi o cung dien;
-    // moi lan bam o (replay doi) thi chay lai tu dau.
-    LaunchedEffect(replay, effect.id) {
-        progress.snapTo(0f)
-        progress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(effect.durationMs.coerceAtLeast(1), easing = LinearEasing),
-        )
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize().clip(SkinTheme.shapes.input),
-    ) {
-        // graphicsLayer: o demo tu ve tren RenderNode rieng, animation chay khong
-        // lam ban va bat `LazyVerticalGrid` ghi lai display list moi frame.
-        Canvas(modifier = Modifier.fillMaxSize().graphicsLayer()) {
-            // Doc `progress.value` TRONG lambda ve -> chi pha ban khau ve,
-            // khong keo theo recomposition.
-            val cycle = progress.value
-            if (sheet != null && cycle > 0f && cycle < 1f) {
-                /*
-                 * Co ve tinh theo O DEMO chu khong theo `effect.sizeDp`: o trong
-                 * luoi nho hon nhieu so voi co hieu ung chay that tren man hinh,
-                 * lay dung `sizeDp` la animation tran ra ngoai o va bi `clip` cat.
-                 */
-                drawTouchEffectFrame(
-                    effect = effect,
-                    sheet = sheet,
-                    origin = Offset(size.width / 2f, size.height / 2f),
-                    progress = cycle,
-                    sizePx = minOf(size.width, size.height) * 0.9f,
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun EmptyHint(text: String) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -388,6 +288,21 @@ private fun EmptyHint(text: String) {
             color = SkinTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+/**
+ * Dong "Get more ... in the Shop" dau moi tab (2026-11-15 — thay cho loi nhac
+ * "quay gacha"): vat pham khoa gio mua o Shop, day la loi tat sang do.
+ */
+@Composable
+private fun ShopLink(text: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "$text  →",
+            color = SkinTheme.colors.accent,
+            fontWeight = FontWeight.Bold,
         )
     }
 }

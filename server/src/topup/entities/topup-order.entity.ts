@@ -1,5 +1,5 @@
 /**
- * Don nap Astrite (collection `topupOrders`) — GACHA_PLAN.md muc 2.2 + 4.
+ * Don nap Astrite (collection `topupOrders`) — SHOP_PLAN.md phu luc PayOS
  *
  * ⚠️ **Doc id = `orderCode`** (so nguyen PayOS bat buoc). Day chinh la co che
  * chong cong tien 2 lan: webhook goi lai bao nhieu lan cung tra ve dung 1 doc,

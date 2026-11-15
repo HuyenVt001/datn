@@ -3,9 +3,9 @@ import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult, PaginationDto } from '../common/dto/pagination.dto';
 import { FirebaseService } from '../firebase/firebase.service';
-import { GachaService } from '../gacha/gacha.service';
 import { MomentsRepository } from '../moments/moments.repository';
 import { QuestsService } from '../quests/quests.service';
+import { ShopService } from '../shop/shop.service';
 import { AdminRepository, AdminStats, DailyStat } from './admin.repository';
 import { ListAiVerificationsDto } from './dto/list-ai-verifications.dto';
 import { ListUsersDto } from './dto/list-users.dto';
@@ -43,7 +43,7 @@ export class AdminService {
     private readonly adminRepo: AdminRepository,
     private readonly momentsRepo: MomentsRepository,
     private readonly questsService: QuestsService,
-    private readonly gachaService: GachaService,
+    private readonly shopService: ShopService,
     private readonly audit: AuditService,
   ) {}
 
@@ -82,20 +82,20 @@ export class AdminService {
     return { items: users.slice(start, start + limit), page, limit, total: users.length };
   }
 
-  /** Thong ke tong quan cho dashboard (kem quest hom nay + so luot quay gacha + AI verify hom nay). */
+  /** Thong ke tong quan cho dashboard (kem quest hom nay + so luot mua Shop + AI verify hom nay). */
   async getStats(): Promise<AdminStats> {
-    const [stats, questCompletionsToday, rolls, ai] = await Promise.all([
+    const [stats, questCompletionsToday, purchases, ai] = await Promise.all([
       this.adminRepo.getStats(),
       this.questsService.countCompletionsToday(),
-      this.gachaService.getRollCounts(),
+      this.shopService.getPurchaseCounts(),
       // Best-effort: collection aiVerifications co the chua ton tai / AI tat -> 0, khong fail dashboard
       this.questsService.getAiVerificationStatsToday().catch(() => undefined),
     ]);
     return {
       ...stats,
       questCompletionsToday,
-      gachaRollsToday: rolls.today,
-      gachaRollsTotal: rolls.total,
+      shopPurchasesToday: purchases.today,
+      shopPurchasesTotal: purchases.total,
       aiVerificationsToday: ai?.total ?? 0,
       aiMatchedToday: ai?.matched ?? 0,
     };

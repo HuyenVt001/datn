@@ -11,8 +11,8 @@ import { AstriteTransaction, NewAstriteTransaction } from './entities/astrite-tr
  * transaction voi dong so cai tuong ung, ma Firestore chi cho 1 callback
  * runTransaction -> gom vao 1 cho de khong bao gio lech so du <-> so cai.
  *
- * Cac ham `*InTransaction` nhan `tx` tu ngoai de gacha/topup gop nhieu thao tac
- * (tru tien + hoan tien + mo khoa vat pham + ghi lich su) vao MOT transaction.
+ * Cac ham `*InTransaction` nhan `tx` tu ngoai de shop/topup gop nhieu thao tac
+ * (tru tien + mo khoa vat pham + ghi lich su) vao MOT transaction.
  */
 @Injectable()
 export class AstriteRepository {

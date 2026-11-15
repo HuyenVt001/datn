@@ -10,7 +10,7 @@ import { ConfigModule } from './config/config.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { FramesModule } from './frames/frames.module';
 import { FriendshipsModule } from './friendships/friendships.module';
-import { GachaModule } from './gacha/gacha.module';
+import { ShopModule } from './shop/shop.module';
 import { MessagesModule } from './messages/messages.module';
 import { MomentsModule } from './moments/moments.module';
 import { QuestsModule } from './quests/quests.module';
@@ -30,14 +30,14 @@ import { UsersModule } from './users/users.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     // Domain
     UploadModule,
-    AstriteModule, // vi tien te Astrite — users/quests/gacha/topup deu dung
+    AstriteModule, // vi tien te Astrite — users/quests/shop/topup deu dung
     UsersModule,
     FriendshipsModule,
     MomentsModule,
     MessagesModule,
     FramesModule,
     QuestsModule,
-    GachaModule, // gacha + vat pham (skin/hieu ung/khung)
+    ShopModule, // cua hang: mua khung / skin / hieu ung bang Astrite (2026-11-15, thay gacha)
     TopupModule, // nap Astrite qua PayOS (tien that)
     AdminModule,
   ],

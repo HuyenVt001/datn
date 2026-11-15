@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-08-15**.
+> Cập nhật lần cuối: **2026-11-15**.
 
 ---
 
@@ -17,10 +17,10 @@
 
 | | |
 |---|---|
-| Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, **ai** (2026-08-15), astrite, gacha, topup, admin, audit) |
-| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **13 suite / 255 test pass** (astrite 8 + gacha 29 + topup 21 + frames 21 + **quests 35 + ai 9 + ai-quest-templates 7 + admin +3**) · e2e smoke **12 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401, cron secret sai → 401/503) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
+| Giai đoạn | 🟢 **Server hoàn chỉnh TẤT CẢ domain** (users, friendships, upload, moments, coop, messages, frames, quests, **ai** (2026-08-15), astrite, **shop** (2026-11-15, thay gacha), topup, admin, audit) |
+| Đã verify | `npm run lint` + `tsc --noEmit` sạch · unit test **13 suite / 251 test pass** (astrite 8 + **shop 27** + topup 21 + frames 18 + quests 35 + ai 9 + ai-quest-templates 7 + admin …) · e2e smoke **12 test pass** (`test/app.e2e-spec.ts`, có case webhook PayOS chữ ký rác → 401, cron secret sai → 401/503) · Cloudinary OK · service account key **đã có** trên máy (`snapget-d8693-firebase-adminsdk-fbsvc-d08b18f0f5.json`, `.env` trỏ qua `FIREBASE_SERVICE_ACCOUNT`) |
 | Deploy | Đã chạy trên Render: `https://datn-8810.onrender.com/api` (gói free ngủ sau 15 phút — gọi `/api/health` để đánh thức trước demo). Hướng dẫn: `../DEPLOY.md` |
-| Việc kế tiếp | **AI Daily Quest — code server/Space/app xong M0–M5 (2026-08-15)** (kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`, checklist việc user ở mục 17 của plan). Còn lại **việc của user**: train model trên Colab (`ml/notebooks/snapget12_train.ipynb`) → tạo HF Space + upload model → điền `AI_SERVICE_URL`/`AI_SERVICE_API_KEY`/`CRON_SECRET` → tạo 2 cron trên cron-job.org (generate 00:05 UTC + keep-warm /health 10') → M6 (Snapget-12, v1, ablation). PayOS: điền 3 khoá `PAYOS_*` → đăng ký webhook (GACHA_PLAN mục 12) |
+| Việc kế tiếp | **AI Daily Quest — code server/Space/app xong M0–M5 (2026-08-15)** (kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`, checklist việc user ở mục 17 của plan). Còn lại **việc của user**: train model trên Colab (`ml/notebooks/snapget12_train.ipynb`) → tạo HF Space + upload model → điền `AI_SERVICE_URL`/`AI_SERVICE_API_KEY`/`CRON_SECRET` → tạo 2 cron trên cron-job.org (generate 00:05 UTC + keep-warm /health 10') → M6 (Snapget-12, v1, ablation). PayOS: điền 3 khoá `PAYOS_*` → đăng ký webhook (SHOP_PLAN phụ lục PayOS). **Shop (2026-11-15)**: deploy → `npm run seed:shop` → `npm run cleanup:gacha -- --confirm` |
 | Blocker | ⚠️ Luồng nạp tiền TẮT cho tới khi có 3 khoá `PAYOS_*` — `POST /topup/orders` trả 503. ⚠️ Quest AI TẮT cho tới khi có `AI_SERVICE_URL` + `AI_SERVICE_API_KEY` — `GET /quests/today` vẫn trả 2 quest như cũ. Toàn bộ phần còn lại chạy bình thường |
 
 ---
@@ -91,11 +91,11 @@ helmet (security headers, CSP off cho Swagger)
 | `upload` | Multipart ≤25MB → Cloudinary; enforce ảnh GIF ≤3s từ metadata; route riêng cho admin | cloudinary |
 | `moments` | Đăng bài, feed (mình + bạn), seen/reactions (subcollection), xóa (chủ bài); wire personal+friend streak, quest, FCM; **kèm coop (redesign 2026-08-02)**: mời (TTL 5 phút, không kèm ảnh) → accept → 2 bên nộp nửa ảnh → sharp ghép 1080×1080 → `mergedMediaUrl` (mỗi người tự đăng bài với ảnh ghép) | users, friendships, frames, upload |
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
-| `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-08-11)** tự đồng bộ kho gacha khi CRUD khung (GACHA ⇒ có mặt trong `gachaItems`, khác/xóa ⇒ rút khỏi kho) | users, audit, gacha (forwardRef) |
+| `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-11-15)** tự đồng bộ Shop khi CRUD khung (SHOP ⇒ có mặt hàng trong `shopItems`, khác/xóa ⇒ gỡ khỏi Shop) | users, audit, shop (forwardRef) |
 | `quests` | **3 quest/ngày (2026-08-15)**: 2 quest cố định (LOGIN + POST_MOMENT) lazy tạo, tự hoàn thành, xong 2/2 = **+60 Astrite** (giữ nguyên) + **quest AI `AI_CHALLENGE`** ("Chụp một chiếc cốc"): nội dung do LLM trên HF Space viết (cron `POST /quests/ai/generate`) hoặc template fallback; hoàn thành khi ảnh user đăng lên feed được model AI xác minh có chứa `targetClass` → **+30 Astrite riêng**; log mọi lần verify vào `aiVerifications`; mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames, **ai** |
 | `ai` | **(2026-08-15, sửa 2026-08-16)** `AiService` = HTTP client DUY NHẤT gọi AI service (FastAPI + ONNX trên **Google Cloud Run**, code ở `ml/ai-service/`): `verify(imageUrl, targetClass)` timeout 3s · `health()` · `generate(avoid)` (điểm cắm LLM — hiện service tắt, trả 503 → bộ mẫu); auth `X-API-Key`; `toVerifyImageUrl()` chèn transform Cloudinary `w_224,h_224,c_fill`. Không controller, không repository. Thiếu env → `enabled=false`, không verify (quest AI vẫn hiện, không tick) | config |
 | `astrite` | **(2026-08-05)** Ví Astrite: `credit`/`debit`/`grantSignupBonusOnce` — MỌI thay đổi số dư đi qua đây để sổ cái luôn khớp | firebase |
-| `gacha` | **(2026-08-05)** Catalog `gachaItems` + quay 1/x10: pity ưu tiên bậc cao & chỉ reset bậc trúng, SR/SSR không trùng khi chưa full, random ở SERVER; **G3**: CRUD kho vật phẩm + lịch sử toàn hệ thống cho admin | astrite, auth, frames, users, audit |
+| `shop` | **(2026-11-15 — thay `gacha`)** Cửa hàng mua đứt bằng Astrite: catalog `shopItems` (FRAME/SKIN/EFFECT, giá do admin đặt) + `POST /shop/buy` (trừ tiền + mở khóa + `shopPurchases` + sổ cái `SHOP_PURCHASE` trong 1 transaction); admin CRUD/grant/owners/lịch sử mua | astrite, auth, frames (forwardRef), users, audit |
 | `topup` | **(2026-08-05 — G6)** Nạp Astrite bằng **tiền thật** qua PayOS: `topupPackages` (admin CRUD) · tạo đơn + link thanh toán · **webhook verify chữ ký + idempotent theo `orderCode`** · `/topup/simulate` chỉ chạy ở dev · lịch sử + doanh thu cho admin. `PayosService` là nơi DUY NHẤT gọi SDK `@payos/node` | astrite, auth, users, audit |
 | `admin` | List/search user, stats (+ daily), khóa/mở, grant/revoke admin, kiểm duyệt bài đăng, đọc audit log | users, moments, audit |
 | `audit` | `AuditService.log()` best-effort → collection `adminLogs` (mọi hành động admin) | dùng bởi admin + frames, không vòng lặp DI |
@@ -148,23 +148,24 @@ server/
 │   ├── ai/                  ✅ **(2026-08-15)** `AiService` — HTTP client gọi AI service trên Cloud Run (verify/health, timeout, `enabled` fail-safe;
 │   │                           `generate` = điểm cắm LLM, hiện tắt). Model + code service nằm ở `../ml/` (root monorepo), KHÔNG trong server
 │   ├── astrite/            ✅ **(2026-08-05)** ví tiền tệ Astrite: credit/debit trong transaction + sổ cái `astriteTransactions`;
-│   │                           không có controller — users/quests/gacha/topup gọi qua AstriteService
-│   ├── gacha/              ✅ **(2026-08-05)** GET state/items/history + POST roll; thuật toán 4 bậc N/R/SR/SSR,
-│   │                           pity 10/50/100, hoàn trùng, tất cả trong 1 transaction Firestore.
-│   │                           **G3**: CRUD kho vật phẩm + GET history/admin (lọc uid/bậc/ngày) cho trang quản trị
+│   │                           không có controller — users/quests/shop/topup gọi qua AstriteService
+│   ├── shop/               ✅ **(2026-11-15 — thay gacha/)** GET items (catalog + isOwned + số dư) · POST buy · GET history;
+│   │                           admin: items/admin · POST/PATCH/DELETE items · owners · grant · history/admin.
+│   │                           `ShopService.syncFrameListing` cho FramesService tự niêm yết khung SHOP
 │   ├── topup/              ✅ **(2026-08-05 — G6)** nạp Astrite qua PayOS (TIỀN THẬT): GET packages · POST orders ·
 │   │                           GET orders/:orderCode · GET history · POST webhook (@Public, verify chữ ký, idempotent)
 │   │                           · POST simulate (chỉ dev) · GET return|cancel (trang HTML PayOS chuyển về) · CRUD gói + lịch sử admin.
 │   │                           `payos.service.ts` = NƠI DUY NHẤT gọi SDK; thiếu khoá → luồng nạp tắt, server vẫn boot
 │   ├── audit/               ✅ AuditService.log (best-effort) + AuditRepository (collection adminLogs)
-│   └── admin/               ✅ users list/search (kèm astrite), stats (+ lượt quay) + stats/daily, disabled,
+│   └── admin/               ✅ users list/search (kèm astrite), stats (+ lượt mua Shop) + stats/daily, disabled,
 │                                grant/revoke-admin, moments (kiểm duyệt), logs
 ├── assets/frames/           ✅ 8 khung PNG mẫu + manifest.json cho seed:frames
 ├── scripts/
 │   ├── seed-admin.ts        ✅ npm run seed:admin -- <email> — cấp claim admin ĐẦU TIÊN
 │   ├── seed-frames.ts       ✅ npm run seed:frames — upload khung mẫu + tạo doc frames
-│   ├── seed-gacha.ts        ✅ npm run seed:gacha — catalog vật phẩm + chuẩn hóa unlockType khung
-│   ├── seed-topup.ts        ✅ npm run seed:topup — 5 gói nạp (GACHA_PLAN mục 0.1), idempotent theo `seedKey`
+│   ├── seed-shop.ts         ✅ npm run seed:shop — mặt hàng Shop (khung SHOP + 2 skin + 4 hiệu ứng) + chuẩn hóa GACHA→SHOP
+│   ├── cleanup-gacha.ts     ✅ npm run cleanup:gacha [-- --confirm] — dọn gachaItems/gachaRolls/gachaPity/sổ cái GACHA_* (mặc định chạy thử)
+│   ├── seed-topup.ts        ✅ npm run seed:topup — 5 gói nạp (SHOP_PLAN phụ lục PayOS), idempotent theo `seedKey`
 │   └── dev-streak.ts        ✅ npm run dev:streak — DEV TOOL set streak / mở-khóa khung để test
 └── test/
     └── app.e2e-spec.ts      ✅ e2e smoke (supertest boot AppModule thật: envelope/validation/guard/404, không cần emulator;
@@ -181,19 +182,19 @@ Chi tiết field ở `.claude/CLAUDE.md` mục 6. Tên collection tập trung �
 
 | Collection | Vai trò |
 |---|---|
-| `users/{uid}` | hồ sơ + game (personalStreak, unlockedFrames[], inviteCode + inviteCodeExpiresAt TTL 30 ngày, fcmTokens[], birthday) · **(2026-08-05)** `astrite` số dư, `unlockedSkins[]`/`unlockedEffects[]` (id kiểu số), `gachaPity{R,SR,SSR}`, `signupBonusClaimed` |
+| `users/{uid}` | hồ sơ + game (personalStreak, unlockedFrames[], inviteCode + inviteCodeExpiresAt TTL 30 ngày, fcmTokens[], birthday) · **(2026-08-05)** `astrite` số dư, `unlockedSkins[]`/`unlockedEffects[]` (id kiểu số), `signupBonusClaimed` · ~~`gachaPity`~~ bỏ 2026-11-15 |
 | `friendships/{pairId}` | quan hệ 2 user, friendStreak, lastInteractionAt, status (PENDING = lời mời chờ chủ link xác nhận), requesterUid |
 | `posts/{id}` (Moment) | bài đăng; `+ /views/{viewerId}`, `+ /reactions/{id}` (subcollection) |
 | `messages/{id}` | tin nhắn (receiverId? / groupId?), messageType, isSeen, reactions{uid: emoji}, attachmentUrl/Type, replyTo* (snapshot tin gốc) |
 | `chatGroups/{id}` | nhóm chat (memberIds[] ≤20, `avatar?` URL Cloudinary, `mutedBy[]` uid tắt thông báo, `createdBy` = người quản lý) |
 | `coopInvites/{id}` | lời mời chụp chung (inviterId, inviteeId, `inviterMediaUrl?`/`inviteeMediaUrl?` 2 nửa ảnh, `mergedMediaUrl?` ảnh ghép, status PENDING/ACCEPTED/COMPLETED/DECLINED/EXPIRED) |
-| `frames/{id}` | khung ảnh: frameName, imageUrl, `unlockType` + `unlockValue`; `milestone` legacy (suy ngược tương thích doc cũ, kể cả `QUEST_RANDOM` → `GACHA`) |
+| `frames/{id}` | khung ảnh: frameName, imageUrl, `unlockType` + `unlockValue`; `milestone` legacy (suy ngược tương thích doc cũ, kể cả `QUEST_RANDOM`/`GACHA` → `SHOP`) |
 | `dailyQuests/{id}` + `userQuests/{id}` | quest/ngày + trạng thái hoàn thành của từng user; doc `{date}_{uid}_DAILY_REWARD` = claim thưởng ngày (**field `astrite`** — doc trước 2026-08-05 dùng `frameId`). **(2026-08-15)** `dailyQuests/{date}_AI_CHALLENGE` thêm `targetClass`, `source` (LLM/FALLBACK), `generatedAt`; `userQuests/{date}_{uid}_AI_CHALLENGE` thêm `momentId`, `aiScore`, `modelVersion` |
 | `aiVerifications/{id}` | **(2026-08-15)** log MỌI lần AI xác minh ảnh quest (kể cả trượt/SKIPPED): uid, momentId, date, targetClass, outcome, score, threshold, scores{12}, modelVersion, latencyMs, roundTripMs, error — số liệu accuracy production cho báo cáo; ghi best-effort |
 | `adminLogs/{id}` | audit log hành động admin (ai làm gì lên đối tượng nào lúc nào) |
 | `astriteTransactions/{id}` | **(2026-08-05)** sổ cái tiền tệ Astrite — MỌI thay đổi số dư ghi 1 dòng (uid, type, amount ±, balanceAfter, refId) |
-| `gachaItems/{id}` | **(2026-08-05)** catalog vật phẩm quay ra: itemName, itemType (FRAME/EFFECT/SKIN), rarity (R/SR/SSR), imageUrl, `refId` (frameId / skinId / effectId), isActive |
-| `gachaRolls/{id}` | **(2026-08-05)** lịch sử quay — 1 doc = 1 lần bấm nút (x10 vẫn 1 doc, 10 phần tử `results[]`), kèm cost/refundTotal/balanceAfter |
+| `shopItems/{id}` | **(2026-11-15 — thay `gachaItems`)** mặt hàng Shop: itemName, itemType (FRAME/SKIN/EFFECT), `refId` (frameId / skinId / effectId — chuỗi), **`price`** (Astrite), imageUrl?, isActive, sortOrder. Cặp (itemType, refId) **duy nhất** (service chặn trùng) |
+| `shopPurchases/{id}` | **(2026-11-15 — thay `gachaRolls`)** lịch sử mua: uid, itemId, snapshot itemName/itemType/refId/price, balanceAfter, createdAt |
 | `topupPackages/{id}` | **(2026-08-05 — G6)** gói nạp: name, astrite, priceVnd, isActive, isTest, sortOrder (+ `seedKey` do script seed ghi) |
 | `topupOrders/{orderCode}` | **(2026-08-05 — G6)** đơn nạp — **doc id CHÍNH LÀ `orderCode`**, đây là cơ chế chống cộng tiền 2 lần. uid, packageId/packageName, astrite, amountVnd, status (PENDING/PAID/CANCELLED/EXPIRED), payosPaymentLinkId, checkoutUrl, payosReference, isSimulated?, createdAt, paidAt |
 
@@ -217,7 +218,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | upload | ✅ | ≤25MB, ảnh GIF ≤3s enforce | ⬜ | ✅ |
 | audit | ✅ | ghi best-effort, không chặn hành động chính | — | ✅ |
 | **astrite** | ✅ | **(2026-08-05 — G0)** ví Astrite: credit/debit trong transaction + sổ cái luôn khớp số dư; thưởng tân thủ 1600 idempotent | ✅ 8 test | ✅ |
-| **gacha** | ✅ | **(2026-08-05 — G1)** 4 bậc N/R/SR/SSR; pity 10/50/100 (ưu tiên bậc cao, chỉ reset bậc trúng); SR/SSR không trùng khi chưa full; x10 cập nhật sở hữu ngay trong vòng lặp; pool bậc rỗng → trả Astrite thay vì lỗi. **(G3)** admin chỉ thêm được FRAME, refId phải có thật + chưa trong kho; sửa không đổi được `itemType`/`refId` | ✅ 25 test | ✅ |
+| **shop** | ✅ | **(2026-11-15 — thay gacha)** body mua chỉ `itemId` (giá tra ở server); đã sở hữu → 409, thiếu Astrite → 400, mặt hàng tắt / khung không còn SHOP → 400; ownership + số dư kiểm tra trên snapshot MỚI NHẤT trong transaction (bấm 2 lần không trừ 2 lần); SKIN/EFFECT mở khóa dạng SỐ, FRAME dạng chuỗi; admin niêm yết SKIN/EFFECT theo id ≥1 có sẵn trong APK, FRAME phải là khung SHOP; chống niêm yết trùng (itemType, refId); đồng bộ khung SHOP không ghi đè giá admin | ✅ 27 test | ✅ |
 | **topup** | ✅ | **(2026-08-05 — G6)** body chỉ nhận `packageId` (giá tra ở server); ghi đơn TRƯỚC khi gọi PayOS; webhook sai chữ ký → 401; **idempotent theo `orderCode`** (gọi 3 lần cộng đúng 1 lần); số tiền lệch → KHÔNG cộng, giữ PENDING để đối soát tay; đơn EXPIRED **vẫn cộng** nếu PayOS báo đã trả; dọn đơn quá hạn bằng **transaction có điều kiện**; lưu checkoutUrl bằng `patchOrder` (không đụng `status`); `/topup/simulate` chỉ cộng vào ví CHÍNH MÌNH và chặn hẳn ở production | ✅ 21 test | ✅ |
 
 ---
@@ -273,17 +274,17 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | PATCH | `/api/messages/groups/:groupId/mute` | Bật/tắt thông báo nhóm cho riêng mình (`{muted}` — mutedBy bị loại khỏi FCM nhóm) | Firebase |
 | GET | `/api/quests/today` | Quest hôm nay + trạng thái (lazy; gọi = tự hoàn thành LOGIN; **`rewardAstrite`** nếu đã xong 2/2 — ⚠️ đổi tên từ `rewardFrameId` ngày 2026-08-05). **(2026-08-15)** khi server bật AI: phần tử thứ 3 `type:'AI_CHALLENGE'` kèm `targetClass`, `source` — app cũ vẫn parse (type là String) | Firebase |
 | POST | `/api/quests/ai/generate` | **(2026-08-15) [Cron]** sinh quest AI hôm nay + ngày mai (LLM trên Space, lỗi → template); idempotent, không ghi đè; AI tắt → `[]`; thiếu `CRON_SECRET` → 503 | `@Public` + **CronSecretGuard** (`x-cron-secret`) |
-| GET | `/api/gacha/state` | **(2026-08-05)** Số dư Astrite + pity + giá quay + tỉ lệ gốc — app tự sinh popup Rule từ đây | Firebase |
-| GET | `/api/gacha/items` | **(2026-08-05)** Catalog vật phẩm đang bật + `isOwned` của mình | Firebase |
-| GET | `/api/gacha/history` | **(2026-08-05)** Lịch sử quay của mình (`?limit`, mặc định 50, tối đa 200) | Firebase |
-| POST | `/api/gacha/roll` | **(2026-08-05)** Quay 1 hoặc 10 lần — trừ Astrite, random ở server, pity, mở khoá, ghi sổ cái trong 1 transaction | Firebase |
-| GET | `/api/gacha/items/admin` | **(2026-08-05)** [Admin] Toàn bộ kho vật phẩm, kể cả đang tắt | Admin JWT |
-| GET | `/api/gacha/history/admin` | **(2026-08-05)** [Admin] Lịch sử quay toàn hệ thống (`?uid&tier&date&limit`, lọc trong bộ nhớ; kèm `fullName`) | Admin JWT |
-| POST | `/api/gacha/items` | **(2026-08-05)** [Admin] Thêm vật phẩm — **CHỈ `itemType=FRAME`**, refId phải là frame có thật và chưa nằm trong kho | Admin JWT |
-| PATCH | `/api/gacha/items/:id` | **(2026-08-05)** [Admin] Sửa vật phẩm (tên/phẩm chất/ảnh/bật-tắt/thứ tự — KHÔNG đổi `itemType`/`refId`) | Admin JWT |
-| DELETE | `/api/gacha/items/:id` | **(2026-08-05)** [Admin] Xoá khỏi kho quay (người đã sở hữu vẫn giữ) | Admin JWT |
-| GET | `/api/gacha/items/:id/owners` | **(2026-08-06)** [Admin] Danh sách user đang sở hữu vật phẩm (drawer "Ai đang sở hữu?") | Admin JWT |
-| POST | `/api/gacha/items/:id/grant/:uid` | **(2026-08-06)** [Admin] **Tặng vật phẩm** cho user (kho thưởng) — idempotent, uid phải tồn tại, ghi audit `GACHA_ITEM_GRANT` | Admin JWT |
+| GET | `/api/shop/items` | **(2026-11-15)** Catalog Shop: `{ astrite, items[] }` — mặt hàng đang mở bán + `isOwned` của mình | Firebase |
+| POST | `/api/shop/buy` | **(2026-11-15)** Mua `{itemId}` → `{ purchase, astriteAfter }`. Trừ Astrite + mở khóa + `shopPurchases` + sổ cái `SHOP_PURCHASE` trong 1 transaction. 400 thiếu Astrite / không mở bán · 409 đã sở hữu | Firebase |
+| GET | `/api/shop/history` | **(2026-11-15)** Lịch sử mua của mình (`?limit`, mặc định 50, tối đa 200) | Firebase |
+| GET | `/api/shop/items/admin` | **(2026-11-15)** [Admin] Toàn bộ mặt hàng, kể cả đang tắt | Admin JWT |
+| GET | `/api/shop/history/admin` | **(2026-11-15)** [Admin] Lịch sử mua toàn hệ thống (`?uid&itemType&date&limit`, lọc trong bộ nhớ; kèm `fullName`) | Admin JWT |
+| POST | `/api/shop/items` | **(2026-11-15)** [Admin] Niêm yết mặt hàng: FRAME → frameId khung SHOP; SKIN/EFFECT → id số ≥1 có trong APK; bỏ trống `price` = giá mặc định (320/4800/1600); trùng → 409. Audit `SHOP_ITEM_CREATE` | Admin JWT |
+| PATCH | `/api/shop/items/:id` | **(2026-11-15)** [Admin] Sửa tên/giá/ảnh/bật-tắt/thứ tự (KHÔNG đổi `itemType`/`refId`). Audit `SHOP_ITEM_UPDATE` | Admin JWT |
+| DELETE | `/api/shop/items/:id` | **(2026-11-15)** [Admin] Gỡ khỏi Shop (người đã mua vẫn giữ). Audit `SHOP_ITEM_DELETE` | Admin JWT |
+| GET | `/api/shop/items/:id/owners` | **(2026-11-15)** [Admin] User đang sở hữu vật phẩm | Admin JWT |
+| POST | `/api/shop/items/:id/grant/:uid` | **(2026-11-15)** [Admin] Tặng vật phẩm (idempotent, uid phải tồn tại, không ghi sổ cái). Audit `SHOP_ITEM_GRANT` | Admin JWT |
+| ~~`/api/gacha/*`~~ | — | ❌ **Đã xoá 2026-11-15** (thay bằng `/api/shop/*`) — APK cũ gọi sẽ 404 | — |
 | GET | `/api/topup/packages` | **(2026-08-05)** Gói nạp đang bật | Firebase |
 | POST | `/api/topup/orders` | **(2026-08-05)** Tạo đơn + link PayOS. Body **chỉ** `{packageId}` — giá tra ở server. Chưa cấu hình khoá → 503 | Firebase |
 | GET | `/api/topup/orders/:orderCode` | **(2026-08-05)** Trạng thái đơn của mình (đơn người khác → 403) | Firebase |
@@ -297,12 +298,12 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | GET | `/api/frames` | Catalog khung + `isUnlocked` của mình (kèm `unlockType`/`unlockValue`) | Firebase |
 | GET | `/api/frames/admin` | [Admin] Toàn bộ catalog khung | Admin JWT |
 | GET | `/api/frames/:id/owners` | [Admin] User đang sở hữu khung (`{frame, owners[]}`) | Admin JWT |
-| POST | `/api/frames` | [Admin] Thêm khung (`frameName/imageUrl/unlockType/unlockValue`); khung GACHA **tự vào kho gacha** | Admin JWT |
-| PATCH | `/api/frames/:id` | [Admin] Sửa khung (đổi loại cần gửi kèm ngưỡng mới); đổi sang/khỏi GACHA → **tự thêm/rút kho gacha** | Admin JWT |
-| DELETE | `/api/frames/:id` | [Admin] Xóa khung (đang trong kho gacha thì rút luôn) | Admin JWT |
+| POST | `/api/frames` | [Admin] Thêm khung (`frameName/imageUrl/unlockType/unlockValue`); bỏ trống `unlockType` = SHOP; khung SHOP **tự niêm yết vào Shop** (giá 320) | Admin JWT |
+| PATCH | `/api/frames/:id` | [Admin] Sửa khung (đổi loại cần gửi kèm ngưỡng mới); đổi sang/khỏi SHOP → **tự niêm yết / gỡ khỏi Shop** (không ghi đè giá đã sửa) | Admin JWT |
+| DELETE | `/api/frames/:id` | [Admin] Xóa khung (đang bán trong Shop thì gỡ luôn) | Admin JWT |
 | POST | `/api/frames/:id/grant/:uid` | [Admin] Mở khóa khung cho user | Admin JWT |
 | GET | `/api/admin/users` | Danh sách user (`?search&page&limit`; kèm `admin`, `lastSignInAt`, **`astrite`**) | Admin JWT |
-| GET | `/api/admin/stats` | Thống kê tổng (users/moments/messages/friendships/groups + momentsToday + questCompletionsToday + **gachaRollsToday/Total**) | Admin JWT |
+| GET | `/api/admin/stats` | Thống kê tổng (users/moments/messages/friendships/groups + momentsToday + questCompletionsToday + **shopPurchasesToday/Total** (2026-11-15, thay gachaRolls*)) | Admin JWT |
 | GET | `/api/admin/stats/daily` | Thống kê theo ngày (`?days=1..30`): `[{date, moments, newUsers}]` cho biểu đồ | Admin JWT |
 | PATCH | `/api/admin/users/:uid/disabled` | Khóa/mở khóa user (không tự khóa mình; khóa = thu hồi refresh token) | Admin JWT |
 | POST | `/api/admin/users/:uid/grant-admin` | Cấp quyền admin (giữ các claim khác) | Admin JWT |
@@ -328,8 +329,9 @@ Swagger: `http://localhost:3000/docs`.
 
 - ✅ Quyền admin: Firebase custom claims `{admin: true}`; admin đầu tiên seed bằng `npm run seed:admin -- <email>` (mặc định viethoang5301314@gmail.com).
 - ✅ Role 2 cấp user/admin: cấp + THU quyền qua trang admin; chặn tự khóa/tự thu quyền (⇒ luôn còn ≥1 admin); `AdminJwtGuard` re-check claim + disabled mỗi request (đánh đổi 1 read Auth/request — chấp nhận).
-- ✅ Điều kiện mở khóa khung: 6 loại `unlockType` — **GACHA** / STREAK_MILESTONE (3/7/14/30) / POST_COUNT / FRIEND_COUNT / COOP_FIRST / DEFAULT. `QUEST_RANDOM` đã bỏ (2026-08-05); `FramesRepository.toEntity` map doc cũ (`QUEST_RANDOM` hoặc chỉ có `milestone`) sang loại mới khi đọc → **không cần migration, không cần chờ chạy seed**.
-- ✅ **(2026-08-11)** Kho gacha đồng bộ TỰ ĐỘNG theo `unlockType` của khung: `FramesService.syncGachaPool` (best-effort, idempotent) — tạo/sửa khung thành GACHA ⇒ thêm vật phẩm FRAME (phẩm chất R, đang bật) vào `gachaItems`; đổi khỏi GACHA hoặc xóa khung ⇒ rút vật phẩm khỏi kho (ai đã sở hữu vẫn giữ). Admin bỏ nút "Thêm khung vào kho"; `POST /gacha/items` vẫn giữ (idempotent-check trùng refId như cũ).
+- ✅ Điều kiện mở khóa khung: 6 loại `unlockType` — **SHOP** (2026-11-15, thay GACHA) / STREAK_MILESTONE (3/7/14/30) / POST_COUNT / FRIEND_COUNT / COOP_FIRST / DEFAULT. `QUEST_RANDOM` (2026-08-05) và `GACHA` (2026-11-15) đã bỏ; `FramesRepository.toEntity` map doc cũ (`QUEST_RANDOM`/`GACHA` → SHOP, hoặc chỉ có `milestone`) sang loại mới khi đọc → **không cần migration, không cần chờ chạy seed**.
+- ✅ **(2026-11-15 — thay đồng bộ gacha)** Shop đồng bộ TỰ ĐỘNG theo `unlockType` của khung: `FramesService.syncShopListing` → `ShopService.syncFrameListing` (best-effort, idempotent, KHÔNG ghi đè giá/tên admin đã sửa) — SHOP ⇒ có mặt hàng FRAME giá 320; khác SHOP / xóa khung ⇒ gỡ mặt hàng. ~~(2026-08-11) Kho gacha đồng bộ TỰ ĐỘNG theo `unlockType` của khung: `FramesService.syncGachaPool` (best-effort, idempotent) — tạo/sửa khung thành GACHA ⇒ thêm vật phẩm FRAME (phẩm chất R, đang bật) vào `gachaItems`; đổi khỏi GACHA hoặc xóa khung ⇒ rút vật phẩm khỏi kho (ai đã sở hữu vẫn giữ). Admin bỏ nút "Thêm khung vào kho"; `POST /gacha/items` vẫn giữ (idempotent-check trùng refId như cũ).~~
+- ✅ **(2026-11-15) Bỏ gacha → Shop mua đứt** (user chốt, `Snapget/.claude/SHOP_PLAN.md`): chỉ Astrite (tiền thật chỉ qua gói nạp PayOS); bỏ rarity/pity/hoàn trùng; giá mặc định FRAME 320 · EFFECT 1600 · SKIN 4800 (`SHOP_DEFAULT_PRICE_*`), admin sửa từng món; skin/hiệu ứng vẫn nằm trong APK — admin niêm yết theo id; dữ liệu gacha cũ dọn bằng `cleanup:gacha`.
 - ✅ Daily Quest: 2 quest cố định/ngày (LOGIN + POST_MOMENT), sinh lazy, hoàn thành tự động. Thưởng 2/2 quest = **+60 Astrite** (2026-08-05, trước là khung ngẫu nhiên — khung giờ mở qua gacha). **(2026-08-15)** Quest thứ 3 do **AI** tạo đã làm theo thiết kế gốc → `DAILY_QUESTS_PER_DAY=3`: `AI_CHALLENGE` hoàn thành bằng **hook vào đăng bài** (không màn nộp ảnh riêng), thưởng **+30 riêng** (`QUEST_AI_ASTRITE`), 60 của 2/2 giữ nguyên, tối đa 90/ngày; `UserQuest.status` vẫn chỉ `'COMPLETED'` (ảnh không khớp = chưa xong). 12 lớp vật thể `AI_QUEST_CLASSES` (COCO). Cron sinh **hôm nay + ngày mai** để không có cửa sổ user mở app trước cron; **không ghi đè** quest đã có. Chi tiết: `Snapget/.claude/QUEST_AI_PLAN.md`.
 - ✅ **(2026-08-15)** AI Space **không nằm trong server**: NestJS là cửa ngõ duy nhất (app không biết Space); Render không load model (giữ 512MB). Code Space + train ở `../ml/`. Ngưỡng per-class (`thresholds.json`) là artifact **đi cùng model trên Space**, không hardcode ở server.
 - ✅ Service account key: env `FIREBASE_SERVICE_ACCOUNT` → file json (đã có, gitignore).
@@ -347,7 +349,8 @@ npm run lint | npm run format
 npm run test | npm run test:e2e   # test đã pin --runInBand (máy ít RAM — worker song song crash native)
 npm run seed:admin -- <email>     # cấp quyền admin đầu tiên
 npm run seed:frames               # seed 8 khung ảnh mẫu (Cloudinary + Firestore)
-npm run seed:gacha                # seed catalog gacha: 2 skin + 5 hiệu ứng + khung; chuẩn hóa unlockType khung cũ → GACHA (idempotent)
+npm run seed:shop                 # seed mặt hàng Shop: khung SHOP + 2 skin + 4 hiệu ứng; chuẩn hóa GACHA/QUEST_RANDOM → SHOP; mang tên/ảnh từ gachaItems cũ (idempotent, không ghi đè giá)
+npm run cleanup:gacha             # CHẠY THỬ: đếm dữ liệu gacha cũ. Thêm `-- --confirm` để xoá thật (gachaItems, gachaRolls, gachaPity, sổ cái GACHA_*) — chạy SAU seed:shop
 npm run seed:topup                # seed 5 gói nạp Astrite (idempotent theo seedKey) — chạy 1 lần sau khi có .env Firebase
 npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]   # dev tool test khung/streak
 ```
@@ -355,6 +358,10 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-15 — Bỏ hệ thống gacha, thay bằng Shop mua đứt (phần SERVER của `Snapget/.claude/SHOP_PLAN.md`)**. Xoá module `gacha/` + `seed-gacha.ts`; module mới `shop/` (controller/service/repository + 4 DTO + 2 entity): app `GET /shop/items` · `POST /shop/buy` · `GET /shop/history`; admin `items/admin` · `POST/PATCH/DELETE items` · `owners` · `grant/:uid` · `history/admin`. Collection `shopItems` (thêm `price`, bỏ `rarity`, unique (itemType, refId)) + `shopPurchases`; sổ cái thay `GACHA_SPEND/GACHA_REFUND` bằng `SHOP_PURCHASE`; audit `GACHA_ITEM_*` → `SHOP_ITEM_*`; `User` bỏ `gachaPity`; frames `unlockType` `GACHA` → **`SHOP`** (repo map `GACHA`/`QUEST_RANDOM` cũ → SHOP), `syncGachaPool` → `syncShopListing` (không ghi đè giá admin); `/admin/stats` `gachaRolls*` → `shopPurchases*`. Constants: bỏ toàn bộ `GACHA_*` + `Collections.CONFIG`, thêm `SHOP_DEFAULT_PRICE_FRAME/EFFECT/SKIN` (320/1600/4800). Script mới `seed:shop` (idempotent) + `cleanup:gacha` (dry-run mặc định, `--confirm` mới xoá). `schema-metadata` + `docs/firestore-*` sinh lại. 27 test shop mới, frames viết lại phần đồng bộ → **251 test / 13 suite**, e2e **12 pass**. 🔐 SECURITY.md cập nhật (mục Shop).
+  - ⚠️ **BREAKING contract**: `/api/gacha/*` biến mất, `GET /admin/stats` đổi tên field, `unlockType` `GACHA` → `SHOP`, audit action đổi tên. Admin + app **chưa sync** — làm tiếp theo SHOP_PLAN (A → P). APK cũ mở màn Gacha sẽ 404.
+  - ⚠️ `cleanup:gacha --confirm` xoá dòng sổ cái GACHA_* ⇒ tài khoản từng quay có tổng sổ cái ≠ số dư (user chấp nhận).
 
 - **2026-08-16 (2) — Trang admin xem log AI verify (đóng câu hỏi 15.3 của QUEST_AI_PLAN)**: `GET /admin/ai-verifications` (DTO `ListAiVerificationsDto`: outcome/date/uid + phân trang) → `QuestsService.listAiVerifications` (repo `listAiVerifications(limit 500)` orderBy `createdAt` desc — 1 field, không cần index; lọc trong bộ nhớ) và `getAiVerificationStatsToday` (repo `listAiVerificationsByDate` where 1 field) → `GET /admin/stats` thêm `aiVerificationsToday`/`aiMatchedToday` (best-effort, lỗi → 0). Entity `AiVerification` thêm **`mediaUrl`** (URL 224 đã gửi cho service — ghi lúc log để admin hiện thumbnail không cần join `posts`), thêm `AiVerificationRecord` (kèm id) + `AiVerificationDailyStats`. Test mới: `ai-quest-templates.spec.ts` (7 — khoá 72 câu: bắt đầu "Chụp", ≤80 ký tự, không trùng, seed xác định, avoid, 9 ⊂ 12), quests +2, admin +3 → **255 test / 13 suite**. Admin React: `AiVerificationsPage` (`/ai-verifications`, menu "AI quest") + 2 ô dashboard. `ml/ai-service/dev_fake_model.py`: model ONNX giả để chạy service local (ảnh sáng → khớp `motorcycle`, tối → khớp `cup`) — test end-to-end server↔service↔app không cần Colab.
 - **2026-08-16 — Gọn phạm vi AI quest theo 3 quyết định của user** (chi tiết `Snapget/.claude/QUEST_AI_PLAN.md` mục 0, 2.3, 17, changelog): (1) **Bỏ LLM sinh quest** — AI chỉ **xác minh ảnh**; quest lấy từ bộ mẫu `AI_QUEST_TEMPLATES` (nay **9 lớp × 8 = 72 câu**, câu chữ hướng ảnh dễ nhận diện). `generateAiQuests()` + `POST /quests/ai/generate` + `AiService.generate()` **giữ nguyên làm điểm cắm** (service trả 503 → server dùng bộ mẫu), cron sinh trước thành tuỳ chọn. (2) **`AI_QUEST_CLASSES` 12 → 9** (bỏ `book`/`backpack`/`keyboard` — nhãn COCO nhiễu / lẫn laptop); thêm `AI_MODEL_CLASSES` (12, khớp output model). Không retrain, không đổi contract (`targetClass` vẫn String). (3) **AI service deploy Google Cloud Run** thay HF Space (HF thu phí Docker Space) — server chỉ đổi `AI_SERVICE_URL`; code service ở `ml/ai-service/` (đổi tên từ `ml/space/`), model artifact tải từ HF Model repo. Chỉ sửa comment/Swagger + hằng số; **243 test pass**.
@@ -394,7 +401,7 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
   - 🔒 **Chống cộng 2 lần**: cộng Astrite FAIL → trả lại claim để lần sau thử lại; cộng XONG rồi ghi mốc thưởng fail → **giữ claim** (tiền đã vào ví, xóa claim là lần gọi sau cộng thêm 60 nữa). Khác bản cũ vì mở khung `arrayUnion` idempotent còn cộng tiền thì không.
 - **2026-08-05 — G1: Lõi gacha** (module `gacha/`). Catalog `gachaItems` (itemType FRAME/EFFECT/SKIN × rarity R/SR/SSR, `refId` trỏ tới frameId/skinId/effectId) + `gachaRolls` (lịch sử). 4 endpoint: `GET /gacha/state|items|history` + `POST /gacha/roll`. Thuật toán: pity **ưu tiên bậc cao** và **chỉ reset bộ đếm bậc vừa trúng** (đúng spec); **SR/SSR không bao giờ ra trùng khi chưa sở hữu hết**, R được trùng tự do; **quay x10 cập nhật tập sở hữu ngay trong vòng lặp** (nếu không sẽ phát trùng skin trong cùng lượt); bậc rỗng vật phẩm → trả Astrite thay vì lỗi. Random bằng `crypto.randomInt` ở SERVER, tách 3 hàm `protected` để test điều khiển được. Trừ tiền + hoàn + mở khoá + ghi sổ cái nằm trong **1 transaction**. Script `npm run seed:gacha` (idempotent) seed 2 skin + 5 hiệu ứng + khung, và đổi khung `QUEST_RANDOM` → `GACHA`. 16 test gacha, **163 test toàn suite pass**.
   - Ảnh đại diện của SKIN/EFFECT để trống khi seed — asset thật nằm trong APK, admin tự upload ảnh đại diện qua trang quản trị (G3).
-- **2026-08-05 — G0: Nền tảng tiền tệ Astrite** (mở màn hệ thống Gacha — kế hoạch đầy đủ ở `Snapget/.claude/GACHA_PLAN.md`). Module mới `astrite/`: sổ cái `astriteTransactions` + ví trên user doc. `User` thêm `astrite`, `unlockedSkins[]`, `unlockedEffects[]`, `gachaPity{R,SR,SSR}`, `signupBonusClaimed` (doc cũ thiếu field → mặc định an toàn trong `toEntity`, không cần migration). `ensureUser` tặng **1600 Astrite tân thủ** idempotent qua cờ `signupBonusClaimed` đọc-ghi trong cùng transaction. `common/constants.ts` thêm toàn bộ hằng số gacha (giá quay 160/1440, tỉ lệ 4/0,9/0,1%, pity 10/50/100, hoàn 160/1000/2000, bậc N 1–60, quest 60, tân thủ 1600) — **user chốt hardcode, không cho admin sửa qua web**. 8 test astrite + 147 test toàn suite pass.
+- **2026-08-05 — G0: Nền tảng tiền tệ Astrite** (mở màn hệ thống Gacha — kế hoạch ở `Snapget/.claude/GACHA_PLAN.md` — **đã xoá 2026-11-15**, gacha thay bằng Shop theo `SHOP_PLAN.md`). Module mới `astrite/`: sổ cái `astriteTransactions` + ví trên user doc. `User` thêm `astrite`, `unlockedSkins[]`, `unlockedEffects[]`, `gachaPity{R,SR,SSR}`, `signupBonusClaimed` (doc cũ thiếu field → mặc định an toàn trong `toEntity`, không cần migration). `ensureUser` tặng **1600 Astrite tân thủ** idempotent qua cờ `signupBonusClaimed` đọc-ghi trong cùng transaction. `common/constants.ts` thêm toàn bộ hằng số gacha (giá quay 160/1440, tỉ lệ 4/0,9/0,1%, pity 10/50/100, hoàn 160/1000/2000, bậc N 1–60, quest 60, tân thủ 1600) — **user chốt hardcode, không cho admin sửa qua web**. 8 test astrite + 147 test toàn suite pass.
   - ⚠️ **Ngoại lệ kiến trúc có chủ ý**: các field ví (`astrite`, `signupBonusClaimed`) nằm trên `users/{uid}` nhưng do `AstriteRepository` ghi, KHÔNG phải `UsersRepository`. Lý do: mọi thay đổi số dư bắt buộc chạy cùng transaction với dòng sổ cái, mà Firestore chỉ cho 1 callback `runTransaction`. `UsersRepository` chỉ đọc chúng ra entity. Đã ghi chú trong header cả 2 repository.
 - **2026-08-03 (2) — Fix 2 lỗi user gặp khi coop**: (1) **Ảnh ghép xoay 90°**: `mergeSideBySide` thêm `.rotate()` (auto-orient theo EXIF) trước resize — ảnh CameraX camera sau lưu pixel ngang + cờ EXIF, sharp mặc định bỏ qua EXIF nên ghép nguyên pixel ngang. (2) **POST /moments chậm → client timeout dù bài đã lên**: 2 hook nặng nhất (đếm tổng bài mở khung POST_COUNT + FCM cả danh sách bạn) chuyển sang fire-and-forget SAU response (streak + quest vẫn await); thêm **idempotency `clientRequestId`** (DTO optional + query 2-equality `userId+clientRequestId`, không cần composite index) — retry sau timeout trả lại bài cũ thay vì tạo bản sao. 139 test pass. App sync cùng đợt (UUID sinh mỗi lần vào màn đăng).
 - **2026-08-03 — Rà soát coop (3 fix race + đổi ngữ nghĩa decline)**: (1) đánh dấu EXPIRED ở `getInvite`/`listPending` chuyển từ `update` trần sang **`transition('PENDING','EXPIRED')` transactional** — update trần có thể ghi đè EXPIRED lên phiên VỪA accept đúng mốc 5 phút; thua transition thì đọc lại trạng thái thật. (2) `submitMedia` thua transaction ghép giờ **đọc lại DB** thay vì đoán COMPLETED (transition fail còn có thể do phiên vừa bị hủy). (3) `decline` cho phép **hủy cả phiên ACCEPTED** (2 phía) — trước đó 1 bên thoát màn chụp là bên kia "đợi bạn bè chụp" vô hạn. 22 test coop pass (137 toàn suite). App sync cùng đợt (xem `Snapget/.claude/GUIDE.md`).

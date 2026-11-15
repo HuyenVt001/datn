@@ -530,7 +530,7 @@ fun EditMediaScreen(
             SectionLabel("Frames")
             if (unlockedFrames.isEmpty()) {
                 Text(
-                    text = "Complete daily quests to unlock frames!",
+                    text = "Get frames in the Shop!",
                     color = SkinTheme.colors.textSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 8.dp),

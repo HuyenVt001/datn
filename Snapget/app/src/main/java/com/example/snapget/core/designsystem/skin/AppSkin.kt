@@ -69,6 +69,10 @@ data class SkinColors(
     val error: Color,
     /** Chu/icon nam DE LEN accent (nut vang chu den). */
     val onAccent: Color,
+    /** Mau icon tab footer dang chon. */
+    val navBarActive: Color = textPrimary,
+    /** Mau icon tab footer chua chon. */
+    val navBarInactive: Color = onSurfaceVariant,
 ) {
     /**
      * Do token sang ColorScheme cua Material 3 — component M3 chua refactor

@@ -12,12 +12,12 @@ import com.example.snapget.R
  *    frame vuong, khong padding/trim).
  * 2. Them 1 `val` o day + nhoi vao [all]; `frameCount`/`columns` phai khop luoi
  *    that cua anh, `playbackMs` khong duoc vuot `durationMs`.
- * 3. Them item EFFECT `refId = "N"` vao `server/scripts/seed-gacha.ts` roi chay
- *    lai script — thieu buoc nay thi **quay gacha khong bao gio ra** hieu ung moi.
+ * 3. Niem yet EFFECT `refId = N` o admin (Cua hang › Vat pham — them N vao `APK_IDS`
+ *    cua `admin/src/pages/ShopItemsPage.tsx`) — thieu buoc nay hieu ung **khong co tren Shop**.
  */
 object TouchEffectRegistry {
 
-    /** Hieu ung "khong co gi" — luon so huu, mac dinh, khong quay gacha ra duoc. */
+    /** Hieu ung "khong co gi" — luon so huu, mac dinh, khong ban o Shop. */
     const val NONE_ID = 0
 
     val None = TouchEffect(

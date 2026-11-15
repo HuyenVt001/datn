@@ -8,8 +8,8 @@ import { AstriteTransaction, AstriteTxType } from './entities/astrite-transactio
  *
  * Luat bat di bat dich: KHONG service nao duoc tu sua `users.astrite`. Muon
  * doi so du thi goi service nay — nho vay so cai luon khop so du.
- * Rieng gacha tu chay transaction cua no (vi con phai tru tien + mo khoa vat
- * pham + ghi lich su quay cung luc) va goi thang AstriteRepository.
+ * Rieng Shop / topup tu chay transaction cua minh (vi con phai tru tien + mo
+ * khoa vat pham + ghi lich su cung luc) va goi thang AstriteRepository.
  */
 @Injectable()
 export class AstriteService {

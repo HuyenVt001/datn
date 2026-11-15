@@ -10,8 +10,8 @@ import com.example.snapget.core.designsystem.skin.SkinImages
 /**
  * Skin 2 — **Forest** (xanh la dam · vang be · trang).
  *
- * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Vat pham **SSR** cua
- * gacha; mo khoa qua `users.unlockedSkins`.
+ * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Ban o **Shop**
+ * (Astrite); mo khoa qua `users.unlockedSkins`.
  *
  * Bo asset rieng da cam du nhung noi dung con la **PLACEHOLDER** — thay bang
  * thiet ke that = ghi de file cung ten trong
@@ -52,5 +52,7 @@ val ForestSkin = AppSkin(
         textSecondary = Color(0xFFA8BFA8),
         error = Color(0xFFE57373),
         onAccent = Color(0xFF14301F),
+        navBarActive = Color(0xFFE8D9A8),
+        navBarInactive = Color(0xFFA8BFA8),
     ),
 )

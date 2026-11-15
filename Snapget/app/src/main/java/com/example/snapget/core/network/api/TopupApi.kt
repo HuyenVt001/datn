@@ -12,7 +12,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
- * Endpoint /topup cua server NestJS (GACHA_PLAN.md muc 5.1).
+ * Endpoint /topup cua server NestJS (SHOP_PLAN.md phu luc PayOS).
  *
  * ⚠️ App **khong bao gio** biet ket qua thanh toan tu trang PayOS. Nguon su
  * that duy nhat la webhook PayOS -> server; app chi hoi lai trang thai don qua

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Seed 5 goi nap Astrite (`topupPackages`) — GACHA_PLAN.md muc 0.1.
+ * Seed 5 goi nap Astrite (`topupPackages`) — SHOP_PLAN.md phu luc PayOS
  *
  * Chay:  npm run seed:topup
  * Yeu cau .env: FIREBASE_SERVICE_ACCOUNT.
@@ -30,10 +30,38 @@ interface SeedPackage {
 }
 
 const PACKAGES: SeedPackage[] = [
-  { seedKey: 'astrite-600', name: '600 Astrite', astrite: 600, priceVnd: 5_000, isTest: false, sortOrder: 1 },
-  { seedKey: 'astrite-3000', name: '3.000 Astrite', astrite: 3_000, priceVnd: 24_000, isTest: false, sortOrder: 2 },
-  { seedKey: 'astrite-9800', name: '9.800 Astrite', astrite: 9_800, priceVnd: 75_000, isTest: false, sortOrder: 3 },
-  { seedKey: 'astrite-20000', name: '20.000 Astrite', astrite: 20_000, priceVnd: 145_000, isTest: false, sortOrder: 4 },
+  {
+    seedKey: 'astrite-600',
+    name: '600 Astrite',
+    astrite: 600,
+    priceVnd: 5_000,
+    isTest: false,
+    sortOrder: 1,
+  },
+  {
+    seedKey: 'astrite-3000',
+    name: '3.000 Astrite',
+    astrite: 3_000,
+    priceVnd: 24_000,
+    isTest: false,
+    sortOrder: 2,
+  },
+  {
+    seedKey: 'astrite-9800',
+    name: '9.800 Astrite',
+    astrite: 9_800,
+    priceVnd: 75_000,
+    isTest: false,
+    sortOrder: 3,
+  },
+  {
+    seedKey: 'astrite-20000',
+    name: '20.000 Astrite',
+    astrite: 20_000,
+    priceVnd: 145_000,
+    isTest: false,
+    sortOrder: 4,
+  },
   {
     seedKey: 'astrite-test',
     name: '5.201.314 Astrite',

@@ -2,12 +2,12 @@ import {
   CameraOutlined,
   CheckCircleOutlined,
   FireOutlined,
-  GiftOutlined,
+  ShoppingOutlined,
   HeartOutlined,
   MessageOutlined,
   RobotOutlined,
   TeamOutlined,
-  ThunderboltOutlined,
+  ShoppingCartOutlined,
   TrophyOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons';
@@ -212,9 +212,9 @@ export function DashboardPage() {
       value: data?.questCompletionsToday,
       icon: <TrophyOutlined />,
     },
-    // Quay x10 tinh la 1 luot (khop cach server luu gachaRolls)
-    { title: 'Lượt quay hôm nay', value: data?.gachaRollsToday, icon: <ThunderboltOutlined /> },
-    { title: 'Tổng lượt quay', value: data?.gachaRollsTotal, icon: <GiftOutlined /> },
+    // Shop (2026-11-15 — thay luot quay gacha)
+    { title: 'Lượt mua hôm nay', value: data?.shopPurchasesToday, icon: <ShoppingCartOutlined /> },
+    { title: 'Tổng lượt mua', value: data?.shopPurchasesTotal, icon: <ShoppingOutlined /> },
     // Quest AI (2026-08-16): so lan AI xac minh anh hom nay va so lan khop (quest AI tick)
     {
       title: 'AI xác minh ảnh hôm nay',

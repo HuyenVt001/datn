@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Tài liệu tham chiếu nhanh để sửa code **không cần đọc lại toàn bộ project**. Luật/quy ước ở `.claude/CLAUDE.md`; UI chuẩn ở `.claude/DESIGN.md`.
-> Cập nhật lần cuối: **2026-08-18**.
+> Cập nhật lần cuối: **2026-11-15**.
 
 ---
 
@@ -58,7 +58,7 @@ Composable Screen ──state/event──► ViewModel ──► Repository ─�
 - `AuthInterceptor`: tự gắn `Authorization: Bearer <Firebase ID token>` — **chỉ cho host server** (Coil dùng chung OkHttpClient nên phải lọc host, không rò token sang Cloudinary/CDN).
 - 🔐 `TokenAuthenticator` (2026-07-28): gặp **401** từ host server → ép `getIdToken(true)` rồi thử lại **đúng 1 lần**; vẫn 401 (hoặc refresh fail / token mới trùng token cũ) → `signOut()`. `AuthViewModel` lắng nghe `AuthStateListener` nên UI tự về màn Login + `SessionCleaner` dọn dữ liệu cục bộ. Nhờ đó admin khóa tài khoản là app tự đẩy user ra.
 - `ApiResponse<T>` = envelope `{success, statusCode, message, data}` + `unwrap()`; message lỗi server hiển thị qua `serverMessage()` (`core/network/ErrorMessages.kt`) — áp cho MỌI catch hiện lỗi.
-- 8 API service: `UserApi, UploadApi, MomentApi, FriendshipApi, MessageApi, QuestApi, FrameApi, CoopApi`.
+- 10 API service: `UserApi, UploadApi, MomentApi, FriendshipApi, MessageApi, QuestApi, FrameApi, CoopApi, TopupApi, ShopApi` (`GachaApi` xoá 2026-11-15).
 - **Realtime = polling** (không WebSocket): thread chat poll 5s (merge theo messageId, không nuốt tin vừa gửi), lời mời coop/kết bạn poll khi vào feed; còn lại dựa FCM push.
 
 ### 2.4 Media pipeline
@@ -111,7 +111,8 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
   designsystem/
     component/              #   UI tái sử dụng theo loại: bottombar/ button/ circle/ common/ container/
     │                       #   empty/ frame/ grid/ indicator/ input/ list/ pill/ sheet/ topbar/
-    collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung cho cả 3 tab Appearance
+    collectible/            #   (trong component/) CollectibleItem — ô lưới dùng chung Appearance + Shop;
+    │                       #   CollectiblePreviews.kt **(2026-11-15)** SkinThumbnail + EffectDemoCell (tách từ Appearance)
     effect/                 #   **(2026-08-05 — P4; 2026-08-11 làm lại bằng SPRITESHEET)** HIỆU ỨNG TOUCH:
     │                       #   TouchEffect (model: sheet/frameCount/columns/fps/durationMs/sizeDp/
     │                       #   fadeStart/thumbFrame + rows & playbackMs suy ra) + TouchEffectRegistry
@@ -139,14 +140,6 @@ core/                       # Dùng chung toàn app (không thuộc feature nào
 feature/                    # Mỗi tính năng 1 package: screen + viewmodel + data riêng
   appearance/               #   **(2026-08-05 — P3)** AppearanceScreen (3 tab Frames|Skins|Effects) +
   │                         #   AppearanceViewModel (khoá theo sở hữu — lớp thứ 2 sau lớp UI)
-  gacha/                    #   **(2026-08-05 — G4/G6)** GachaScreen (quay x1/x10, popup Rule, nút `+` nạp),
-  │                         #   GachaResultSheet (overlay lá bài lật lần lượt + Skip), GachaRarity (4 màu bậc —
-  │                         #   CỐ Ý không nằm trong SkinColors), TopupSheet (popup gói nạp + banner chờ
-  │                         #   thanh toán + popup đã cộng), GachaViewModel (gồm cả state luồng nạp),
-  │                         #   data/GachaRepository + data/TopupRepository
-  │                         #   GachaLayout.kt **(2026-08-06)** = TOÀN BỘ toạ độ bám theo ảnh nền
-  │                         #   (khung Astrite vẽ sẵn, 2 nút quay, lưới lá bài 2-3-3-2) + lớp BgAnchor
-  │                         #   đổi toạ độ-trong-ảnh → toạ độ-màn-hình. Sửa vị trí UI chỉ đụng file này.
   auth/                     #   LoginScreen (kèm Forgot Password), AuthViewModel, data/AuthRepository
   camera/                   #   CameraScreen (CameraX: chụp/quay nút center, pinch-zoom, lật cam, nút Co-op
   │                         #   mở popup chọn bạn gửi lời mời, vuốt lên mở feed, mirror selfie)
@@ -165,6 +158,12 @@ feature/                    # Mỗi tính năng 1 package: screen + viewmodel + 
   quest/                    #   DailyQuestScreen (quest + bộ sưu tập khung), QuestViewModel, data/QuestRepository
   settings/                 #   SettingScreen (dispatch theo SettingIds), SettingsViewModel,
   │                         #   SettingDialogs (Theme/EditName/Birthday), LegalDocScreen, data/SettingsRepository
+  shop/                     #   **(2026-11-15 — SHOP_PLAN, thay gacha/)** ShopScreen (tab footer, không Back: top bar
+  │                         #   "Shop" + ô số dư `⭐ N +`, 4 tab Astrite·Skins·Frames·Effects, lưới 2 cột, dialog
+  │                         #   mua / "Not enough Astrite" → tab Astrite, "Apply now?" sau khi mua skin/effect),
+  │                         #   ShopViewModel (+ `supportedItems` ẩn skin/effect có refId APK không biết; state nạp
+  │                         #   PayOS chuyển từ GachaViewModel), TopupComponents (AstriteTab + banner chờ thanh toán
+  │                         #   + popup đã cộng), data/ShopRepository (/shop) + data/TopupRepository (/topup)
   widget/                   #   SnapgetWidget + Receiver, WidgetRefreshWorker, WidgetRefresher,
   │                         #   WidgetSettingsScreen, HowToAddWidgetScreen, data/ (Snapshot/Store/Repository)
 ```
@@ -186,11 +185,11 @@ Ngoài ra: `gradle/libs.versions.toml` (version catalog — khai báo dependency
 | Quản lý nhóm chat (sheet ⋯ trên header, theo mẫu Messenger): đổi tên + đổi avatar nhóm (upload Cloudinary), mời bạn vào nhóm (≤20), xóa thành viên (chỉ người tạo), rời nhóm, mute thông báo (server bỏ qua khi push FCM) | ✅ |
 | Co-op capture **(redesign 2026-08-02)**: nút Co-op → popup chọn bạn → lời mời 5 phút → accept → màn chụp coop (nửa camera + nửa xám chờ, nút chụp/again/send) → server ghép → cả 2 vào luồng edit → đăng bài thường | ✅ |
 | Profile: streak thật, calendar moment, edit tên/avatar; profile người khác chỉ bạn bè xem | ✅ |
-| Daily Quest; thưởng 2/2 quest = **+60 Astrite**; banner mở màn Gacha (2026-08-05); **(2026-08-15)** quest thứ 3 `AI_CHALLENGE` do AI tạo — icon 🎯, hoàn thành bằng đăng bài thường (server AI-xác-minh ảnh), toast kết quả (+30 Astrite / thử lại) ở `SubmitPhotoScreen` | ✅ (⬜ chưa thấy trên máy — server còn tắt env AI) |
-| **Appearance** 3 tab: Frames (bộ sưu tập khung) · Skins (Default/Snow/Forest) · Effects (None + 5, ô demo chạy thật) — khoá theo sở hữu | ✅ |
+| Daily Quest; thưởng 2/2 quest = **+60 Astrite**; ~~banner Gacha~~ (xoá 2026-11-15); **(2026-08-15)** quest thứ 3 `AI_CHALLENGE` do AI tạo — icon 🎯, hoàn thành bằng đăng bài thường (server AI-xác-minh ảnh), toast kết quả (+30 Astrite / thử lại) ở `SubmitPhotoScreen` | ✅ (⬜ chưa thấy trên máy — server còn tắt env AI) |
+| **Appearance** 3 tab: Frames (bộ sưu tập khung) · Skins (Default/Snow/Forest) · Effects (None + 5, ô demo chạy thật) — khoá theo sở hữu; dòng "Get more … in the Shop →" đầu mỗi tab (2026-11-15) | ✅ |
 | **Hiệu ứng touch** toàn app (overlay bọc NavHost, không chặn nút/pager/giữ-quay-GIF) | ✅ |
-| **Gacha**: quay x1/x10, popup Rule sinh từ server, kết quả lật lần lượt + Skip, hoàn Astrite khi trùng | ✅ |
-| **Nạp Astrite** (PayOS — TIỀN THẬT): nút `+` cạnh số dư → popup gói nạp → Chrome Custom Tabs → app poll đơn → popup đã cộng | ✅ |
+| **Shop** (2026-11-15 — thay Gacha): tab footer, 4 tab Astrite·Skins·Frames·Effects, mua đứt bằng Astrite (`POST /shop/buy`), "Apply now?" cho skin/effect, ẩn item APK không vẽ được | ✅ code · ⬜ chưa chạy trên máy (cần server mới + `seed:shop`) |
+| **Nạp Astrite** (PayOS — TIỀN THẬT): tab **Astrite** của Shop (hoặc bấm ô số dư) → chọn gói → Chrome Custom Tabs → app poll đơn → popup đã cộng | ✅ |
 | Settings hoạt động thật: theme Dark/Light/System, edit name/birthday, share/rate/MXH, Terms/Privacy, sign out | ✅ |
 | Widget Glance (moment mới nhất + streak, offline được) | ✅ |
 | UI tiếng Anh toàn bộ; avatar fallback DiceBear thống nhất; FCM đăng ký mỗi lần mở app | ✅ |
@@ -209,20 +208,20 @@ Route khai báo trong `navigation/Navigation.kt` (sealed class `Screen`). Bảng
 | Route | Screen file | Ghi chú |
 |---|---|---|
 | `login` | `feature/auth/LoginScreen.kt` | Ẩn bottom bar |
-| `camera` | `feature/camera/CameraScreen.kt` | **Start khi đã đăng nhập**; vuốt lên → feed |
-| `post` | `feature/post/PostScreen.kt` | Feed pager + grid; PostDetail hiển thị inline qua state |
+| `camera` | `feature/camera/CameraScreen.kt` | **Start khi đã đăng nhập**; vuốt lên → feed; hiện **Footer 5 tab** (tab Home) |
+| `post` | `feature/post/PostScreen.kt` | Feed pager + grid; PostDetail hiển thị inline qua state; hiện **Footer 5 tab** (tab Home) |
 | `submit_photo` | `feature/post/SubmitPhotoScreen.kt` | Đăng thẳng lên feed; chọn bạn = gửi kèm vào chat |
 | `edit_media?mediaPath=&isVideo=` | `feature/post/EditMediaScreen.kt` | Khung/filter/doodle sau chụp → SubmitPhoto |
-| `message` | `feature/message/MessageScreen.kt` | Hội thoại 1-1 + section nhóm |
+| `message` | `feature/message/MessageScreen.kt` | Hội thoại 1-1 + section nhóm; hiện **Footer 5 tab** (tab Chat) |
 | `chat/{recipientId}` | `feature/message/ChatScreen.kt` | Chat 1-1; ẩn bottom bar |
 | `group_chat/{groupId}?name=` | `feature/message/GroupChatScreen.kt` | Chat nhóm ≤20; ẩn bottom bar |
-| `profile?userId={userId}` | `feature/profile/UserProfileScreen.kt` | `userId` null = profile mình |
+| `profile?userId={userId}` | `feature/profile/UserProfileScreen.kt` | `userId` null = profile mình (hiện **Footer 5 tab**, tab Profile) |
 | `qr_scan` | `feature/friends/QrScanScreen.kt` | Quét QR kết bạn → dialog xác nhận |
 | `setting` | `feature/settings/SettingScreen.kt` | Dispatch theo SettingIds |
 | `legal/{docType}` | `feature/settings/LegalDocScreen.kt` | Terms/Privacy tĩnh; ẩn bottom bar |
-| `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Entry: nút 🏆 top bar feed; ẩn bottom bar. **(2026-08-05)** có banner Gacha ở trên cùng; bỏ lưới Frame collection |
+| `daily_quest` | `feature/quest/DailyQuestScreen.kt` | Hiện **Footer 5 tab** (tab Quest). Banner Gacha đã xoá 2026-11-15 |
+| `shop` | `feature/shop/ShopScreen.kt` | **(2026-11-15)** Cửa hàng 4 tab Astrite·Skins·Frames·Effects (mở vào tab Skins) + nạp PayOS; hiện **Footer 5 tab** (tab Shop), không nút Back. **Màn DUY NHẤT hiện số dư Astrite**. Appearance có lối tắt sang đây |
 | `appearance` | `feature/appearance/AppearanceScreen.kt` | **(2026-08-05)** 3 tab Frames/Skins/Effects. Entry: mục **Appearance** trong Settings (thay mục Theme cũ); ẩn bottom bar |
-| `gacha` | `feature/gacha/GachaScreen.kt` | **(2026-08-05)** Quay x1/x10 + popup Rule + overlay kết quả + **popup nạp Astrite** (nút `+` cạnh số dư, G6). Entry: banner trên `daily_quest`; ẩn bottom bar. **Màn DUY NHẤT hiện số dư Astrite** |
 | `coop_capture?inviteId=&name=` | `feature/coop/CoopCaptureScreen.kt` | Màn chụp coop (chờ accept → chụp nửa ảnh → chờ ghép); entry: nút Co-op camera (inviter) / banner vàng feed (invitee); ẩn bottom bar |
 | `widget_settings` | `feature/widget/WidgetSettingsScreen.kt` | Preview + toggle + pin; ẩn bottom bar |
 | `how_to_add_widget` | `feature/widget/HowToAddWidgetScreen.kt` | Hướng dẫn 4 bước; ẩn bottom bar |
@@ -272,6 +271,20 @@ Toàn bộ quy ước (license header + Spotless, ngôn ngữ định danh/comme
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-15 — Bỏ Gacha → Shop mua đứt (phần APP của `SHOP_PLAN.md`)**. Xoá `feature/gacha/` (Screen/ViewModel/ResultSheet/Layout/Rarity/GachaRepository/TopupSheet), `GachaApi`/`GachaDtos`, test `GachaLayoutTest`, 12 drawable `gacha_*` (giữ `ic_astrite`), route `Screen.Gacha`, banner Gacha trên Daily Quest (`DailyQuestScreen` bỏ luôn tham số `navController`). Mới: `ShopApi` + `ShopDtos` (`GET /shop/items` → `{astrite, items}`, `POST /shop/buy {itemId}` → `{purchase, astriteAfter}`), `feature/shop/` = `ShopScreen` + `ShopViewModel` + `TopupComponents` + `data/ShopRepository` (+ `TopupRepository` chuyển từ gacha). `SkinThumbnail`/`EffectDemoCell` tách ra `core/designsystem/component/collectible/CollectiblePreviews.kt` (dùng ở Appearance + Shop). Appearance: dòng "Get more … in the Shop →" + text trống mới; EditMedia: "Get frames in the Shop!". Preview "7. Shop Screen" thay Gacha. Test mới `ShopUiStateTest` (4) — **21 test pass**, `assembleDebug` + `spotlessCheck` sạch.
+  - 🛒 **Ô hàng ở Shop không dùng `CollectibleState.LOCKED`** (làm mờ + 🔒) — ở Shop mọi thứ chưa mua đều "chưa sở hữu", làm mờ hết thì cả kệ xám xịt. Dùng OWNED/IN_USE cho viền, trạng thái thật nằm ở nút dưới ô: `⭐ giá` · `Apply` · `In use` · `Owned` (khung).
+  - 🙈 **`ShopViewModel.supportedItems` ẩn skin/effect có `refId` APK này không biết** (server niêm yết skin mới hơn bản app đang cài) và id mặc định 0 — không lọc thì mua xong không áp dụng được. Thêm skin/effect mới: code vào registry **trước**, rồi mới niêm yết ở admin (`APK_IDS` trong `admin/src/pages/ShopItemsPage.tsx`).
+  - 💸 Thiếu Astrite vẫn bấm được nút giá → dialog "Not enough Astrite" với nút **Top up** nhảy sang tab Astrite. Mua lỗi (409 đã sở hữu / 400 thiếu tiền) → đọc lại catalog để số dư + `isOwned` khớp server. App không tự trừ tiền: số dư lấy từ `astriteAfter`.
+  - ⚠️ Breaking: APK cũ gọi `/gacha/*` sẽ 404 khi server mới lên — phải phát APK này cùng đợt deploy server.
+  - 📚 **Phase D (tài liệu)**: xoá `GACHA_PLAN.md` (gói nạp + PayOS đã chép vào phụ lục `SHOP_PLAN.md`); `SKIN_PLAN.md` ghi chú gacha là lịch sử; `CLAUDE.md` mục 9 đổi "mở khóa qua gacha" → mua ở Shop; `QUEST_AI_PLAN.md` đổi phép so sánh kinh tế sang giá Shop. Các changelog cũ nhắc gacha giữ nguyên làm lịch sử.
+
+- **2026-11-13 — Bổ sung Footer 5 tab (Quest – Chat – Home – Shop – Profile) & `ShopScreen`**:
+  - Tạo `AppFooterBar.kt` (`core/designsystem/component/bottombar/`) gắn vào `Scaffold` cấp `Navigation.kt`, hiển thị trên các màn tab chính (`CameraScreen`, `PostScreen` pager & grid, `MessageScreen`, `DailyQuestScreen`, `ShopScreen`, `UserProfileScreen` cá nhân).
+  - Thêm 2 token màu `navBarActive` / `navBarInactive` vào `SkinColors` (`AppSkin.kt` + `DefaultSkin`, `SnowSkin`, `ForestSkin`) để icon footer tự đổi màu theo skin.
+  - Tạo `feature/shop/ShopScreen.kt` (nền đen, tạm thời trống) + route `Screen.Shop`.
+  - Tinh chỉnh TopBar & BottomBar các màn tab chính: ẩn nút Back ở `DailyQuestScreen` & `MessageScreen`, ẩn nút Profile/Chat/DailyQuest trùng trên `MainTopBar` ở `CameraScreen` & `PostScreen`, ẩn nút chụp/camera ở bottom bar `PostScreen` (cả Pager lẫn Grid), ẩn nút `→` Home trên `UserProfileTopBar`.
+  - Cập nhật `PostDetailScreen` (mở từ calendar Profile): bỏ `MainTopBar`, bỏ `CaptureButton` ở bottom bar, khi mở `PostGrid` ẩn toàn bộ các icon bottom bar và chỉ hiển thị các post của user.
 
 - **2026-08-18 — Cắm art THẬT của skin 1 (Snow) + đồng bộ nút chụp ở 4 màn**. Skin Snow hết placeholder: 12 icon + nút chụp + thumbnail đều là art của user.
   - 🖼️ **12 icon skin 1 chuyển sang WebP, KHÔNG phải vector XML** — user gửi `.svg` nhưng ruột 12 file đó là **PNG bitmap nhúng trong vỏ SVG** (`<image xlink:href="data:image/png;base64,…">` + `<mask>` + `feColorMatrix`; file 0.3–5.8MB, tổng 26MB). Vector drawable của Android không đỡ được `<image>`/`<mask>`/`<filter>`, convert thẳng chỉ còn lại mấy path mũi tên xanh phẳng, mất sạch tuyết/chim cánh cụt/thông. Cách làm: render bằng **Chrome headless 2 lần (nền trắng + nền đen) rồi giải hệ ra alpha** (`a = 1−(W−B)`, `C = B/a`) — chính xác tuyệt đối kể cả rìa khử răng cưa, không phải key màu nền. Xuất WebP lossless RGBA vào `drawable-nodpi/`: **158KB cho cả 12 icon**. Tên resource không đổi (`R.drawable.skin1_ic_*`) nên **không sửa dòng code nào**.

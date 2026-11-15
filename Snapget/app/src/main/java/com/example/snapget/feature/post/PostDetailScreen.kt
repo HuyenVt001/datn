@@ -61,10 +61,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.snapget.core.designsystem.component.button.CaptureButton
 import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
-import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
@@ -76,7 +74,6 @@ import com.example.snapget.core.util.MediaActions
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.core.util.mapToUser
 import com.example.snapget.core.util.relativeTimeShort
-import com.example.snapget.navigation.Screen
 import kotlin.random.Random
 import kotlinx.coroutines.launch
 
@@ -293,36 +290,27 @@ fun PostDetailScreen(
         if (showGrid) showGrid = false else onBack()
     }
 
-    val initialPage = remember(posts, initialPostId) {
-        posts.indexOfFirst { it.id == initialPostId }.coerceAtLeast(0)
+    // Chi giu cac post cua user so huu profile (khong lan post cua nguoi khac)
+    val userPosts = remember(posts, initialPostId) {
+        val ownerId = posts.firstOrNull { it.id == initialPostId }?.user?.id
+            ?: posts.firstOrNull()?.user?.id
+        if (ownerId != null) posts.filter { it.user.id == ownerId } else posts
     }
-    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { posts.size })
-    val currentPost = posts.getOrNull(pagerState.currentPage)
+
+    val initialPage = remember(userPosts, initialPostId) {
+        userPosts.indexOfFirst { it.id == initialPostId }.coerceAtLeast(0)
+    }
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { userPosts.size })
+    val currentPost = userPosts.getOrNull(pagerState.currentPage)
 
     // Menu ⋯ + xac nhan xoa (dong bo voi feed pager)
     var showOptions by remember { mutableStateOf(false) }
     var showConfirmDelete by remember { mutableStateOf(false) }
     val requestDownload = rememberGalleryDownloader()
 
-    // Ve camera: pop ve entry camera co san (camera la startDestination)
-    val goBackToCamera: () -> Unit = {
-        if (!navController.popBackStack(Screen.Camera.route, false)) {
-            navController.navigate(Screen.Camera.route) { launchSingleTop = true }
-        }
-    }
-
     // Reaction: emoji vua tha theo TUNG post (nhu feed) + emoji dang bay
     val selectedEmojiByPost = remember { mutableStateMapOf<String, String>() }
     val flyingEmojis = remember { mutableStateListOf<FlyingEmoji>() }
-    var selectedUser by remember {
-        mutableStateOf<User?>(
-            User(
-                id = "everyone",
-                username = "Everyone",
-                avatar = "",
-            ),
-        )
-    }
 
     // Get current user from auth state
     val currentUser by mainViewModel.currentUser.collectAsState()
@@ -355,34 +343,19 @@ fun PostDetailScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                MainTopBar(
-                    navController = navController,
-                    user = data,
-                    friends = friends,
-                    onMessageClick = { navController.navigate(Screen.Message.route) },
-                    onProfileClick = {
-                        data?.id?.let { userId ->
-                            navController.navigate("profile?userId=$userId")
-                        } ?: navController.navigate("profile")
-                    },
-                    onUserSelected = { user -> selectedUser = user },
-                )
-            },
-        ) { paddingValues ->
+        Scaffold { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
             ) {
                 if (showGrid) {
-                    // ==== GRID MODE: tong hop tat ca post cu (nhu grid o feed) ====
+                    // ==== GRID MODE: chi hien thi cac post cua user ====
                     PostGrid(
-                        posts = posts,
+                        posts = userPosts,
                         // Bam 1 o -> quay ve pager dung post do
                         onPostClick = { post ->
-                            val index = posts.indexOfFirst { it.id == post.id }
+                            val index = userPosts.indexOfFirst { it.id == post.id }
                             if (index >= 0) {
                                 scope.launch { pagerState.scrollToPage(index) }
                             }
@@ -395,10 +368,10 @@ fun PostDetailScreen(
                     // ==== PAGER MODE: vuot len = post cu hon (bat dau tu ngay vua bam) ====
                     VerticalPager(
                         state = pagerState,
-                        key = { index -> posts.getOrNull(index)?.id ?: index },
+                        key = { index -> userPosts.getOrNull(index)?.id ?: index },
                         modifier = Modifier.fillMaxSize(),
                     ) { page ->
-                        val post = posts.getOrNull(page) ?: return@VerticalPager
+                        val post = userPosts.getOrNull(page) ?: return@VerticalPager
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -444,43 +417,39 @@ fun PostDetailScreen(
                 }
             }
 
-            // Hang nut day — DONG BO voi pager feed: luoi | chup vien vang | ⋯
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 36.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Luoi: mo/dong grid tong hop cac post cu
-                IconButton(onClick = { showGrid = !showGrid }) {
-                    SkinIcon(
-                        res = SkinTheme.icons.grid,
-                        fallback = Icons.Default.GridView,
-                        contentDescription = "All posts",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-
-                // Nut chup (ve camera) — dung chung [CaptureButton] nhu feed
-                CaptureButton(
-                    onClick = goBackToCamera,
-                    contentDescription = "Take a picture",
-                )
-
-                // ⋯ chi co nghia o pager (grid khong co "post hien tai")
-                IconButton(
-                    onClick = { showOptions = true },
-                    enabled = !showGrid && currentPost != null,
+            // Hang nut day (chi hien o Pager mode; an toan bo khi o PostGrid; bo nut chup vi da co Footer)
+            if (!showGrid) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 36.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SkinIcon(
-                        res = SkinTheme.icons.more,
-                        fallback = Icons.Default.MoreHoriz,
-                        contentDescription = "Post options",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(32.dp),
-                    )
+                    // Luoi: mo grid tong hop cac post cua user
+                    IconButton(onClick = { showGrid = true }) {
+                        SkinIcon(
+                            res = SkinTheme.icons.grid,
+                            fallback = Icons.Default.GridView,
+                            contentDescription = "All posts",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+
+                    // ⋯ mo tuy chon Share / Download / Delete
+                    IconButton(
+                        onClick = { showOptions = true },
+                        enabled = currentPost != null,
+                    ) {
+                        SkinIcon(
+                            res = SkinTheme.icons.more,
+                            fallback = Icons.Default.MoreHoriz,
+                            contentDescription = "Post options",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
                 }
             }
         }

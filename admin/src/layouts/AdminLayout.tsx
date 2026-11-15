@@ -2,13 +2,14 @@ import {
   CameraOutlined,
   DashboardOutlined,
   DollarOutlined,
-  GiftOutlined,
   HistoryOutlined,
   LogoutOutlined,
   PictureOutlined,
   RobotOutlined,
+  ShopOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
   TeamOutlined,
-  ThunderboltOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import { Button, Layout, Menu, Space, Typography, theme } from 'antd';
@@ -22,13 +23,24 @@ const MENU_ITEMS = [
   { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
   { key: '/moments', icon: <CameraOutlined />, label: 'Bài đăng' },
   { key: '/frames', icon: <PictureOutlined />, label: 'Khung ảnh' },
-  { key: '/gacha', icon: <GiftOutlined />, label: 'Kho vật phẩm' },
-  { key: '/gacha-history', icon: <ThunderboltOutlined />, label: 'Lịch sử quay' },
-  { key: '/topup', icon: <WalletOutlined />, label: 'Gói nạp' },
-  { key: '/topup-history', icon: <DollarOutlined />, label: 'Lịch sử nạp' },
+  {
+    // Nhóm Cửa hàng (2026-11-15 — thay gacha): vật phẩm + gói nạp + 2 trang lịch sử
+    key: 'shop-group',
+    icon: <ShopOutlined />,
+    label: 'Cửa hàng',
+    children: [
+      { key: '/shop', icon: <ShoppingOutlined />, label: 'Vật phẩm' },
+      { key: '/topup', icon: <WalletOutlined />, label: 'Gói nạp' },
+      { key: '/shop-history', icon: <ShoppingCartOutlined />, label: 'Lịch sử mua' },
+      { key: '/topup-history', icon: <DollarOutlined />, label: 'Lịch sử nạp' },
+    ],
+  },
   { key: '/ai-verifications', icon: <RobotOutlined />, label: 'AI quest' },
   { key: '/logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
 ];
+
+/** Các trang thuộc nhóm Cửa hàng — mở sẵn submenu khi vào thẳng 1 trang trong nhóm. */
+const SHOP_PATHS = ['/shop', '/topup', '/shop-history', '/topup-history'];
 
 /** Khung chung: sidebar menu + header (email + đăng xuất) + nội dung trang. */
 export function AdminLayout() {
@@ -68,6 +80,7 @@ export function AdminLayout() {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
+          defaultOpenKeys={SHOP_PATHS.includes(selectedKey) ? ['shop-group'] : []}
           items={MENU_ITEMS}
           onClick={(e) => navigate(e.key)}
         />

@@ -55,13 +55,15 @@ async function main(): Promise<void> {
 
   const userRef = db.collection('users').doc(uid);
   const framesSnap = await db.collection('frames').get();
-  // Suy unlockType nhu server repo (doc cu chi co milestone / con QUEST_RANDOM) — 2026-08-05
+  // Suy unlockType nhu server repo (doc cu chi co milestone / con QUEST_RANDOM / GACHA) — 2026-11-15
   const frames = framesSnap.docs.map((d) => {
     const data = d.data();
     const milestone = typeof data.milestone === 'number' ? data.milestone : undefined;
     const raw = data.unlockType as string | undefined;
     const unlockType =
-      raw === 'QUEST_RANDOM' ? 'GACHA' : (raw ?? (milestone ? 'STREAK_MILESTONE' : 'GACHA'));
+      raw === 'QUEST_RANDOM' || raw === 'GACHA'
+        ? 'SHOP'
+        : (raw ?? (milestone ? 'STREAK_MILESTONE' : 'SHOP'));
     const unlockValue = typeof data.unlockValue === 'number' ? data.unlockValue : milestone;
     return {
       frameId: d.id,
@@ -81,9 +83,15 @@ async function main(): Promise<void> {
     // lastStreakDate = HOM QUA (UTC) ⇒ bai dang tiep theo se +1 streak dung LUONG THAT
     const yesterday = dateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
     await userRef.set({ personalStreak: streak, lastStreakDate: yesterday }, { merge: true });
-    console.log(`✅ ${uid}: personalStreak = ${streak}, lastStreakDate = ${yesterday} (hom qua UTC)`);
-    console.log(`👉 Vao app DANG 1 BAI → streak thanh ${streak + 1}` +
-      ([3, 7, 14, 30].includes(streak + 1) ? ` = MOC → server tu mo khung moc ${streak + 1} 🎉` : ''));
+    console.log(
+      `✅ ${uid}: personalStreak = ${streak}, lastStreakDate = ${yesterday} (hom qua UTC)`,
+    );
+    console.log(
+      `👉 Vao app DANG 1 BAI → streak thanh ${streak + 1}` +
+        ([3, 7, 14, 30].includes(streak + 1)
+          ? ` = MOC → server tu mo khung moc ${streak + 1} 🎉`
+          : ''),
+    );
   } else if (hasFlag('unlock-all')) {
     const all = frames.map((f) => f.frameId);
     if (all.length === 0) {
@@ -98,7 +106,11 @@ async function main(): Promise<void> {
     }
   } else if (hasFlag('lock-all')) {
     await userRef.set(
-      { unlockedFrames: [], personalStreak: 0, lastStreakDate: admin.firestore.FieldValue.delete() },
+      {
+        unlockedFrames: [],
+        personalStreak: 0,
+        lastStreakDate: admin.firestore.FieldValue.delete(),
+      },
       { merge: true },
     );
     console.log(`✅ Da khoa lai toan bo khung + reset streak ve 0 cho ${uid}.`);
@@ -110,7 +122,9 @@ async function main(): Promise<void> {
   console.log('\n===== TRANG THAI HIEN TAI =====');
   console.log(`User        : ${uid}${email ? ` (${email})` : ''}`);
   console.log(`personalStreak : ${user.personalStreak ?? 0}`);
-  console.log(`lastStreakDate : ${user.lastStreakDate ?? '(chua co)'}  (hom nay UTC = ${dateKey()})`);
+  console.log(
+    `lastStreakDate : ${user.lastStreakDate ?? '(chua co)'}  (hom nay UTC = ${dateKey()})`,
+  );
   console.log(`Khung (${frames.length} trong catalog):`);
   const TAGS: Record<string, (n?: number) => string> = {
     STREAK_MILESTONE: (n) => `[moc ${n}]`,
@@ -118,10 +132,10 @@ async function main(): Promise<void> {
     FRIEND_COUNT: (n) => `[${n} ban]`,
     COOP_FIRST: () => '[co-op]',
     DEFAULT: () => '[mo san]',
-    GACHA: () => '[gacha]',
+    SHOP: () => '[shop]',
   };
   for (const f of frames) {
-    const tag = (TAGS[f.unlockType] ?? TAGS.GACHA)(f.unlockValue);
+    const tag = (TAGS[f.unlockType] ?? TAGS.SHOP)(f.unlockValue);
     console.log(`  ${unlocked.has(f.frameId) ? '🔓' : '🔒'} ${tag} ${f.frameName} (${f.frameId})`);
   }
 }

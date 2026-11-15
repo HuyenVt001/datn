@@ -9,7 +9,7 @@ import { TopupRepository } from './topup.repository';
 import { TopupService } from './topup.service';
 
 /**
- * Nap Astrite bang tien that qua PayOS (G6 — GACHA_PLAN.md muc 4).
+ * Nap Astrite bang tien that qua PayOS (G6 — SHOP_PLAN.md phu luc PayOS).
  * - AstriteModule: cong Astrite + ghi so cai TRONG CUNG transaction voi don.
  * - AuthModule   : AdminJwtGuard (JwtModule) cho cac endpoint admin.
  * - UsersModule  : enrich uid -> ten o trang lich su nap cua admin.

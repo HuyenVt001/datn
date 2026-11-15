@@ -20,7 +20,7 @@ object SkinRegistry {
         ForestSkin,
     )
 
-    /** ID cua skin mac dinh — luon so huu, khong quay gacha ra duoc. */
+    /** ID cua skin mac dinh — luon so huu, khong ban o Shop. */
     const val DEFAULT_ID = 0
 
     /**

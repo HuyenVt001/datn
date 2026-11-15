@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://snapget-d8693.web.app/schemas/firestore.schema.json",
   "title": "Snapget Cloud Firestore Database Schema",
-  "description": "Generated (hybrid: code + live Firestore) on 2026-11-12T08:26:49.001Z from NestJS entities and Cloud Firestore introspection.",
+  "description": "Generated (hybrid: code + live Firestore) on 2026-11-15T03:56:52.494Z from NestJS entities and Cloud Firestore introspection.",
   "type": "object",
   "properties": {
     "users": {
@@ -54,18 +54,18 @@
         "$ref": "#/$defs/frames"
       }
     },
-    "gachaItems": {
+    "shopItems": {
       "type": "array",
-      "description": "Collection \"gachaItems\"",
+      "description": "Collection \"shopItems\"",
       "items": {
-        "$ref": "#/$defs/gachaItems"
+        "$ref": "#/$defs/shopItems"
       }
     },
-    "gachaRolls": {
+    "shopPurchases": {
       "type": "array",
-      "description": "Collection \"gachaRolls\"",
+      "description": "Collection \"shopPurchases\"",
       "items": {
-        "$ref": "#/$defs/gachaRolls"
+        "$ref": "#/$defs/shopPurchases"
       }
     },
     "astriteTransactions": {
@@ -116,6 +116,20 @@
       "items": {
         "$ref": "#/$defs/adminLogs"
       }
+    },
+    "gachaItems": {
+      "type": "array",
+      "description": "Collection \"gachaItems\"",
+      "items": {
+        "$ref": "#/$defs/gachaItems"
+      }
+    },
+    "gachaRolls": {
+      "type": "array",
+      "description": "Collection \"gachaRolls\"",
+      "items": {
+        "$ref": "#/$defs/gachaRolls"
+      }
     }
   },
   "$defs": {
@@ -134,7 +148,6 @@
         "astrite",
         "unlockedSkins",
         "unlockedEffects",
-        "gachaPity",
         "signupBonusClaimed"
       ],
       "properties": {
@@ -237,16 +250,16 @@
           "x-source": "code+firestore",
           "x-seenInDocs": 3
         },
-        "gachaPity": {
-          "type": "object",
-          "description": "{ R: number, SR: number, SSR: number }",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 3
-        },
         "signupBonusClaimed": {
           "type": "boolean",
           "x-source": "code+firestore",
           "x-seenInDocs": 1
+        },
+        "gachaPity": {
+          "type": "object",
+          "description": "Discovered in live Firestore (not in TS entity)",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 3
         },
         "avatarUrl": {
           "type": "string",
@@ -415,7 +428,7 @@
         "frameId": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 34
+          "x-seenInDocs": 35
         },
         "caption": {
           "type": "string",
@@ -438,7 +451,7 @@
           "type": "string",
           "description": "Idempotency key from client",
           "x-source": "code+firestore",
-          "x-seenInDocs": 22
+          "x-seenInDocs": 26
         }
       },
       "x-firestore": {
@@ -484,18 +497,18 @@
           "type": "string",
           "description": "Document ID = viewer UID",
           "x-source": "code+firestore",
-          "x-seenInDocs": 80
+          "x-seenInDocs": 77
         },
         "isSeen": {
           "type": "boolean",
           "x-source": "code+firestore",
-          "x-seenInDocs": 80
+          "x-seenInDocs": 77
         },
         "seenAt": {
           "type": "string",
           "format": "date-time",
           "x-source": "code+firestore",
-          "x-seenInDocs": 80
+          "x-seenInDocs": 77
         }
       },
       "x-firestore": {
@@ -503,7 +516,7 @@
         "docIdField": "viewerId",
         "group": "Moments & Co-op",
         "source": "code+firestore",
-        "sampledDocs": 80,
+        "sampledDocs": 77,
         "parentCollection": "posts",
         "relations": [
           {
@@ -540,18 +553,18 @@
         "reactorId": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 31
+          "x-seenInDocs": 27
         },
         "emojiType": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 31
+          "x-seenInDocs": 27
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "x-source": "code+firestore",
-          "x-seenInDocs": 31
+          "x-seenInDocs": 27
         }
       },
       "x-firestore": {
@@ -559,7 +572,7 @@
         "docIdField": "reactionId",
         "group": "Moments & Co-op",
         "source": "code+firestore",
-        "sampledDocs": 31,
+        "sampledDocs": 27,
         "parentCollection": "posts",
         "relations": [
           {
@@ -707,13 +720,13 @@
           "type": "string",
           "description": "Set for 1-1 chat",
           "x-source": "code+firestore",
-          "x-seenInDocs": 33
+          "x-seenInDocs": 35
         },
         "groupId": {
           "type": "string",
           "description": "Set for group chat",
           "x-source": "code+firestore",
-          "x-seenInDocs": 17
+          "x-seenInDocs": 15
         },
         "messageType": {
           "type": "string",
@@ -747,7 +760,7 @@
           "type": "string",
           "format": "uri",
           "x-source": "code+firestore",
-          "x-seenInDocs": 3
+          "x-seenInDocs": 2
         },
         "attachmentType": {
           "type": "string",
@@ -756,7 +769,7 @@
             "VIDEO"
           ],
           "x-source": "code+firestore",
-          "x-seenInDocs": 3
+          "x-seenInDocs": 2
         },
         "reactions": {
           "type": "object",
@@ -929,7 +942,7 @@
         "unlockType": {
           "type": "string",
           "enum": [
-            "GACHA",
+            "SHOP",
             "STREAK_MILESTONE",
             "POST_COUNT",
             "FRIEND_COUNT",
@@ -960,21 +973,21 @@
       "x-firestore": {
         "path": "frames",
         "docIdField": "frameId",
-        "group": "Gacha & Economy",
+        "group": "Shop & Economy",
         "source": "code+firestore",
         "sampledDocs": 26
       }
     },
-    "gachaItems": {
+    "shopItems": {
       "type": "object",
-      "title": "gachaItems",
-      "description": "Gacha reward pool metadata (FRAME, EFFECT, SKIN).",
+      "title": "shopItems",
+      "description": "Shop catalog (FRAME, SKIN, EFFECT) bought with Astrite. Unique per (itemType, refId).",
       "required": [
         "itemId",
         "itemName",
         "itemType",
-        "rarity",
         "refId",
+        "price",
         "isActive",
         "sortOrder",
         "createdAt"
@@ -983,69 +996,56 @@
         "itemId": {
           "type": "string",
           "description": "Document ID",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 0
+          "x-source": "code-only"
         },
         "itemName": {
           "type": "string",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         },
         "itemType": {
           "type": "string",
           "enum": [
             "FRAME",
-            "EFFECT",
-            "SKIN"
+            "SKIN",
+            "EFFECT"
           ],
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         },
-        "rarity": {
+        "refId": {
           "type": "string",
-          "enum": [
-            "R",
-            "SR",
-            "SSR"
-          ],
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "description": "frames.frameId when FRAME, else APK registry ID (>= 1)",
+          "x-source": "code-only"
+        },
+        "price": {
+          "type": "integer",
+          "description": "Astrite",
+          "x-source": "code-only"
         },
         "imageUrl": {
           "type": "string",
           "format": "uri",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
-        },
-        "refId": {
-          "type": "string",
-          "description": "frames.frameId when FRAME, else APK registry ID",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         },
         "isActive": {
           "type": "boolean",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         },
         "sortOrder": {
           "type": "integer",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 20
+          "x-source": "code-only"
         }
       },
       "x-firestore": {
-        "path": "gachaItems",
+        "path": "shopItems",
         "docIdField": "itemId",
-        "group": "Gacha & Economy",
-        "source": "code+firestore",
-        "sampledDocs": 20,
+        "group": "Shop & Economy",
+        "source": "code-only",
+        "sampledDocs": 0,
         "relations": [
           {
             "field": "refId",
@@ -1056,83 +1056,82 @@
         ]
       }
     },
-    "gachaRolls": {
+    "shopPurchases": {
       "type": "object",
-      "title": "gachaRolls",
-      "description": "Gacha roll history (1 doc per SINGLE or TEN roll).",
+      "title": "shopPurchases",
+      "description": "Shop purchase history (snapshot of item name/type/price at purchase time).",
       "required": [
-        "rollId",
+        "purchaseId",
         "uid",
-        "rollType",
-        "cost",
-        "results",
-        "refundTotal",
+        "itemId",
+        "itemName",
+        "itemType",
+        "refId",
+        "price",
         "balanceAfter",
         "createdAt"
       ],
       "properties": {
-        "rollId": {
+        "purchaseId": {
           "type": "string",
           "description": "Document ID",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 0
+          "x-source": "code-only"
         },
         "uid": {
           "type": "string",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
+          "x-source": "code-only"
         },
-        "rollType": {
+        "itemId": {
+          "type": "string",
+          "x-source": "code-only"
+        },
+        "itemName": {
+          "type": "string",
+          "x-source": "code-only"
+        },
+        "itemType": {
           "type": "string",
           "enum": [
-            "SINGLE",
-            "TEN"
+            "FRAME",
+            "SKIN",
+            "EFFECT"
           ],
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
+          "x-source": "code-only"
         },
-        "cost": {
+        "refId": {
+          "type": "string",
+          "x-source": "code-only"
+        },
+        "price": {
           "type": "integer",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
-        },
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          },
-          "description": "RollResultEntry[]",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
-        },
-        "refundTotal": {
-          "type": "integer",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
+          "x-source": "code-only"
         },
         "balanceAfter": {
           "type": "integer",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
+          "x-source": "code-only"
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
-          "x-source": "code+firestore",
-          "x-seenInDocs": 50
+          "x-source": "code-only"
         }
       },
       "x-firestore": {
-        "path": "gachaRolls",
-        "docIdField": "rollId",
-        "group": "Gacha & Economy",
-        "source": "code+firestore",
-        "sampledDocs": 50,
+        "path": "shopPurchases",
+        "docIdField": "purchaseId",
+        "group": "Shop & Economy",
+        "source": "code-only",
+        "sampledDocs": 0,
         "relations": [
           {
             "field": "uid",
             "targetCollection": "users",
             "targetField": "uid"
+          },
+          {
+            "field": "itemId",
+            "targetCollection": "shopItems",
+            "targetField": "itemId"
           }
         ]
       }
@@ -1168,8 +1167,7 @@
             "QUEST_REWARD",
             "AI_QUEST_REWARD",
             "TOPUP",
-            "GACHA_SPEND",
-            "GACHA_REFUND",
+            "SHOP_PURCHASE",
             "ADMIN_ADJUST"
           ],
           "x-source": "code+firestore",
@@ -1201,7 +1199,7 @@
       "x-firestore": {
         "path": "astriteTransactions",
         "docIdField": "id",
-        "group": "Gacha & Economy",
+        "group": "Shop & Economy",
         "source": "code+firestore",
         "sampledDocs": 50,
         "relations": [
@@ -1281,7 +1279,7 @@
       "x-firestore": {
         "path": "topupPackages",
         "docIdField": "packageId",
-        "group": "Gacha & Economy",
+        "group": "Shop & Economy",
         "source": "code+firestore",
         "sampledDocs": 5
       }
@@ -1380,7 +1378,7 @@
       "x-firestore": {
         "path": "topupOrders",
         "docIdField": "orderCode",
-        "group": "Gacha & Economy",
+        "group": "Shop & Economy",
         "source": "code+firestore",
         "sampledDocs": 2,
         "relations": [
@@ -1422,24 +1420,24 @@
             "AI_CHALLENGE"
           ],
           "x-source": "code+firestore",
-          "x-seenInDocs": 49
+          "x-seenInDocs": 50
         },
         "content": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 49
+          "x-seenInDocs": 50
         },
         "releaseDate": {
           "type": "string",
           "description": "YYYY-MM-DD (UTC)",
           "x-source": "code+firestore",
-          "x-seenInDocs": 49
+          "x-seenInDocs": 50
         },
         "targetClass": {
           "type": "string",
           "description": "COCO class for AI_CHALLENGE",
           "x-source": "code+firestore",
-          "x-seenInDocs": 5
+          "x-seenInDocs": 6
         },
         "source": {
           "type": "string",
@@ -1448,13 +1446,13 @@
             "FALLBACK"
           ],
           "x-source": "code+firestore",
-          "x-seenInDocs": 5
+          "x-seenInDocs": 6
         },
         "generatedAt": {
           "type": "string",
           "format": "date-time",
           "x-source": "code+firestore",
-          "x-seenInDocs": 5
+          "x-seenInDocs": 6
         }
       },
       "x-firestore": {
@@ -1462,7 +1460,7 @@
         "docIdField": "questId",
         "group": "Quests & AI",
         "source": "code+firestore",
-        "sampledDocs": 49
+        "sampledDocs": 50
       }
     },
     "userQuests": {
@@ -1604,29 +1602,29 @@
         "uid": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "momentId": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "mediaUrl": {
           "type": "string",
           "format": "uri",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "date": {
           "type": "string",
           "description": "YYYY-MM-DD (UTC)",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "targetClass": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "outcome": {
           "type": "string",
@@ -1636,7 +1634,7 @@
             "SKIPPED"
           ],
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "score": {
           "type": "number",
@@ -1667,18 +1665,18 @@
         "roundTripMs": {
           "type": "integer",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         },
         "error": {
           "type": "string",
           "x-source": "code+firestore",
-          "x-seenInDocs": 4
+          "x-seenInDocs": 8
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "x-source": "code+firestore",
-          "x-seenInDocs": 8
+          "x-seenInDocs": 12
         }
       },
       "x-firestore": {
@@ -1686,7 +1684,7 @@
         "docIdField": "id",
         "group": "Quests & AI",
         "source": "code+firestore",
-        "sampledDocs": 8,
+        "sampledDocs": 12,
         "relations": [
           {
             "field": "uid",
@@ -1763,6 +1761,155 @@
             "field": "actorUid",
             "targetCollection": "users",
             "targetField": "uid"
+          }
+        ]
+      }
+    },
+    "gachaItems": {
+      "type": "object",
+      "title": "gachaItems",
+      "description": "Discovered in live Firestore (not defined in server/src entities).",
+      "required": [
+        "id",
+        "itemName",
+        "itemType",
+        "rarity",
+        "refId",
+        "isActive",
+        "sortOrder",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firestore Document ID",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "itemName": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "itemType": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "rarity": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "refId": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "isActive": {
+          "type": "boolean",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "sortOrder": {
+          "type": "integer",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 20
+        }
+      },
+      "x-firestore": {
+        "path": "gachaItems",
+        "docIdField": "id",
+        "group": "Live-Only / Legacy",
+        "source": "firestore-only",
+        "sampledDocs": 20
+      }
+    },
+    "gachaRolls": {
+      "type": "object",
+      "title": "gachaRolls",
+      "description": "Discovered in live Firestore (not defined in server/src entities).",
+      "required": [
+        "id",
+        "uid",
+        "rollType",
+        "cost",
+        "results",
+        "refundTotal",
+        "balanceAfter",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firestore Document ID",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "uid": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "rollType": {
+          "type": "string",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "cost": {
+          "type": "integer",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "refundTotal": {
+          "type": "integer",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "balanceAfter": {
+          "type": "integer",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "x-source": "firestore-only",
+          "x-seenInDocs": 50
+        }
+      },
+      "x-firestore": {
+        "path": "gachaRolls",
+        "docIdField": "id",
+        "group": "Live-Only / Legacy",
+        "source": "firestore-only",
+        "sampledDocs": 50,
+        "relations": [
+          {
+            "field": "uid",
+            "targetCollection": "users",
+            "targetField": "uid",
+            "note": "Inferred from field name"
           }
         ]
       }

@@ -36,7 +36,7 @@ class SessionCleaner @Inject constructor(
     suspend fun clear() = withContext(Dispatchers.IO) {
         firestoreRepository.clearCache()
 
-        // Skin + hieu ung cham la VAT PHAM gacha, mua bang tien that (2026-08-05).
+        // Skin + hieu ung cham la VAT PHAM mua o Shop bang Astrite (nap bang tien that).
         // Khong reset thi tai khoan tiep theo tren cung may duoc dung mien phi
         // do cua tai khoan cu — va man Appearance se hien skin dang ap dung o
         // trang thai bi khoa.

@@ -5,7 +5,6 @@ import {
   PictureOutlined,
   PlusOutlined,
   TeamOutlined,
-  UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +28,6 @@ import {
   Spin,
   Tag,
   Typography,
-  Upload,
 } from 'antd';
 import { useRef, useState } from 'react';
 import { listUsers } from '../api/admin.api';
@@ -41,7 +39,7 @@ import {
   listFrames,
   updateFrame,
 } from '../api/frames.api';
-import { uploadImage } from '../api/upload.api';
+import { ImageUploadField } from '../components/ImageUploadField';
 import type { Frame, UnlockType } from '../types';
 
 interface FrameForm {
@@ -60,11 +58,11 @@ const UNLOCK_META: Record<
   UnlockType,
   { label: string; color: string; tag: (n?: number | null) => string; hint: string }
 > = {
-  GACHA: {
-    label: 'Quay gacha',
+  SHOP: {
+    label: 'Bán tại Cửa hàng',
     color: 'gold',
-    tag: () => '🎲 Gacha',
-    hint: 'TỰ ĐỘNG thêm vào kho vật phẩm gacha (phẩm chất R) — user quay trúng thì mở khóa. Đổi sang điều kiện khác sẽ tự rút khỏi kho.',
+    tag: () => '🛍️ Cửa hàng',
+    hint: 'TỰ ĐỘNG lên kệ Cửa hàng (giá mặc định 320 Astrite — sửa giá ở trang Vật phẩm). User mua bằng Astrite thì mở khóa. Đổi sang điều kiện khác sẽ tự gỡ khỏi Cửa hàng.',
   },
   STREAK_MILESTONE: {
     label: 'Mốc streak cá nhân',
@@ -137,15 +135,14 @@ export function FramesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Frame | null>(null); // null = đang thêm mới
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
-  const [uploading, setUploading] = useState(false);
   const [form] = Form.useForm<FrameForm>();
-  const unlockType = Form.useWatch('unlockType', form) ?? 'GACHA';
+  const unlockType = Form.useWatch('unlockType', form) ?? 'SHOP';
 
   const openCreate = () => {
     setEditing(null);
     setImageUrl(undefined);
     form.resetFields();
-    form.setFieldsValue({ unlockType: 'GACHA' });
+    form.setFieldsValue({ unlockType: 'SHOP' });
     setModalOpen(true);
   };
 
@@ -417,44 +414,7 @@ export function FramesPage() {
             </Form.Item>
           )}
           <Form.Item label="Ảnh khung (PNG nền trong suốt)">
-            <Upload
-              accept="image/*"
-              maxCount={1}
-              showUploadList={false}
-              customRequest={async ({ file, onSuccess, onError }) => {
-                setUploading(true);
-                try {
-                  const result = await uploadImage(file as File);
-                  setImageUrl(result.url);
-                  onSuccess?.(result);
-                } catch (err) {
-                  message.error(err instanceof Error ? err.message : 'Upload thất bại.');
-                  onError?.(err as Error);
-                } finally {
-                  setUploading(false);
-                }
-              }}
-            >
-              {imageUrl ? (
-                <div style={{ cursor: 'pointer' }} title="Bấm để đổi ảnh khác">
-                  <img
-                    src={imageUrl}
-                    alt="Ảnh khung"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: 200,
-                      display: 'block',
-                      background:
-                        'repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px',
-                    }}
-                  />
-                </div>
-              ) : (
-                <Button icon={<UploadOutlined />} loading={uploading}>
-                  Tải ảnh khung lên
-                </Button>
-              )}
-            </Upload>
+            <ImageUploadField value={imageUrl} onChange={setImageUrl} buttonText="Tải ảnh khung lên" />
           </Form.Item>
         </Form>
       </Modal>

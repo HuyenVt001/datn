@@ -1,7 +1,7 @@
 # 🔐 SECURITY.md — Hệ thống bảo mật Snapget
 
 > **Phạm vi:** app Android (`Snapget/`) · server NestJS (`server/`) · web admin (`admin/`) · Firebase Hosting (`hosting/`, `admin/`).
-> **Cập nhật lần cuối:** 2026-08-15 — thêm **[mục 18 — AI Daily Quest: Space ngoài & cron](#18-ai-daily-quest-space-ngoài--cron)**: lần đầu server gọi ra một dịch vụ ngoài do nhóm tự vận hành (HF Space) và mở một endpoint không cần user (cron) — 2 bí mật mới `AI_SERVICE_API_KEY`, `CRON_SECRET`, đều optional (thiếu → tính năng tắt êm). Trước đó 2026-08-05 — thêm **[mục 17 — Thanh toán PayOS & tiền tệ Astrite](#17-thanh-toán-payos--tiền-tệ-astrite)**: đây là phần đầu tiên của hệ thống đụng **tiền thật**, nên có mô hình đe doạ riêng (webhook giả mạo, cộng tiền 2 lần, client tự khai số tiền). Trước đó 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
+> **Cập nhật lần cuối:** 2026-11-15 — **bỏ gacha, thay bằng Shop mua đứt** ([17.8](#178-shop--mua-vật-phẩm-bằng-astrite-2026-11-15)): `POST /shop/buy` chỉ nhận `itemId`, giá tra ở server, kiểm tra sở hữu + số dư trên snapshot mới nhất trong 1 transaction (chống mua trùng / trừ tiền 2 lần); nguồn cộng Astrite "hoàn khi quay trùng" biến mất; audit `GACHA_ITEM_*` → `SHOP_ITEM_*`. Trước đó 2026-08-15 — thêm **[mục 18 — AI Daily Quest: Space ngoài & cron](#18-ai-daily-quest-space-ngoài--cron)**: lần đầu server gọi ra một dịch vụ ngoài do nhóm tự vận hành (HF Space) và mở một endpoint không cần user (cron) — 2 bí mật mới `AI_SERVICE_API_KEY`, `CRON_SECRET`, đều optional (thiếu → tính năng tắt êm). Trước đó 2026-08-05 — thêm **[mục 17 — Thanh toán PayOS & tiền tệ Astrite](#17-thanh-toán-payos--tiền-tệ-astrite)**: đây là phần đầu tiên của hệ thống đụng **tiền thật**, nên có mô hình đe doạ riêng (webhook giả mạo, cộng tiền 2 lần, client tự khai số tiền). Trước đó 2026-08-03 — vá luồng đăng xuất phía app: `LoginScreen` dùng chung `AuthViewModel` scope Activity (trước đây instance riêng làm Sign Out không điều hướng về Login khi login/logout cùng phiên → kẹt lại với 401 "Thieu token", xem [3.4](#34-phản-ứng-khi-phiên-bị-thu-hồi-app)); Google re-login không còn PATCH tên/avatar đè hồ sơ server. Trước đó 2026-08-02 — (1) nhóm chat quản lý được (rename/avatar/mời/xóa/rời/mute): ma trận ownership [4.2](#42-ma-trận-kiểm-soát-quyền-sở-hữu-ownership) — mọi thao tác nhóm qua `requireMembership`, thêm thành viên tái dùng rào chắn bạn-bè `assertAllFriendsOf`, xóa thành viên chỉ `createdBy`; (2) đại tu co-op: poll/nộp nửa ảnh chỉ 2 người trong lời mời (`assertParticipant`), accept chỉ invitee, decline mở cho cả inviter hủy lời mời PENDING của mình, TTL rút còn 5 phút (thu hẹp cửa sổ tấn công). Trước đó 2026-07-28: siết `.gitignore` 5 lớp ([10.3](#103-hàng-rào-gitignore-5-lớp-đã-siết-2026-07-28)) + hardening app Android ([mục 8](#8-bảo-mật-app-android)).
 > **Trạng thái:** tài liệu sống — **bắt buộc cập nhật mỗi khi có thay đổi liên quan bảo mật** (xem [mục 16](#16-quy-tắc-bảo-trì-tài-liệu-bắt-buộc)).
 
 > ⚠️ **Tài liệu này KHÔNG chứa giá trị bí mật thật** (JWT secret, Cloudinary secret, service account key…). Bí mật chỉ nằm trong `.env` / Secret Files trên môi trường chạy, không bao giờ ghi vào tài liệu hay commit vào git.
@@ -468,7 +468,7 @@ Server bảo vệ rất kỹ việc *ai được xem moment nào* ([moments.serv
 
 `SessionCleaner.clear()` xóa cả ba, chạy trên `Dispatchers.IO` và best-effort (lỗi dọn dẹp không làm hỏng luồng đăng xuất). Được gọi ở **cả hai** đường đăng xuất: người dùng tự bấm Sign Out, **và** phiên bị thu hồi từ bên ngoài.
 
-✅ **Bổ sung 2026-08-05 — reset skin + hiệu ứng chạm khi đăng xuất.** Hai thứ này là **vật phẩm gacha mua bằng tiền thật**, gắn với tài khoản chứ không gắn với thiết bị; lựa chọn lại nằm ở `SharedPreferences`. Không reset thì tài khoản đăng nhập kế tiếp trên cùng máy dùng miễn phí skin SSR của tài khoản trước (và màn Appearance hiện skin đang áp dụng ở trạng thái bị khoá). Xem `SettingsPreferences.resetAppearance()`.
+✅ **Bổ sung 2026-08-05 — reset skin + hiệu ứng chạm khi đăng xuất.** Hai thứ này là **vật phẩm mua bằng Astrite (Shop, trước 2026-11-15 là gacha) — gián tiếp bằng tiền thật**, gắn với tài khoản chứ không gắn với thiết bị; lựa chọn lại nằm ở `SharedPreferences`. Không reset thì tài khoản đăng nhập kế tiếp trên cùng máy dùng miễn phí skin SSR của tài khoản trước (và màn Appearance hiện skin đang áp dụng ở trạng thái bị khoá). Xem `SettingsPreferences.resetAppearance()`.
 
 ✅ **`logoutFromAllDevices()` đã được ghi chú trung thực** — Firebase client SDK không thể thu hồi phiên trên máy khác (chỉ `revokeRefreshTokens` phía server làm được, và server chưa có endpoint đó cho user thường). Hàm giữ nguyên tên để không phá API nhưng comment cảnh báo rõ **UI không được hứa "sign out from all devices"** cho tới khi có endpoint thật.
 
@@ -745,7 +745,7 @@ Sự cố 2026-07-12 xảy ra vì file bí mật nằm ở **thư mục gốc �
 | `GRANT_ADMIN` / `REVOKE_ADMIN` | [admin.service.ts:140](server/src/admin/admin.service.ts#L140) · [:169](server/src/admin/admin.service.ts#L169) |
 | `MOMENT_DELETE` | [admin.service.ts:201-204](server/src/admin/admin.service.ts#L201-L204) |
 | `FRAME_CREATE` / `FRAME_UPDATE` / `FRAME_DELETE` / `FRAME_GRANT` | [frames.controller.ts:58-102](server/src/frames/frames.controller.ts#L58-L102) |
-| `GACHA_ITEM_CREATE` / `GACHA_ITEM_UPDATE` / `GACHA_ITEM_DELETE` / `GACHA_ITEM_GRANT` (2026-08-06) | [gacha.controller.ts](server/src/gacha/gacha.controller.ts) — kho vật phẩm + tặng vật phẩm cho user |
+| `SHOP_ITEM_CREATE` / `SHOP_ITEM_UPDATE` / `SHOP_ITEM_DELETE` / `SHOP_ITEM_GRANT` (2026-11-15, thay `GACHA_ITEM_*`) | [shop.controller.ts](server/src/shop/shop.controller.ts) — niêm yết / sửa giá / gỡ mặt hàng Shop + tặng vật phẩm cho user. Đổi giá là hành động gắn với tiền (Astrite mua bằng tiền thật) nên bắt buộc có dấu vết |
 | `TOPUP_PACKAGE_CREATE` / `TOPUP_PACKAGE_UPDATE` / `TOPUP_PACKAGE_DELETE` | [topup.controller.ts](server/src/topup/topup.controller.ts) — gói nạp đụng tiền thật |
 
 **Xem log:** `GET /api/admin/logs` (phân trang, mới nhất trước) → trang Nhật ký trên web admin.
@@ -957,7 +957,7 @@ Xem [mục 7.3](#73-điểm-yếu-đã-biết-của-tầng-media) — media hi�
 
 | Bất biến | Vì sao sống còn | Enforce ở đâu |
 |---|---|---|
-| **Chỉ có 5 nguồn cộng Astrite**: tặng tân thủ · thưởng quest 2/2 · **thưởng quest AI +30 (2026-08-15, `AI_QUEST_REWARD` — chỉ khi model xác minh khớp, `completeUserQuest` atomic 1 lần/ngày)** · hoàn khi quay trúng trùng · **webhook PayOS** | Thêm một nguồn nữa mà quên guard = in tiền vô hạn | [server/src/astrite/astrite.service.ts](server/src/astrite/astrite.service.ts) · [server/src/topup/topup.service.ts](server/src/topup/topup.service.ts) |
+| **Chỉ có 5 nguồn cộng Astrite**: tặng tân thủ · thưởng quest 2/2 · **thưởng quest AI +30 (2026-08-15, `AI_QUEST_REWARD` — chỉ khi model xác minh khớp, `completeUserQuest` atomic 1 lần/ngày)** · **webhook PayOS** (~~hoàn khi quay trùng~~ — bỏ cùng gacha 2026-11-15; còn **4 nguồn**) | Thêm một nguồn nữa mà quên guard = in tiền vô hạn | [server/src/astrite/astrite.service.ts](server/src/astrite/astrite.service.ts) · [server/src/topup/topup.service.ts](server/src/topup/topup.service.ts) |
 | **Không endpoint nào cộng Astrite theo yêu cầu của client** | Client không tin được | Toàn bộ module `topup` — không có route nào nhận số Astrite |
 | **Mọi thay đổi số dư đều ghi 1 dòng sổ cái `astriteTransactions`** | Đối soát: tổng sổ cái của 1 uid phải bằng `users.astrite` | `AstriteRepository.addEntryInTransaction` chạy trong **cùng transaction** với lệnh ghi số dư |
 | **Ba khoá `PAYOS_*` không bao giờ ra khỏi server** | Lộ checksum key = ký được webhook giả | `.env` (gitignored) + Render env; [PayosService](server/src/topup/payos.service.ts) chỉ log `orderCode`, không log config/lỗi thô |
@@ -1052,6 +1052,22 @@ Firestore **serialize** các transaction chạm cùng document, nên hai webhook
 
 ---
 
+### 17.8 Shop — mua vật phẩm bằng Astrite (2026-11-15)
+
+Thay hệ thống gacha. Không đụng tiền thật trực tiếp (chỉ tiêu Astrite), nhưng Astrite mua được bằng tiền thật nên vẫn áp cùng kỷ luật với mục 17.1.
+
+| Rủi ro | Biện pháp | Trạng thái |
+|---|---|---|
+| Client tự khai giá | [BuyItemDto](server/src/shop/dto/buy-item.dto.ts) chỉ có `itemId` (`forbidNonWhitelisted` → field lạ 400); giá đọc từ `shopItems` ở [ShopService.buyItem](server/src/shop/shop.service.ts) | ✅ |
+| Bấm mua 2 lần / 2 thiết bị cùng lúc → trừ tiền 2 lần | Kiểm tra **đã sở hữu** + **đủ Astrite** trên snapshot user đọc **trong** transaction Firestore (retry khi xung đột); lần 2 gặp `isOwned` → 409, không ghi gì | ✅ |
+| Mua mặt hàng admin đã tắt / khung đã đổi khỏi SHOP | Kiểm tra `isActive` + `frame.unlockType === 'SHOP'` trước transaction → 400 | ✅ |
+| Lệch số dư ↔ sổ cái | Trừ tiền (`AstriteRepository.setBalanceInTransaction`) + mở khóa + `shopPurchases` + dòng `SHOP_PURCHASE` cùng 1 transaction; mặt hàng giá 0 vẫn ghi dòng sổ cái | ✅ |
+| Admin sửa giá hồi tố | `shopPurchases` chụp lại tên/loại/giá lúc mua | ✅ |
+| Admin tặng vật phẩm cho uid gõ nhầm (sinh user doc "ma") | `grantItem` kiểm tra `usersRepo.findByUid` trước → 404 | ✅ |
+| Niêm yết trùng 1 vật phẩm 2 lần (2 giá khác nhau) | Service chặn trùng (itemType, refId) → 409. ⚠️ Không có unique index ở Firestore — 2 request tạo đồng thời về lý thuyết có thể lọt; chấp nhận ở quy mô 1–2 admin | ✅ / 🧭 |
+| App (Android) tự trừ tiền / tự mở khóa | [ShopApi](Snapget/app/src/main/java/com/example/snapget/core/network/api/ShopApi.kt) chỉ gửi `{itemId}`; [ShopViewModel](Snapget/app/src/main/java/com/example/snapget/feature/shop/ShopViewModel.kt) lấy số dư từ `astriteAfter` server trả, lỗi mua → đọc lại catalog; chặn bấm kép bằng `buyingItemId`. Giá hiện trên app chỉ để xem | ✅ |
+| Dữ liệu gacha cũ | Script `cleanup:gacha` mặc định **chỉ đếm**, phải `--confirm` mới xoá. Xoá dòng sổ cái `GACHA_*` làm tổng sổ cái ≠ số dư ở tài khoản từng quay (user chấp nhận 2026-11-15) | 🧭 |
+
 ## 18. AI Daily Quest: Space ngoài & cron
 
 > **Thêm 2026-08-15, cập nhật 2026-08-16** (kế hoạch: `Snapget/.claude/QUEST_AI_PLAN.md`). Hai điểm mới về mặt bảo mật: (1) server lần đầu **gọi ra một dịch vụ ngoài do nhóm tự vận hành** (AI service FastAPI trên **Google Cloud Run**, code ở `ml/ai-service/` — trước dự định HF Space, đổi vì HF thu phí); (2) server mở **một endpoint không gắn với user nào** (`POST /quests/ai/generate`, nay tuỳ chọn) cho cron-job.org gọi. Cả hai đều có thể **tắt hoàn toàn bằng cách để trống env**. LLM sinh quest đã bỏ → không còn API key LLM nào.
@@ -1089,7 +1105,7 @@ Xoay khoá: đổi ở cả 2 nơi (server ↔ Cloud Run secret version mới + 
 | Cách gian lận | Trạng thái |
 |---|---|
 | Chọn ảnh có sẵn từ gallery | ✅ chặn sẵn — luồng đăng moment chỉ đi từ CameraX (`GetContent()` chỉ ở avatar/chat) |
-| Chụp lại màn hình đang hiển thị vật thể | ❌ chưa chặn (v1) — nêu là limitation trong báo cáo; chi phí gian lận tối đa 30 Astrite/ngày (< 1/5 lượt gacha) |
+| Chụp lại màn hình đang hiển thị vật thể | ❌ chưa chặn (v1) — nêu là limitation trong báo cáo; chi phí gian lận tối đa 30 Astrite/ngày (< 1/10 giá 1 khung ở Shop) |
 | Đăng lặp cùng cảnh nhiều ngày | ⚠️ nice-to-have (pHash) — chưa làm |
 
 ### 18.4 Khoảng trống đã biết

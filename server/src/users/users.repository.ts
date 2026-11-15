@@ -9,8 +9,8 @@ import { PublicUser, User } from './entities/user.entity';
  * Map Firestore doc <-> entity o day; khong ro ri kieu Firestore ra ngoai.
  *
  * ⚠️ NGOAI LE co chu y (2026-08-05): cac field VI TIEN nam tren user doc
- * (`astrite`, `signupBonusClaimed`, `gachaPity`, `unlockedSkins/Effects`) do
- * `AstriteRepository` / `GachaRepository` ghi, KHONG ghi tu day. Ly do: moi
+ * (`astrite`, `signupBonusClaimed`, `unlockedSkins/Effects`) do
+ * `AstriteRepository` (ke ca trong transaction mua hang cua ShopService) ghi, KHONG ghi tu day. Ly do: moi
  * thay doi so du phai chay trong CUNG transaction voi so cai
  * `astriteTransactions`, ma Firestore chi cho 1 callback runTransaction.
  * Repository nay chi DOC chung ra entity (`toEntity`).
@@ -79,10 +79,10 @@ export class UsersRepository {
     return snap.docs.map((d) => this.toEntity(d.id, d.data()));
   }
 
-  // ==== So huu vat pham gacha (2026-08-06 — kho thuong) ====
+  // ==== So huu vat pham (2026-08-06 — kho thuong; tu 2026-11-15 dung cho Shop) ====
   // 3 mang so huu tren user doc: `unlockedFrames` giu CHUOI frameId,
   // `unlockedSkins`/`unlockedEffects` giu SO (khop id int trong app).
-  // GachaService chiu trach nhiem map itemType -> (field, kieu gia tri).
+  // ShopService chiu trach nhiem map itemType -> (field, kieu gia tri).
 
   /** Mo khoa 1 vat pham cho user (arrayUnion — idempotent, da co thi thoi). */
   async unlockCollectible(
@@ -137,11 +137,6 @@ export class UsersRepository {
       astrite: data.astrite ?? 0,
       unlockedSkins: data.unlockedSkins ?? [],
       unlockedEffects: data.unlockedEffects ?? [],
-      gachaPity: {
-        R: data.gachaPity?.R ?? 0,
-        SR: data.gachaPity?.SR ?? 0,
-        SSR: data.gachaPity?.SSR ?? 0,
-      },
       signupBonusClaimed: data.signupBonusClaimed ?? false,
     };
   }

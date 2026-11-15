@@ -18,6 +18,11 @@ const ACTION_META: Record<AdminAction, { label: string; color: string }> = {
   FRAME_DELETE: { label: 'Xóa khung', color: 'magenta' },
   FRAME_GRANT: { label: 'Cấp khung', color: 'cyan' },
   MOMENT_DELETE: { label: 'Xóa bài đăng', color: 'purple' },
+  SHOP_ITEM_CREATE: { label: 'Niêm yết vật phẩm', color: 'blue' },
+  SHOP_ITEM_UPDATE: { label: 'Sửa vật phẩm Shop', color: 'geekblue' },
+  SHOP_ITEM_DELETE: { label: 'Gỡ vật phẩm Shop', color: 'magenta' },
+  SHOP_ITEM_GRANT: { label: 'Tặng vật phẩm', color: 'cyan' },
+  // Log cũ trước 2026-11-15 (gacha đã bỏ)
   GACHA_ITEM_CREATE: { label: 'Thêm vật phẩm gacha', color: 'blue' },
   GACHA_ITEM_UPDATE: { label: 'Sửa vật phẩm gacha', color: 'geekblue' },
   GACHA_ITEM_DELETE: { label: 'Xóa vật phẩm gacha', color: 'magenta' },

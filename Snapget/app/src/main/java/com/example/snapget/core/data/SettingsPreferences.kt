@@ -73,7 +73,7 @@ class SettingsPreferences @Inject constructor(
     /**
      * Ve lai skin + hieu ung mac dinh khi dang xuat (goi tu [SessionCleaner]).
      *
-     * Skin va hieu ung la vat pham gacha mua bang tien that, gan voi TAI KHOAN
+     * Skin va hieu ung la vat pham mua o Shop (Astrite nap bang tien that), gan voi TAI KHOAN
      * chu khong phai thiet bi — khong reset thi nguoi dang nhap tiep theo tren
      * cung may duoc dung mien phi do cua tai khoan truoc.
      */

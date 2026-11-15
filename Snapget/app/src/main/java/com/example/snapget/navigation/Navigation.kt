@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.snapget.core.designsystem.component.bottombar.AppFooterBar
 import com.example.snapget.core.model.auth.AuthState
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.feature.appearance.AppearanceScreen
@@ -26,7 +29,6 @@ import com.example.snapget.feature.auth.LoginScreen
 import com.example.snapget.feature.camera.CameraScreen
 import com.example.snapget.feature.coop.CoopCaptureScreen
 import com.example.snapget.feature.friends.QrScanScreen
-import com.example.snapget.feature.gacha.GachaScreen
 import com.example.snapget.feature.message.ChatScreen
 import com.example.snapget.feature.message.GroupChatScreen
 import com.example.snapget.feature.message.MessageScreen
@@ -37,6 +39,7 @@ import com.example.snapget.feature.profile.UserProfile
 import com.example.snapget.feature.quest.DailyQuestScreen
 import com.example.snapget.feature.settings.LegalDocScreen
 import com.example.snapget.feature.settings.SettingScreen
+import com.example.snapget.feature.shop.ShopScreen
 import com.example.snapget.feature.widget.HowToAddWidgetScreen
 import com.example.snapget.feature.widget.WidgetSettingsScreen
 
@@ -52,6 +55,7 @@ sealed class Screen(val route: String) { // enum
     object Setting : Screen("setting")
     object Camera : Screen("camera")
     object DailyQuest : Screen("daily_quest")
+    object Shop : Screen("shop")
     object EditMedia : Screen("edit_media")
     object CoopCapture : Screen("coop_capture")
     object WidgetSettings : Screen("widget_settings")
@@ -59,9 +63,6 @@ sealed class Screen(val route: String) { // enum
 
     /** Doi giao dien + hieu ung cham (thay muc "Theme" cu — SKIN_PLAN.md muc 4). */
     object Appearance : Screen("appearance")
-
-    /** Man quay gacha — noi DUY NHAT hien so du Astrite (GACHA_PLAN.md muc 6.2). */
-    object Gacha : Screen("gacha")
 
     // Man van ban phap ly tinh: docType = "terms" | "privacy"
     object LegalDoc : Screen("legal/{docType}") {
@@ -83,23 +84,7 @@ fun Navigation(
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val navController = rememberNavController()
-    val authState by authViewModel.authState.collectAsState() // Define routes where bottom bar should be hidden
-    val hideBottomBarRoutes = setOf(
-        Screen.Message.route,
-        Screen.Profile.route,
-        Screen.Setting.route,
-        Screen.Login.route,
-        Screen.Chat.route,
-        Screen.GroupChat.route,
-        Screen.QrScan.route,
-        Screen.DailyQuest.route,
-        Screen.CoopCapture.route,
-        Screen.WidgetSettings.route,
-        Screen.HowToAddWidget.route,
-        Screen.Appearance.route,
-        Screen.Gacha.route,
-        Screen.LegalDoc.route,
-    )
+    val authState by authViewModel.authState.collectAsState()
 
     // Dang xuat (hoac mat phien) o bat ky man nao -> ve Login, xoa sach back stack.
     // NavHost KHONG tu doi startDestination sau khi da compose nen phai navigate tay.
@@ -127,9 +112,19 @@ fun Navigation(
     // Track current route as state that updates with navigation changes
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry.value?.destination?.route
+    val currentProfileUserId = navBackStackEntry.value?.arguments?.getString("userId")
 
-    // Check if bottom bar should be shown for current route
-    val showBottomBar = currentRoute !in hideBottomBarRoutes
+    // Hien thi Footer 5 tab tren: Camera (Home), Post (Feed + Grid), Message (Chat), DailyQuest, Shop, va Profile ca nhan
+    val showBottomBar = when (currentRoute) {
+        Screen.Camera.route,
+        Screen.Post.route,
+        Screen.Message.route,
+        Screen.DailyQuest.route,
+        Screen.Shop.route,
+        -> true
+        "profile?userId={userId}" -> currentProfileUserId == null
+        else -> false
+    }
 
     // Determine start destination based on auth state
     // Da dang nhap -> vao THANG camera (BeReal-style); vuot len tren camera de xem feed
@@ -146,10 +141,37 @@ fun Navigation(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) {
+        bottomBar = {
+            if (showBottomBar) {
+                AppFooterBar(
+                    currentRoute = currentRoute,
+                    onTabSelected = { targetRoute ->
+                        if (targetRoute == Screen.Camera.route) {
+                            if (!navController.popBackStack(Screen.Camera.route, inclusive = false)) {
+                                navController.navigate(Screen.Camera.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        } else {
+                            navController.navigate(targetRoute) {
+                                popUpTo(Screen.Camera.route) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                )
+            }
+        },
+    ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(
@@ -286,7 +308,12 @@ fun Navigation(
 
             // Man Daily Quest (2 quest co dinh/ngay + bo suu tap khung)
             composable(Screen.DailyQuest.route) {
-                DailyQuestScreen(navController = navController)
+                DailyQuestScreen()
+            }
+
+            // Man Shop (SHOP_PLAN.md — thay gacha 2026-11-15): 4 tab Astrite/Skins/Frames/Effects
+            composable(Screen.Shop.route) {
+                ShopScreen()
             }
 
             // Van ban phap ly tinh (Terms / Privacy) — mo tu Settings
@@ -313,11 +340,6 @@ fun Navigation(
             // Doi giao dien (skin) + hieu ung cham + xem bo suu tap khung
             composable(Screen.Appearance.route) {
                 AppearanceScreen(navController = navController)
-            }
-
-            // Quay gacha (vao tu banner tren trang Daily Quest)
-            composable(Screen.Gacha.route) {
-                GachaScreen(navController = navController)
             }
 
             // Chup chung (redesign 2026-08-02): man cho accept + chup nua anh + doi ghep

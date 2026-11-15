@@ -80,7 +80,7 @@ export interface TodayQuestsResult {
   quests: TodayQuest[];
   /**
    * So Astrite da thuong hom nay khi xong 2/2 quest CO DINH (doi tu `rewardFrameId`
-   * ngay 2026-08-05 — G2 cua GACHA_PLAN). Quest AI thuong rieng (+30), khong tinh vao day.
+   * ngay 2026-08-05 — G2 cua GACHA_PLAN cu). Quest AI thuong rieng (+30), khong tinh vao day.
    * undefined = chua xong 2/2 · number = da nhan · null = ngay cu (thuong khung).
    */
   rewardAstrite?: number | null;

@@ -12,35 +12,15 @@ export const COOP_INVITE_TTL_MINUTES = 5; // Loi moi chup chung qua 5 phut chua 
 export const INVITE_LINK_TTL_DAYS = 30; // Ma moi ket ban hieu luc 30 ngay; het han -> sinh ma moi, ma cu vo hieu (chot 2026-07-19)
 export const INVITE_LINK_BASE_URL = 'https://snapget-d8693.web.app/invite/'; // Firebase Hosting cua project — App Links verify duoc (assetlinks.json trong hosting/)
 
-// ==== Gacha & tien te Astrite (chot 2026-08-05 — xem Snapget/.claude/GACHA_PLAN.md) ====
-// User chot HARDCODE toan bo cac so nay (khong cho admin sua qua web) — doi so
-// thi sua o day roi deploy lai. Popup "Rule gacha" trong app TU SINH tu chinh
-// cac gia tri nay nen khong bao gio lech voi ti le dang chay.
+// ==== Cua hang (Shop) & tien te Astrite (2026-11-15 — THAY he thong gacha, xem Snapget/.claude/SHOP_PLAN.md) ====
+// Gia MAC DINH khi tao mat hang moi (seed / tu dong niem yet khung SHOP). Admin
+// sua gia tung mon tren web — gia that luon doc tu doc `shopItems`, khong tu day.
 
-export const GACHA_COST_SINGLE = 160; // Astrite cho 1 lan quay
-export const GACHA_TEN_TIMES = 10; // So lan quay cua goi x10
-export const GACHA_COST_TEN = 1440; // Goi x10 giam 10% (160*10 = 1600 -> 1440)
+export const SHOP_DEFAULT_PRICE_FRAME = 320; // Khung anh
+export const SHOP_DEFAULT_PRICE_EFFECT = 1600; // Hieu ung touch (= dung thuong tan thu)
+export const SHOP_DEFAULT_PRICE_SKIN = 4800; // Skin giao dien
 
-/** Ti le CO BAN tung bac. Phan con lai (95%) roi vao bac N. */
-export const GACHA_RATE_SSR = 0.001; // 0,1% — skin giao dien
-export const GACHA_RATE_SR = 0.009; // 0,9% — hieu ung touch
-export const GACHA_RATE_R = 0.04; // 4%   — khung anh
-
-/** Bao hiem (pity): quay du N lan khong ra bac do -> ep ra. Chi reset bo dem cua BAC VUA TRUNG. */
-export const GACHA_PITY_R = 10;
-export const GACHA_PITY_SR = 50;
-export const GACHA_PITY_SSR = 100;
-
-/** Astrite hoan lai khi quay trung vat pham da so huu. */
-export const GACHA_REFUND_R = 160; // R duoc phep trung bat cu luc nao
-export const GACHA_REFUND_SR = 1000; // SR chi trung khi da so huu HET bac SR
-export const GACHA_REFUND_SSR = 2000; // SSR chi trung khi da so huu HET bac SSR
-
-/** Bac N tra Astrite ngau nhien trong khoang nay. */
-export const GACHA_N_ASTRITE_MIN = 1;
-export const GACHA_N_ASTRITE_MAX = 60;
-
-// ==== Nap Astrite qua PayOS (G6 — GACHA_PLAN.md muc 4) ====
+// ==== Nap Astrite qua PayOS (G6 — SHOP_PLAN.md, truoc la GACHA_PLAN.md muc 4) ====
 
 /** Don PENDING qua han nay coi nhu bo (PayOS cung het han link ~ khoang nay). */
 export const TOPUP_ORDER_TTL_MINUTES = 30;
@@ -98,7 +78,7 @@ export const AI_QUEST_AVOID_RECENT = 3; // Khong lap vat the cua 3 ngay gan nhat
 export const AI_QUEST_CONTENT_MAX = 80; // content quest AI toi da (ky tu) — LLM tra dai hon thi dung fallback
 export const AI_VERIFY_TIMEOUT_MS = 3000; // AI service verify qua 3s -> SKIPPED, khong giu chan response dang bai
 export const AI_GENERATE_TIMEOUT_MS = 90_000; // LLM CPU sinh cham — cron goi offline nen cho duoc lau
-export const SIGNUP_BONUS_ASTRITE = 1600; // Tang 1 lan khi tao tai khoan (= 10 lan quay le, cham pity R)
+export const SIGNUP_BONUS_ASTRITE = 1600; // Tang 1 lan khi tao tai khoan (du mua ngay 1 hieu ung hoac 5 khung o Shop)
 
 /** Key ngay (YYYY-MM-DD, UTC) — dung CHUNG cho personal streak va daily quest de 2 he thong khop ngay. */
 export const dateKey = (date: Date = new Date()): string => date.toISOString().slice(0, 10);
@@ -116,13 +96,12 @@ export const Collections = {
   COOP_INVITES: 'coopInvites',
   NOTIFICATIONS: 'notifications',
   ADMIN_LOGS: 'adminLogs', // nhat ky hanh dong cua admin (audit log, 2026-07-26)
-  // Gacha & tien te (2026-08-05)
+  // Tien te Astrite + Shop (2026-08-05; gacha -> shop 2026-11-15)
   ASTRITE_TRANSACTIONS: 'astriteTransactions', // so cai: MOI thay doi so du deu ghi 1 dong
-  GACHA_ITEMS: 'gachaItems', // catalog vat pham quay ra (admin quan ly)
-  GACHA_ROLLS: 'gachaRolls', // lich su quay (1 doc = 1 lan bam nut, x10 van la 1 doc)
+  SHOP_ITEMS: 'shopItems', // mat hang ban trong Shop (khung / skin / hieu ung) — admin quan ly
+  SHOP_PURCHASES: 'shopPurchases', // lich su mua (1 doc = 1 lan mua, snapshot ten + gia)
   TOPUP_PACKAGES: 'topupPackages', // goi nap (admin quan ly)
   TOPUP_ORDERS: 'topupOrders', // don nap — doc id = orderCode de webhook idempotent
-  CONFIG: 'config', // doc cau hinh don le (vd config/gachaBanner)
   AI_VERIFICATIONS: 'aiVerifications', // log MOI lan AI xac minh anh quest (ke ca truot) — so lieu accuracy production (2026-08-15)
 } as const;
 

@@ -1,6 +1,7 @@
 package com.example.snapget.core.designsystem.component.bottombar
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -30,6 +31,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -107,6 +109,7 @@ fun MainBottomBar(
     // Mau icon 2 ben: man overlay len camera giu trang; man nen theme (feed grid)
     // truyen mau theo theme de khong "trang tren trang" o Light mode (2026-07-26)
     iconTint: Color = SkinTheme.colors.textPrimary,
+    windowInsets: WindowInsets = NavigationBarDefaults.windowInsets,
 ) {
     // Use provided items or determine items based on current route
     val (orderedItems, centerItem) = normalizeItems(items)
@@ -118,6 +121,7 @@ fun MainBottomBar(
 
     NavigationBar(
         containerColor = Color.Transparent,
+        windowInsets = windowInsets,
         modifier = modifier,
     ) {
         orderedItems.forEach { item ->

@@ -31,7 +31,7 @@ class SkinRegistryTest {
     }
 
     @Test
-    fun `skin mo khoa qua gacha co nut chup rieng, Default thi khong`() {
+    fun `skin ban o Shop co nut chup rieng, Default thi khong`() {
         // Default ve nut chup bang token mau -> khong can anh
         assertNull(SkinRegistry.find(SkinRegistry.DEFAULT_ID).images.captureButton)
         // Snow (1) + Forest (2) da cam anh nut chup (P5)
@@ -40,7 +40,7 @@ class SkinRegistryTest {
     }
 
     @Test
-    fun `skin gacha khai DU 12 icon - quen field nao la do ngay`() {
+    fun `skin ban o Shop khai DU 12 icon - quen field nao la do ngay`() {
         // Default co y de trong (fallback Material la giao dien chuan cua no);
         // con skin ban bang tien that thi bo icon phai du — thay the ve sau chi
         // viec ghi de file, khong dung vao code.

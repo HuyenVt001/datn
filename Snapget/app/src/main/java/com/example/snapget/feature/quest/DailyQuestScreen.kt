@@ -1,15 +1,12 @@
 package com.example.snapget.feature.quest
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,22 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.example.snapget.R
 import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.TodayQuestDto
-import com.example.snapget.navigation.Screen
 
 // Mau lay tu token cua skin (SkinTheme.colors.*) — 3 hang so mau cuc bo cu
 // (SnapGold / SubtleGray / PillOlive) da bo 2026-08-05: hardcode o day thi doi
@@ -65,7 +55,6 @@ import com.example.snapget.navigation.Screen
  */
 @Composable
 fun DailyQuestScreen(
-    navController: NavController,
     viewModel: QuestViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -75,8 +64,7 @@ fun DailyQuestScreen(
 
     DailyQuestScreenContent(
         uiState = uiState,
-        onBackClick = { navController.popBackStack() },
-        onGachaClick = { navController.navigate(Screen.Gacha.route) },
+        onBackClick = null,
         onRetry = { viewModel.load() },
     )
 }
@@ -84,8 +72,7 @@ fun DailyQuestScreen(
 @Composable
 fun DailyQuestScreenContent(
     uiState: QuestUiState,
-    onBackClick: () -> Unit = {},
-    onGachaClick: () -> Unit = {},
+    onBackClick: (() -> Unit)? = null,
     onRetry: () -> Unit = {},
 ) {
     Scaffold(
@@ -124,7 +111,6 @@ fun DailyQuestScreenContent(
 
             else -> QuestContent(
                 uiState = uiState,
-                onGachaClick = onGachaClick,
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         }
@@ -134,7 +120,6 @@ fun DailyQuestScreenContent(
 @Composable
 internal fun QuestContent(
     uiState: QuestUiState,
-    onGachaClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -142,9 +127,7 @@ internal fun QuestContent(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Banner gacha o TREN CUNG — day la loi vao duy nhat cua man Gacha
-        item { GachaBanner(onClick = onGachaClick) }
-
+        // Banner gacha DA XOA (2026-11-15 — SHOP_PLAN.md): Shop la tab footer rieng.
         item { StreakBanner(streak = uiState.personalStreak) }
 
         item {
@@ -178,55 +161,8 @@ internal fun QuestContent(
         }
 
         // Luoi "Frame collection" da CHUYEN sang man Appearance tab Frames
-        // (2026-08-05 — GACHA_PLAN.md muc 6.1): trang nay giu dung viec cua no
+        // (2026-08-05): trang nay giu dung viec cua no
         // la quest + streak, bo suu tap xem o mot cho duy nhat.
-    }
-}
-
-/**
- * Banner mo man Gacha — anh `R.drawable.gacha_banner` hardcode trong APK
- * (user chot 2026-08-05): thay anh = ghi de file trong `res/drawable-nodpi/`.
- * Anh goc 1080×608 (~16:9) nen banner giu dung ti le do thay vi cao co dinh.
- */
-@Composable
-private fun GachaBanner(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1080f / 608f)
-            .clip(SkinTheme.shapes.image)
-            .clickable { onClick() },
-    ) {
-        Image(
-            painter = painterResource(R.drawable.gacha_banner),
-            contentDescription = "Open the gacha",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-        // Dai mo chan de chu doc duoc du banner sang; chu trang co y (nam tren anh)
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)),
-                    ),
-                )
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-        ) {
-            Text(
-                text = "Gacha",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = "Roll for skins, effects and frames",
-                color = Color.White.copy(alpha = 0.85f),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
     }
 }
 

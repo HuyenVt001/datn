@@ -282,6 +282,7 @@ fun UserProfileContent(
                             onLoadFriends()
                             showFriendSheet = true
                         },
+                        showHomeButton = false,
                     )
                 },
             ) { paddingValues ->

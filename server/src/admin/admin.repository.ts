@@ -12,9 +12,9 @@ export interface AdminStats {
   chatGroups: number;
   /** So luot hoan thanh quest hom nay (them boi AdminService, khong dem o day). */
   questCompletionsToday?: number;
-  /** **(2026-08-05)** So luot BAM NUT quay gacha (x10 tinh la 1) — AdminService dien tu GachaService. */
-  gachaRollsToday?: number;
-  gachaRollsTotal?: number;
+  /** **(2026-11-15)** So luot mua o Shop — AdminService dien tu ShopService (thay so luot quay gacha). */
+  shopPurchasesToday?: number;
+  shopPurchasesTotal?: number;
   /** **(2026-08-16)** So lan AI xac minh anh quest hom nay / so lan khop — AdminService dien tu QuestsService. */
   aiVerificationsToday?: number;
   aiMatchedToday?: number;

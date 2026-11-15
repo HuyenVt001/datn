@@ -10,8 +10,8 @@ import com.example.snapget.core.designsystem.skin.SkinImages
 /**
  * Skin 1 — **Snow** (den · xanh lam dam · trang).
  *
- * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Vat pham **SSR** cua
- * gacha; mo khoa qua `users.unlockedSkins`.
+ * Bang mau lay tu `Sources/skin-assets/README.md` muc 1.2. Ban o **Shop**
+ * (Astrite); mo khoa qua `users.unlockedSkins`.
  *
  * Da cam DU bo asset rieng: `thumbnail`, `captureButton` va 12 icon
  * ([AppSkin.icons]). **Art THAT cua user tu 2026-08-18** (truoc do la placeholder
@@ -62,5 +62,7 @@ val SnowSkin = AppSkin(
         // Nen accent SANG -> chu tren no phai TOI moi doc duoc (khac Default:
         // vang sang + chu den; o day xanh nhat + chu xanh tham)
         onAccent = Color(0xFF06213D),
+        navBarActive = Color(0xFF7EC8FF),
+        navBarInactive = Color(0xFF8FA8CC),
     ),
 )

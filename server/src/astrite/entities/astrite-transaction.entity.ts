@@ -1,5 +1,5 @@
 /**
- * So cai tien te Astrite (2026-08-05 — GACHA_PLAN.md muc 2.2).
+ * So cai tien te Astrite (2026-08-05; cap nhat 2026-11-15 — SHOP_PLAN.md).
  * MOI thay doi so du `users.astrite` phai ghi kem 1 dong o day, khong ngoai le.
  * Doi chieu: tong `amount` cua 1 uid == `users.astrite` cua uid do.
  */
@@ -8,8 +8,7 @@ export const ASTRITE_TX_TYPES = [
   'QUEST_REWARD', // +60 khi xong 2/2 daily quest co dinh
   'AI_QUEST_REWARD', // +30 khi AI xac minh anh khop quest AI cua ngay (2026-08-15)
   'TOPUP', // + nap tien qua PayOS
-  'GACHA_SPEND', // - tru khi quay (160 hoac 1440)
-  'GACHA_REFUND', // + hoan lai khi quay trung vat pham da so huu / ra bac N
+  'SHOP_PURCHASE', // - tru khi mua vat pham o Shop (2026-11-15, thay GACHA_SPEND/GACHA_REFUND)
   'ADMIN_ADJUST', // +/- admin chinh tay (chua lam UI, chua sang truoc)
 ] as const;
 
@@ -23,7 +22,7 @@ export interface AstriteTransaction {
   amount: number;
   /** So du SAU giao dich — de doi soat nhanh ma khong phai cong don ca so cai. */
   balanceAfter: number;
-  /** Tham chieu nguon: rollId / orderCode / dateKey cua quest... */
+  /** Tham chieu nguon: purchaseId / orderCode / dateKey cua quest... */
   refId?: string;
   createdAt: string; // ISO
 }
