@@ -34,13 +34,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.data.SampleData
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
@@ -144,7 +144,6 @@ fun PostGridItem(
                     text = "GIF",
                     color = Color.White,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
                 )
             }
         }
@@ -160,14 +159,14 @@ fun PostGridItemWithBadge(
         badge = {
             if (dayPostGroup.hasMultiplePosts) {
                 Badge(
-                    containerColor = SkinTheme.colors.accentGold,
-                    contentColor = Color.Black,
+                    containerColor = SkinTheme.colors.badge,
+                    // Chu tren badge theo skin (truoc Color.Black co dinh)
+                    contentColor = SkinTheme.colors.onBadge,
                     modifier = Modifier.offset(x = (-4).dp, y = 4.dp),
                 ) {
                     Text(
                         text = "${dayPostGroup.count}",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -219,7 +218,6 @@ fun PostGridItemWithBadge(
                             text = "+${dayPostGroup.count - 1}",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
-                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
@@ -250,7 +248,7 @@ fun CameraButton(
                 fallback = Icons.Outlined.CameraAlt,
                 contentDescription = "Camera",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(SkinIconSize.Large),
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.skinPopupOrnament
 import com.example.snapget.core.network.dto.InviteInfoDto
 import com.example.snapget.core.util.avatarOrDefault
 
@@ -51,6 +50,8 @@ fun InviteConfirmDialog(
         Surface(
             shape = SkinTheme.shapes.image,
             color = SkinTheme.colors.surface,
+            // Dai ornament cua skin o mep tren popup (2026-11-16) — nam trong padding 24dp
+            modifier = Modifier.skinPopupOrnament(SkinTheme.colors.surface, SkinTheme.shapes.image),
         ) {
             Column(
                 modifier = Modifier
@@ -63,14 +64,13 @@ fun InviteConfirmDialog(
                         Text(
                             text = "Couldn't connect",
                             color = SkinTheme.colors.textPrimary,
-                            fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = error,
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(20.dp))
@@ -85,17 +85,17 @@ fun InviteConfirmDialog(
                                 .fillMaxWidth()
                                 .height(48.dp),
                         ) {
-                            Text(text = "Close", fontWeight = FontWeight.Bold)
+                            Text(text = "Close", style = MaterialTheme.typography.labelLarge)
                         }
                     }
 
                     info == null -> {
-                        CircularProgressIndicator(color = SkinTheme.colors.textPrimary, modifier = Modifier.size(32.dp))
+                        SkinLoading(modifier = Modifier.size(32.dp), size = 40.dp, fallbackColor = SkinTheme.colors.textPrimary)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Reading invite...",
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
 
@@ -112,7 +112,6 @@ fun InviteConfirmDialog(
                         Text(
                             text = "Add ${info.fullName ?: "Snapget user"} as a friend?",
                             color = SkinTheme.colors.textPrimary,
-                            fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center,
                         )
@@ -120,7 +119,7 @@ fun InviteConfirmDialog(
                         Text(
                             text = "Once ${info.fullName ?: "your friend"} confirms, you'll see each other's moments.",
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                         )
                         formatInviteExpiry(info.expiresAt)?.let { expiry ->
@@ -128,7 +127,7 @@ fun InviteConfirmDialog(
                             Text(
                                 text = "Invite valid until $expiry",
                                 color = SkinTheme.colors.onSurfaceVariant,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
                         Spacer(modifier = Modifier.height(20.dp))
@@ -145,8 +144,7 @@ fun InviteConfirmDialog(
                         ) {
                             Text(
                                 text = "Send friend invite",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.labelLarge,
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))

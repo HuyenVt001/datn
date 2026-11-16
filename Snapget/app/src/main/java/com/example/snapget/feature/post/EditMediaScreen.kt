@@ -40,8 +40,6 @@ import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,7 +75,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.createBitmap
@@ -87,6 +84,8 @@ import coil3.compose.AsyncImage
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.navigation.Screen
@@ -317,7 +316,7 @@ fun EditMediaScreen(
                     else ->
                         // Anh dang decode o IO thread
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color.White)
+                            SkinLoading(fallbackColor = Color.White)
                         }
                 }
 
@@ -395,7 +394,7 @@ fun EditMediaScreen(
                             .background(Color.Black.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(color = Color.White)
+                        SkinLoading(fallbackColor = Color.White)
                     }
                 }
             }
@@ -559,7 +558,7 @@ fun EditMediaScreen(
                             Text(
                                 text = filter.name,
                                 color = if (selectedFilter == filter) SkinTheme.colors.accent else Color.White,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 2.dp),
                             )
                         }
@@ -575,7 +574,7 @@ fun EditMediaScreen(
                 Text(
                     text = "Get frames in the Shop!",
                     color = SkinTheme.colors.textSecondary,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
             } else {
@@ -606,7 +605,7 @@ fun EditMediaScreen(
 
     // Hoi truoc khi bo chinh sua (2026-11-15: truoc bam ✕/Back la mat net ve/khung/filter)
     if (showDiscardDialog) {
-        AlertDialog(
+        SkinAlertDialog(
             onDismissRequest = { showDiscardDialog = false },
             containerColor = SkinTheme.colors.surface,
             title = { Text("Discard changes?", color = SkinTheme.colors.textPrimary) },
@@ -679,8 +678,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         color = Color.White,
-        fontWeight = FontWeight.Bold,
-        style = MaterialTheme.typography.bodyLarge,
+        style = MaterialTheme.typography.labelLarge,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 6.dp),
@@ -723,7 +721,7 @@ private fun FrameThumb(
         Text(
             text = label,
             color = if (selected) SkinTheme.colors.accent else Color.White,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             modifier = Modifier
                 .width(64.dp)

@@ -19,9 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -43,7 +43,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -56,6 +55,8 @@ import com.example.snapget.core.designsystem.component.topbar.MainTopBar
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.pressScale
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
+import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.ui.MainViewModel
 import com.example.snapget.core.util.mapToUser
@@ -145,6 +146,8 @@ fun CameraScreen(
     val shutterFeedback = rememberFeedback()
 
     Scaffold(
+        // (2026-11-16) Nen trong suot -> lo backdrop cua skin quanh khung preview
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             MainTopBar(
@@ -306,26 +309,29 @@ fun CameraScreen(
                         }
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                 ) {
+                    // Dong bo skin (2026-11-16): icon RIENG cua skin (camera / chevron) + mau
+                    // actionContent — truoc la icon Material Filled + textPrimary (trang o moi skin)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.CameraAlt,
+                        SkinIcon(
+                            res = SkinTheme.icons.camera,
+                            fallback = Icons.Outlined.CameraAlt,
                             contentDescription = null,
-                            tint = SkinTheme.colors.textPrimary,
-                            modifier = Modifier.size(22.dp),
+                            tint = SkinTheme.colors.actionContent,
+                            modifier = Modifier.size(SkinIconSize.Small),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = "History",
-                            color = SkinTheme.colors.textPrimary,
+                            color = SkinTheme.colors.actionContent,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
                         )
                     }
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
+                    SkinIcon(
+                        res = SkinTheme.icons.chevronDown,
+                        fallback = Icons.Outlined.KeyboardArrowDown,
                         contentDescription = "Swipe up to open history",
-                        tint = SkinTheme.colors.textPrimary,
-                        modifier = Modifier.size(28.dp),
+                        tint = SkinTheme.colors.actionContent,
+                        modifier = Modifier.size(SkinIconSize.Medium),
                     )
                 }
             }

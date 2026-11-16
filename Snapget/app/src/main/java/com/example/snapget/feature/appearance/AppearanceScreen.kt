@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -43,6 +42,7 @@ import com.example.snapget.core.designsystem.component.collectible.CollectibleSt
 import com.example.snapget.core.designsystem.component.collectible.EffectDemoCell
 import com.example.snapget.core.designsystem.component.collectible.SkinThumbnail
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.FrameDto
 import com.example.snapget.navigation.Screen
@@ -148,7 +148,7 @@ fun AppearanceScreenContent(
             when {
                 uiState.status is LoadStatus.Loading && uiState.frames.isEmpty() -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = SkinTheme.colors.accent)
+                        SkinLoading(fallbackColor = SkinTheme.colors.accent)
                     }
                 }
 
@@ -167,7 +167,7 @@ fun AppearanceScreenContent(
                             Text(
                                 text = "Retry",
                                 color = SkinTheme.colors.accent,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge,
                             )
                         }
                     }
@@ -311,7 +311,7 @@ private fun ShopLink(text: String, onClick: () -> Unit) {
         Text(
             text = "$text  →",
             color = SkinTheme.colors.accent,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelLarge,
         )
     }
 }

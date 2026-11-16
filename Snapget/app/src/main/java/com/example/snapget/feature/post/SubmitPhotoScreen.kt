@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,6 +52,7 @@ import com.example.snapget.core.designsystem.component.sheet.CaptionBottomSheetD
 import com.example.snapget.core.designsystem.component.sheet.generalCaptions
 import com.example.snapget.core.designsystem.component.sheet.rememberCurrentTime
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.User
@@ -286,7 +286,7 @@ fun SubmitPhotoScreen(
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator(color = Color.White)
+                            SkinLoading(fallbackColor = Color.White)
                         }
                     }
                 }

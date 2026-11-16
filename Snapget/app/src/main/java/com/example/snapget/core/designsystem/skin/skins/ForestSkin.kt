@@ -79,20 +79,22 @@ val ForestSkin = AppSkin(
         background = Color(0xFF0E2416),
         surface = Color(0xFF14301F),
         surfaceVariant = Color(0xFF1E4530),
-        onBackground = Color(0xFFFFFFFF),
+        // Trang NGA KEM (2026-11-16): chu chinh cung doi tong theo skin, contrast van > 13:1
+        onBackground = Color(0xFFF5F0DC),
         onSurface = Color(0xFFF2EEDF),
-        onSurfaceVariant = Color(0xFFA8BFA8),
+        onSurfaceVariant = Color(0xFFBCD0BC), // = textSecondary (A8BFA8 truot 4.5:1 tren kinh)
         accent = Color(0xFFE8D9A8),
         accentGold = Color(0xFFD4BE78),
         pill = Color(0xFF1E4530),
         pillTranslucent = Color(0xFF1E4530).copy(alpha = 0.5f),
         overlay = Color.Black.copy(alpha = 0.5f),
-        textPrimary = Color(0xFFFFFFFF),
+        textPrimary = Color(0xFFF5F0DC),
         // #A8BFA8 chi dat 4.3:1 tren card kinh -> nang len 5.3:1 (Skin v2, 2026-11-15)
         textSecondary = Color(0xFFBCD0BC),
         error = Color(0xFFE57373),
         onAccent = Color(0xFF14301F),
         navBarActive = Color(0xFFE8D9A8),
         navBarInactive = Color(0xFFA8BFA8),
+        centerButton = Color(0xFF1E4530),
     ),
 )

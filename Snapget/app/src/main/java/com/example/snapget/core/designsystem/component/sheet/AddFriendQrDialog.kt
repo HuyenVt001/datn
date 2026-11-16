@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,12 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.skinPopupOrnament
 import com.example.snapget.core.util.generateQrBitmap
 
 /**
@@ -50,6 +50,8 @@ fun AddFriendQrDialog(
         Surface(
             shape = SkinTheme.shapes.image,
             color = SkinTheme.colors.surface,
+            // Dai ornament cua skin o mep tren popup (2026-11-16) — nam trong padding 24dp
+            modifier = Modifier.skinPopupOrnament(SkinTheme.colors.surface, SkinTheme.shapes.image),
         ) {
             Column(
                 modifier = Modifier
@@ -60,7 +62,6 @@ fun AddFriendQrDialog(
                 Text(
                     text = "Add new friend",
                     color = SkinTheme.colors.textPrimary,
-                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge,
                 )
 
@@ -69,7 +70,7 @@ fun AddFriendQrDialog(
                 Text(
                     text = "Let your friend scan this code to connect",
                     color = SkinTheme.colors.onSurfaceVariant,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                 )
 
@@ -95,7 +96,7 @@ fun AddFriendQrDialog(
                         Text(
                             text = "Couldn't generate QR code",
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
 
@@ -104,7 +105,7 @@ fun AddFriendQrDialog(
                         Text(
                             text = code,
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             letterSpacing = 2.sp,
                         )
                     }
@@ -115,16 +116,16 @@ fun AddFriendQrDialog(
                         Text(
                             text = "Valid until $expiry",
                             color = SkinTheme.colors.onSurfaceVariant,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 } else {
-                    CircularProgressIndicator(color = SkinTheme.colors.textPrimary, modifier = Modifier.size(32.dp))
+                    SkinLoading(modifier = Modifier.size(32.dp), size = 40.dp, fallbackColor = SkinTheme.colors.textPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Loading invite code...",
                         color = SkinTheme.colors.onSurfaceVariant,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
 
@@ -139,7 +140,7 @@ fun AddFriendQrDialog(
                     Text(
                         text = "or",
                         color = SkinTheme.colors.onSurfaceVariant,
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
                     HorizontalDivider(
@@ -169,8 +170,7 @@ fun AddFriendQrDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Scan a friend's QR",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }

@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -72,7 +71,9 @@ import com.example.snapget.core.designsystem.component.state.SkeletonList
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.motion.pressScale
 import com.example.snapget.core.designsystem.motion.staggerEnter
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.network.dto.ChatGroupDto
@@ -280,7 +281,6 @@ private fun GroupItem(
             Text(
                 text = group.groupName,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -296,7 +296,10 @@ private fun GroupItem(
             res = SkinTheme.icons.chevronRight,
             fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
             contentDescription = "Open group",
-            tint = MaterialTheme.colorScheme.onBackground,
+            // Cung co + mau voi chevron dong chat 1-1 (truoc: khong size -> icon WebP
+            // cua Snow phinh to, nhom to hon 1-1)
+            tint = SkinTheme.colors.textSecondary,
+            modifier = Modifier.size(SkinIconSize.Inline),
         )
     }
 }
@@ -314,11 +317,11 @@ private fun CreateGroupDialog(
     var groupName by remember { mutableStateOf("") }
     val selected = remember { mutableStateListOf<String>() }
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Create group chat", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+            Text(text = "Create group chat", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column {
@@ -379,7 +382,7 @@ private fun CreateGroupDialog(
                 onClick = { onCreate(groupName.trim(), selected.toList()) },
                 enabled = groupName.isNotBlank() && selected.isNotEmpty(),
             ) {
-                Text(text = "Create", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                Text(text = "Create", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
@@ -495,7 +498,7 @@ fun ConversationItem(
                     fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
                     contentDescription = null,
                     tint = SkinTheme.colors.textSecondary,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(SkinIconSize.Inline),
                 )
             }
         }

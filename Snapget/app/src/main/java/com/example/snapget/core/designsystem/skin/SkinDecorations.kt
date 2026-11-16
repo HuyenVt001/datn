@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -13,20 +15,119 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import kotlin.random.Random
+
+// ============================ Ornament popup / thong bao ============================
+
+/**
+ * Dai ornament cua skin o MEP TREN 1 popup/thong bao (dialog, banner) — 2026-11-16.
+ *
+ * User chot: ornament KHONG con o nen toan man hinh, CHI o popup + thong bao.
+ * Cat phan TREN cua anh ornament (noi art day nhat) thanh dai cao [band], ti le
+ * theo chieu rong popup, clip theo [shape], mo dan xuong [containerColor].
+ * Ve DE LEN noi dung -> [band] phai <= khoang dem tren cua popup (AlertDialog 24dp)
+ * de khong che chu. Skin khong co ornament (Default) -> khong ve gi.
+ *
+ * @param containerColor PHAI trung mau nen popup (dai mo dan khong lo vet).
+ */
+@Composable
+fun Modifier.skinPopupOrnament(
+    containerColor: Color,
+    shape: Shape,
+    band: Dp = POPUP_ORNAMENT_BAND,
+): Modifier {
+    val decor = SkinTheme.skin.decor
+    val res = decor.ornament ?: return this
+    val image: ImageBitmap = ImageBitmap.imageResource(res)
+    return this.drawWithCache {
+        val bandPx = band.toPx().coerceAtMost(size.height)
+        val clip = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }
+        // Giu ti le anh: lay phan tren cao (bandPx / chieu rong) * chieu rong anh
+        val srcHeight = (image.width * bandPx / size.width).toInt().coerceIn(1, image.height)
+        val fade = Brush.verticalGradient(
+            0.45f to Color.Transparent,
+            1f to containerColor,
+            startY = 0f,
+            endY = bandPx,
+        )
+        onDrawWithContent {
+            drawContent()
+            clipPath(clip) {
+                drawImage(
+                    image = image,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(image.width, srcHeight),
+                    dstSize = IntSize(size.width.toInt(), bandPx.toInt()),
+                    alpha = decor.ornamentAlpha,
+                    filterQuality = FilterQuality.Medium,
+                )
+                drawRect(fade, size = Size(size.width, bandPx))
+            }
+        }
+    }
+}
+
+private val POPUP_ORNAMENT_BAND = 24.dp
+
+/**
+ * `AlertDialog` cua M3 + dai ornament cua skin o mep tren — DUNG THAY `AlertDialog`
+ * o moi cho (tham so giong het). `tonalElevation` mac dinh 0 (M3: 6dp) de mau nen
+ * that = [containerColor] (dai ornament mo dan dung mau, khong bi to accent).
+ */
+@Composable
+fun SkinAlertDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissButton: @Composable (() -> Unit)? = null,
+    icon: @Composable (() -> Unit)? = null,
+    title: @Composable (() -> Unit)? = null,
+    text: @Composable (() -> Unit)? = null,
+    shape: Shape = AlertDialogDefaults.shape,
+    containerColor: Color = AlertDialogDefaults.containerColor,
+    iconContentColor: Color = AlertDialogDefaults.iconContentColor,
+    titleContentColor: Color = AlertDialogDefaults.titleContentColor,
+    textContentColor: Color = AlertDialogDefaults.textContentColor,
+    tonalElevation: Dp = 0.dp,
+    properties: DialogProperties = DialogProperties(),
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = confirmButton,
+        modifier = modifier.skinPopupOrnament(containerColor, shape),
+        dismissButton = dismissButton,
+        icon = icon,
+        title = title,
+        text = text,
+        shape = shape,
+        containerColor = containerColor,
+        iconContentColor = iconContentColor,
+        titleContentColor = titleContentColor,
+        textContentColor = textContentColor,
+        tonalElevation = tonalElevation,
+        properties = properties,
+    )
+}
 
 // ============================ Hoa van nen chat ============================
 

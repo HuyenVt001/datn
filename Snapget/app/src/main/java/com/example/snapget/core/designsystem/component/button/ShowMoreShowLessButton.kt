@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
@@ -63,7 +62,7 @@ fun ShowMoreShowLessButton(
             Text(
                 text = if (showAll) "Show less" else "Show more",
                 color = SkinTheme.colors.textPrimary,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(end = 4.dp),
             )
 

@@ -234,7 +234,7 @@ fun MessageReactionsRow(
             grouped.forEach { (emoji, count) ->
                 Text(
                     text = if (count > 1) "$emoji$count" else emoji,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 2.dp),
                 )

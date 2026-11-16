@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,10 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.snapget.R
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.network.dto.TopupPackageDto
 import java.text.NumberFormat
@@ -63,13 +63,12 @@ internal fun AstriteTab(
                 Text(
                     text = "Top up Astrite",
                     color = SkinTheme.colors.textPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
                     text = "Pay with your banking app via PayOS.",
                     color = SkinTheme.colors.textSecondary,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
@@ -80,7 +79,7 @@ internal fun AstriteTab(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(color = SkinTheme.colors.accent)
+                    SkinLoading(fallbackColor = SkinTheme.colors.accent)
                 }
             }
 
@@ -109,7 +108,7 @@ internal fun AstriteTab(
                 text = "Astrite is added automatically once the payment is confirmed. " +
                     "It can take a few seconds.\nFree Astrite: finish your daily quests.",
                 color = SkinTheme.colors.textSecondary,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
@@ -142,13 +141,12 @@ private fun PackageRow(
             Text(
                 text = formatAstrite(pkg.astrite),
                 color = SkinTheme.colors.accentGold,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
             )
             Text(
                 text = pkg.name.ifBlank { "Astrite" },
                 color = SkinTheme.colors.textSecondary,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
             )
         }
         if (isBusy) {
@@ -167,8 +165,7 @@ private fun PackageRow(
                 Text(
                     text = formatVnd(pkg.priceVnd),
                     color = SkinTheme.colors.onAccent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
         }
@@ -198,11 +195,11 @@ internal fun PendingPaymentBanner(onCancel: () -> Unit, modifier: Modifier = Mod
         Text(
             text = "Waiting for payment confirmation...",
             color = SkinTheme.colors.textSecondary,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f),
         )
         TextButton(onClick = onCancel) {
-            Text(text = "Dismiss", color = SkinTheme.colors.accent, fontSize = 12.sp)
+            Text(text = "Dismiss", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -210,14 +207,14 @@ internal fun PendingPaymentBanner(onCancel: () -> Unit, modifier: Modifier = Mod
 /** Popup bao da cong Astrite sau khi webhook PayOS ve. */
 @Composable
 internal fun TopupSuccessDialog(astrite: Int, onDismiss: () -> Unit) {
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surface,
         title = {
             Text(
                 text = "Payment confirmed",
                 color = SkinTheme.colors.textPrimary,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
             )
         },
         text = {
@@ -231,7 +228,7 @@ internal fun TopupSuccessDialog(astrite: Int, onDismiss: () -> Unit) {
                 Text(
                     text = "Nice",
                     color = SkinTheme.colors.accent,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
         },

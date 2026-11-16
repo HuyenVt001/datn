@@ -43,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -135,7 +134,6 @@ fun WidgetSettingsScreenContent(
                         Text(
                             text = "Streak on widget",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
@@ -169,7 +167,7 @@ fun WidgetSettingsScreenContent(
                         )
                     }
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Refresh now", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    Text(text = "Refresh now", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -232,7 +230,6 @@ private fun WidgetPreviewCard(
                 Text(
                     text = "🔥 $streak",
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
                     // Chu de len ANH xem truoc cua widget -> trang that o moi skin
                     color = androidx.compose.ui.graphics.Color.White,
                 )
@@ -272,7 +269,6 @@ private fun AddWidgetButton(navController: NavHostController) {
             Text(
                 text = "Add to Home Screen",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }

@@ -7,11 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
@@ -20,7 +16,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -55,6 +50,7 @@ import kotlin.random.Random
  * (camera, xem/sua anh) giu nen dac `colors.background` va tu che backdrop.
  *
  * Chi 1 bitmap nen duoc decode cho ca app (khong decode lai moi man).
+ * Ornament KHONG ve o day (2026-11-16) — chi o popup/sheet/thong bao.
  * Doi skin -> crossfade 400ms rieng lop nen, khong ve lai cay UI.
  *
  * @param animateParticles false = khong ve hat bay (man noi dung dang che nen,
@@ -77,7 +73,8 @@ fun SkinBackdrop(
             if (animateParticles && decor.particle != null) {
                 SkinParticles(decor, Modifier.fillMaxSize())
             }
-            decor.ornament?.let { BackdropOrnament(it, decor.ornamentAlpha, skin.colors.background) }
+            // (2026-11-16) Ornament KHONG con ve o nen toan man hinh — chi o popup/sheet/
+            // thong bao (skinPopupOrnament, SkinSheetDragHandle) theo yeu cau user.
         }
     }
 }
@@ -121,31 +118,6 @@ private fun BackdropBase(skin: AppSkin) {
                         ),
                     )
                 },
-        )
-    }
-}
-
-/**
- * Dai ornament o mep tren. App chay edge-to-edge nen ornament nam ca duoi status
- * bar -> phu 1 dai toi mo dan dung chieu cao status bar de icon he thong (trang)
- * van doc duoc tren tuyet trang cua Snow.
- */
-@Composable
-private fun BackdropOrnament(res: Int, alpha: Float, background: Color) {
-    Box(Modifier.fillMaxWidth()) {
-        Image(
-            painter = painterResource(res),
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth(),
-            contentScale = ContentScale.FillWidth,
-            alignment = Alignment.TopCenter,
-            alpha = alpha,
-        )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .background(Brush.verticalGradient(listOf(background.copy(alpha = 0.6f), Color.Transparent))),
         )
     }
 }

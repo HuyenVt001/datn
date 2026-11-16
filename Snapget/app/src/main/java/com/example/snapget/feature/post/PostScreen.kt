@@ -27,7 +27,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +57,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -74,9 +72,12 @@ import com.example.snapget.core.designsystem.component.state.SkeletonBlock
 import com.example.snapget.core.designsystem.component.state.SkeletonGrid
 import com.example.snapget.core.designsystem.component.state.skeleton
 import com.example.snapget.core.designsystem.component.topbar.MainTopBar
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.skinPopupOrnament
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
 import com.example.snapget.core.model.User
@@ -460,7 +461,7 @@ fun PostScreen(
                                 contentDescription = "All posts",
                                 // Theo theme (fix 2026-07-26): hardcode trang la vo hinh o Light mode
                                 tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(SkinIconSize.Large),
                             )
                         }
 
@@ -473,7 +474,7 @@ fun PostScreen(
                                 fallback = Icons.Outlined.MoreHoriz,
                                 contentDescription = "Post options",
                                 tint = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(SkinIconSize.Large),
                             )
                         }
                     }
@@ -532,9 +533,10 @@ fun PostScreen(
                     shape = SkinTheme.shapes.image,
                     color = SkinTheme.colors.accent,
                     shadowElevation = 6.dp,
-                    modifier = Modifier.clickable {
-                        showFriendSheet = true
-                    },
+                    // Thong bao loi moi ket ban: dai ornament manh 10dp (= padding tren)
+                    modifier = Modifier
+                        .skinPopupOrnament(SkinTheme.colors.accent, SkinTheme.shapes.image, band = 10.dp)
+                        .clickable { showFriendSheet = true },
                 ) {
                     Text(
                         text = buildString {
@@ -545,9 +547,8 @@ fun PostScreen(
                                 append(" (+${friendRequests.size - 1})")
                             }
                         },
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
+                        color = SkinTheme.colors.onAccent,
+                        style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     )
                 }
@@ -595,7 +596,7 @@ fun PostScreen(
 
     // Xac nhan xoa (huy duoc) — xoa that qua DELETE /moments/:id
     confirmDeletePost?.let { post ->
-        AlertDialog(
+        SkinAlertDialog(
             onDismissRequest = { confirmDeletePost = null },
             title = { Text("Delete post?") },
             text = { Text("This moment will be permanently deleted.") },
@@ -711,8 +712,7 @@ private fun SheetActionRow(
     Text(
         text = label,
         color = color,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.SemiBold,
+        style = MaterialTheme.typography.titleSmall,
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()

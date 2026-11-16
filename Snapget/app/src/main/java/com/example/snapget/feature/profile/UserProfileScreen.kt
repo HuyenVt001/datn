@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -57,7 +57,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,6 +70,8 @@ import com.example.snapget.core.designsystem.component.empty.EmptyDayItem
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.grid.PostGridItemWithBadge
 import com.example.snapget.core.designsystem.component.topbar.UserProfileTopBar
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.designsystem.skin.glassColor
 import com.example.snapget.core.model.Post
@@ -88,6 +89,7 @@ import com.example.snapget.feature.post.toPost
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.flow.first
 
 data class MonthPosts(
     val month: Month,
@@ -197,10 +199,11 @@ fun UserProfileContent(
     // NGOAI `when` de mo/dong PostDetail khong mat vi tri cuon; chi tu cuon ve thang
     // hien tai khi doi profile / so thang thay doi (reload binh thuong khong nhay)
     val listState = rememberLazyListState()
-    // Key them so thang: moment co the ve SAU profile -> danh sach dai ra thi cuon lai
-    LaunchedEffect(profile?.uid, calendarMonths.size) {
-        if (profile != null) listState.scrollToItem(calendarMonths.lastIndex.coerceAtLeast(0))
-    }
+    // (uid, so thang) da tu cuon toi — tranh nhay lai khi reload ma khong doi gi.
+    // FIX 2026-11-16: truoc day scroll chay khi status=Loading (LazyColumn CHUA compose,
+    // vd quay lai tab profile: VM con giu profile/moments cu) -> lenh cuon bi mat, lich
+    // dung o item 0 = thang dang bai dau tien. Gio scroll nam TRONG nhanh hien LazyColumn.
+    var autoScrolledKey by remember { mutableStateOf<Pair<String, Int>?>(null) }
 
     // Sheet ban be — data that tu API /friendships (FriendsViewModel)
     var showFriendSheet by remember { mutableStateOf(false) }
@@ -231,7 +234,7 @@ fun UserProfileContent(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                SkinLoading()
             }
         }
 
@@ -248,6 +251,16 @@ fun UserProfileContent(
         else -> {
             val profileData = profile!!
             Log.d("UserProfile", "Displaying profile for user: ${profileData.name}")
+
+            // Mac dinh hien THANG HIEN TAI (item cuoi). Chay khi LazyColumn da compose:
+            // doi list co item roi moi cuon de lenh khong bi mat.
+            LaunchedEffect(profileData.uid, calendarMonths.size) {
+                val key = profileData.uid to calendarMonths.size
+                if (autoScrolledKey == key) return@LaunchedEffect
+                snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
+                listState.scrollToItem(calendarMonths.lastIndex.coerceAtLeast(0))
+                autoScrolledKey = key
+            }
 
             Scaffold(
                 // Skin v2: nen trong suot -> thay backdrop cua skin (Navigation.kt)
@@ -393,15 +406,15 @@ private fun ProfileHeader(
                 Text(
                     text = name,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = SkinTheme.colors.textPrimary,
                 )
                 if (onEditClick != null) {
                     IconButton(onClick = onEditClick) {
                         Icon(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit profile",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            // Nut hanh dong -> mau "giong" footer cua skin (2026-11-16)
+                            tint = SkinTheme.colors.actionContent,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -416,13 +429,13 @@ private fun ProfileHeader(
                     Text(
                         text = "@$email",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = SkinTheme.colors.textSecondary,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Outlined.Link,
                         contentDescription = "Link",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = SkinTheme.colors.textSecondary,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -467,11 +480,11 @@ private fun EditProfileDialog(
         uri?.let { avatarFile = copyUriToCacheFile(context, it, "avatar") }
     }
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         containerColor = SkinTheme.colors.surface,
         title = {
-            Text(text = "Edit profile", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+            Text(text = "Edit profile", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(
@@ -531,7 +544,7 @@ private fun EditProfileDialog(
                         color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
                 }
             }
         },
@@ -578,9 +591,11 @@ private fun ProfileStats(
                     )
                     .background(
                         brush = Brush.linearGradient(
+                            // Truoc hardcode vang/cam (0x40FFD700/0x20FFA500) -> Snow/Forest
+                            // van vang. Nay theo accentGold/accent cua skin (2026-11-16)
                             colors = listOf(
-                                Color(0x40FFD700),
-                                Color(0x20FFA500),
+                                SkinTheme.colors.accentGold.copy(alpha = 0.25f),
+                                SkinTheme.colors.accent.copy(alpha = 0.12f),
                             ),
                         ),
                         shape = SkinTheme.shapes.pill,
@@ -601,7 +616,7 @@ private fun ProfileStats(
                         )
 
                         VerticalDivider(
-                            color = SkinTheme.colors.surface,
+                            color = SkinTheme.colors.accentGold.copy(alpha = 0.4f),
                             modifier = Modifier.height(20.dp),
                         )
                     }
@@ -634,13 +649,12 @@ private fun StatItem(
         Text(
             text = count,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = SkinTheme.colors.textPrimary,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = SkinTheme.colors.textSecondary,
         )
     }
 }
@@ -698,9 +712,11 @@ private fun MonthSection(
                     .clip(topRounded)
                     .background(
                         brush = Brush.verticalGradient(
+                            // Truoc xam cung (0xCC424242/0xCC616161) -> moi skin deu xam.
+                            // Nay nhuom accent cua skin tren surfaceVariant (2026-11-16)
                             colors = listOf(
-                                Color(0xCC424242), // semi-transparent dark gray
-                                Color(0xCC616161), // semi-transparent medium gray
+                                SkinTheme.colors.accent.copy(alpha = 0.22f),
+                                SkinTheme.colors.surfaceVariant.copy(alpha = 0.55f),
                             ),
                         ),
                     )
@@ -717,14 +733,14 @@ private fun MonthSection(
                 Text(
                     text = "${monthPosts.month.displayName} ${monthPosts.year}",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = SkinTheme.colors.textPrimary,
                 )
             }
         }
 
         HorizontalDivider(
-            color = SkinTheme.colors.surface,
+            // Vach mo theo kinh cua skin (truoc la surface DAC -> vet toi tren card kinh)
+            color = SkinTheme.colors.outlineVariant.copy(alpha = 0.5f),
             modifier = Modifier.height(10.dp),
         )
 
@@ -783,8 +799,7 @@ private fun MonthCalendarGrid(
                     Text(
                         text = dayHeader,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
+                        color = SkinTheme.colors.textSecondary,
                     )
                 }
             }

@@ -37,7 +37,6 @@ import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -59,7 +58,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -74,6 +72,7 @@ import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.container.BlurredContainer
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.model.User
@@ -314,27 +313,6 @@ fun copyInviteLink(context: Context, link: String?) {
     }
 }
 
-/** "Find friends from other apps": bam icon app -> gui link moi qua app do. */
-@Composable
-fun ExternalAppComponent(inviteLink: String? = null) {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        SectionHeader(icon = Icons.Outlined.TravelExplore, title = "Find friends from other apps")
-
-        BlurredContainer {
-            ThirdPartyAppList(
-                apps = listThirdPartyApp,
-                onAppSelected = { app -> shareInviteLink(context, inviteLink, app.target) },
-            )
-        }
-    }
-}
-
 /** Tieu de section dung chung trong sheet ban be: icon + chu dam (+ phu de mo tuy chon). */
 @Composable
 private fun SectionHeader(
@@ -356,7 +334,7 @@ private fun SectionHeader(
             text = title,
             color = SkinTheme.colors.textPrimary,
             fontSize = MaterialTheme.typography.titleMedium.fontSize,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
         )
         if (trailing != null) {
             Text(
@@ -560,8 +538,7 @@ fun FriendListItem(
         Text(
             text = friend.name,
             color = SkinTheme.colors.textPrimary,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -629,7 +606,7 @@ fun HorizontalShowMoreComponent() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .background(
-                    color = Color.DarkGray,
+                    color = SkinTheme.colors.pill, // truoc Color.DarkGray co dinh
                     shape = SkinTheme.shapes.pill,
                 )
                 .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -637,7 +614,7 @@ fun HorizontalShowMoreComponent() {
             Text(
                 text = "Show more",
                 color = SkinTheme.colors.textPrimary,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
 
@@ -752,7 +729,6 @@ private fun InviteLinkCard(
                         text = inviteLink.removePrefix("https://").removePrefix("http://"),
                         color = SkinTheme.colors.textPrimary,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
@@ -838,7 +814,6 @@ private fun LinkCardButton(
             text = label,
             color = SkinTheme.colors.textPrimary,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
         )
     }
 }
@@ -882,7 +857,6 @@ private fun ShareRow(
         Text(
             text = label,
             color = SkinTheme.colors.textPrimary,
-            fontWeight = FontWeight.Medium,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.weight(1f),
         )
@@ -891,7 +865,7 @@ private fun ShareRow(
             fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
             contentDescription = null,
             tint = SkinTheme.colors.textPrimary,
-            modifier = Modifier.size(MeasurementConfig.USER_DETAIL_BOTTOM_SHEET_TRAILING_ICON_SIZE),
+            modifier = Modifier.size(SkinIconSize.Medium),
         )
     }
 }
@@ -950,7 +924,6 @@ fun TotalFriendComponent(
         Text(
             text = "$totalFriends out of $maxFriends friends",
             color = SkinTheme.colors.textPrimary,
-            fontWeight = FontWeight.Medium,
             style = MaterialTheme.typography.titleLarge,
         )
 
@@ -958,7 +931,6 @@ fun TotalFriendComponent(
         Text(
             text = if (isFull) "Your friend list is full. Remove a friend to add someone new." else "Invite a friend to continue",
             color = if (isFull) SkinTheme.colors.error else SkinTheme.colors.textPrimary,
-            fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
@@ -982,7 +954,7 @@ fun TotalFriendComponent(
             Text(
                 text = "Add new friend",
                 color = SkinTheme.colors.textPrimary,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }

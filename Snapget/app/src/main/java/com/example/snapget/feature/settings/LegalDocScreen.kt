@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -65,13 +64,12 @@ fun LegalDocScreen(
                 Text(
                     text = heading,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = body,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, lineHeight = 20.sp),
+                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

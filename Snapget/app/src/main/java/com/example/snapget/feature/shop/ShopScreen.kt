@@ -31,7 +31,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -83,9 +82,12 @@ import com.example.snapget.core.designsystem.component.state.SkeletonGrid
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
+import com.example.snapget.core.designsystem.skin.SkinParticleBurst
 import com.example.snapget.core.designsystem.skin.SkinRegistry
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.designsystem.skin.darken
+import com.example.snapget.core.designsystem.skin.hasSkinParticle
 import com.example.snapget.core.network.dto.ShopItemDto
 import kotlinx.coroutines.delay
 
@@ -206,7 +208,6 @@ fun ShopScreenContent(
                     Text(
                         text = "Shop",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Medium,
                     )
                 },
                 actions = {
@@ -298,7 +299,7 @@ fun ShopScreenContent(
                             Text(
                                 text = "Retry",
                                 color = SkinTheme.colors.accent,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge,
                             )
                         }
                     }
@@ -496,12 +497,21 @@ private fun ShopItemCard(
                 }
 
                 // Lap lanh khi vua mua (chay 1 lan)
+                // Vua mua: skin co particle -> hat cua skin no tren the; khong -> sparkle Lottie
                 if (celebrate > 0) {
-                    androidx.compose.runtime.key(celebrate) {
-                        SnapLottie(
-                            anim = SnapAnim.SPARKLE,
+                    if (hasSkinParticle) {
+                        SkinParticleBurst(
+                            trigger = celebrate,
+                            count = 16,
                             modifier = Modifier.matchParentSize(),
                         )
+                    } else {
+                        androidx.compose.runtime.key(celebrate) {
+                            SnapLottie(
+                                anim = SnapAnim.SPARKLE,
+                                modifier = Modifier.matchParentSize(),
+                            )
+                        }
                     }
                 }
             }
@@ -574,6 +584,13 @@ private fun ItemPreview(item: ShopItemDto, replay: Int) {
     }
 
     when {
+        /*
+         * Hieu ung LUON tu ve tu sheet trong APK, ke ca khi admin co `imageUrl`:
+         * anh tinh thi bam "Preview effect" khong chay gi ca. O demo da co frame
+         * dai dien tinh khi dung yen nen khong can anh tu server.
+         */
+        effect != null -> EffectDemoCell(effect = effect, replay = replay)
+
         item.imageUrl != null -> AsyncImage(
             model = item.imageUrl,
             contentDescription = item.itemName,
@@ -582,8 +599,6 @@ private fun ItemPreview(item: ShopItemDto, replay: Int) {
         )
 
         skin != null -> SkinThumbnail(skin)
-
-        effect != null -> EffectDemoCell(effect = effect, replay = replay)
     }
 }
 
@@ -661,14 +676,14 @@ private fun BuyConfirmDialog(
     onDismiss: () -> Unit,
 ) {
     val affordable = astrite >= item.price
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surface,
         title = {
             Text(
                 text = if (affordable) "Buy ${item.itemName}?" else "Not enough Astrite",
                 color = SkinTheme.colors.textPrimary,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
             )
         },
         text = {
@@ -688,7 +703,7 @@ private fun BuyConfirmDialog(
                 Text(
                     text = if (affordable) "Buy" else "Top up",
                     color = SkinTheme.colors.accent,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
         },
@@ -703,14 +718,14 @@ private fun BuyConfirmDialog(
 /** Mua xong skin/effect -> hoi ap dung luon (user chot 2026-11-15). */
 @Composable
 private fun ApplyNowDialog(item: ShopItemDto, onApply: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surface,
         title = {
             Text(
                 text = "Apply now?",
                 color = SkinTheme.colors.textPrimary,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
             )
         },
         text = {
@@ -722,7 +737,7 @@ private fun ApplyNowDialog(item: ShopItemDto, onApply: () -> Unit, onDismiss: ()
         },
         confirmButton = {
             TextButton(onClick = onApply) {
-                Text(text = "Apply", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                Text(text = "Apply", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -60,7 +58,10 @@ import com.example.snapget.core.designsystem.component.lottie.SnapAnim
 import com.example.snapget.core.designsystem.component.lottie.SnapLottie
 import com.example.snapget.core.designsystem.component.sheet.InviteConfirmDialog
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
+import com.example.snapget.core.designsystem.skin.SkinLoading
+import com.example.snapget.core.designsystem.skin.SkinParticleBurst
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.hasSkinParticle
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -238,7 +239,6 @@ fun QrScanScreen(
                 Text(
                     text = "Camera permission is required to scan QR codes",
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center,
                 )
@@ -251,7 +251,7 @@ fun QrScanScreen(
                         contentColor = Color.Black,
                     ),
                 ) {
-                    Text(text = "Grant permission", fontWeight = FontWeight.Bold)
+                    Text(text = "Grant permission", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -280,7 +280,6 @@ fun QrScanScreen(
             Text(
                 text = "Scan QR code",
                 color = Color.White,
-                fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -293,7 +292,7 @@ fun QrScanScreen(
                     .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = SkinTheme.colors.accent)
+                SkinLoading(fallbackColor = SkinTheme.colors.accent)
             }
         }
     }
@@ -316,7 +315,12 @@ fun QrScanScreen(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.85f)),
         ) {
-            SnapLottie(anim = SnapAnim.CONFETTI, modifier = Modifier.fillMaxSize())
+            // Ket ban thanh cong: hat cua skin no ra (skin khong particle -> confetti Lottie)
+            if (hasSkinParticle) {
+                SkinParticleBurst(trigger = message, count = 30, modifier = Modifier.fillMaxSize())
+            } else {
+                SnapLottie(anim = SnapAnim.CONFETTI, modifier = Modifier.fillMaxSize())
+            }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 SnapLottie(anim = SnapAnim.FRIENDS, modifier = Modifier.size(180.dp))
                 Text(

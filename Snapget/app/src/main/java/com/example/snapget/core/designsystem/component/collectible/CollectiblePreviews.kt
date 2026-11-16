@@ -27,10 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.snapget.core.designsystem.effect.TouchEffect
 import com.example.snapget.core.designsystem.effect.TouchEffectRegistry
+import com.example.snapget.core.designsystem.effect.drawSheetFrame
 import com.example.snapget.core.designsystem.effect.drawTouchEffectFrame
 import com.example.snapget.core.designsystem.effect.rememberEffectSheet
 import com.example.snapget.core.designsystem.skin.AppSkin
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import kotlinx.coroutines.delay
 
 /*
  * Phan "hinh" ve trong [CollectibleItem] cho skin va hieu ung cham — dung CHUNG
@@ -72,9 +74,12 @@ fun SkinThumbnail(skin: AppSkin, modifier: Modifier = Modifier) {
     }
 }
 
+/** Khoang nghi giua 2 vong lap cua o demo hieu ung. */
+private const val EFFECT_DEMO_LOOP_GAP_MS = 400L
+
 /**
- * O demo hieu ung: chay 1 vong khi o xuat hien, va chay lai moi lan [replay]
- * doi (o duoc bam).
+ * O demo hieu ung: chay lap lien tuc khi o dang hien, va khoi dong lai tu dau
+ * moi lan [replay] doi (o duoc bam).
  *
  * Khong dung thumbnail tinh — nguoi dung thay dung thu se nhan duoc, khong phai
  * ap dung (hay mua) roi moi biet.
@@ -103,14 +108,19 @@ fun EffectDemoCell(effect: TouchEffect, replay: Int, modifier: Modifier = Modifi
     val progress = remember { Animatable(0f) }
     val sheet = rememberEffectSheet(effect)
 
-    // Chay 1 vong ngay khi o xuat hien -> luot qua tab la thay moi o cung dien;
-    // moi lan bam o (replay doi) thi chay lai tu dau.
+    // Chay LAP VO HAN khi o dang hien (2026-11-16 — truoc chi chay 1 vong roi
+    // dung o frame tinh). Moi lan bam o (replay doi) thi khoi dong lai tu dau.
+    // O cuon khoi man hinh -> LaunchedEffect bi huy, khong ton CPU.
     LaunchedEffect(replay, effect.id) {
-        progress.snapTo(0f)
-        progress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(effect.durationMs.coerceAtLeast(1), easing = LinearEasing),
-        )
+        while (true) {
+            progress.snapTo(0f)
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(effect.durationMs.coerceAtLeast(1), easing = LinearEasing),
+            )
+            // Nghi ngan giua 2 vong (ve frame dai dien) de nhin ro tung luot.
+            delay(EFFECT_DEMO_LOOP_GAP_MS)
+        }
     }
 
     Box(
@@ -122,7 +132,23 @@ fun EffectDemoCell(effect: TouchEffect, replay: Int, modifier: Modifier = Modifi
             // Doc `progress.value` TRONG lambda ve -> chi pha ban khau ve,
             // khong keo theo recomposition.
             val cycle = progress.value
-            if (sheet != null && cycle > 0f && cycle < 1f) {
+            if (sheet == null) return@Canvas
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val cellPx = minOf(size.width, size.height) * 0.9f
+            if (cycle <= 0f || cycle >= 1f) {
+                /*
+                 * Khong chay animation -> ve frame dai dien tinh (`thumbFrame`).
+                 * Truoc day nhanh nay KHONG ve gi: chay xong 1 vong la o demo
+                 * trong tron, nhin nhu hieu ung bi loi / khong co preview.
+                 */
+                drawSheetFrame(
+                    effect = effect,
+                    sheet = sheet,
+                    frame = effect.thumbFrame,
+                    origin = center,
+                    sizePx = cellPx,
+                )
+            } else {
                 /*
                  * Co ve tinh theo O DEMO chu khong theo `effect.sizeDp`: o trong
                  * luoi nho hon nhieu so voi co hieu ung chay that tren man hinh,
@@ -131,9 +157,9 @@ fun EffectDemoCell(effect: TouchEffect, replay: Int, modifier: Modifier = Modifi
                 drawTouchEffectFrame(
                     effect = effect,
                     sheet = sheet,
-                    origin = Offset(size.width / 2f, size.height / 2f),
+                    origin = center,
                     progress = cycle,
-                    sizePx = minOf(size.width, size.height) * 0.9f,
+                    sizePx = cellPx,
                 )
             }
         }

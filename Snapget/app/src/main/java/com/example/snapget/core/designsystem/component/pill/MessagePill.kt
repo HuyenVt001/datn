@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
 /** 3 emoji nhanh tren thanh (khop anh mau 2026-07-26) + bo mo rong khi bam ⊕. */
@@ -135,7 +136,7 @@ fun MessageInputPill(
                         fallback = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "Send message",
                         tint = SkinTheme.colors.accent,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(SkinIconSize.Medium),
                     )
                 }
             } else {

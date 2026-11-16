@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -52,7 +51,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -65,7 +63,9 @@ import com.example.snapget.core.designsystem.component.grid.PostGrid
 import com.example.snapget.core.designsystem.component.pill.MessageInputPill
 import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.component.video.GifVideoPlayer
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.Post
 import com.example.snapget.core.model.PostType
@@ -240,7 +240,6 @@ fun PostDetailContent(
                 Text(
                     text = post.user.username,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
                 )
 
                 Text(
@@ -446,8 +445,8 @@ fun PostDetailScreen(
                             res = SkinTheme.icons.grid,
                             fallback = Icons.Outlined.GridView,
                             contentDescription = "All posts",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
+                            tint = SkinTheme.colors.actionContent,
+                            modifier = Modifier.size(SkinIconSize.Large),
                         )
                     }
 
@@ -460,8 +459,8 @@ fun PostDetailScreen(
                             res = SkinTheme.icons.more,
                             fallback = Icons.Outlined.MoreHoriz,
                             contentDescription = "Post options",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(32.dp),
+                            tint = SkinTheme.colors.actionContent,
+                            modifier = Modifier.size(SkinIconSize.Large),
                         )
                     }
                 }
@@ -501,7 +500,7 @@ fun PostDetailScreen(
     // Xac nhan xoa (huy duoc) — xoa that qua DELETE /moments/:id roi bao profile refresh
     if (showConfirmDelete) {
         currentPost?.let { post ->
-            AlertDialog(
+            SkinAlertDialog(
                 onDismissRequest = { showConfirmDelete = false },
                 title = { Text("Delete post?") },
                 text = { Text("This moment will be permanently deleted.") },

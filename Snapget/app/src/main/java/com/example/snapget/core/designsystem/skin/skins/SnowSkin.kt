@@ -73,15 +73,16 @@ val SnowSkin = AppSkin(
         background = Color(0xFF0B0F1A),
         surface = Color(0xFF10192B),
         surfaceVariant = Color(0xFF1B3A6B),
-        onBackground = Color(0xFFFFFFFF),
+        // Trang NGA BANG (2026-11-16): chu chinh cung doi tong theo skin, contrast van > 14:1
+        onBackground = Color(0xFFEAF4FF),
         onSurface = Color(0xFFE8F0FF),
-        onSurfaceVariant = Color(0xFF8FA8CC),
+        onSurfaceVariant = Color(0xFFA9C1E3), // = textSecondary (8FA8CC truot 4.5:1 tren kinh)
         accent = Color(0xFF7EC8FF),
         accentGold = Color(0xFFBFE4FF),
         pill = Color(0xFF1B3A6B),
         pillTranslucent = Color(0xFF1B3A6B).copy(alpha = 0.5f),
         overlay = Color.Black.copy(alpha = 0.5f),
-        textPrimary = Color(0xFFFFFFFF),
+        textPrimary = Color(0xFFEAF4FF),
         // #8FA8CC chi dat 3.6:1 tren card kinh -> nang len 4.7:1 (Skin v2, 2026-11-15)
         textSecondary = Color(0xFFA9C1E3),
         error = Color(0xFFFF6B81),
@@ -90,5 +91,6 @@ val SnowSkin = AppSkin(
         onAccent = Color(0xFF06213D),
         navBarActive = Color(0xFF7EC8FF),
         navBarInactive = Color(0xFF8FA8CC),
+        centerButton = Color(0xFF1B3A6B),
     ),
 )

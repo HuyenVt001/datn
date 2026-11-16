@@ -13,7 +13,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -41,7 +40,6 @@ fun CommonTopBar(
                 Text(
                     text = title,
                     color = titleColor,
-                    fontWeight = FontWeight.Medium,
                     style = MaterialTheme.typography.titleLarge,
                 )
             },

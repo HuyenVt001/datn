@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.NotificationsOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -57,14 +56,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.constants.MAX_GROUP_SIZE
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
@@ -147,7 +147,6 @@ fun GroupSettingsSheet(
                 Text(
                     text = detail.groupName,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -200,8 +199,7 @@ fun GroupSettingsSheet(
                 Column {
                     Text(
                         text = "Invite",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
@@ -227,8 +225,7 @@ fun GroupSettingsSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (isSelf) "$memberName (You)" else memberName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -251,6 +248,7 @@ fun GroupSettingsSheet(
                                     fallback = Icons.Outlined.MoreHoriz,
                                     contentDescription = "Member options",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(SkinIconSize.Medium),
                                 )
                             }
                             DropdownMenu(
@@ -365,11 +363,11 @@ fun GroupSettingsSheet(
 
     removeTarget?.let { member ->
         val memberName = member.fullName ?: "Snapget user"
-        AlertDialog(
+        SkinAlertDialog(
             onDismissRequest = { removeTarget = null },
             containerColor = SkinTheme.colors.surfaceVariant,
             title = {
-                Text(text = "Remove member?", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(text = "Remove member?", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
             },
             text = {
                 Text(
@@ -387,7 +385,7 @@ fun GroupSettingsSheet(
                     Text(
                         text = "Remove",
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             },
@@ -400,11 +398,11 @@ fun GroupSettingsSheet(
     }
 
     if (showLeaveConfirm) {
-        AlertDialog(
+        SkinAlertDialog(
             onDismissRequest = { showLeaveConfirm = false },
             containerColor = SkinTheme.colors.surfaceVariant,
             title = {
-                Text(text = "Leave group?", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+                Text(text = "Leave group?", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
             },
             text = {
                 Text(
@@ -422,7 +420,7 @@ fun GroupSettingsSheet(
                     Text(
                         text = "Leave",
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             },
@@ -437,7 +435,7 @@ fun GroupSettingsSheet(
 
 /** Avatar nhom: co anh -> hien anh; chua co -> icon Groups vang tren nen #404137. */
 @Composable
-private fun GroupAvatarCircle(
+internal fun GroupAvatarCircle(
     avatar: String?,
     size: Dp,
     iconSize: Dp,
@@ -497,11 +495,11 @@ private fun RenameGroupDialog(
 ) {
     var name by remember { mutableStateOf(currentName) }
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Change group name", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+            Text(text = "Change group name", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             OutlinedTextField(
@@ -517,7 +515,7 @@ private fun RenameGroupDialog(
                 onClick = { onConfirm(name.trim()) },
                 enabled = name.isNotBlank() && name.trim() != currentName,
             ) {
-                Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                Text(text = "Save", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
@@ -542,11 +540,11 @@ private fun InviteMembersDialog(
     val selected = remember { mutableStateListOf<String>() }
     val slotsLeft = MAX_GROUP_SIZE - currentSize
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Invite friends", color = SkinTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+            Text(text = "Invite friends", color = SkinTheme.colors.textPrimary, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column {
@@ -604,7 +602,7 @@ private fun InviteMembersDialog(
                 onClick = { onConfirm(selected.toList()) },
                 enabled = selected.isNotEmpty(),
             ) {
-                Text(text = "Invite", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                Text(text = "Invite", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {

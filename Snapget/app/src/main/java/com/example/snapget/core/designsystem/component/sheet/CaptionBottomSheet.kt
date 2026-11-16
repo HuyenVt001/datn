@@ -45,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -342,8 +341,7 @@ fun CaptionPill(
         Text(
             text = item.title,
             color = item.textColor,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleSmall,
         )
     }
 }

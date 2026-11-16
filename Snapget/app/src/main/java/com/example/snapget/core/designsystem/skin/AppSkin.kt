@@ -78,6 +78,20 @@ data class SkinColors(
     val navBarActive: Color = textPrimary,
     /** Mau icon tab footer chua chon. */
     val navBarInactive: Color = onSurfaceVariant,
+    /**
+     * Icon + chu cua NUT HANH DONG noi tren chrome (top bar profile, goi y "History"
+     * o camera, nut sua…) — 2026-11-16. Mac dinh = mau tab footer dang chon nen cung
+     * 1 "giong" voi footer: Default trang, Snow xanh bang, Forest be.
+     * Truoc day cac cho nay dung `onBackground`/`textPrimary` (trang o MOI skin) ->
+     * doi skin khong thay doi gi.
+     */
+    val actionContent: Color = navBarActive,
+    /**
+     * Nen + vien nut tron GIUA bottom bar khi co icon (Camera / Send o man Submit) —
+     * 2026-11-16. Mac dinh = xam cu (`Color.Gray`) nen Default khong doi; skin khai
+     * rieng de khong con "1 cuc xam" giua giao dien xanh/la.
+     */
+    val centerButton: Color = Color.Gray,
     // ---- Token CHUC NANG "Playful Dark" (DESIGN.md muc 0.7 — chot 2026-11-15) ----
     // Co gia tri mac dinh nen skin cu khong phai sua; skin muon hop tong thi khai rieng.
     /** Thanh cong: quest xong, check, thao tac OK. */

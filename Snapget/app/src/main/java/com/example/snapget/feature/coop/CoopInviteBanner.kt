@@ -47,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -58,6 +57,7 @@ import com.example.snapget.core.constants.COOP_INVITE_TTL_SECONDS
 import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.skinPopupOrnament
 import com.example.snapget.core.util.avatarOrDefault
 import com.example.snapget.navigation.Screen
 import kotlinx.coroutines.delay
@@ -221,7 +221,10 @@ fun CoopInviteCard(
         color = SkinTheme.colors.surface,
         border = BorderStroke(2.dp, SkinTheme.colors.accent),
         shadowElevation = 8.dp,
-        modifier = modifier.fillMaxWidth(),
+        // Thong bao moi coop: dai ornament manh 14dp (= padding tren) — 2026-11-16
+        modifier = modifier
+            .fillMaxWidth()
+            .skinPopupOrnament(SkinTheme.colors.surface, RoundedCornerShape(20.dp), band = 14.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,7 +245,6 @@ fun CoopInviteCard(
                         text = inviterName,
                         color = SkinTheme.colors.textPrimary,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -278,7 +280,6 @@ fun CoopInviteCard(
                     text = timerText,
                     color = timerColor,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.width(10.dp))
                 LinearProgressIndicator(
@@ -327,7 +328,7 @@ fun CoopInviteCard(
                             modifier = Modifier.size(18.dp),
                         )
                     } else {
-                        Text(text = "Accept", fontWeight = FontWeight.Bold)
+                        Text(text = "Accept", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }

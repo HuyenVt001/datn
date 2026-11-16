@@ -294,10 +294,8 @@ fun Navigation(
                 }
 
                 composable(Screen.Post.route) {
-                    // Feed = noi dung anh -> nen dac, che backdrop (man khong co Scaffold rieng)
-                    Box(Modifier.fillMaxSize().background(SkinTheme.colors.background)) {
-                        PostScreen(navController)
-                    }
+                    // (2026-11-16) Feed LO backdrop cua skin + hat bay (user chot)
+                    PostScreen(navController)
                 }
 
                 composable(
@@ -443,13 +441,13 @@ fun Navigation(
 }
 
 /**
- * Route co nen DAC che kin backdrop (noi dung la anh/camera — nen skin chi lam
- * roi mat). O cac man nay hat bay tam dung cho do ton pin. So sanh phan truoc '?'.
+ * Route KHONG chay hat bay (so sanh phan truoc '?'):
+ * nen DAC che kin backdrop (Login, QR, sua/dang anh, coop) -> ve hat la phi.
+ * Camera + Feed: lo backdrop VA chay hat bay (user chot 2026-11-16); tat duoc qua
+ * Settings › Ambient effects hoac reduced motion.
  */
 private val routesCoveringBackdrop = setOf(
     Screen.Login.route,
-    Screen.Camera.route,
-    Screen.Post.route,
     Screen.QrScan.route,
     Screen.EditMedia.route,
     Screen.SubmitPhoto.route,

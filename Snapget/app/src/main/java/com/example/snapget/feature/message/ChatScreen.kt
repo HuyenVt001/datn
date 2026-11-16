@@ -71,7 +71,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,12 +81,13 @@ import com.example.snapget.core.common.LoadStatus
 import com.example.snapget.core.designsystem.component.button.ChunkyButton
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.component.lottie.SnapAnim
-import com.example.snapget.core.designsystem.component.pill.quickReactionEmojis
 import com.example.snapget.core.designsystem.component.state.EmptyState
 import com.example.snapget.core.designsystem.component.state.ErrorState
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.designsystem.skin.skinChatWallpaper
 import com.example.snapget.core.network.dto.MessageDto
@@ -215,15 +215,6 @@ fun ChatScreen(
                     messageText = ""
                     replyTarget = null
                 },
-                onEmojiSend = { emoji ->
-                    messageViewModel.sendMessage(
-                        recipientId,
-                        emoji,
-                        messageType = "EMOJI",
-                        replyToId = replyTarget?.messageId,
-                    )
-                    replyTarget = null
-                },
                 modifier = Modifier.padding(bottom = 15.dp),
                 onPhotoClick = { photoPicker.launch("image/*") },
                 onStickerSend = { url ->
@@ -248,10 +239,9 @@ fun ChatScreen(
         ) {
             when {
                 threadStatus is LoadStatus.Loading && thread.isEmpty() -> {
-                    CircularProgressIndicator(
+                    SkinLoading(
                         modifier = Modifier.align(Alignment.Center),
-                        // Theo theme: hardcode trang la vo hinh o Light mode
-                        color = MaterialTheme.colorScheme.onBackground,
+                        fallbackColor = MaterialTheme.colorScheme.onBackground,
                     )
                 }
 
@@ -413,38 +403,30 @@ fun ChatTopBar(
 ) {
     TopAppBar(
         title = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+            // Avatar + ten sat nut back ben trai (2026-11-16 — truoc can giua topbar)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                 ) {
-                    // Recipient avatar with better styling
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                    ) {
-                        AsyncImage(
-                            model = avatarOrDefault(recipientAvatar, recipientName),
-                            contentDescription = "User avatar",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        // Recipient name
-                        Text(
-                            text = takeFirstNameOfUser(recipientName),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
+                    AsyncImage(
+                        model = avatarOrDefault(recipientAvatar, recipientName),
+                        contentDescription = "User avatar",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
                 }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = takeFirstNameOfUser(recipientName),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         },
         navigationIcon = {
@@ -475,7 +457,6 @@ fun ChatInputPill(
     messageText: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onEmojiSend: (String) -> Unit,
     modifier: Modifier = Modifier,
     onPhotoClick: (() -> Unit)? = null,
     onStickerSend: ((String) -> Unit)? = null,
@@ -486,7 +467,6 @@ fun ChatInputPill(
     onCancelReply: (() -> Unit)? = null,
 ) {
     var showStickers by remember { mutableStateOf(false) }
-    val hasMediaButtons = onPhotoClick != null || onStickerSend != null || voiceRecorder != null
 
     Column(modifier = modifier) {
         // Thanh dang-reply (kieu Messenger): ten nguoi + preview tin goc + nut huy
@@ -517,7 +497,6 @@ fun ChatInputPill(
                     Text(
                         text = "Replying to $replyingToName",
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
@@ -613,7 +592,7 @@ fun ChatInputPill(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                                fontSize = 16.sp,
+                                style = MaterialTheme.typography.bodyLarge,
                             )
                         }
                         innerTextField()
@@ -629,26 +608,7 @@ fun ChatInputPill(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 } else {
-                    // Emoji gui nhanh — bam la gui 1 tin EMOJI luon
-                    // (rut gon con 2 khi co them nut media cho khoi chat hang)
-                    val quickEmojis = if (hasMediaButtons) {
-                        quickReactionEmojis.take(2)
-                    } else {
-                        quickReactionEmojis
-                    }
-                    quickEmojis.forEach { emoji ->
-                        // Vung cham 44dp (truoc ~28dp) — xem ChatTouchTarget
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(ChatTouchTarget)
-                                .clip(CircleShape)
-                                .clickable(onClickLabel = "Send $emoji") { onEmojiSend(emoji) },
-                        ) {
-                            Text(text = emoji, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-
+                    // Emoji gui nhanh (cuoi + tim) DA XOA 2026-11-16 theo yeu cau user
                     if (onPhotoClick != null) {
                         IconButton(onClick = onPhotoClick, modifier = Modifier.size(ChatTouchTarget)) {
                             Icon(
@@ -714,7 +674,7 @@ fun ChatInputPill(
                         fallback = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = null,
                         tint = SkinTheme.colors.onAccent,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(SkinIconSize.Medium),
                     )
                 }
             }

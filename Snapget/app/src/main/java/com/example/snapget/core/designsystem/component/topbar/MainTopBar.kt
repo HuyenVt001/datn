@@ -55,7 +55,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
@@ -68,6 +67,7 @@ import com.example.snapget.core.designsystem.component.circle.Circle
 import com.example.snapget.core.designsystem.component.circle.IconSetting
 import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.skin.SkinIcon
+import com.example.snapget.core.designsystem.skin.SkinIconSize
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.User
 import com.example.snapget.core.util.avatarOrDefault
@@ -206,8 +206,7 @@ fun MainTopBar(
                             ) {
                                 Text(
                                     text = if (pendingRequestCount > 9) "9+" else pendingRequestCount.toString(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelSmall,
                                 )
                             }
                         }
@@ -215,7 +214,6 @@ fun MainTopBar(
                         Text(
                             text = trimUsername(selectedFriend?.username ?: user?.username ?: title),
                             color = SkinTheme.colors.textPrimary,
-                            fontWeight = FontWeight.Medium,
                             letterSpacing = 0.5.sp,
                             style = MaterialTheme.typography.titleMedium,
                         )
@@ -226,7 +224,7 @@ fun MainTopBar(
                             fallback = Icons.Outlined.ExpandMore,
                             contentDescription = null,
                             tint = SkinTheme.colors.textPrimary,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(SkinIconSize.Small),
                         )
                     }
                 }
@@ -304,7 +302,6 @@ fun MainTopBar(
                                             else -> trimUsername(friend.username, 20)
                                         },
                                         color = SkinTheme.colors.textPrimary,
-                                        fontWeight = FontWeight.Medium,
                                         style = MaterialTheme.typography.titleMedium,
                                     )
 
@@ -371,7 +368,6 @@ fun MainTopBar(
                                     Text(
                                         text = "Add friends",
                                         color = SkinTheme.colors.textPrimary,
-                                        fontWeight = FontWeight.Medium,
                                         style = MaterialTheme.typography.titleMedium,
                                     )
 
@@ -382,7 +378,7 @@ fun MainTopBar(
                                         fallback = Icons.AutoMirrored.Outlined.ArrowForwardIos,
                                         contentDescription = "Select",
                                         tint = SkinTheme.colors.textPrimary,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(SkinIconSize.Inline),
                                     )
                                 }
                             },
@@ -458,8 +454,7 @@ fun MainTopBar(
                             ) {
                                 Text(
                                     text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelSmall,
                                     textAlign = TextAlign.Center,
                                 )
                             }
@@ -480,7 +475,7 @@ fun MainTopBar(
                             fallback = Icons.Outlined.ChatBubbleOutline,
                             contentDescription = "Messages",
                             tint = SkinTheme.colors.textPrimary,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(SkinIconSize.Medium),
                         )
                     }
                 }

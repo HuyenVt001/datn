@@ -37,8 +37,8 @@ Cả 3 cần tương phản ≥ 3:1 với nền skin. Đặt vào `app/src/main/
 **Đã làm (code):**
 1. `SkinColors` thêm `surfaceContainerLow/·/High`, `outline(Variant)`, `scrim` → map đủ vào `toColorScheme()` (sheet/dialog/card M3 hết xám ngả tím). `textSecondary` Snow `#A9C1E3`, Forest `#BCD0BC`.
 2. `AppSkin.atmosphere: SkinAtmosphere` (gradient, glow + tâm, glassTint/alpha/border, `imageScrim`) + `AppSkin.decor: SkinDecor` (particle + `ParticleMotion.FALL/DRIFT` + số hạt + cỡ, ornament + alpha). `SkinImages.screenBackground` giờ được dùng thật.
-3. `skin/SkinBackdrop.kt`: `SkinBackdrop` (gradient → ảnh + scrim nhuộm màu nền skin → glow → hạt bay → ornament + dải tối dưới status bar), crossfade 400ms khi đổi skin; hạt bay = 1 Canvas + `graphicsLayer`, vị trí là hàm của thời gian (không recompose). `GlassLevel` + `glassColor()` + `Modifier.skinGlass()`.
-4. `Navigation.kt`: backdrop vẽ 1 lần sau `Scaffold(containerColor = Transparent)`. **Màn che backdrop (nền đặc, hạt dừng):** Login, Camera, Post (feed), QrScan, EditMedia, SubmitPhoto, CoopCapture (+ PostDetail tự có Scaffold đặc). **Màn lộ backdrop:** Settings, LegalDoc, Profile, Quest, Shop, Messages, Chat, GroupChat, Appearance, WidgetSettings, HowToAddWidget. `SimpleTopBar` trong suốt; footer 90%.
+3. `skin/SkinBackdrop.kt`: `SkinBackdrop` (gradient → ảnh + scrim nhuộm màu nền skin → glow → hạt bay; **ornament đã bỏ khỏi nền 2026-11-16** — chỉ còn ở popup/sheet/thông báo qua `SkinAlertDialog`/`skinPopupOrnament`/`SkinSheetDragHandle`), crossfade 400ms khi đổi skin; hạt bay = 1 Canvas + `graphicsLayer`, vị trí là hàm của thời gian (không recompose). `GlassLevel` + `glassColor()` + `Modifier.skinGlass()`.
+4. `Navigation.kt`: backdrop vẽ 1 lần sau `Scaffold(containerColor = Transparent)`. **Màn che backdrop (nền đặc, hạt dừng):** Login, QrScan, EditMedia, SubmitPhoto, CoopCapture (+ PostDetail tự có Scaffold đặc). **Lộ backdrop + hạt bay (2026-11-16):** Camera, Post (feed). **Màn lộ backdrop:** Settings, LegalDoc, Profile, Quest, Shop, Messages, Chat, GroupChat, Appearance, WidgetSettings, HowToAddWidget. `SimpleTopBar` trong suốt; footer 90%.
 5. Kính: card Quest (4), card Settings, card lịch Profile. **Giữ đặc có chủ đích:** card Shop (nút chunky có lớp "đáy" bên dưới — trong suốt sẽ lộ đáy), mọi dialog/sheet.
 6. Settings › **Ambient effects** (toggle, mặc định bật) → `SettingsPreferences.ambientEffectsEnabled` (StateFlow, đổi là dừng/chạy ngay). Hạt cũng dừng khi reduced motion.
 7. Forest: card "hình lá" (`shapes.card` 24/6/24/6).
@@ -47,7 +47,9 @@ Cả 3 cần tương phản ≥ 3:1 với nền skin. Đặt vào `app/src/main/
 9. **Hoa văn nền chat** (`Modifier.skinChatWallpaper()` trong `skin/SkinDecorations.kt`): rải particle thành lưới so le (ô 76dp, lệch/xoay/cỡ theo seed vị trí → đứng yên), alpha `SkinDecor.patternAlpha` (mặc định 0.10, Forest 0.16) + lớp `background` 35% khi skin có ảnh nền cho bong bóng dễ đọc. Gắn ở Scaffold của Chat + GroupChat (trước `imePadding`). Vẽ 1 lần, cache theo kích thước. Default: không vẽ gì.
 10. **Ornament mép sheet** (`SkinSheetDragHandle(sheetColor)`): cắt phần trên ornament thành dải 56dp, mờ dần vào màu sheet, tay kéo nằm trên. Mặc định của `AnimatedBottomSheet` + bọc handle riêng của `UserDetailBottomSheet`, `CaptionBottomSheet` + thêm vào `GroupSettingsSheet`, sheet ⋯ của Feed (`PostScreen`). Skin không có ornament → handle như cũ.
 
-**Chưa làm / để sau:** particle cho loading/ăn mừng, mini-preview "thử trước khi mua" ở Shop.
+11. **Loading + ăn mừng bằng particle** (`skin/SkinParticleEffects.kt`, 2026-11-16): `SkinLoading` (particle xoay/nhịp + 3 hạt bay vòng; DRIFT đưa qua lại) thay **15** loading cấp màn/khối (spinner nhỏ trong nút giữ `CircularProgressIndicator`); `SkinParticleBurst(trigger)` hạt nổ toả + trọng lực + mờ dần, chạy 1 lần — ở StreakCelebration (streak +1: 20 hạt, mốc: 36), kết bạn QR thành công, mở rương quest, mua đồ Shop. Skin không particle / reduced motion → spinner + Lottie confetti/sparkle cũ (`hasSkinParticle`).
+
+**Chưa làm / để sau:** mini-preview "thử trước khi mua" ở Shop.
 
 ---
 

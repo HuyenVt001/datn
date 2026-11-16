@@ -247,13 +247,37 @@ internal fun DrawScope.drawTouchEffectFrame(
     }
     if (alpha <= 0f) return
 
+    drawSheetFrame(effect, sheet, frame, origin, sizePx, alpha)
+}
+
+/**
+ * Ve DUNG 1 frame [frame] cua sheet, canh giua [origin]. Dung cho
+ * [drawTouchEffectFrame] va cho anh dai dien tinh ([TouchEffect.thumbFrame])
+ * cua o demo khi khong chay animation.
+ */
+internal fun DrawScope.drawSheetFrame(
+    effect: TouchEffect,
+    sheet: ImageBitmap,
+    frame: Int,
+    origin: Offset,
+    sizePx: Float,
+    alpha: Float = 1f,
+) {
+    val columns = effect.columns
+    val rows = effect.rows
+    if (columns <= 0 || rows <= 0 || effect.frameCount <= 0) return
+    val frameW = sheet.width / columns
+    val frameH = sheet.height / rows
+    if (frameW <= 0 || frameH <= 0) return
+    val f = frame.coerceIn(0, effect.frameCount - 1)
+
     // Duoi 1px thi ve cung khong ai thay, bo qua cho re
     val sidePx = sizePx.roundToInt()
     if (sidePx < 1) return
 
     drawImage(
         image = sheet,
-        srcOffset = IntOffset((frame % columns) * frameW, (frame / columns) * frameH),
+        srcOffset = IntOffset((f % columns) * frameW, (f / columns) * frameH),
         srcSize = IntSize(frameW, frameH),
         dstOffset = IntOffset(
             (origin.x - sizePx / 2f).roundToInt(),

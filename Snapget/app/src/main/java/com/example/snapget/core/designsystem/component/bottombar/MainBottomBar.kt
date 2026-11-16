@@ -160,8 +160,8 @@ fun MainBottomBar(
                         Circle(
                             outerSize = centerItem.customSizeCenter,
                             gap = 7.dp,
-                            backgroundColor = Color.Gray,
-                            borderColor = Color.Gray,
+                            backgroundColor = SkinTheme.colors.centerButton,
+                            borderColor = SkinTheme.colors.centerButton,
                             borderWidth = 3.dp,
                             onClick = centerClick,
                             // GIU = quay video / THA = dung (CameraScreen truyen vao)
@@ -187,20 +187,25 @@ fun MainBottomBar(
                         )
                     }
                 } else if (item.title == "Send") {
+                    // (2026-11-16) Xoay -45° + vung ve 40dp (gap 20) chi dung cho mui ten
+                    // Material. Icon RIENG cua skin da ve dung tu the (vd Snow: chim canh cut
+                    // dung tren may bay giay) -> xoay la nghieng ca hinh + bi thu nho.
+                    // Co icon skin: KHONG xoay, gap 12 -> vung ve 56dp.
+                    val hasSkinSend = SkinTheme.icons.send != null
                     Circle(
                         outerSize = centerItem.customSizeCenter,
-                        gap = 20.dp,
+                        gap = if (hasSkinSend) 12.dp else 20.dp,
                         backgroundColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                            Color.Gray
+                            SkinTheme.colors.centerButton
                         } else {
                             Color.Transparent
                         },
                         borderColor = if (centerItem.selectedIcon != null || centerItem.unselectedIcon != null) {
-                            Color.Gray
+                            SkinTheme.colors.centerButton
                         } else {
                             SkinTheme.colors.accent
                         },
-                        modifier = Modifier.rotate(-45F),
+                        modifier = if (hasSkinSend) Modifier else Modifier.rotate(-45F),
                         borderWidth = 3.dp,
                         onClick = {
                             // Bao cho man hinh chua bar biet (truoc day nhanh center KHONG goi

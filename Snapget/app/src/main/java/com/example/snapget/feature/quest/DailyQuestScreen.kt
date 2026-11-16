@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +67,7 @@ import com.example.snapget.core.designsystem.component.topbar.SimpleTopBar
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.popOnChange
 import com.example.snapget.core.designsystem.motion.staggerEnter
+import com.example.snapget.core.designsystem.skin.SkinParticleBurst
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.designsystem.skin.glassColor
 import com.example.snapget.core.designsystem.skin.skinGlass
@@ -496,6 +498,12 @@ private fun DailyChest(
                 key(openTick) {
                     SnapLottie(anim = SnapAnim.GIFT_OPEN, modifier = Modifier.size(110.dp))
                 }
+                // Mo ruong: hat cua skin bung ra quanh ruong (vung ve rong hon o 110dp)
+                SkinParticleBurst(
+                    trigger = openTick,
+                    count = 18,
+                    modifier = Modifier.requiredSize(240.dp),
+                )
             } else {
                 SnapLottie(
                     anim = SnapAnim.GIFT_OPEN,

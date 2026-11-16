@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Replay
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +72,8 @@ import com.example.snapget.core.designsystem.component.circle.ImageSetting
 import com.example.snapget.core.designsystem.component.common.CommonTopBar
 import com.example.snapget.core.designsystem.component.feedback.rememberMessenger
 import com.example.snapget.core.designsystem.preview.CameraPreviewWithZoom
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
+import com.example.snapget.core.designsystem.skin.SkinLoading
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
 import com.example.snapget.core.util.avatarOrDefault
@@ -267,7 +268,7 @@ fun CoopCaptureScreen(
         ) {
             when {
                 current == null -> {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
+                    SkinLoading(fallbackColor = MaterialTheme.colorScheme.onBackground)
                 }
 
                 current.status == "DECLINED" || current.status == "EXPIRED" -> {
@@ -301,12 +302,11 @@ fun CoopCaptureScreen(
                 current.status == "PENDING" -> {
                     // Nguoi moi doi doi phuong chap nhan (nguoi nhan chi vao day sau accept)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = SkinTheme.colors.accent)
+                        SkinLoading(fallbackColor = SkinTheme.colors.accent)
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             text = "Waiting for $partnerName to accept…",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground,
                             textAlign = TextAlign.Center,
                         )
@@ -314,8 +314,7 @@ fun CoopCaptureScreen(
                         Text(
                             text = remainingSec?.let { "Invite expires in ${formatMmSs(it)}" }
                                 ?: "Invites expire after 5 minutes.",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if ((remainingSec ?: Long.MAX_VALUE) <= 60) {
                                 MaterialTheme.colorScheme.error
                             } else {
@@ -397,12 +396,12 @@ fun CoopCaptureScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator(color = Color.White)
+                                    SkinLoading(fallbackColor = Color.White)
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
                                         text = "Merging photos…",
                                         color = Color.White,
-                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium,
                                     )
                                     // Ghep loi (server revert ve ACCEPTED) -> cho nop lai
                                     // nua anh cua minh de kich hoat ghep lan nua
@@ -416,7 +415,7 @@ fun CoopCaptureScreen(
                                             Text(
                                                 text = "Taking too long? Tap to retry",
                                                 color = SkinTheme.colors.accent,
-                                                fontWeight = FontWeight.Bold,
+                                                style = MaterialTheme.typography.labelLarge,
                                             )
                                         }
                                     }
@@ -521,8 +520,7 @@ fun CoopCaptureScreen(
                     ) {
                         Text(
                             text = "Session ends in ${formatMmSs(remainingSec)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -533,7 +531,7 @@ fun CoopCaptureScreen(
 
     // Xac nhan roi man khi phien dang ACCEPTED/COMPLETED-chua-tai-xong
     if (showLeaveConfirm) {
-        AlertDialog(
+        SkinAlertDialog(
             onDismissRequest = { showLeaveConfirm = false },
             title = { Text("Leave co-op capture?") },
             text = { Text("Leaving cancels the session for both of you.") },
@@ -572,7 +570,6 @@ private fun CoopHalfLabel(text: String, modifier: Modifier = Modifier) {
         text = text,
         color = Color.White,
         style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Bold,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
@@ -598,8 +595,7 @@ private fun CoopEndedContent(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
@@ -616,7 +612,7 @@ private fun CoopEndedContent(
         ) {
             Text(
                 text = if (busy) "Sending…" else "Invite $partnerName again",
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -681,10 +677,9 @@ private fun CoopPartnerHalf(partnerUrl: String?, partnerName: String) {
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(36.dp),
-                    strokeWidth = 2.dp,
-                    color = SkinTheme.colors.textSecondary,
+                SkinLoading(
+                    size = 40.dp,
+                    fallbackColor = SkinTheme.colors.textSecondary,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -713,11 +708,11 @@ fun CoopFriendPickerDialog(
 ) {
     var selectedId by remember { mutableStateOf<String?>(null) }
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SkinTheme.colors.surfaceVariant,
         title = {
-            Text(text = "Co-op capture", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(text = "Co-op capture", color = Color.White, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column {
@@ -788,7 +783,7 @@ fun CoopFriendPickerDialog(
                 Text(
                     text = if (busy) "Sending…" else "Send invite",
                     color = SkinTheme.colors.accent,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
         },

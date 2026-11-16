@@ -11,7 +11,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import com.example.snapget.core.designsystem.skin.SkinIcon
 import com.example.snapget.core.designsystem.skin.SkinTheme
 
@@ -27,7 +26,6 @@ fun SimpleTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Medium,
             )
         },
         navigationIcon = {

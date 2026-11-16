@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -43,10 +44,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.MotionTokens
 import com.example.snapget.core.designsystem.motion.popOnChange
@@ -237,8 +236,7 @@ private fun FooterTabItem(
                     Text(
                         text = if (unreadMessages > 99) "99+" else unreadMessages.toString(),
                         color = colors.onBadge,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
+                        style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center,
                     )
                 }

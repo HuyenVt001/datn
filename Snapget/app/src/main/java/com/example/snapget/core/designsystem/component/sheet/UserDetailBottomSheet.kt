@@ -19,13 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,19 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.snapget.core.constants.MAX_FRIENDS
-import com.example.snapget.core.designsystem.component.list.ExternalAppComponent
 import com.example.snapget.core.designsystem.component.list.ShareYourLinkComponent
 import com.example.snapget.core.designsystem.component.list.TotalFriendComponent
 import com.example.snapget.core.designsystem.component.list.YourFriendAppComponent
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinSheetDragHandle
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import com.example.snapget.core.model.FriendUi
@@ -159,8 +156,6 @@ fun UserDetailBottomSheet(
                 )
             }
 
-            ExternalAppComponent(inviteLink = sheetData.inviteLink)
-
             YourFriendAppComponent(
                 friends = sheetData.friends,
                 onRemoveFriend = { friendPendingRemove = it },
@@ -193,14 +188,14 @@ fun UserDetailBottomSheet(
 
         // Xoa ban la hanh dong kho hoan tac -> luon hoi xac nhan
         friendPendingRemove?.let { friend ->
-            AlertDialog(
+            SkinAlertDialog(
                 onDismissRequest = { friendPendingRemove = null },
                 containerColor = SkinTheme.colors.surface,
                 title = {
                     Text(
                         text = "Remove friend?",
                         color = SkinTheme.colors.textPrimary,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
                     )
                 },
                 text = {
@@ -217,7 +212,7 @@ fun UserDetailBottomSheet(
                             friendPendingRemove = null
                         },
                     ) {
-                        Text(text = "Remove", color = SkinTheme.colors.error, fontWeight = FontWeight.Bold)
+                        Text(text = "Remove", color = SkinTheme.colors.error, style = MaterialTheme.typography.labelLarge)
                     }
                 },
                 dismissButton = {
@@ -250,8 +245,7 @@ private fun FriendRequestsSection(
         Text(
             text = "💌 Friend requests (${requests.size})",
             color = SkinTheme.colors.textPrimary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
+            style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp),
         )
         // Du 20 ban thi server se tu choi accept -> bao truoc thay vi de user bam roi moi loi
@@ -259,7 +253,7 @@ private fun FriendRequestsSection(
             Text(
                 text = "Your friend list is full. Remove a friend before accepting new requests.",
                 color = SkinTheme.colors.error,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }
@@ -288,21 +282,21 @@ private fun FriendRequestsSection(
                             Text(
                                 text = request.name,
                                 color = SkinTheme.colors.textPrimary,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.titleSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = "wants to be your friend",
                                 color = SkinTheme.colors.onSurfaceVariant,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.bodySmall,
                             )
                             // Thoi diem gui loi moi ("2h ago"); khong parse duoc -> an
                             timeAgo(request.requestedAt)?.let { ago ->
                                 Text(
                                     text = ago,
                                     color = SkinTheme.colors.onSurfaceVariant.copy(alpha = 0.8f),
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.bodySmall,
                                 )
                             }
                         }
@@ -316,10 +310,11 @@ private fun FriendRequestsSection(
                                     .size(24.dp),
                             )
                         } else {
-                            // ✓ chap nhan — nut tron trang (hanh dong chinh); mo khi du 20 ban
+                            // ✓ chap nhan — nut tron accent (hanh dong chinh); mo khi du 20 ban
+                            // (2026-11-16: truoc nen trang + icon den co dinh -> khong doi theo skin)
                             Surface(
                                 shape = CircleShape,
-                                color = SkinTheme.colors.textPrimary.copy(alpha = if (isFull) 0.35f else 1f),
+                                color = SkinTheme.colors.accent.copy(alpha = if (isFull) 0.35f else 1f),
                             ) {
                                 IconButton(
                                     onClick = { onAccept(request) },
@@ -329,7 +324,7 @@ private fun FriendRequestsSection(
                                     Icon(
                                         imageVector = Icons.Outlined.Check,
                                         contentDescription = "Accept ${request.name}",
-                                        tint = Color.Black,
+                                        tint = SkinTheme.colors.onAccent,
                                         modifier = Modifier.size(22.dp),
                                     )
                                 }
@@ -375,9 +370,8 @@ private fun NoticeBanner(
     ) {
         Text(
             text = text,
-            color = if (isError) Color.White else Color.Black,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
+            color = if (isError) SkinTheme.colors.textPrimary else SkinTheme.colors.onAccent,
+            style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
         )
     }

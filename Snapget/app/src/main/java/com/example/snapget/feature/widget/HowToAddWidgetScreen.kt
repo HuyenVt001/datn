@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -104,7 +103,6 @@ fun HowToAddWidgetScreen(
                             Text(
                                 text = "${index + 1}",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
                                 color = SkinTheme.colors.accent,
                             )
                         }
@@ -142,7 +140,6 @@ fun HowToAddWidgetScreen(
                         Text(
                             text = "Add automatically",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }

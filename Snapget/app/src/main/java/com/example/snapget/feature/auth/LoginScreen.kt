@@ -309,7 +309,6 @@ fun LoginScreenContent(
                 Text(
                     text = "Welcome to Snapget",
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center,
                 )
@@ -570,7 +569,6 @@ fun LoginScreenContent(
                                         Text(
                                             text = "Continue with Google",
                                             style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Medium,
                                         )
                                     }
                                 }

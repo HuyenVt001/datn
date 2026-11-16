@@ -43,7 +43,9 @@ import com.example.snapget.core.designsystem.component.lottie.SnapLottie
 import com.example.snapget.core.designsystem.feedback.rememberFeedback
 import com.example.snapget.core.designsystem.motion.MotionTokens
 import com.example.snapget.core.designsystem.motion.rememberReducedMotion
+import com.example.snapget.core.designsystem.skin.SkinParticleBurst
 import com.example.snapget.core.designsystem.skin.SkinTheme
+import com.example.snapget.core.designsystem.skin.hasSkinParticle
 import com.example.snapget.core.designsystem.theme.NumberDisplay
 import kotlinx.coroutines.delay
 
@@ -107,7 +109,16 @@ fun StreakCelebration(
                 onClick = onDismiss,
             ),
     ) {
-        if (isMilestone) {
+        // (2026-11-16) Skin co particle: hat cua skin no toa ra (ca streak +1, moc
+        // streak no nhieu hon). Skin khong particle / reduced motion: confetti Lottie cu.
+        if (hasSkinParticle) {
+            SkinParticleBurst(
+                trigger = milestone ?: streak ?: 0,
+                count = if (isMilestone) 36 else 20,
+                durationMs = if (isMilestone) 1900 else 1500,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (isMilestone) {
             SnapLottie(
                 anim = SnapAnim.CONFETTI,
                 contentScale = ContentScale.Crop,

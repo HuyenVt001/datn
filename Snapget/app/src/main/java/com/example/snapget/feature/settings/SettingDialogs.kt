@@ -2,7 +2,6 @@ package com.example.snapget.feature.settings
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -18,8 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.snapget.core.designsystem.skin.SkinAlertDialog
 import com.example.snapget.core.designsystem.skin.SkinTheme
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -43,14 +42,14 @@ fun EditNameDialog(
 ) {
     var name by remember(currentName) { mutableStateOf(currentName) }
 
-    AlertDialog(
+    SkinAlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
                 text = "Edit name",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge,
             )
         },
         text = {
@@ -75,7 +74,7 @@ fun EditNameDialog(
                         color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
                 }
             }
         },
@@ -122,7 +121,7 @@ fun BirthdayPickerDialog(
                         color = SkinTheme.colors.accent,
                     )
                 } else {
-                    Text(text = "Save", color = SkinTheme.colors.accent, fontWeight = FontWeight.Bold)
+                    Text(text = "Save", color = SkinTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
                 }
             }
         },

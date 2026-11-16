@@ -157,6 +157,7 @@ Ngắn, ấm, khích lệ, ngôi thứ hai. Empty/error state luôn có **1 hàn
 | `colors.onSurfaceVariant` | `#B0B0B0` | `GrayOnSurfaceVariant` | Viền avatar, chữ trên bề mặt phụ |
 | `colors.navBarActive` | `#FFFFFF` | — | Icon Footer 5 tab đang chọn (đổi màu theo skin: Snow `#7EC8FF`, Forest `#E8D9A8`) |
 | `colors.navBarInactive` | `#757575` | — | Icon Footer 5 tab chưa chọn |
+| `colors.actionContent` | = `navBarActive` | — | **(2026-11-16)** Icon + chữ của NÚT HÀNH ĐỘNG nổi trên chrome (top bar, nút sửa, gợi ý "History"). ❌ Đừng dùng `textPrimary`/`onBackground` cho các nút này — 2 token đó gần trắng ở mọi skin nên đổi skin không thấy khác |
 | `colors.error` | `#CF6679` | `GrayError` | Lỗi |
 
 ### Accent vàng — 2 vai trò, đừng gộp làm một
@@ -186,21 +187,31 @@ Xanh dương `#4FC3F7→#0288D1` (Weather) · Xanh lá `#81C784→#388E3C` (Part
 
 ## 3. Typography
 
-`Type.kt` chỉ định nghĩa **3 style** (FontFamily.Default/Roboto):
-`bodyLarge` = 16sp Normal, lineHeight 24 · `titleLarge` = 22sp **Normal**, lineHeight 28 · `labelSmall` = 11sp Medium.
-→ Độ đậm KHÔNG nằm trong Typography — screens tự set `fontWeight` tại chỗ. Quy ước thực tế:
+**LUẬT CHỮ (chốt 2026-11-16 — tham khảo ui-ux-pro-max: `text-styles-system`, `weight-hierarchy`, `readable-font-size`, Compose "No hardcoded text style").**
+Font **Nunito** cả app; thang đầy đủ + độ đậm nằm SẴN trong `core/designsystem/theme/Type.kt` (`appTypography`). Mỗi chữ trên màn hình thuộc **đúng 1 vai trò** dưới đây:
 
-| Vai trò | Style thật trong code |
-|---|---|
-| Tiêu đề màn ("Messages", "Settings", "Send to…") | `titleLarge` (22sp) + `FontWeight.Bold` set thủ công, trắng, căn giữa |
-| Tiêu đề lớn ("Welcome to…", "X out of 20 friends") | 28–32sp + `FontWeight.Bold` trắng (custom fontSize) |
-| Tên người dùng / label item | `bodyLarge`/16sp + `FontWeight.Bold` trắng |
-| Nội dung / bubble chat | `bodyLarge` 16sp Normal trắng |
-| Phụ đề, timestamp, placeholder | 14–16sp Normal, `onSurfaceVariant` `#B0B0B0` |
-| Chữ pill "Everyone" | `Color.White` + `FontWeight.Medium` (không Bold) |
-| Item settings title | `FontWeight.Medium` |
+| Vai trò | Style M3 | Cỡ · độ đậm | Dùng cho |
+|---|---|---|---|
+| **Hero** | `headlineMedium` | 26 · ExtraBold | Tiêu đề chính của màn KHÔNG có top bar: tên ở Profile, "Welcome to Snapget" (Login). Mỗi màn tối đa 1 |
+| **Tiêu đề màn / popup** | `titleLarge` | 22 · ExtraBold | Title top bar, tiêu đề dialog/sheet/popup ("Create group chat", "Top up Astrite") |
+| **Tiêu đề mục** | `titleMedium` | 17 · Bold | Header nhóm/section ("💌 Friend requests", tháng lịch), trạng thái lớn ("Merging photos…"), số lượng nổi bật |
+| **Tiêu đề dòng** | `titleSmall` | 15 · Bold | Dòng chính trong list/card (tên bạn bè, thành viên, setting, gói nạp), toast/banner |
+| **Nội dung** | `bodyLarge` | 16 · Regular | Tin nhắn, ô nhập, nội dung chính (mặc định của `Text`) |
+| **Mô tả** | `bodyMedium` | 14 · Regular | Mô tả dưới tiêu đề, chữ trong dialog, trợ giúp |
+| **Chú thích** | `bodySmall` | 13 · Regular | Thời gian, "Valid until…", ghi chú nhỏ |
+| **Nút** | `labelLarge` | 15 · ExtraBold | MỌI nút/CTA/TextButton ("Save", "Retry", "Show more") |
+| **Chip / thẻ** | `labelMedium` | 13 · Bold | Chip, tab, tag, đồng hồ đếm ngược nhỏ |
+| **Badge** | `labelSmall` | 12 · Bold | Số đếm trên badge, nhãn tí hon ("In use") |
+| **Số gamification** | `NumberDisplay` | 40 · Black, `tnum` | Số streak/Astrite cỡ lớn |
 
-> Khi thêm text mới: dùng `MaterialTheme.typography.*` + set `fontWeight` như bảng, đừng chế fontSize lạ.
+**Luật:**
+1. Thứ bậc: trong 1 màn, tiêu đề (Hero hoặc Tiêu đề màn) là chữ **to nhất + đậm nhất**; không chữ nào khác được to hơn nó.
+2. ❌ **Cấm `fontSize = N.sp`** trong `Text` (feature + component). Ngoại lệ DUY NHẤT: phóng to **emoji/glyph trang trí** (reaction bay, emoji chat lớn, 🔒) — kèm comment.
+3. ❌ **Cấm ghi đè `fontWeight`** — độ đậm đi theo vai trò. Cần đậm hơn ⇒ đổi sang vai trò cao hơn (vd tên trong list: `bodyLarge + Bold` → `titleSmall`). `FontWeight.Medium` vô nghĩa (Nunito không có file 500).
+4. `.copy(...)` chỉ để thêm `fontFeatureSettings = "tnum"` (số đếm), màu, hoặc lineHeight — không đổi cỡ/độ đậm.
+5. Tối thiểu **12sp** (`labelSmall`); chữ đọc liên tục ≥ 14sp.
+6. Màu chữ theo token (`textPrimary` / `textSecondary` / `actionContent` / `onAccent`) — xem mục 2.
+7. Ngoại lệ có chủ đích: widget Glance (`SnapgetWidget.kt`) dùng `TextStyle` của Glance, không đi qua `MaterialTheme`.
 
 ---
 
@@ -259,20 +270,27 @@ Giá trị thật trong code:
   - **`Filled` CHỈ cho icon mang TRẠNG THÁI**: tab/item đang chọn (`selectedIcon` của footer/bottom bar), `Favorite` (= đã thích), `CheckCircle` (= đã chọn/thành công). Muốn thêm ngoại lệ → ghi vào đây trước.
   - ❌ Không dùng `Icons.Default.*` / `Icons.Filled.*` cho icon trung tính (`Default` chính là Filled). Không dùng Rounded/Sharp/TwoTone.
   - Icon riêng của skin (`SkinIcons`, Nhóm 1) vẽ theo art của skin, không bị luật này ràng buộc; nhánh fallback Material của `SkinIcon` vẫn là Outlined.
+- **Kích thước icon skin (chốt 2026-11-16):** mọi `SkinIcon` dùng 1 bậc của `SkinIconSize` theo VAI TRÒ — `Inline` 16dp (chevron cuối dòng) · `Small` 20dp (cạnh chữ) · `Medium` 24dp (top bar, IconButton, nút gửi ở ô nhập — **mặc định khi không truyền size**) · `Large` 32dp (nút grid/⋯ trên feed, xem bài). ❌ Không đặt số lẻ (20/26/28dp…). Lý do: icon Snow là WebP `drawable-nodpi` (192–288px) — thiếu size là vẽ theo pixel → phình to.
+- Icon skin **không xoay** (art đã vẽ đúng tư thế). Xoay −45° chỉ cho mũi tên Material của nút Send (`MainBottomBar`).
 - Icon đè trên ảnh: đặt trong hình tròn `Black 60%` (flash, zoom "1.0x", play video).
 - Icon hành động chính (chat, share, grid, flip camera): trắng, 24–32dp, nền tròn tối hoặc trần trên nền đen.
 - Emoji dùng trực tiếp trong UI (reaction ❤️🔥😄, streak 🔥, lockets ❤️) — không thay bằng icon vector.
 
 ### 6.1 Nền skin & bề mặt kính (Skin v2 — chốt 2026-11-15, chi tiết `SKIN_PLAN.md` đầu file)
 
-- **Nền app = `SkinBackdrop`** vẽ 1 lần trong `Navigation.kt` (ảnh/gradient + scrim + glow + hạt bay + ornament). Màn **mới**:
-  - Màn **giao diện/danh sách** (settings, list, quest…) → `Scaffold(containerColor = Color.Transparent)`, **không** `.background(colors.background)` ở gốc.
-  - Màn **nội dung ảnh/camera** → giữ nền đặc `colors.background` + thêm route vào `routesCoveringBackdrop` (Navigation.kt) để hạt bay dừng.
+- **Nền app = `SkinBackdrop`** vẽ 1 lần trong `Navigation.kt` (ảnh/gradient + scrim + glow + hạt bay — **KHÔNG còn ornament**, 2026-11-16). Màn **mới**:
+  - Màn **giao diện/danh sách** (settings, list, quest…) **và cả Camera + Feed** (từ 2026-11-16) → `Scaffold(containerColor = Color.Transparent)`, **không** `.background(colors.background)` ở gốc.
+  - Màn chụp/xem ảnh muốn tắt hạt bay → thêm route vào `routesCoveringBackdrop` (Navigation.kt). Camera + Feed lộ nền skin VÀ có hạt bay (user chốt 2026-11-16). Màn sửa/đăng ảnh, QR, coop, Login vẫn nền đặc.
+- **Ornament CHỈ ở popup + thông báo + sheet** (user chốt 2026-11-16), không ở màn toàn màn hình:
+  - Dialog → dùng **`SkinAlertDialog`** thay `AlertDialog` (tham số y hệt; dải ornament 24dp nằm trong padding trên). `Dialog` tự dựng → `Modifier.skinPopupOrnament(containerColor, shape)` trên Surface (padding trên ≥ 24dp).
+  - Banner thông báo (mời coop, lời mời kết bạn) → `skinPopupOrnament(..., band = <padding trên>)`.
+  - Bottom sheet → `SkinSheetDragHandle` (dòng dưới).
 - **Card nằm trên backdrop** → `Modifier.skinGlass(shape)` (hoặc `glassColor()` khi API cần `Color`) thay cho `colors.surface`. 3 bậc: `Low` 6% (mặc định) · `Base` 10% · `High` 14%.
 - **Giữ ĐẶC:** dialog, bottom sheet (dùng `surface`/`surfaceContainer*`), nút chunky có lớp đáy (card Shop), mọi thứ đè lên ảnh.
 - Top bar trên backdrop: nền trong suốt (`SimpleTopBar` đã vậy). Footer: `background` 90%.
 - **Bottom sheet mới** → `dragHandle = { SkinSheetDragHandle(sheetColor = <đúng containerColor của sheet>) }` (hoặc dùng `AnimatedBottomSheet` — mặc định đã có). Handle riêng thì truyền vào tham số `handle`.
 - **Màn chat/hội thoại mới** → gắn `Modifier.skinChatWallpaper()` vào modifier gốc (trước `imePadding`).
+- **Loading cấp màn/khối** → `SkinLoading()` (không dùng `CircularProgressIndicator` trần; spinner ≤ 24dp trong nút thì giữ). **Khoảnh khắc ăn mừng** → `SkinParticleBurst(trigger = …)`, và chỉ chạy Lottie confetti/sparkle khi `!hasSkinParticle`.
 
 ---
 

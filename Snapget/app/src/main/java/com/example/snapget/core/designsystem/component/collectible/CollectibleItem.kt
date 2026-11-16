@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -88,8 +89,7 @@ fun CollectibleItem(
                 Text(
                     text = "In use",
                     color = SkinTheme.colors.onAccent,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
@@ -105,7 +105,7 @@ fun CollectibleItem(
         Text(
             text = name,
             color = if (locked) SkinTheme.colors.textSecondary else SkinTheme.colors.textPrimary,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.bodySmall,
             fontWeight = if (inUse) FontWeight.Bold else FontWeight.Normal,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
