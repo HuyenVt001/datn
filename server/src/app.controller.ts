@@ -7,7 +7,7 @@ import { Public } from './common/decorators/public.decorator';
 export class AppController {
   @Public()
   @Get('health')
-  @ApiOperation({ summary: 'Kiem tra server song' })
+  @ApiOperation({ summary: 'Server health check' })
   health() {
     return { status: 'ok', service: 'snapget-server' };
   }

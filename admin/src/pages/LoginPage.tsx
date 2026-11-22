@@ -16,16 +16,16 @@ function friendlyError(err: unknown): string {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'Email hoặc mật khẩu không đúng.';
+      return 'Incorrect email or password.';
     case 'auth/invalid-email':
-      return 'Email không hợp lệ.';
+      return 'Invalid email.';
     case 'auth/too-many-requests':
-      return 'Thử sai quá nhiều lần, vui lòng thử lại sau.';
+      return 'Too many failed attempts, please try again later.';
     case 'auth/network-request-failed':
-      return 'Lỗi mạng — kiểm tra kết nối tới Firebase.';
+      return 'Network error — check the connection to Firebase.';
     default:
       // Loi tu server (adminLogin) da la tieng Viet
-      return err instanceof Error ? err.message : 'Đăng nhập thất bại.';
+      return err instanceof Error ? err.message : 'Sign-in failed.';
   }
 }
 
@@ -67,28 +67,28 @@ export function LoginPage() {
           <Typography.Title level={3} style={{ marginBottom: 4 }}>
             📸 Snapget Admin
           </Typography.Title>
-          <Typography.Text type="secondary">Đăng nhập bằng tài khoản quản trị</Typography.Text>
+          <Typography.Text type="secondary">Sign in with an admin account</Typography.Text>
         </div>
         <Form<LoginForm> layout="vertical" onFinish={(values) => void onFinish(values)}>
           <Form.Item
             name="email"
             label="Email"
             rules={[
-              { required: true, message: 'Nhập email quản trị.' },
-              { type: 'email', message: 'Email không hợp lệ.' },
+              { required: true, message: 'Enter the admin email.' },
+              { type: 'email', message: 'Invalid email.' },
             ]}
           >
             <Input prefix={<MailOutlined />} placeholder="admin@example.com" autoFocus />
           </Form.Item>
           <Form.Item
             name="password"
-            label="Mật khẩu"
-            rules={[{ required: true, message: 'Nhập mật khẩu.' }]}
+            label="Password"
+            rules={[{ required: true, message: 'Enter the password.' }]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="••••••••" />
           </Form.Item>
           <Button type="primary" htmlType="submit" block loading={loading}>
-            Đăng nhập
+            Sign in
           </Button>
         </Form>
       </Card>

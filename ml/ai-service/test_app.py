@@ -118,7 +118,8 @@ def test_verify_image_fetch_error(client, monkeypatch):
     from fastapi import HTTPException
 
     async def failing(url: str) -> bytes:
-        raise HTTPException(status_code=422, detail="Khong tai duoc anh")
+        raise HTTPException(status_code=422, detail="Failed to download image"
+)
 
     monkeypatch.setattr(app_module, "fetch_image", failing)
     r = c.post("/verify", json={"imageUrl": "https://x/a.jpg", "targetClass": "cup"}, headers={"X-API-Key": "test-key-123"})

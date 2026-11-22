@@ -27,7 +27,7 @@ export class CronSecretGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const expected = this.config.get<string>('CRON_SECRET')?.trim() ?? '';
     if (!expected) {
-      throw new ServiceUnavailableException('Server chưa cấu hình CRON_SECRET.');
+      throw new ServiceUnavailableException('CRON_SECRET is not configured on the server.');
     }
     const req = context.switchToHttp().getRequest<Request>();
     const raw = req.headers[CRON_SECRET_HEADER];
@@ -35,7 +35,7 @@ export class CronSecretGuard implements CanActivate {
     const a = Buffer.from(provided);
     const b = Buffer.from(expected);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      throw new UnauthorizedException('Sai cron secret.');
+      throw new UnauthorizedException('Invalid cron secret.');
     }
     return true;
   }

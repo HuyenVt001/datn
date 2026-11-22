@@ -35,7 +35,7 @@ client.interceptors.response.use(
       }
     }
     // message cua server da la tieng Viet than thien -> dung truc tiep
-    const message = error.response?.data?.message || 'Không thể kết nối máy chủ.';
+    const message = error.response?.data?.message || 'Cannot connect to the server.';
     return Promise.reject(new Error(message));
   },
 );

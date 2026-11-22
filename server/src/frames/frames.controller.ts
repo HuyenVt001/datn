@@ -23,7 +23,7 @@ export class FramesController {
   @Get()
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
-  @ApiOperation({ summary: 'Catalog khung anh + trang thai da mo khoa cua minh' })
+  @ApiOperation({ summary: 'Frame catalog + your unlock status' })
   list(@CurrentUser() user: AuthUser) {
     return this.framesService.listForUser(user.uid);
   }
@@ -34,7 +34,7 @@ export class FramesController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Danh sach toan bo khung anh (khong can isUnlocked)' })
+  @ApiOperation({ summary: '[Admin] List all frames (no isUnlocked)' })
   listAsAdmin() {
     return this.framesService.listAll();
   }
@@ -43,7 +43,7 @@ export class FramesController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Danh sach user dang so huu khung nay' })
+  @ApiOperation({ summary: '[Admin] List users who own this frame' })
   listOwners(@Param('id') frameId: string) {
     return this.framesService.listOwners(frameId);
   }
@@ -52,21 +52,21 @@ export class FramesController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Them khung anh moi' })
+  @ApiOperation({ summary: '[Admin] Add a new frame' })
   async create(@CurrentUser() actor: AuthUser, @Body() dto: CreateFrameDto) {
     const frame = await this.framesService.create(dto);
     await this.auditService.log(actor, 'FRAME_CREATE', {
       id: frame.frameId,
       label: frame.frameName,
     });
-    return { message: 'Da them khung anh.', data: frame };
+    return { message: 'Frame added.', data: frame };
   }
 
   @Patch(':id')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Sua khung anh (ten / anh / dieu kien mo khoa)' })
+  @ApiOperation({ summary: '[Admin] Edit a frame (name / image / unlock condition)' })
   async update(
     @CurrentUser() actor: AuthUser,
     @Param('id') frameId: string,
@@ -74,32 +74,32 @@ export class FramesController {
   ) {
     const frame = await this.framesService.update(frameId, dto);
     await this.auditService.log(actor, 'FRAME_UPDATE', { id: frameId, label: frame.frameName });
-    return { message: 'Da cap nhat khung anh.', data: frame };
+    return { message: 'Frame updated.', data: frame };
   }
 
   @Delete(':id')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Xoa khung anh' })
+  @ApiOperation({ summary: '[Admin] Delete a frame' })
   async delete(@CurrentUser() actor: AuthUser, @Param('id') frameId: string) {
     await this.framesService.delete(frameId);
     await this.auditService.log(actor, 'FRAME_DELETE', { id: frameId });
-    return { message: 'Da xoa khung anh.', data: { frameId } };
+    return { message: 'Frame deleted.', data: { frameId } };
   }
 
   @Post(':id/grant/:uid')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Mo khoa khung cho 1 user (demo phan thuong)' })
+  @ApiOperation({ summary: '[Admin] Unlock a frame for a user (reward demo)' })
   async grant(
     @CurrentUser() actor: AuthUser,
     @Param('id') frameId: string,
     @Param('uid') uid: string,
   ) {
     await this.framesService.unlockForUser(uid, frameId);
-    await this.auditService.log(actor, 'FRAME_GRANT', { id: frameId, label: `cho user ${uid}` });
-    return { message: 'Da mo khoa khung cho user.', data: { frameId, uid } };
+    await this.auditService.log(actor, 'FRAME_GRANT', { id: frameId, label: `for user ${uid}` });
+    return { message: 'Frame unlocked for user.', data: { frameId, uid } };
   }
 }

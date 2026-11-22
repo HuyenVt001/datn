@@ -14,14 +14,14 @@ describe('AiService', () => {
   });
 
   describe('enabled (fail-safe env)', () => {
-    it('thieu URL hoac API key -> enabled=false, goi verify thi nem loi (khong goi mang)', async () => {
+    it('missing URL or API key -> enabled=false, verify throws (no network call)', async () => {
       const service = new AiService(configWith({ AI_SERVICE_URL: '', AI_SERVICE_API_KEY: '' }));
       expect(service.enabled).toBe(false);
-      await expect(service.verify('https://x/y.jpg', 'cup')).rejects.toThrow('chua duoc cau hinh');
+      await expect(service.verify('https://x/y.jpg', 'cup')).rejects.toThrow('is not configured');
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('du 2 bien -> enabled=true (bo dau / cuoi URL)', () => {
+    it('both vars set -> enabled=true (trailing / stripped from URL)', () => {
       const service = new AiService(
         configWith({ AI_SERVICE_URL: 'https://x.hf.space/', AI_SERVICE_API_KEY: 'k' }),
       );
@@ -35,7 +35,7 @@ describe('AiService', () => {
         configWith({ AI_SERVICE_URL: 'https://x.hf.space', AI_SERVICE_API_KEY: 'secret' }),
       );
 
-    it('POST /verify voi X-API-Key + body {imageUrl,targetClass}, tra JSON', async () => {
+    it('POST /verify with X-API-Key + body {imageUrl,targetClass}, returns JSON', async () => {
       const payload = {
         matched: true,
         score: 0.9,
@@ -56,12 +56,12 @@ describe('AiService', () => {
       expect(JSON.parse(init.body)).toEqual({ imageUrl: 'https://img/a.jpg', targetClass: 'cup' });
     });
 
-    it('Space tra khong 2xx -> nem loi kem status (khong lo key)', async () => {
+    it('Space returns non-2xx -> throws with status (does not leak key)', async () => {
       fetchMock.mockResolvedValue({ ok: false, status: 503, json: () => Promise.resolve({}) });
-      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow('/verify tra 503');
+      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow('/verify returned 503');
     });
 
-    it('timeout (AbortError) -> nem loi "timeout"', async () => {
+    it('timeout (AbortError) -> throws "timeout"', async () => {
       const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' });
       fetchMock.mockRejectedValue(abortErr);
       await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow('timeout');
@@ -69,18 +69,18 @@ describe('AiService', () => {
   });
 
   describe('generate', () => {
-    it('gui dung danh sach lop ra de (AI_QUEST_CLASSES) + avoid', async () => {
+    it('sends the quest class list (AI_QUEST_CLASSES) + avoid', async () => {
       const service = new AiService(
         configWith({ AI_SERVICE_URL: 'https://x.hf.space', AI_SERVICE_API_KEY: 'secret' }),
       );
       fetchMock.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ targetClass: 'cup', content: 'Chụp một chiếc cốc' }),
+        json: () => Promise.resolve({ targetClass: 'cup', content: 'Take a photo of a cup' }),
       });
 
       const result = await service.generate(['book']);
 
-      expect(result).toEqual({ targetClass: 'cup', content: 'Chụp một chiếc cốc' });
+      expect(result).toEqual({ targetClass: 'cup', content: 'Take a photo of a cup' });
       const body = JSON.parse(fetchMock.mock.calls[0][1].body);
       expect(body.classes).toEqual([...AI_QUEST_CLASSES]);
       expect(body.avoid).toEqual(['book']);
@@ -88,7 +88,7 @@ describe('AiService', () => {
   });
 
   describe('toVerifyImageUrl', () => {
-    it('chen transform 224 vao URL Cloudinary chua transform', () => {
+    it('inserts the 224 transform into a Cloudinary URL without one', () => {
       expect(
         AiService.toVerifyImageUrl(
           'https://res.cloudinary.com/demo/image/upload/v1712/snapget/abc.jpg',
@@ -98,12 +98,12 @@ describe('AiService', () => {
       );
     });
 
-    it('URL Cloudinary DA co transform -> giu nguyen', () => {
+    it('Cloudinary URL that ALREADY has a transform -> unchanged', () => {
       const url = 'https://res.cloudinary.com/demo/image/upload/w_500/v1/abc.jpg';
       expect(AiService.toVerifyImageUrl(url)).toBe(url);
     });
 
-    it('URL khong phai Cloudinary image -> giu nguyen', () => {
+    it('non-Cloudinary image URL -> unchanged', () => {
       expect(AiService.toVerifyImageUrl('https://cdn.example.com/a.jpg')).toBe(
         'https://cdn.example.com/a.jpg',
       );

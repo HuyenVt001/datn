@@ -30,7 +30,7 @@ describe('FramesService', () => {
     service = new FramesService(repo, usersRepo, shopService);
   });
 
-  it('listForUser: gan isUnlocked theo unlockedFrames cua user; khung DEFAULT luon mo', async () => {
+  it('listForUser: sets isUnlocked from the user\'s unlockedFrames; DEFAULT frame is always unlocked', async () => {
     repo.list.mockResolvedValue([
       { frameId: 'f1', frameName: 'Fire', unlockType: 'SHOP' },
       { frameId: 'f2', frameName: 'Star', unlockType: 'SHOP' },
@@ -45,39 +45,39 @@ describe('FramesService', () => {
     expect(result.find((f) => f.frameId === 'f3')?.isUnlocked).toBe(true); // DEFAULT = mo san
   });
 
-  it('create: dieu kien nguong (POST_COUNT) thieu N -> bao loi', async () => {
+  it('create: threshold condition (POST_COUNT) without N -> error', async () => {
     await expect(service.create({ frameName: 'x', unlockType: 'POST_COUNT' })).rejects.toThrow(
       BadRequestException,
     );
   });
 
-  it('create: STREAK_MILESTONE nguong khong thuoc 3/7/14/30 -> bao loi', async () => {
+  it('create: STREAK_MILESTONE threshold not in 3/7/14/30 -> error', async () => {
     await expect(
       service.create({ frameName: 'x', unlockType: 'STREAK_MILESTONE', unlockValue: 5 }),
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('create: mac dinh SHOP, giu milestone legacy dong bo', async () => {
+  it('create: defaults to SHOP, keeps legacy milestone in sync', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
-    const frame = await service.create({ frameName: 'Thuong' });
+    const frame = await service.create({ frameName: 'Regular' });
 
     expect(frame.unlockType).toBe('SHOP');
     expect(frame.milestone).toBeNull();
   });
 
-  it('create khung SHOP: tu dong niem yet vao Shop', async () => {
+  it('create SHOP frame: automatically listed in the Shop', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
-    await service.create({ frameName: 'Thuong', imageUrl: 'http://t.png' });
+    await service.create({ frameName: 'Regular', imageUrl: 'http://t.png' });
 
     expect(shopService.syncFrameListing).toHaveBeenCalledWith(
-      expect.objectContaining({ frameId: 'new', frameName: 'Thuong', imageUrl: 'http://t.png' }),
+      expect.objectContaining({ frameId: 'new', frameName: 'Regular', imageUrl: 'http://t.png' }),
       true,
     );
   });
 
-  it('create khung khong phai SHOP: khong dong toi Shop', async () => {
+  it('create non-SHOP frame: does not touch the Shop', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
 
     await service.create({ frameName: 'MoSan', unlockType: 'DEFAULT' });
@@ -85,21 +85,21 @@ describe('FramesService', () => {
     expect(shopService.syncFrameListing).not.toHaveBeenCalled();
   });
 
-  it('create: loi dong bo Shop KHONG lam fail viec tao khung (best-effort)', async () => {
+  it('create: Shop sync error does NOT fail frame creation (best-effort)', async () => {
     repo.create.mockImplementation(async (f) => ({ frameId: 'new', ...f }) as never);
     shopService.syncFrameListing.mockRejectedValue(new Error('firestore down'));
 
-    const frame = await service.create({ frameName: 'Thuong' });
+    const frame = await service.create({ frameName: 'Regular' });
 
     expect(frame.frameId).toBe('new');
   });
 
-  it('update: bao loi khi frame khong ton tai', async () => {
+  it('update: error when frame does not exist', async () => {
     repo.findById.mockResolvedValue(null);
     await expect(service.update('bad', { frameName: 'x' })).rejects.toThrow(NotFoundException);
   });
 
-  it('update: merge field moi vao frame cu (giu dieu kien cu khi khong doi)', async () => {
+  it('update: merges new fields into the old frame (keeps old condition when unchanged)', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -121,7 +121,7 @@ describe('FramesService', () => {
     expect(result.imageUrl).toBe('http://old.png');
   });
 
-  it('update: doi sang loai khong nguong -> xoa nguong + milestone legacy', async () => {
+  it('update: switching to a type without threshold -> clears threshold + legacy milestone', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -138,7 +138,7 @@ describe('FramesService', () => {
     expect(result.unlockValue).toBeNull();
   });
 
-  it('update: doi sang loai can nguong ma khong gui N -> bao loi (khong mang nguong cu sang)', async () => {
+  it('update: switching to a threshold type without N -> error (old threshold not carried over)', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -151,7 +151,7 @@ describe('FramesService', () => {
     );
   });
 
-  it('update: doi dieu kien sang SHOP -> tu dong niem yet khung vao Shop', async () => {
+  it('update: switching condition to SHOP -> frame automatically listed in the Shop', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -167,7 +167,7 @@ describe('FramesService', () => {
     );
   });
 
-  it('update: doi dieu kien tu SHOP sang loai khac -> go khung khoi Shop', async () => {
+  it('update: switching condition from SHOP to another type -> frame removed from the Shop', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -182,12 +182,12 @@ describe('FramesService', () => {
     );
   });
 
-  it('delete: bao loi khi frame khong ton tai', async () => {
+  it('delete: error when frame does not exist', async () => {
     repo.findById.mockResolvedValue(null);
     await expect(service.delete('bad')).rejects.toThrow(NotFoundException);
   });
 
-  it('delete khung SHOP: go mat hang khoi Shop luon', async () => {
+  it('delete SHOP frame: also removes the Shop item', async () => {
     repo.findById.mockResolvedValue({
       frameId: 'f1',
       frameName: 'Old',
@@ -203,18 +203,18 @@ describe('FramesService', () => {
     );
   });
 
-  it('unlockForUser: mo khoa khi frame ton tai', async () => {
+  it('unlockForUser: unlocks when the frame exists', async () => {
     repo.findById.mockResolvedValue({ frameId: 'f1' } as never);
     await service.unlockForUser('me', 'f1');
     expect(usersRepo.unlockFrame).toHaveBeenCalledWith('me', 'f1');
   });
 
-  it('unlockByThreshold: chi mo khung dat nguong va CHUA so huu', async () => {
+  it('unlockByThreshold: only unlocks frames that reached the threshold and are NOT owned yet', async () => {
     repo.list.mockResolvedValue([
       { frameId: 'p10', frameName: '10 bai', unlockType: 'POST_COUNT', unlockValue: 10 },
       { frameId: 'p50', frameName: '50 bai', unlockType: 'POST_COUNT', unlockValue: 50 },
-      { frameId: 'owned', frameName: 'Da co', unlockType: 'POST_COUNT', unlockValue: 5 },
-      { frameId: 'fr5', frameName: '5 ban', unlockType: 'FRIEND_COUNT', unlockValue: 5 },
+      { frameId: 'owned', frameName: 'Owned', unlockType: 'POST_COUNT', unlockValue: 5 },
+      { frameId: 'fr5', frameName: '5 friends', unlockType: 'FRIEND_COUNT', unlockValue: 5 },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: ['owned'] } as never);
 
@@ -225,10 +225,10 @@ describe('FramesService', () => {
     expect(usersRepo.unlockFrame).toHaveBeenCalledWith('me', 'p10');
   });
 
-  it('unlockCoopFrames: mo moi khung COOP_FIRST chua so huu', async () => {
+  it('unlockCoopFrames: unlocks every COOP_FIRST frame not owned yet', async () => {
     repo.list.mockResolvedValue([
       { frameId: 'coop1', frameName: 'Duo', unlockType: 'COOP_FIRST' },
-      { frameId: 'other', frameName: 'Khac', unlockType: 'SHOP' },
+      { frameId: 'other', frameName: 'Other', unlockType: 'SHOP' },
     ] as never);
     usersRepo.findByUid.mockResolvedValue({ unlockedFrames: [] } as never);
 
@@ -237,7 +237,7 @@ describe('FramesService', () => {
     expect(unlocked).toEqual(['coop1']);
   });
 
-  it('listOwners: tra frame + danh sach user so huu; frame khong ton tai -> loi', async () => {
+  it('listOwners: returns frame + owner list; missing frame -> error', async () => {
     repo.findById.mockResolvedValue({ frameId: 'f1', frameName: 'Fire' } as never);
     usersRepo.listByUnlockedFrame.mockResolvedValue([
       { uid: 'u1', email: 'a@test.com', fullName: 'An', avatar: 'http://a.png' },

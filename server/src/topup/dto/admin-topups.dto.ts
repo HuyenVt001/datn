@@ -5,22 +5,22 @@ import { TOPUP_ORDER_STATUSES, TopupOrderStatus } from '../entities/topup-order.
 
 /** Bo loc trang lich su nap cua admin (tat ca deu tuy chon). */
 export class AdminTopupsDto {
-  @ApiPropertyOptional({ description: 'Lọc theo uid người nạp' })
+  @ApiPropertyOptional({ description: 'Filter by top-up user uid' })
   @IsOptional()
   @IsString()
   uid?: string;
 
-  @ApiPropertyOptional({ description: 'Lọc theo trạng thái đơn', enum: TOPUP_ORDER_STATUSES })
+  @ApiPropertyOptional({ description: 'Filter by order status', enum: TOPUP_ORDER_STATUSES })
   @IsOptional()
   @IsIn(TOPUP_ORDER_STATUSES)
   status?: TopupOrderStatus;
 
-  @ApiPropertyOptional({ description: 'Lọc theo ngày UTC, dạng YYYY-MM-DD', example: '2026-08-05' })
+  @ApiPropertyOptional({ description: 'Filter by UTC date, format YYYY-MM-DD', example: '2026-08-05' })
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Ngay phai co dang YYYY-MM-DD.' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' })
   date?: string;
 
-  @ApiPropertyOptional({ description: 'Số bản ghi tối đa (mặc định 200)', default: 200 })
+  @ApiPropertyOptional({ description: 'Max records (default 200)', default: 200 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -33,11 +33,11 @@ export class FriendshipsService {
   private async resolveInviter(inviteCode: string): Promise<{ inviter: User; expiresAt: string }> {
     const inviter = await this.usersService.findByInviteCode(inviteCode);
     if (!inviter) {
-      throw new NotFoundException('Ma moi khong hop le.');
+      throw new NotFoundException('Invalid invite code.');
     }
     const expiresAt = inviter.inviteCodeExpiresAt;
     if (!expiresAt || new Date(expiresAt).getTime() <= Date.now()) {
-      throw new BadRequestException('Link moi da het han. Hay xin ban be link moi nhe.');
+      throw new BadRequestException('This invite link has expired. Ask your friend for a new one.');
     }
     return { inviter, expiresAt };
   }
@@ -62,7 +62,7 @@ export class FriendshipsService {
   async connect(currentUid: string, inviteCode: string): Promise<Friendship> {
     const { inviter } = await this.resolveInviter(inviteCode);
     if (inviter.uid === currentUid) {
-      throw new BadRequestException('Khong the tu ket ban voi chinh minh.');
+      throw new BadRequestException('You can\'t add yourself as a friend.');
     }
 
     const result = await this.repo.createPendingRequest(currentUid, inviter.uid, MAX_FRIENDS);
@@ -86,15 +86,15 @@ export class FriendshipsService {
         await this.unlockFriendCountFrames(currentUid, inviter.uid);
         return result.friendship;
       case 'ALREADY_FRIENDS':
-        throw new BadRequestException('Hai ban da la ban be roi.');
+        throw new BadRequestException('You\'re already friends.');
       case 'ALREADY_REQUESTED':
-        throw new BadRequestException('Ban da gui loi moi truoc do roi — cho xac nhan nhe.');
+        throw new BadRequestException('You already sent a request — waiting for acceptance.');
       case 'LIMIT_REQUESTER':
         throw new BadRequestException(
-          `Da dat gioi han ${MAX_FRIENDS} ban be. Hay xoa bot ban cu de them ban moi.`,
+          `You've reached the ${MAX_FRIENDS}-friend limit. Remove a friend to add a new one.`,
         );
       case 'LIMIT_INVITER':
-        throw new BadRequestException(`Nguoi moi da du ${MAX_FRIENDS} ban be.`);
+        throw new BadRequestException(`The inviter already has ${MAX_FRIENDS} friends.`);
     }
   }
 
@@ -107,7 +107,7 @@ export class FriendshipsService {
         const profile = await this.usersService.getPublicProfile(requesterUid).catch(() => null);
         return {
           uid: requesterUid,
-          fullName: profile?.fullName ?? 'Nguoi dung',
+          fullName: profile?.fullName ?? 'User',
           avatar: profile?.avatar,
           requestedAt: f.createdAt,
         };
@@ -129,13 +129,13 @@ export class FriendshipsService {
         await this.unlockFriendCountFrames(currentUid, requesterUid);
         return result.friendship;
       case 'NOT_FOUND':
-        throw new NotFoundException('Khong tim thay loi moi ket ban nay.');
+        throw new NotFoundException('Friend request not found.');
       case 'LIMIT_CURRENT':
         throw new BadRequestException(
-          `Da dat gioi han ${MAX_FRIENDS} ban be. Hay xoa bot ban cu roi chap nhan lai.`,
+          `You've reached the ${MAX_FRIENDS}-friend limit. Remove a friend, then accept again.`,
         );
       case 'LIMIT_REQUESTER':
-        throw new BadRequestException(`Nguoi gui loi moi da du ${MAX_FRIENDS} ban be.`);
+        throw new BadRequestException(`The sender already has ${MAX_FRIENDS} friends.`);
     }
   }
 
@@ -143,7 +143,7 @@ export class FriendshipsService {
   async declineRequest(currentUid: string, requesterUid: string): Promise<void> {
     const ok = await this.repo.declineRequest(currentUid, requesterUid);
     if (!ok) {
-      throw new NotFoundException('Khong tim thay loi moi ket ban nay.');
+      throw new NotFoundException('Friend request not found.');
     }
   }
 
@@ -157,7 +157,7 @@ export class FriendshipsService {
         const count = (await this.repo.listAccepted(uid)).length;
         await this.framesService.unlockByThreshold(uid, 'FRIEND_COUNT', count);
       } catch (e) {
-        this.logger.warn(`Khong mo duoc khung theo so ban be cho ${uid}: ${(e as Error).message}`);
+        this.logger.warn(`Failed to unlock friend-count frames for ${uid}: ${(e as Error).message}`);
       }
     }
   }
@@ -187,7 +187,7 @@ export class FriendshipsService {
         const profile = await this.usersService.getPublicProfile(friendUid).catch(() => null);
         return {
           uid: friendUid,
-          fullName: profile?.fullName ?? 'Nguoi dung',
+          fullName: profile?.fullName ?? 'User',
           avatar: profile?.avatar,
         };
       }),
@@ -199,7 +199,7 @@ export class FriendshipsService {
   async removeFriend(currentUid: string, friendUid: string): Promise<void> {
     const existing = await this.repo.findPair(currentUid, friendUid);
     if (!existing) {
-      throw new NotFoundException('Hai ban chua ket ban.');
+      throw new NotFoundException('You\'re not friends.');
     }
     await this.repo.delete(currentUid, friendUid);
   }

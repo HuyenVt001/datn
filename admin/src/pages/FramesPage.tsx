@@ -50,7 +50,7 @@ interface FrameForm {
 
 const MILESTONE_OPTIONS = [3, 7, 14, 30].map((days) => ({
   value: days,
-  label: `Mốc streak ${days} ngày`,
+  label: `${days}-day streak milestone`,
 }));
 
 /** Nhãn + màu + mô tả từng điều kiện mở khóa (khớp UNLOCK_TYPES server). */
@@ -59,40 +59,40 @@ const UNLOCK_META: Record<
   { label: string; color: string; tag: (n?: number | null) => string; hint: string }
 > = {
   SHOP: {
-    label: 'Bán tại Cửa hàng',
+    label: 'Sold in Shop',
     color: 'gold',
-    tag: () => '🛍️ Cửa hàng',
-    hint: 'TỰ ĐỘNG lên kệ Cửa hàng (giá mặc định 320 Astrite — sửa giá ở trang Vật phẩm). User mua bằng Astrite thì mở khóa. Đổi sang điều kiện khác sẽ tự gỡ khỏi Cửa hàng.',
+    tag: () => '🛍️ Shop',
+    hint: 'AUTOMATICALLY listed in the Shop (default price 320 Astrite — edit the price on the Items page). Users unlock it by buying with Astrite. Switching to another condition removes it from the Shop.',
   },
   STREAK_MILESTONE: {
-    label: 'Mốc streak cá nhân',
+    label: 'Personal streak milestone',
     color: 'volcano',
-    tag: (n) => `🔥 Mốc streak ${n} ngày`,
-    hint: 'Tự mở khi user đạt mốc streak cá nhân 3/7/14/30 ngày.',
+    tag: (n) => `🔥 ${n}-day streak`,
+    hint: 'Unlocks when the user reaches a 3/7/14/30-day personal streak.',
   },
   POST_COUNT: {
-    label: 'Mốc số bài đăng',
+    label: 'Post count milestone',
     color: 'geekblue',
-    tag: (n) => `📸 Đăng đủ ${n} bài`,
-    hint: 'Tự mở khi tổng số bài đăng của user đạt ngưỡng N.',
+    tag: (n) => `📸 ${n} posts`,
+    hint: 'Unlocks when the user\'s total post count reaches N.',
   },
   FRIEND_COUNT: {
-    label: 'Mốc số bạn bè',
+    label: 'Friend count milestone',
     color: 'green',
-    tag: (n) => `👥 Đủ ${n} bạn bè`,
-    hint: 'Tự mở (cho cả 2 phía) khi số bạn bè của user đạt ngưỡng N (tối đa 20).',
+    tag: (n) => `👥 ${n} friends`,
+    hint: 'Unlocks (for both sides) when the user\'s friend count reaches N (max 20).',
   },
   COOP_FIRST: {
-    label: 'Chụp chung lần đầu',
+    label: 'First co-op capture',
     color: 'purple',
-    tag: () => '🤝 Chụp chung lần đầu',
-    hint: 'Tự mở cho CẢ 2 người khi hoàn thành chụp chung (co-op capture) đầu tiên.',
+    tag: () => '🤝 First co-op capture',
+    hint: 'Unlocks for BOTH people when they complete their first co-op capture.',
   },
   DEFAULT: {
-    label: 'Mở sẵn cho mọi người',
+    label: 'Unlocked for everyone',
     color: 'cyan',
-    tag: () => '✨ Mở sẵn',
-    hint: 'Mọi user đều có ngay từ đầu, không cần điều kiện.',
+    tag: () => '✨ Unlocked',
+    hint: 'Every user has it from the start, no condition needed.',
   },
 };
 
@@ -111,7 +111,7 @@ function metaOf(type: UnlockType) {
       label: String(type),
       color: 'default',
       tag: () => String(type),
-      hint: 'Loai dieu kien khong xac dinh — kiem tra du lieu khung nay tren Firestore.',
+      hint: 'Unknown condition type — check this frame\'s data in Firestore.',
     }
   );
 }
@@ -168,7 +168,7 @@ export function FramesPage() {
       return editing ? updateFrame(editing.frameId, body) : createFrame(body);
     },
     onSuccess: () => {
-      message.success(editing ? 'Đã cập nhật khung ảnh.' : 'Đã thêm khung ảnh.');
+      message.success(editing ? 'Frame updated.' : 'Frame added.');
       setModalOpen(false);
       void invalidate();
     },
@@ -178,7 +178,7 @@ export function FramesPage() {
   const deleteMutation = useMutation({
     mutationFn: (frameId: string) => deleteFrame(frameId),
     onSuccess: (_result, frameId) => {
-      message.success('Đã xóa khung ảnh.');
+      message.success('Frame deleted.');
       void invalidate();
       // Drawer owners cua khung vua xoa (neu dang mo) phai dong + bo cache
       void queryClient.invalidateQueries({ queryKey: ['frame-owners'] });
@@ -212,7 +212,7 @@ export function FramesPage() {
   const grantMutation = useMutation({
     mutationFn: ({ frameId, uid }: { frameId: string; uid: string }) => grantFrame(frameId, uid),
     onSuccess: () => {
-      message.success('Đã cấp khung cho người dùng.');
+      message.success('Frame granted to user.');
       setGrantTarget(null);
       setGrantUid(undefined);
       void queryClient.invalidateQueries({ queryKey: ['frame-owners'] });
@@ -244,10 +244,10 @@ export function FramesPage() {
         }}
       >
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Quản lý khung ảnh
+          Manage frames
         </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Thêm khung
+          Add frame
         </Button>
       </div>
 
@@ -256,7 +256,7 @@ export function FramesPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được danh sách khung ảnh."
+          message="Couldn't load frames."
           description={(framesError as Error).message}
         />
       )}
@@ -265,7 +265,7 @@ export function FramesPage() {
           <Spin />
         </div>
       ) : !frames || frames.length === 0 ? (
-        !framesError && <Empty description="Chưa có khung ảnh nào — bấm 'Thêm khung' để tạo." />
+        !framesError && <Empty description="No frames yet — click 'Add frame' to create one." />
       ) : (
         <Row gutter={[16, 16]}>
           {frames.map((frame) => (
@@ -308,23 +308,23 @@ export function FramesPage() {
                   )
                 }
                 actions={[
-                  <EditOutlined key="edit" title="Sửa" onClick={() => openEdit(frame)} />,
-                  <GiftOutlined key="grant" title="Cấp cho user" onClick={() => openGrant(frame)} />,
+                  <EditOutlined key="edit" title="Edit" onClick={() => openEdit(frame)} />,
+                  <GiftOutlined key="grant" title="Grant to user" onClick={() => openGrant(frame)} />,
                   <TeamOutlined
                     key="owners"
-                    title="Ai đang sở hữu?"
+                    title="Who owns this?"
                     onClick={() => setOwnersTarget(frame)}
                   />,
                   <Popconfirm
                     key="delete"
-                    title="Xóa khung ảnh này?"
-                    description="Khung sẽ biến mất khỏi catalog của app."
-                    okText="Xóa"
-                    cancelText="Hủy"
+                    title="Delete this frame?"
+                    description="The frame will disappear from the app catalog."
+                    okText="Delete"
+                    cancelText="Cancel"
                     okButtonProps={{ danger: true }}
                     onConfirm={() => deleteMutation.mutate(frame.frameId)}
                   >
-                    <DeleteOutlined title="Xóa" />
+                    <DeleteOutlined title="Delete" />
                   </Popconfirm>,
                 ]}
               >
@@ -344,12 +344,12 @@ export function FramesPage() {
 
       {/* Modal thêm / sửa khung */}
       <Modal
-        title={editing ? 'Sửa khung ảnh' : 'Thêm khung ảnh'}
+        title={editing ? 'Edit frame' : 'Add frame'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}
-        okText={editing ? 'Lưu' : 'Thêm'}
-        cancelText="Hủy"
+        okText={editing ? 'Save' : 'Add'}
+        cancelText="Cancel"
         confirmLoading={saveMutation.isPending}
       >
         <Form<FrameForm>
@@ -367,15 +367,15 @@ export function FramesPage() {
         >
           <Form.Item
             name="frameName"
-            label="Tên khung"
-            rules={[{ required: true, message: 'Nhập tên khung.' }]}
+            label="Frame name"
+            rules={[{ required: true, message: 'Enter a frame name.' }]}
           >
-            <Input placeholder="Ví dụ: Khung lửa streak 7 ngày" maxLength={100} />
+            <Input placeholder="e.g. 7-day streak fire frame" maxLength={100} />
           </Form.Item>
           <Form.Item
             name="unlockType"
-            label="Điều kiện mở khóa"
-            rules={[{ required: true, message: 'Chọn điều kiện mở khóa.' }]}
+            label="Unlock condition"
+            rules={[{ required: true, message: 'Choose an unlock condition.' }]}
             extra={metaOf(unlockType).hint}
           >
             <Select options={UNLOCK_OPTIONS} />
@@ -383,45 +383,45 @@ export function FramesPage() {
           {unlockType === 'STREAK_MILESTONE' && (
             <Form.Item
               name="unlockValue"
-              label="Mốc streak"
-              rules={[{ required: true, message: 'Chọn mốc streak.' }]}
+              label="Streak milestone"
+              rules={[{ required: true, message: 'Choose a streak milestone.' }]}
             >
-              <Select placeholder="Chọn mốc 3 / 7 / 14 / 30 ngày" options={MILESTONE_OPTIONS} />
+              <Select placeholder="Choose 3 / 7 / 14 / 30 days" options={MILESTONE_OPTIONS} />
             </Form.Item>
           )}
           {unlockType === 'POST_COUNT' && (
             <Form.Item
               name="unlockValue"
-              label="Số bài đăng cần đạt (N)"
+              label="Required post count (N)"
               rules={[
-                { required: true, message: 'Nhập số bài đăng N.' },
-                { type: 'number', min: 1, max: 100000, message: 'N phải từ 1 đến 100000.' },
+                { required: true, message: 'Enter the post count N.' },
+                { type: 'number', min: 1, max: 100000, message: 'N must be between 1 and 100000.' },
               ]}
             >
-              <InputNumber min={1} max={100000} style={{ width: '100%' }} placeholder="Ví dụ: 10" />
+              <InputNumber min={1} max={100000} style={{ width: '100%' }} placeholder="e.g. 10" />
             </Form.Item>
           )}
           {unlockType === 'FRIEND_COUNT' && (
             <Form.Item
               name="unlockValue"
-              label="Số bạn bè cần đạt (N, tối đa 20)"
+              label="Required friend count (N, max 20)"
               rules={[
-                { required: true, message: 'Nhập số bạn bè N.' },
-                { type: 'number', min: 1, max: 20, message: 'N phải từ 1 đến 20.' },
+                { required: true, message: 'Enter the friend count N.' },
+                { type: 'number', min: 1, max: 20, message: 'N must be between 1 and 20.' },
               ]}
             >
-              <InputNumber min={1} max={20} style={{ width: '100%' }} placeholder="Ví dụ: 5" />
+              <InputNumber min={1} max={20} style={{ width: '100%' }} placeholder="e.g. 5" />
             </Form.Item>
           )}
-          <Form.Item label="Ảnh khung (PNG nền trong suốt)">
-            <ImageUploadField value={imageUrl} onChange={setImageUrl} buttonText="Tải ảnh khung lên" />
+          <Form.Item label="Frame image (transparent PNG)">
+            <ImageUploadField value={imageUrl} onChange={setImageUrl} buttonText="Upload frame image" />
           </Form.Item>
         </Form>
       </Modal>
 
       {/* Modal cấp khung cho user */}
       <Modal
-        title={grantTarget ? `Cấp khung "${grantTarget.frameName}" cho người dùng` : ''}
+        title={grantTarget ? `Grant frame "${grantTarget.frameName}" to a user` : ''}
         open={grantTarget !== null}
         onCancel={() => {
           setGrantTarget(null);
@@ -432,15 +432,15 @@ export function FramesPage() {
             grantMutation.mutate({ frameId: grantTarget.frameId, uid: grantUid });
           }
         }}
-        okText="Cấp khung"
-        cancelText="Hủy"
+        okText="Grant frame"
+        cancelText="Cancel"
         okButtonProps={{ disabled: !grantUid }}
         confirmLoading={grantMutation.isPending}
       >
         <Select
           showSearch
           style={{ width: '100%' }}
-          placeholder="Tìm người dùng theo email/tên..."
+          placeholder="Search users by email/name..."
           value={grantUid}
           onChange={setGrantUid}
           onSearch={onUserSearch}
@@ -448,9 +448,9 @@ export function FramesPage() {
           loading={searchingUsers}
           options={(userOptions?.items ?? []).map((u) => ({
             value: u.uid,
-            label: `${u.fullName || '(chưa đặt tên)'} — ${u.email ?? u.uid}`,
+            label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
           }))}
-          notFoundContent={searchingUsers ? <Spin size="small" /> : 'Không tìm thấy người dùng'}
+          notFoundContent={searchingUsers ? <Spin size="small" /> : 'No users found'}
         />
       </Modal>
 
@@ -458,7 +458,7 @@ export function FramesPage() {
       <Drawer
         title={
           ownersTarget
-            ? `Người sở hữu "${ownersTarget.frameName}"${
+            ? `Owners of "${ownersTarget.frameName}"${
                 ownersData ? ` (${ownersData.owners.length})` : ''
               }`
             : ''
@@ -472,8 +472,8 @@ export function FramesPage() {
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message="Khung mở sẵn cho MỌI user."
-            description="Danh sách dưới chỉ gồm những người được mở/cấp thủ công (trước khi khung chuyển sang mở sẵn)."
+            message="This frame is unlocked for EVERY user."
+            description="The list below only includes people unlocked/granted manually (before the frame became unlocked for everyone)."
           />
         )}
         {ownersError && (
@@ -481,7 +481,7 @@ export function FramesPage() {
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            message="Không tải được danh sách sở hữu."
+            message="Couldn't load owners."
             description={(ownersError as Error).message}
           />
         )}
@@ -492,7 +492,7 @@ export function FramesPage() {
         ) : (
           <List
             dataSource={ownersData?.owners ?? []}
-            locale={{ emptyText: 'Chưa có người dùng nào sở hữu khung này.' }}
+            locale={{ emptyText: 'No users own this frame yet.' }}
             renderItem={(owner) => (
               <List.Item>
                 <List.Item.Meta
@@ -503,7 +503,7 @@ export function FramesPage() {
                       <Avatar icon={<UserOutlined />} />
                     )
                   }
-                  title={owner.fullName || '(chưa đặt tên)'}
+                  title={owner.fullName || '(no name)'}
                   description={owner.email ?? owner.uid}
                 />
               </List.Item>

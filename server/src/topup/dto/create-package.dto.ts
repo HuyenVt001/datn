@@ -12,41 +12,41 @@ import {
 
 /** Admin them goi nap moi. */
 export class CreateTopupPackageDto {
-  @ApiProperty({ description: 'Tên gói hiện trong popup nạp của app', maxLength: 60 })
+  @ApiProperty({ description: 'Package name shown in the app\'s top-up popup', maxLength: 60 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)
   name!: string;
 
-  @ApiProperty({ description: 'Số Astrite cộng vào ví khi thanh toán thành công', minimum: 1 })
+  @ApiProperty({ description: 'Astrite credited to the wallet on successful payment', minimum: 1 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   astrite!: number;
 
   @ApiProperty({
-    description: 'Giá tiền VND (số nguyên). PayOS yêu cầu tối thiểu 1.000đ.',
+    description: 'Price in VND (integer). PayOS requires at least 1,000 VND.',
     minimum: 1000,
   })
   @Type(() => Number)
   @IsInt()
-  @Min(1000, { message: 'Gia goi nap toi thieu 1000d (gioi han cua PayOS).' })
+  @Min(1000, { message: 'Package price must be at least 1,000 VND (PayOS limit).' })
   priceVnd!: number;
 
-  @ApiPropertyOptional({ description: 'Tắt = ẩn khỏi popup nạp (mặc định bật)', default: true })
+  @ApiPropertyOptional({ description: 'Off = hidden from the top-up popup (default on)', default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Đánh dấu gói dùng để kiểm thử (chỉ để admin dễ nhận ra)',
+    description: 'Marks a package used for testing (just so admins can spot it)',
     default: false,
   })
   @IsOptional()
   @IsBoolean()
   isTest?: boolean;
 
-  @ApiPropertyOptional({ description: 'Thứ tự hiển thị (nhỏ lên trước)', default: 0 })
+  @ApiPropertyOptional({ description: 'Display order (lower first)', default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

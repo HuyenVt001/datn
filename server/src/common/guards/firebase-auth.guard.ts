@@ -27,7 +27,7 @@ export class FirebaseAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(request);
     if (!token) {
-      throw new UnauthorizedException('Thieu token xac thuc.');
+      throw new UnauthorizedException('Missing authentication token.');
     }
 
     try {
@@ -40,7 +40,7 @@ export class FirebaseAuthGuard implements CanActivate {
       };
       return true;
     } catch {
-      throw new UnauthorizedException('Token khong hop le hoac da het han.');
+      throw new UnauthorizedException('Token is invalid or expired.');
     }
   }
 

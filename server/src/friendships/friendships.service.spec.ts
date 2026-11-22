@@ -52,7 +52,7 @@ describe('FriendshipsService', () => {
   });
 
   describe('getInviteLink', () => {
-    it('tra ve link theo domain hosting + han 30 ngay tu usersService', async () => {
+    it('returns the hosting-domain link + 30-day expiry from usersService', async () => {
       users.getOrCreateInviteCode.mockResolvedValue({
         inviteCode: 'abc123',
         expiresAt: '2026-08-18T00:00:00.000Z',
@@ -66,54 +66,54 @@ describe('FriendshipsService', () => {
   });
 
   describe('getInviteInfo', () => {
-    it('tra ve ho so cong khai nguoi moi + han link', async () => {
+    it('returns the inviter\'s public profile + link expiry', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       users.getPublicProfile.mockResolvedValue({
         uid: 'friend',
-        fullName: 'Ban Toi',
+        fullName: 'My Friend',
         avatar: 'http://a.png',
       } as never);
 
       const result = await service.getInviteInfo('code');
 
-      expect(result.fullName).toBe('Ban Toi');
+      expect(result.fullName).toBe('My Friend');
       expect(result.expiresAt).toBeDefined();
     });
 
-    it('bao loi khi ma khong ton tai', async () => {
+    it('error when the code does not exist', async () => {
       users.findByInviteCode.mockResolvedValue(null);
       await expect(service.getInviteInfo('bad')).rejects.toThrow(NotFoundException);
     });
 
-    it('bao loi khi ma da het han', async () => {
+    it('error when the code has expired', async () => {
       users.findByInviteCode.mockResolvedValue({
         uid: 'friend',
         inviteCodeExpiresAt: new Date(Date.now() - 1000).toISOString(),
       } as never);
-      await expect(service.getInviteInfo('old')).rejects.toThrow(/het han/);
+      await expect(service.getInviteInfo('old')).rejects.toThrow(/expired/);
     });
   });
 
-  describe('connect (gui loi moi — chu link phai xac nhan)', () => {
-    it('bao loi khi ma moi khong ton tai', async () => {
+  describe('connect (sends a request — link owner must accept)', () => {
+    it('error when the invite code does not exist', async () => {
       users.findByInviteCode.mockResolvedValue(null);
       await expect(service.connect('me', 'bad')).rejects.toThrow(NotFoundException);
     });
 
-    it('bao loi khi ma moi het han (link cu vo hieu sau 30 ngay)', async () => {
+    it('error when the invite code expired (old link invalid after 30 days)', async () => {
       users.findByInviteCode.mockResolvedValue({
         uid: 'friend',
         inviteCodeExpiresAt: new Date(Date.now() - 1000).toISOString(),
       } as never);
-      await expect(service.connect('me', 'old')).rejects.toThrow(/het han/);
+      await expect(service.connect('me', 'old')).rejects.toThrow(/expired/);
     });
 
-    it('khong cho tu moi chinh minh', async () => {
+    it('cannot invite yourself', async () => {
       users.findByInviteCode.mockResolvedValue({ ...validInviter(), uid: 'me' } as never);
       await expect(service.connect('me', 'code')).rejects.toThrow(BadRequestException);
     });
 
-    it('tao loi moi PENDING khi hop le (chua thanh ban ngay)', async () => {
+    it('creates a PENDING request when valid (not friends yet)', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({
         outcome: 'REQUESTED',
@@ -126,7 +126,7 @@ describe('FriendshipsService', () => {
       expect(result.status).toBe('PENDING');
     });
 
-    it('2 ben cung moi nhau (PENDING nguoc chieu) -> ACCEPTED luon', async () => {
+    it('both invite each other (reverse PENDING) -> ACCEPTED immediately', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({
         outcome: 'MUTUAL_ACCEPTED',
@@ -138,35 +138,35 @@ describe('FriendshipsService', () => {
       expect(result.status).toBe('ACCEPTED');
     });
 
-    it('bao loi khi da la ban', async () => {
+    it('error when already friends', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({ outcome: 'ALREADY_FRIENDS' });
-      await expect(service.connect('me', 'code')).rejects.toThrow(/da la ban/);
+      await expect(service.connect('me', 'code')).rejects.toThrow(/already friends/);
     });
 
-    it('bao loi khi da gui loi moi truoc do', async () => {
+    it('error when a request was already sent', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({ outcome: 'ALREADY_REQUESTED' });
-      await expect(service.connect('me', 'code')).rejects.toThrow(/da gui loi moi/i);
+      await expect(service.connect('me', 'code')).rejects.toThrow(/already sent a request/i);
     });
 
-    it('bao loi khi minh vuot gioi han 20 ban', async () => {
+    it('error when you exceed the 20-friend limit', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({ outcome: 'LIMIT_REQUESTER' });
       await expect(service.connect('me', 'code')).rejects.toThrow(
-        new RegExp(`gioi han ${MAX_FRIENDS}`),
+        new RegExp(`${MAX_FRIENDS}-friend limit`),
       );
     });
 
-    it('bao loi khi chu link vuot gioi han 20 ban', async () => {
+    it('error when the link owner exceeds the 20-friend limit', async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       repo.createPendingRequest.mockResolvedValue({ outcome: 'LIMIT_INVITER' });
-      await expect(service.connect('me', 'code')).rejects.toThrow(/Nguoi moi/);
+      await expect(service.connect('me', 'code')).rejects.toThrow(/The inviter/);
     });
   });
 
   describe('listRequests', () => {
-    it('tra ve loi moi kem ho so nguoi gui', async () => {
+    it('returns requests with sender profiles', async () => {
       repo.listPendingRequests.mockResolvedValue([
         {
           pairId: 'a_me',
@@ -178,7 +178,7 @@ describe('FriendshipsService', () => {
       ]);
       users.getPublicProfile.mockResolvedValue({
         uid: 'a',
-        fullName: 'Nguoi Gui',
+        fullName: 'Sender',
         avatar: 'http://a.png',
       } as never);
 
@@ -187,7 +187,7 @@ describe('FriendshipsService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         uid: 'a',
-        fullName: 'Nguoi Gui',
+        fullName: 'Sender',
         avatar: 'http://a.png',
         requestedAt: '2026-07-19T00:00:00.000Z',
       });
@@ -195,7 +195,7 @@ describe('FriendshipsService', () => {
   });
 
   describe('acceptRequest', () => {
-    it('chap nhan -> thanh ban ACCEPTED', async () => {
+    it('accept -> friends ACCEPTED', async () => {
       repo.acceptRequest.mockResolvedValue({
         outcome: 'ACCEPTED',
         friendship: { pairId: 'a_me', status: 'ACCEPTED' } as never,
@@ -207,32 +207,32 @@ describe('FriendshipsService', () => {
       expect(result.status).toBe('ACCEPTED');
     });
 
-    it('bao loi khi loi moi khong ton tai', async () => {
+    it('error when the request does not exist', async () => {
       repo.acceptRequest.mockResolvedValue({ outcome: 'NOT_FOUND' });
       await expect(service.acceptRequest('me', 'a')).rejects.toThrow(NotFoundException);
     });
 
-    it('bao loi khi minh da du 20 ban luc accept', async () => {
+    it('error when you already have 20 friends on accept', async () => {
       repo.acceptRequest.mockResolvedValue({ outcome: 'LIMIT_CURRENT' });
       await expect(service.acceptRequest('me', 'a')).rejects.toThrow(
-        new RegExp(`gioi han ${MAX_FRIENDS}`),
+        new RegExp(`${MAX_FRIENDS}-friend limit`),
       );
     });
 
-    it('bao loi khi nguoi gui da du 20 ban luc accept', async () => {
+    it('error when the sender already has 20 friends on accept', async () => {
       repo.acceptRequest.mockResolvedValue({ outcome: 'LIMIT_REQUESTER' });
-      await expect(service.acceptRequest('me', 'a')).rejects.toThrow(/Nguoi gui/);
+      await expect(service.acceptRequest('me', 'a')).rejects.toThrow(/The sender/);
     });
   });
 
   describe('declineRequest', () => {
-    it('tu choi -> xoa loi moi', async () => {
+    it('decline -> deletes the request', async () => {
       repo.declineRequest.mockResolvedValue(true);
       await service.declineRequest('me', 'a');
       expect(repo.declineRequest).toHaveBeenCalledWith('me', 'a');
     });
 
-    it('bao loi khi khong co loi moi tuong ung', async () => {
+    it('error when there is no matching request', async () => {
       repo.declineRequest.mockResolvedValue(false);
       await expect(service.declineRequest('me', 'a')).rejects.toThrow(NotFoundException);
     });

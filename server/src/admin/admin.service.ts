@@ -144,7 +144,7 @@ export class AdminService {
     disabled: boolean,
   ): Promise<{ uid: string; disabled: boolean }> {
     if (disabled && uid === actor.uid) {
-      throw new BadRequestException('Ban khong the tu khoa tai khoan cua chinh minh.');
+      throw new BadRequestException('You cannot disable your own account.');
     }
     const target = await this.getUserOrThrow(uid); // 404 ro rang thay vi 500 khi uid khong ton tai
     await this.firebase.auth().updateUser(uid, { disabled });
@@ -176,11 +176,11 @@ export class AdminService {
    */
   async revokeAdmin(actor: AuthUser, uid: string): Promise<{ uid: string; admin: boolean }> {
     if (uid === actor.uid) {
-      throw new BadRequestException('Ban khong the tu thu quyen admin cua chinh minh.');
+      throw new BadRequestException('You cannot revoke your own admin rights.');
     }
     const user = await this.getUserOrThrow(uid);
     if (user.customClaims?.admin !== true) {
-      throw new BadRequestException('Nguoi dung nay khong phai admin.');
+      throw new BadRequestException('This user is not an admin.');
     }
     await this.firebase.auth().setCustomUserClaims(uid, { ...user.customClaims, admin: false });
 
@@ -188,7 +188,7 @@ export class AdminService {
     if (remaining === 0) {
       await this.firebase.auth().setCustomUserClaims(uid, { ...user.customClaims, admin: true });
       throw new BadRequestException(
-        'Khong the thu quyen: he thong se khong con admin nao. Quyen cua nguoi nay da duoc giu nguyen.',
+        'Cannot revoke: the system would have no admins left. This user\'s rights were kept.',
       );
     }
     await this.audit.log(actor, 'REVOKE_ADMIN', { id: uid, label: user.email ?? uid });
@@ -220,12 +220,12 @@ export class AdminService {
   async deleteMoment(actor: AuthUser, momentId: string): Promise<{ momentId: string }> {
     const moment = await this.momentsRepo.findById(momentId);
     if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
+      throw new NotFoundException('Post not found.');
     }
     await this.momentsRepo.delete(momentId);
     await this.audit.log(actor, 'MOMENT_DELETE', {
       id: momentId,
-      label: moment.caption || `bai cua ${moment.userId}`,
+      label: moment.caption || `post by ${moment.userId}`,
     });
     return { momentId };
   }
@@ -240,7 +240,7 @@ export class AdminService {
     try {
       return await this.firebase.auth().getUser(uid);
     } catch {
-      throw new NotFoundException('Khong tim thay nguoi dung.');
+      throw new NotFoundException('User not found.');
     }
   }
 }

@@ -18,20 +18,20 @@ import org.junit.Test
 class SkinRegistryTest {
 
     @Test
-    fun `id khong trung nhau va Default dung dau`() {
+    fun `ids are unique and Default comes first`() {
         val ids = SkinRegistry.all.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
         assertEquals(SkinRegistry.DEFAULT_ID, SkinRegistry.all.first().id)
     }
 
     @Test
-    fun `find voi id la roi ve Default thay vi nem loi`() {
+    fun `find with unknown id falls back to Default instead of throwing`() {
         assertEquals(SkinRegistry.DEFAULT_ID, SkinRegistry.find(99).id)
         assertEquals(SkinRegistry.DEFAULT_ID, SkinRegistry.find(-1).id)
     }
 
     @Test
-    fun `skin ban o Shop co nut chup rieng, Default thi khong`() {
+    fun `Shop skins have their own capture button, Default does not`() {
         // Default ve nut chup bang token mau -> khong can anh
         assertNull(SkinRegistry.find(SkinRegistry.DEFAULT_ID).images.captureButton)
         // Snow (1) + Forest (2) da cam anh nut chup (P5)
@@ -40,7 +40,7 @@ class SkinRegistryTest {
     }
 
     @Test
-    fun `skin ban o Shop khai DU 12 icon - quen field nao la do ngay`() {
+    fun `Shop skins declare ALL 12 icons - a missing field fails immediately`() {
         // Default co y de trong (fallback Material la giao dien chuan cua no);
         // con skin ban bang tien that thi bo icon phai du — thay the ve sau chi
         // viec ghi de file, khong dung vao code.
@@ -54,13 +54,13 @@ class SkinRegistryTest {
                 "chat" to icons.chat, "chevronDown" to icons.chevronDown,
                 "chevronRight" to icons.chevronRight, "back" to icons.back,
             ).forEach { (name, res) ->
-                assertNotNull("skin '${skin.displayName}' thieu icon '$name'", res)
+                assertNotNull("skin '${skin.displayName}' is missing icon '$name'", res)
             }
         }
     }
 
     @Test
-    fun `selector skinIcon cua tung item tro dung field`() {
+    fun `skinIcon selector of each item points to the right field`() {
         // Moi field 1 gia tri rieng -> selector lay nham field la lech so ngay
         val probe = SkinIcons(
             camera = 1, send = 2, gallery = 3, flipCamera = 4, close = 5,
@@ -80,7 +80,7 @@ class SkinRegistryTest {
     }
 
     @Test
-    fun `skin chua ve icon - selector tra null de fallback Material`() {
+    fun `skin without drawn icon - selector returns null to fall back to Material`() {
         val empty = SkinIcons()
         (takePhotoBar + submitPhotoBar)
             .mapNotNull { it.skinIcon }

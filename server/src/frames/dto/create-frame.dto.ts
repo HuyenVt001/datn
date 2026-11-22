@@ -18,19 +18,19 @@ import { UNLOCK_TYPES, UnlockType } from '../entities/frame.entity';
  * (STREAK_MILESTONE ∈ 3/7/14/30, POST_COUNT >= 1, FRIEND_COUNT 1..20).
  */
 export class CreateFrameDto {
-  @ApiProperty({ description: 'Ten khung anh', maxLength: 100 })
+  @ApiProperty({ description: 'Frame name', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   frameName!: string;
 
-  @ApiPropertyOptional({ description: 'URL anh khung (tu /upload hoac link ngoai)' })
+  @ApiPropertyOptional({ description: 'Frame image URL (from /upload or an external link)' })
   @IsOptional()
   @IsUrl()
   imageUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'Dieu kien mo khoa; bo trong = SHOP (khung ban trong Cua hang, gia mac dinh 320)',
+    description: 'Unlock condition; empty = SHOP (frame sold in the Shop, default price 320)',
     enum: UNLOCK_TYPES,
     default: 'SHOP',
   })
@@ -39,7 +39,7 @@ export class CreateFrameDto {
   unlockType?: UnlockType;
 
   @ApiPropertyOptional({
-    description: 'Nguong N cua dieu kien (moc streak / so bai dang / so ban be)',
+    description: 'Condition threshold N (streak milestone / post count / friend count)',
   })
   @IsOptional()
   @Type(() => Number)

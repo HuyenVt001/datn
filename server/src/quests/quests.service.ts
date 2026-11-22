@@ -63,7 +63,7 @@ export class QuestsService {
 
     // Quest AI hong (Firestore loi doc AI, ...) KHONG duoc lam hong 2 quest co dinh
     const aiQuest = await this.ensureAiQuest(date, false).catch((e) => {
-      this.logger.warn(`Khong lay duoc quest AI ngay ${date}: ${(e as Error).message}`);
+      this.logger.warn(`Failed to get AI quest for ${date}: ${(e as Error).message}`);
       return null;
     });
     const all = aiQuest ? [...daily, aiQuest] : daily;
@@ -170,7 +170,7 @@ export class QuestsService {
     } catch (e) {
       // Anh DA khop nhung ghi hoan thanh/cong tien loi -> bao SKIPPED de user
       // dang bai khac thu lai (quest chua tick nen lan sau van verify + thuong)
-      this.logger.warn(`Khop quest AI nhung khong thuong duoc cho ${uid}: ${(e as Error).message}`);
+      this.logger.warn(`AI quest matched but reward failed for ${uid}: ${(e as Error).message}`);
       return { result: 'SKIPPED', score: verdict.score, questContent: quest.content };
     }
     return { result: 'MATCHED', score: verdict.score, questContent: quest.content };
@@ -277,11 +277,11 @@ export class QuestsService {
           source = 'LLM';
         } else {
           this.logger.warn(
-            `LLM tra quest khong hop le cho ${date} (${JSON.stringify(raw).slice(0, 120)}) — dung fallback`,
+            `LLM returned an invalid quest for ${date} (${JSON.stringify(raw).slice(0, 120)}) — using fallback`,
           );
         }
       } catch (e) {
-        this.logger.warn(`LLM sinh quest ${date} loi: ${(e as Error).message} — dung fallback`);
+        this.logger.warn(`LLM quest generation for ${date} failed: ${(e as Error).message} — using fallback`);
       }
     }
 
@@ -345,10 +345,10 @@ export class QuestsService {
     } catch (e) {
       await this.repo
         .deleteUserQuest(date, uid, 'AI_CHALLENGE')
-        .catch(() => this.logger.warn(`Khong tra lai duoc quest AI ngay ${date} cho ${uid}`));
+        .catch(() => this.logger.warn(`Failed to roll back AI quest for ${date} for ${uid}`));
       throw e;
     }
-    this.logger.log(`Thuong ${QUEST_AI_ASTRITE} Astrite cho ${uid} (quest AI ngay ${date})`);
+    this.logger.log(`Rewarded ${QUEST_AI_ASTRITE} Astrite to ${uid} (AI quest ${date})`);
   }
 
   /** Ghi log verify best-effort (nhu adminLogs) — khong bao gio throw. */
@@ -358,7 +358,7 @@ export class QuestsService {
     try {
       await this.repo.addAiVerification({ ...entry, createdAt: new Date().toISOString() });
     } catch (e) {
-      this.logger.warn(`Khong ghi duoc aiVerifications: ${(e as Error).message}`);
+      this.logger.warn(`Failed to write aiVerifications: ${(e as Error).message}`);
     }
   }
 
@@ -391,17 +391,17 @@ export class QuestsService {
       // thi doc claim astrite:null nam do mai = user mat thuong ngay do).
       await this.repo
         .deleteDailyReward(date, uid)
-        .catch(() => this.logger.warn(`Khong tra lai duoc claim thuong ngay ${date} cho ${uid}`));
+        .catch(() => this.logger.warn(`Failed to release reward claim for ${date} for ${uid}`));
       throw e;
     }
 
     // Tu day tro di TUYET DOI khong duoc xoa claim: tien da vao vi roi, tra lai
     // claim = lan goi sau cong them 60 nua. Ghi so hien thi that bai thi chi
     // mat con so tren UI (doc claim doc ra null = "da xet thuong"), khong mat tien.
-    this.logger.log(`Thuong ${QUEST_DAILY_ASTRITE} Astrite cho ${uid} (2/2 quest ngay ${date})`);
+    this.logger.log(`Rewarded ${QUEST_DAILY_ASTRITE} Astrite to ${uid} (2/2 quests ${date})`);
     await this.repo
       .setDailyRewardAstrite(date, uid, QUEST_DAILY_ASTRITE)
-      .catch(() => this.logger.warn(`Da cong Astrite nhung khong ghi duoc moc thuong ${date}`));
+      .catch(() => this.logger.warn(`Astrite credited but failed to write reward marker ${date}`));
   }
 
   /** Dat dung moc streak (3/7/14/30) -> mo khung cua moc (unlockFrame arrayUnion nen idempotent). */
@@ -417,7 +417,7 @@ export class QuestsService {
       return undefined; // admin chua tao khung cho moc nay
     }
     await this.framesService.unlockForUser(uid, frame.frameId);
-    this.logger.log(`Mo khung moc streak ${streak} (${frame.frameId}) cho ${uid}`);
+    this.logger.log(`Unlocked streak-${streak} frame (${frame.frameId}) for ${uid}`);
     return frame.frameId;
   }
 

@@ -22,28 +22,28 @@ import { useMemo, useState } from 'react';
 import { listTopupOrders } from '../api/topup.api';
 import type { AdminTopupOrder, TopupOrderStatus } from '../types';
 
-const vnd = (n: number) => `${n.toLocaleString('vi-VN')}đ`;
+const vnd = (n: number) => `${n.toLocaleString('en-US')} VND`;
 
 const STATUS_META: Record<TopupOrderStatus, { color: string; label: string; hint: string }> = {
   PENDING: {
     color: 'processing',
-    label: 'Chờ trả',
-    hint: 'Đã tạo link thanh toán, người dùng chưa trả xong.',
+    label: 'Pending',
+    hint: 'Payment link created, the user hasn\'t finished paying.',
   },
   PAID: {
     color: 'success',
-    label: 'Đã trả',
-    hint: 'PayOS đã xác nhận và Astrite đã được cộng vào ví.',
+    label: 'Paid',
+    hint: 'PayOS confirmed and Astrite was added to the wallet.',
   },
   CANCELLED: {
     color: 'default',
-    label: 'Đã huỷ',
-    hint: 'Người dùng bấm huỷ, hoặc tạo link thanh toán thất bại.',
+    label: 'Cancelled',
+    hint: 'The user cancelled, or creating the payment link failed.',
   },
   EXPIRED: {
     color: 'warning',
-    label: 'Quá hạn',
-    hint: 'Quá 30 phút chưa trả. Nếu tiền vẫn về sau đó thì server vẫn cộng Astrite.',
+    label: 'Expired',
+    hint: 'Not paid within 30 minutes. If the money still arrives later, the server still credits Astrite.',
   },
 };
 
@@ -79,13 +79,13 @@ export function TopupHistoryPage() {
 
   const columns: ColumnsType<AdminTopupOrder> = [
     {
-      title: 'Thời điểm',
+      title: 'Time',
       dataIndex: 'createdAt',
       width: 165,
-      render: (value: string) => new Date(value).toLocaleString('vi-VN'),
+      render: (value: string) => new Date(value).toLocaleString('en-US'),
     },
     {
-      title: 'Người nạp',
+      title: 'User',
       dataIndex: 'fullName',
       width: 200,
       render: (fullName: string, row) => (
@@ -98,26 +98,26 @@ export function TopupHistoryPage() {
       ),
     },
     {
-      title: 'Gói',
+      title: 'Package',
       dataIndex: 'packageName',
       render: (name: string, row) => (
         <Space direction="vertical" size={0}>
           <span>{name}</span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            +{row.astrite.toLocaleString('vi-VN')} Astrite
+            +{row.astrite.toLocaleString('en-US')} Astrite
           </Typography.Text>
         </Space>
       ),
     },
     {
-      title: 'Số tiền',
+      title: 'Amount',
       dataIndex: 'amountVnd',
       width: 120,
       align: 'right',
       render: (n: number) => <Typography.Text strong>{vnd(n)}</Typography.Text>,
     },
     {
-      title: 'Trạng thái',
+      title: 'Status',
       dataIndex: 'status',
       width: 130,
       render: (s: TopupOrderStatus, row) => (
@@ -126,8 +126,8 @@ export function TopupHistoryPage() {
             <Tag color={STATUS_META[s].color}>{STATUS_META[s].label}</Tag>
           </Tooltip>
           {row.isSimulated && (
-            <Tooltip title="Đơn do /topup/simulate tạo ở môi trường dev — KHÔNG có tiền thật.">
-              <Tag color="cyan">Giả lập</Tag>
+            <Tooltip title="Order created by /topup/simulate in dev — NO real money.">
+              <Tag color="cyan">Simulated</Tag>
             </Tooltip>
           )}
         </Space>
@@ -135,7 +135,7 @@ export function TopupHistoryPage() {
     },
     {
       // Mã đơn + mã giao dịch ngân hàng: hai thứ cần để đối chiếu với dashboard PayOS
-      title: 'Mã đơn / Mã giao dịch',
+      title: 'Order code / Transaction ref',
       key: 'codes',
       width: 210,
       render: (_, row) => (
@@ -154,31 +154,31 @@ export function TopupHistoryPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Lịch sử nạp Astrite
+        Astrite top-up history
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 800 }}>
-        Doanh thu chỉ tính đơn <b>Đã trả</b>. Đối chiếu <b>Mã giao dịch</b> ở đây với dashboard PayOS
-        khi cần soát lại một khoản tiền.
+        Revenue counts only <b>Paid</b> orders. Match the <b>Transaction ref</b> here against the PayOS
+        dashboard when you need to reconcile a payment.
       </Typography.Paragraph>
       {error && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được lịch sử nạp."
+          message="Couldn't load top-up history."
           description={(error as Error).message}
         />
       )}
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
-          placeholder="Lọc theo uid người nạp..."
+          placeholder="Filter by user uid..."
           allowClear
           style={{ width: 300 }}
           onSearch={(value) => setUid(value.trim())}
         />
         <Select
-          placeholder="Mọi trạng thái"
+          placeholder="All statuses"
           allowClear
           style={{ width: 180 }}
           value={status}
@@ -186,14 +186,14 @@ export function TopupHistoryPage() {
           options={STATUS_OPTIONS}
         />
         <DatePicker
-          placeholder="Mọi ngày"
+          placeholder="All dates"
           value={date}
           onChange={setDate}
           format="DD/MM/YYYY"
           disabledDate={(d) => d.isAfter(dayjs(), 'day')}
         />
         <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={isFetching}>
-          Tải lại
+          Reload
         </Button>
       </Space>
 
@@ -201,36 +201,36 @@ export function TopupHistoryPage() {
         <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic
-              title="Doanh thu"
+              title="Revenue"
               value={summary?.paidRevenueVnd ?? 0}
-              suffix="đ"
+              suffix="VND"
               valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Đơn đã trả" value={summary?.paidCount ?? 0} />
+            <Statistic title="Paid orders" value={summary?.paidCount ?? 0} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Đơn chờ trả" value={summary?.pendingCount ?? 0} />
+            <Statistic title="Pending orders" value={summary?.pendingCount ?? 0} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Astrite đã phát" value={summary?.paidAstrite ?? 0} />
+            <Statistic title="Astrite issued" value={summary?.paidAstrite ?? 0} />
           </Card>
         </Col>
       </Row>
 
       {!!summary?.byDate.length && (
-        <Card size="small" title="Doanh thu theo ngày" style={{ marginBottom: 16 }}>
+        <Card size="small" title="Revenue by day" style={{ marginBottom: 16 }}>
           <Space wrap>
             {summary.byDate.map((d) => (
               <Tag key={d.date} color="green">
-                {dayjs(d.date).format('DD/MM')}: {vnd(d.revenueVnd)} ({d.count} đơn)
+                {dayjs(d.date).format('DD/MM')}: {vnd(d.revenueVnd)} ({d.count} orders)
               </Tag>
             ))}
           </Space>
@@ -242,7 +242,7 @@ export function TopupHistoryPage() {
         columns={columns}
         dataSource={rows}
         loading={isFetching}
-        pagination={{ pageSize: 20, showTotal: (total) => `Tổng ${total} đơn` }}
+        pagination={{ pageSize: 20, showTotal: (total) => `${total} orders total` }}
       />
     </div>
   );

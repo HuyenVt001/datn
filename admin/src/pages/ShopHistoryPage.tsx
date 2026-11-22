@@ -22,9 +22,9 @@ import { listShopPurchases } from '../api/shop.api';
 import type { AdminPurchase, ShopItemType } from '../types';
 
 const TYPE_META: Record<ShopItemType, { label: string; color: string }> = {
-  FRAME: { label: 'Khung ảnh', color: 'gold' },
-  SKIN: { label: 'Giao diện', color: 'orange' },
-  EFFECT: { label: 'Hiệu ứng chạm', color: 'purple' },
+  FRAME: { label: 'Frame', color: 'gold' },
+  SKIN: { label: 'Skin', color: 'orange' },
+  EFFECT: { label: 'Touch effect', color: 'purple' },
 };
 
 /** Lịch sử mua vật phẩm toàn hệ thống (2026-11-15 — thay Lịch sử quay). */
@@ -62,13 +62,13 @@ export function ShopHistoryPage() {
 
   const columns: ColumnsType<AdminPurchase> = [
     {
-      title: 'Thời điểm',
+      title: 'Time',
       dataIndex: 'createdAt',
       width: 165,
-      render: (value: string) => new Date(value).toLocaleString('vi-VN'),
+      render: (value: string) => new Date(value).toLocaleString('en-US'),
     },
     {
-      title: 'Người mua',
+      title: 'Buyer',
       dataIndex: 'fullName',
       width: 220,
       render: (fullName: string, row) => (
@@ -80,9 +80,9 @@ export function ShopHistoryPage() {
         </Space>
       ),
     },
-    { title: 'Vật phẩm', dataIndex: 'itemName' },
+    { title: 'Item', dataIndex: 'itemName' },
     {
-      title: 'Loại',
+      title: 'Type',
       dataIndex: 'itemType',
       width: 140,
       render: (type: ShopItemType) => (
@@ -90,48 +90,48 @@ export function ShopHistoryPage() {
       ),
     },
     {
-      title: 'Giá đã trả',
+      title: 'Price paid',
       dataIndex: 'price',
       width: 120,
-      render: (v: number) => `${v.toLocaleString('vi-VN')} ⭐`,
+      render: (v: number) => `${v.toLocaleString('en-US')} ⭐`,
     },
     {
-      title: 'Số dư sau',
+      title: 'Balance after',
       dataIndex: 'balanceAfter',
       width: 120,
-      render: (v: number) => v.toLocaleString('vi-VN'),
+      render: (v: number) => v.toLocaleString('en-US'),
     },
   ];
 
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Lịch sử mua
+        Purchase history
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 760 }}>
-        Mỗi dòng là một lần mua vật phẩm bằng Astrite. Tên và giá là <b>bản chụp lúc mua</b> — sửa
-        hay gỡ mặt hàng sau đó không làm đổi lịch sử. Vật phẩm admin tặng không nằm ở đây (xem trang
-        Nhật ký).
+        Each row is one item purchase with Astrite. Name and price are a <b>snapshot at purchase
+        time</b> — editing or removing the item later does not change history. Admin gifts are not
+        listed here (see the Audit log page).
       </Typography.Paragraph>
       {error && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được lịch sử mua."
+          message="Couldn't load purchase history."
           description={(error as Error).message}
         />
       )}
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
-          placeholder="Lọc theo uid người mua..."
+          placeholder="Filter by buyer uid..."
           allowClear
           style={{ width: 300 }}
           onSearch={(value) => setUid(value.trim())}
         />
         <Select
-          placeholder="Mọi loại"
+          placeholder="All types"
           allowClear
           style={{ width: 180 }}
           value={itemType}
@@ -142,31 +142,31 @@ export function ShopHistoryPage() {
           }))}
         />
         <DatePicker
-          placeholder="Mọi ngày"
+          placeholder="All dates"
           value={date}
           onChange={setDate}
           format="DD/MM/YYYY"
           disabledDate={(d) => d.isAfter(dayjs(), 'day')}
         />
         <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={isFetching}>
-          Tải lại
+          Reload
         </Button>
       </Space>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Lượt mua" value={summary.count} />
+            <Statistic title="Purchases" value={summary.count} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Astrite đã tiêu" value={summary.spent} />
+            <Statistic title="Astrite spent" value={summary.spent} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Người mua" value={summary.buyers} />
+            <Statistic title="Buyers" value={summary.buyers} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
@@ -187,7 +187,7 @@ export function ShopHistoryPage() {
         columns={columns}
         dataSource={rows}
         loading={isFetching}
-        pagination={{ pageSize: 20, showTotal: (total) => `Tổng ${total} lượt mua` }}
+        pagination={{ pageSize: 20, showTotal: (total) => `${total} purchases total` }}
       />
     </div>
   );

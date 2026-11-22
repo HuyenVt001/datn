@@ -42,7 +42,7 @@ export class MessagesService {
     const hasReceiver = !!dto.receiverId;
     const hasGroup = !!dto.groupId;
     if (hasReceiver === hasGroup) {
-      throw new BadRequestException('Dien dung 1 trong 2: receiverId (1-1) hoac groupId (nhom).');
+      throw new BadRequestException('Provide exactly one of: receiverId (1-1) or groupId (group).');
     }
 
     if (hasReceiver) {
@@ -54,11 +54,11 @@ export class MessagesService {
   private async sendDirect(authUser: AuthUser, dto: SendMessageDto): Promise<Message> {
     const receiverId = dto.receiverId as string;
     if (receiverId === authUser.uid) {
-      throw new BadRequestException('Khong the tu nhan tin cho chinh minh.');
+      throw new BadRequestException('You can\'t message yourself.');
     }
     const pair = await this.friendshipsRepo.findPair(authUser.uid, receiverId);
     if (!pair || pair.status !== 'ACCEPTED') {
-      throw new ForbiddenException('Chi nhan tin duoc voi ban be.');
+      throw new ForbiddenException('You can only message friends.');
     }
 
     const replyFields = await this.resolveReply(dto.replyToId, (original) => {
@@ -79,7 +79,7 @@ export class MessagesService {
     });
 
     await this.pushTo([receiverId], authUser.uid, dto).catch((e) => {
-      this.logger.warn(`Khong gui duoc FCM: ${e.message}`);
+      this.logger.warn(`Failed to send FCM: ${e.message}`);
     });
 
     return message;
@@ -110,7 +110,7 @@ export class MessagesService {
     const muted = new Set(group.mutedBy ?? []);
     const others = group.memberIds.filter((id) => id !== authUser.uid && !muted.has(id));
     await this.pushTo(others, authUser.uid, dto).catch((e) => {
-      this.logger.warn(`Khong gui duoc FCM nhom: ${e.message}`);
+      this.logger.warn(`Failed to send group FCM: ${e.message}`);
     });
 
     return message;
@@ -174,7 +174,7 @@ export class MessagesService {
     }
     const original = await this.repo.findById(replyToId);
     if (!original || !belongsToConversation(original)) {
-      throw new BadRequestException('Tin nhan duoc reply khong nam trong hoi thoai nay.');
+      throw new BadRequestException('The replied message is not in this conversation.');
     }
     return {
       replyToId,
@@ -192,16 +192,16 @@ export class MessagesService {
   async react(uid: string, messageId: string, emoji: string): Promise<Message> {
     const message = await this.repo.findById(messageId);
     if (!message) {
-      throw new NotFoundException('Khong tim thay tin nhan.');
+      throw new NotFoundException('Message not found.');
     }
 
     if (message.groupId) {
       const group = await this.repo.findGroup(message.groupId);
       if (!group || !group.memberIds.includes(uid)) {
-        throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
+        throw new ForbiddenException('You\'re not a member of this group.');
       }
     } else if (message.senderId !== uid && message.receiverId !== uid) {
-      throw new ForbiddenException('Chi nguoi trong hoi thoai moi tha reaction duoc.');
+      throw new ForbiddenException('Only conversation members can react.');
     }
 
     const current = message.reactions?.[uid];
@@ -221,10 +221,10 @@ export class MessagesService {
   async markSeen(uid: string, messageId: string): Promise<void> {
     const message = await this.repo.findById(messageId);
     if (!message) {
-      throw new NotFoundException('Khong tim thay tin nhan.');
+      throw new NotFoundException('Message not found.');
     }
     if (message.receiverId !== uid) {
-      throw new ForbiddenException('Chi nguoi nhan moi danh dau da xem duoc.');
+      throw new ForbiddenException('Only the recipient can mark this as seen.');
     }
     await this.repo.markSeen(messageId);
   }
@@ -238,7 +238,7 @@ export class MessagesService {
   async createGroup(uid: string, dto: CreateGroupDto): Promise<ChatGroup> {
     const memberIds = [...new Set([uid, ...dto.memberIds])];
     if (memberIds.length > MAX_GROUP_SIZE) {
-      throw new BadRequestException(`Nhom chat toi da ${MAX_GROUP_SIZE} thanh vien.`);
+      throw new BadRequestException(`A group chat can have at most ${MAX_GROUP_SIZE} members.`);
     }
     await this.assertAllFriendsOf(uid, memberIds);
 
@@ -262,7 +262,7 @@ export class MessagesService {
         const profile = await this.usersService.getPublicProfile(memberUid).catch(() => null);
         return {
           uid: memberUid,
-          fullName: profile?.fullName ?? 'Nguoi dung',
+          fullName: profile?.fullName ?? 'User',
           avatar: profile?.avatar,
         };
       }),
@@ -274,7 +274,7 @@ export class MessagesService {
   async updateGroup(uid: string, groupId: string, dto: UpdateGroupDto): Promise<ChatGroup> {
     const group = await this.requireMembership(groupId, uid);
     if (dto.groupName === undefined && dto.avatar === undefined) {
-      throw new BadRequestException('Can it nhat 1 truong: groupName hoac avatar.');
+      throw new BadRequestException('At least one field is required: groupName or avatar.');
     }
     await this.repo.updateGroup(groupId, { groupName: dto.groupName, avatar: dto.avatar });
     return {
@@ -293,11 +293,11 @@ export class MessagesService {
     const group = await this.requireMembership(groupId, uid);
     const newcomers = [...new Set(dto.memberIds)].filter((id) => !group.memberIds.includes(id));
     if (newcomers.length === 0) {
-      throw new BadRequestException('Nhung nguoi nay da o trong nhom.');
+      throw new BadRequestException('These people are already in the group.');
     }
     const memberIds = [...group.memberIds, ...newcomers];
     if (memberIds.length > MAX_GROUP_SIZE) {
-      throw new BadRequestException(`Nhom chat toi da ${MAX_GROUP_SIZE} thanh vien.`);
+      throw new BadRequestException(`A group chat can have at most ${MAX_GROUP_SIZE} members.`);
     }
     await this.assertAllFriendsOf(uid, newcomers);
     await this.repo.updateGroup(groupId, { memberIds });
@@ -308,13 +308,13 @@ export class MessagesService {
   async removeMember(uid: string, groupId: string, memberUid: string): Promise<ChatGroup> {
     const group = await this.requireMembership(groupId, uid);
     if (group.createdBy !== uid) {
-      throw new ForbiddenException('Chi nguoi tao nhom moi xoa duoc thanh vien.');
+      throw new ForbiddenException('Only the group creator can remove members.');
     }
     if (memberUid === uid) {
-      throw new BadRequestException('Muon roi nhom hay dung chuc nang roi nhom.');
+      throw new BadRequestException('To leave the group, use Leave group.');
     }
     if (!group.memberIds.includes(memberUid)) {
-      throw new NotFoundException('Nguoi nay khong o trong nhom.');
+      throw new NotFoundException('This person is not in the group.');
     }
     const memberIds = group.memberIds.filter((id) => id !== memberUid);
     const mutedBy = (group.mutedBy ?? []).filter((id) => id !== memberUid);
@@ -356,10 +356,10 @@ export class MessagesService {
   private async requireMembership(groupId: string, uid: string): Promise<ChatGroup> {
     const group = await this.repo.findGroup(groupId);
     if (!group) {
-      throw new NotFoundException('Khong tim thay nhom chat.');
+      throw new NotFoundException('Group chat not found.');
     }
     if (!group.memberIds.includes(uid)) {
-      throw new ForbiddenException('Ban khong phai thanh vien nhom nay.');
+      throw new ForbiddenException('You\'re not a member of this group.');
     }
     return group;
   }
@@ -373,7 +373,7 @@ export class MessagesService {
     const friendIds = new Set(friendships.map((f) => f.userIds.find((id) => id !== uid) ?? ''));
     const strangers = candidateIds.filter((id) => id !== uid && !friendIds.has(id));
     if (strangers.length > 0) {
-      throw new ForbiddenException('Chi them duoc ban be vao nhom chat.');
+      throw new ForbiddenException('You can only add friends to a group chat.');
     }
   }
 

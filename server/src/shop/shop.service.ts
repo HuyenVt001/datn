@@ -79,12 +79,12 @@ export class ShopService {
   async buyItem(uid: string, itemId: string): Promise<PurchaseOutcome> {
     const item = await this.repo.findItemById(itemId);
     if (!item || !item.isActive) {
-      throw new BadRequestException('Vật phẩm này hiện không mở bán.');
+      throw new BadRequestException('This item is not on sale right now.');
     }
     if (item.itemType === 'FRAME') {
       const frame = await this.framesRepo.findById(item.refId);
       if (!frame || frame.unlockType !== 'SHOP') {
-        throw new BadRequestException('Vật phẩm này hiện không mở bán.');
+        throw new BadRequestException('This item is not on sale right now.');
       }
     }
 
@@ -94,13 +94,13 @@ export class ShopService {
     return this.repo.runTransaction(async (tx) => {
       const wallet = await this.repo.getWalletInTransaction(tx, uid);
       if (!wallet.exists) {
-        throw new NotFoundException('Không tìm thấy người dùng này.');
+        throw new NotFoundException('User not found.');
       }
       if (this.isOwned(wallet, item)) {
-        throw new ConflictException('Bạn đã sở hữu vật phẩm này.');
+        throw new ConflictException('You already own this item.');
       }
       if (wallet.astrite < item.price) {
-        throw new BadRequestException('Bạn không đủ Astrite.');
+        throw new BadRequestException('You don\'t have enough Astrite.');
       }
 
       const balanceAfter = wallet.astrite - item.price;
@@ -152,16 +152,16 @@ export class ShopService {
     if (dto.itemType === 'FRAME') {
       frame = await this.framesRepo.findById(refId);
       if (!frame) {
-        throw new BadRequestException('Không tìm thấy khung ảnh ứng với refId này.');
+        throw new BadRequestException('No frame found for this refId.');
       }
       if (frame.unlockType !== 'SHOP') {
         throw new BadRequestException(
-          'Chỉ bán được khung có điều kiện mở khóa "Bán tại Cửa hàng" (SHOP).',
+          'Only frames with the "Sold in Shop" (SHOP) unlock condition can be sold.',
         );
       }
     }
     if (await this.repo.findItemByRef(dto.itemType, refId)) {
-      throw new ConflictException('Vật phẩm này đã được niêm yết trong Cửa hàng.');
+      throw new ConflictException('This item is already listed in the Shop.');
     }
 
     return this.repo.createItem({
@@ -180,7 +180,7 @@ export class ShopService {
   async updateItem(itemId: string, dto: UpdateShopItemDto): Promise<ShopItem> {
     const item = await this.repo.findItemById(itemId);
     if (!item) {
-      throw new NotFoundException('Không tìm thấy vật phẩm.');
+      throw new NotFoundException('Item not found.');
     }
     await this.repo.updateItem(itemId, dto);
     const patch = Object.fromEntries(Object.entries(dto).filter(([, v]) => v !== undefined));
@@ -191,7 +191,7 @@ export class ShopService {
   async deleteItem(itemId: string): Promise<ShopItem> {
     const item = await this.repo.findItemById(itemId);
     if (!item) {
-      throw new NotFoundException('Không tìm thấy vật phẩm.');
+      throw new NotFoundException('Item not found.');
     }
     await this.repo.deleteItem(itemId);
     return item;
@@ -204,22 +204,22 @@ export class ShopService {
   async grantItem(itemId: string, uid: string): Promise<ShopItem> {
     const item = await this.repo.findItemById(itemId);
     if (!item) {
-      throw new NotFoundException('Không tìm thấy vật phẩm.');
+      throw new NotFoundException('Item not found.');
     }
     // Chan go nham uid: set-merge len uid khong ton tai se sinh user doc "ma"
     if (!(await this.usersRepo.findByUid(uid))) {
-      throw new NotFoundException('Không tìm thấy người dùng này.');
+      throw new NotFoundException('User not found.');
     }
     const { field, value } = this.ownershipKey(item);
     await this.usersRepo.unlockCollectible(uid, field, value);
-    this.logger.log(`Admin tang [${item.itemType}] ${item.itemName} cho ${uid}`);
+    this.logger.log(`Admin gifted [${item.itemType}] ${item.itemName} to ${uid}`);
     return item;
   }
 
   async listItemOwners(itemId: string): Promise<{ item: ShopItem; owners: ShopItemOwner[] }> {
     const item = await this.repo.findItemById(itemId);
     if (!item) {
-      throw new NotFoundException('Không tìm thấy vật phẩm.');
+      throw new NotFoundException('Item not found.');
     }
     const { field, value } = this.ownershipKey(item);
     const users = await this.usersRepo.listByCollectible(field, value);
@@ -329,7 +329,7 @@ export class ShopService {
     const id = Number(trimmed);
     if (!Number.isInteger(id) || id < 1) {
       throw new BadRequestException(
-        'Mã skin / hiệu ứng phải là số nguyên ≥ 1 (0 là mặc định, luôn sở hữu).',
+        'Skin / effect id must be an integer ≥ 1 (0 is the default, always owned).',
       );
     }
     return String(id);

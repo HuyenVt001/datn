@@ -39,7 +39,7 @@ class SkinContrastTest {
     }
 
     @Test
-    fun `chu chinh va chu phu dat 4_5 tren nen, surface va kinh`() {
+    fun `primary and secondary text reach 4_5 on background, surface and glass`() {
         SkinRegistry.all.forEach { skin ->
             val c = skin.colors
             val glass = skin.worstGlass()
@@ -53,7 +53,7 @@ class SkinContrastTest {
     }
 
     @Test
-    fun `chu tren nut accent dat 4_5, accent tren nen dat 3 (non-text)`() {
+    fun `text on accent button reaches 4_5, accent on background reaches 3 (non-text)`() {
         SkinRegistry.all.forEach { skin ->
             val c = skin.colors
             assertContrast(skin, "onAccent/accent", c.onAccent, c.accent, 4.5)
@@ -63,12 +63,12 @@ class SkinContrastTest {
     }
 
     @Test
-    fun `scrim anh nen du dam va hat bay khong qua 20`() {
+    fun `background image scrim is dark enough and particles stay within limit`() {
         SkinRegistry.all.forEach { skin ->
             if (skin.images.screenBackground != null) {
-                assertTrue("${skin.displayName}: imageScrim qua nhe", skin.atmosphere.imageScrim >= 0.55f)
+                assertTrue("${skin.displayName}: imageScrim too light", skin.atmosphere.imageScrim >= 0.55f)
             }
-            assertTrue("${skin.displayName}: qua nhieu hat bay", skin.decor.particleCount <= 15)
+            assertTrue("${skin.displayName}: too many particles", skin.decor.particleCount <= 15)
         }
     }
 }

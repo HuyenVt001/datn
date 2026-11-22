@@ -388,7 +388,7 @@ fun CameraPreviewWithZoom(
                                             videoCapture = videoCaptureUseCase
                                             cam
                                         } catch (e: Exception) {
-                                            Log.w("CameraPreview", "Khong bind duoc VideoCapture, fallback chi chup anh", e)
+                                            Log.w("CameraPreview", "Failed to bind VideoCapture, falling back to photo only", e)
                                             videoCapture = null
                                             cameraProvider.unbindAll()
                                             cameraProvider.bindToLifecycle(
@@ -484,7 +484,7 @@ fun CameraPreviewWithZoom(
                             }
 
                             override fun onError(exception: ImageCaptureException) {
-                                Log.e("CameraPreview", "Chup anh that bai: ${exception.message}")
+                                Log.e("CameraPreview", "Photo capture failed: ${exception.message}")
                             }
                         },
                     )
@@ -526,7 +526,10 @@ fun CameraPreviewWithZoom(
                                 if (!event.hasError()) {
                                     onVideoTaken(videoFile.absolutePath)
                                 } else {
-                                    Log.e("CameraPreview", "Quay GIF loi: ${event.error}")
+                                    Log.e(
+                                        "CameraPreview",
+                                        "GIF recording failed: ${event.error}",
+                                    )
                                     Toast.makeText(
                                         context,
                                         "Couldn't record the GIF. Try again.",
@@ -933,7 +936,7 @@ private fun normalizeCapturedPhoto(file: File, mirror: Boolean) {
         upright.recycle()
     } catch (e: Exception) {
         // Chuan hoa that bai -> giu anh goc, khong chan luong chup
-        Log.w("CameraPreview", "Khong chuan hoa duoc anh vua chup: ${e.message}")
+        Log.w("CameraPreview", "Failed to normalize captured photo: ${e.message}")
     }
 }
 

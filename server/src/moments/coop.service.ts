@@ -58,11 +58,11 @@ export class CoopService {
   /** Gui loi moi chup chung (chi moi duoc ban be; khong kem anh). */
   async createInvite(inviterId: string, dto: CreateCoopInviteDto): Promise<CoopInvite> {
     if (inviterId === dto.friendUid) {
-      throw new BadRequestException('Khong the moi chinh minh chup chung.');
+      throw new BadRequestException('You can\'t invite yourself to a co-op capture.');
     }
     const pair = await this.friendshipsRepo.findPair(inviterId, dto.friendUid);
     if (!pair || pair.status !== 'ACCEPTED') {
-      throw new ForbiddenException('Chi moi chup chung duoc voi ban be.');
+      throw new ForbiddenException('You can only do co-op captures with friends.');
     }
 
     // Chong gui lap (2026-11-16): da co loi moi CON HAN cho dung nguoi nay -> tra
@@ -72,7 +72,7 @@ export class CoopService {
     for (const old of existing.filter((invite) => this.isExpired(invite))) {
       await this.repo
         .transition(old.inviteId, 'PENDING', 'EXPIRED')
-        .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
+        .catch((e) => this.logger.warn(`Failed to mark EXPIRED: ${(e as Error).message}`));
     }
     const stillValid = existing.find((invite) => !this.isExpired(invite));
     if (stillValid) {
@@ -94,7 +94,7 @@ export class CoopService {
       `${inviterName} wants to snap together 📸`,
       `Tap to join the co-op capture — the invite expires in ${COOP_INVITE_TTL_MINUTES} minutes!`,
       { type: 'COOP_INVITE', inviteId: invite.inviteId },
-    ).catch((e) => this.logger.warn(`Khong gui duoc FCM loi moi: ${e.message}`));
+    ).catch((e) => this.logger.warn(`Failed to send invite FCM: ${e.message}`));
 
     return this.present(invite);
   }
@@ -110,7 +110,7 @@ export class CoopService {
     for (const invite of expired) {
       this.repo
         .transition(invite.inviteId, 'PENDING', 'EXPIRED')
-        .catch((e) => this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`));
+        .catch((e) => this.logger.warn(`Failed to mark EXPIRED: ${(e as Error).message}`));
     }
 
     const invites = all.filter((invite) => !this.isExpired(invite));
@@ -144,7 +144,7 @@ export class CoopService {
       // co the vua chuyen PENDING->ACCEPTED dung moc 5 phut — update tran se ghi
       // de EXPIRED len ACCEPTED, giet oan phien vua accept (fix race 2026-08-03)
       const marked = await this.repo.transition(inviteId, 'PENDING', 'EXPIRED').catch((e) => {
-        this.logger.warn(`Khong danh dau EXPIRED duoc: ${(e as Error).message}`);
+        this.logger.warn(`Failed to mark EXPIRED: ${(e as Error).message}`);
         return false;
       });
       if (marked) {
@@ -170,7 +170,7 @@ export class CoopService {
 
     const locked = await this.repo.transition(inviteId, 'PENDING', 'ACCEPTED');
     if (!locked) {
-      throw new BadRequestException('Loi moi da duoc xu ly roi.');
+      throw new BadRequestException('This invite has already been handled.');
     }
 
     await this.pushToUser(
@@ -178,7 +178,7 @@ export class CoopService {
       'Co-op invite accepted 🎉',
       'Your friend is in! Jump in and snap your half now.',
       { type: 'COOP_ACCEPTED', inviteId },
-    ).catch((e) => this.logger.warn(`Khong gui duoc FCM chap nhan: ${e.message}`));
+    ).catch((e) => this.logger.warn(`Failed to send accept FCM: ${e.message}`));
 
     // Han phien 10 phut tinh tu luc accept (transition vua ghi respondedAt ~ bay gio)
     return this.present({ ...invite, status: 'ACCEPTED', respondedAt: new Date().toISOString() });
@@ -193,12 +193,12 @@ export class CoopService {
   async decline(uid: string, inviteId: string): Promise<void> {
     const invite = await this.assertParticipant(uid, inviteId);
     if (invite.status !== 'PENDING' && invite.status !== 'ACCEPTED') {
-      throw new BadRequestException('Loi moi da duoc xu ly roi.');
+      throw new BadRequestException('This invite has already been handled.');
     }
     const declined = await this.repo.transition(inviteId, invite.status, 'DECLINED');
     if (!declined) {
       // Trang thai vua doi duoi tay minh (accept / ghep xong / ben kia huy truoc)
-      throw new BadRequestException('Loi moi da duoc xu ly roi.');
+      throw new BadRequestException('This invite has already been handled.');
     }
 
     // NGUOI MOI huy loi moi con PENDING -> bao nguoi nhan (data-only, khong hien
@@ -207,7 +207,7 @@ export class CoopService {
     if (invite.status === 'PENDING' && invite.inviterId === uid) {
       await this.usersService
         .pushDataToUids([invite.inviteeId], { type: PUSH_COOP_CANCELLED, inviteId })
-        .catch((e) => this.logger.warn(`Khong gui duoc FCM huy: ${(e as Error).message}`));
+        .catch((e) => this.logger.warn(`Failed to send cancel FCM: ${(e as Error).message}`));
     }
   }
 
@@ -222,12 +222,12 @@ export class CoopService {
     const invite = await this.assertParticipant(uid, inviteId);
     if (invite.status !== 'ACCEPTED') {
       throw new BadRequestException(
-        invite.status === 'PENDING' ? 'Loi moi chua duoc chap nhan.' : 'Loi moi da duoc xu ly roi.',
+        invite.status === 'PENDING' ? 'This invite hasn\'t been accepted yet.' : 'This invite has already been handled.',
       );
     }
     if (this.isSessionExpired(invite)) {
       await this.repo.transition(inviteId, 'ACCEPTED', 'EXPIRED').catch(() => false);
-      throw new BadRequestException('Phien chup chung da het han.');
+      throw new BadRequestException('The co-op capture session has expired.');
     }
 
     const isInviter = invite.inviterId === uid;
@@ -264,7 +264,7 @@ export class CoopService {
       // lan doi trang thai khac, khong bao gio ghi de len trang thai la.
       await this.repo
         .transition(inviteId, 'COMPLETED', 'ACCEPTED')
-        .catch(() => this.logger.warn(`Khong revert duoc loi moi ${inviteId} ve ACCEPTED.`));
+        .catch(() => this.logger.warn(`Failed to revert invite ${inviteId} to ACCEPTED.`));
       throw e;
     }
 
@@ -273,7 +273,7 @@ export class CoopService {
     await Promise.all([
       this.framesService.unlockCoopFrames(invite.inviterId),
       this.framesService.unlockCoopFrames(invite.inviteeId),
-    ]).catch((e) => this.logger.warn(`Khong mo duoc khung chup chung: ${(e as Error).message}`));
+    ]).catch((e) => this.logger.warn(`Failed to unlock co-op frame: ${(e as Error).message}`));
 
     // Bao ben kia (co the chua poll toi) anh ghep da san sang
     const other = isInviter ? invite.inviteeId : invite.inviterId;
@@ -282,7 +282,7 @@ export class CoopService {
       'Co-op capture complete 🎉',
       'Your combined photo is ready. Edit and post it now!',
       { type: 'COOP_DONE', inviteId },
-    ).catch((e) => this.logger.warn(`Khong gui duoc FCM hoan tat: ${e.message}`));
+    ).catch((e) => this.logger.warn(`Failed to send completion FCM: ${e.message}`));
 
     return updated;
   }
@@ -291,10 +291,10 @@ export class CoopService {
   private async assertParticipant(uid: string, inviteId: string): Promise<CoopInvite> {
     const invite = await this.repo.findById(inviteId);
     if (!invite) {
-      throw new NotFoundException('Khong tim thay loi moi chup chung.');
+      throw new NotFoundException('Co-op invite not found.');
     }
     if (invite.inviterId !== uid && invite.inviteeId !== uid) {
-      throw new ForbiddenException('Loi moi nay khong danh cho ban.');
+      throw new ForbiddenException('This invite isn\'t for you.');
     }
     return invite;
   }
@@ -303,16 +303,16 @@ export class CoopService {
   private async assertPendingInviteOf(uid: string, inviteId: string): Promise<CoopInvite> {
     const invite = await this.repo.findById(inviteId);
     if (!invite) {
-      throw new NotFoundException('Khong tim thay loi moi chup chung.');
+      throw new NotFoundException('Co-op invite not found.');
     }
     if (invite.inviteeId !== uid) {
-      throw new ForbiddenException('Loi moi nay khong danh cho ban.');
+      throw new ForbiddenException('This invite isn\'t for you.');
     }
     if (invite.status !== 'PENDING') {
-      throw new BadRequestException('Loi moi da duoc xu ly roi.');
+      throw new BadRequestException('This invite has already been handled.');
     }
     if (this.isExpired(invite)) {
-      throw new BadRequestException('Loi moi da het han (qua 5 phut).');
+      throw new BadRequestException('This invite has expired (over 5 minutes).');
     }
     return invite;
   }
@@ -364,10 +364,10 @@ export class CoopService {
     try {
       parsed = new URL(mediaUrl);
     } catch {
-      throw new BadRequestException('URL anh khong hop le.');
+      throw new BadRequestException('Invalid image URL.');
     }
     if (parsed.protocol !== 'https:' || !COOP_MEDIA_ALLOWED_HOSTS.includes(parsed.hostname)) {
-      throw new BadRequestException('URL anh phai la anh da upload qua Snapget.');
+      throw new BadRequestException('The image URL must be a photo uploaded through Snapget.');
     }
   }
 
@@ -404,7 +404,7 @@ export class CoopService {
   private async downloadImage(url: string): Promise<Buffer> {
     const res = await fetch(url);
     if (!res.ok) {
-      throw new BadRequestException('Khong tai duoc anh de ghep.');
+      throw new BadRequestException('Couldn\'t download the photos to merge.');
     }
     return Buffer.from(await res.arrayBuffer());
   }

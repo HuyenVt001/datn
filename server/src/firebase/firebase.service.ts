@@ -28,9 +28,9 @@ export class FirebaseService implements OnModuleInit {
     // Endpoint nao goi Firebase se bao loi ro rang qua ensureApp().
     if (!absolutePath || !existsSync(absolutePath)) {
       this.logger.warn(
-        `Chua tim thay service account key (${absolutePath || 'FIREBASE_SERVICE_ACCOUNT trong .env'}). ` +
-          'Server van chay nhung cac chuc nang Firebase se loi cho toi khi co key. ' +
-          'Tai key: Firebase Console > Project settings > Service accounts.',
+        `Service account key not found (${absolutePath || 'FIREBASE_SERVICE_ACCOUNT in .env'}).` +
+          'The server still runs, but Firebase features will fail until the key is provided.' +
+          'Get the key: Firebase Console > Project settings > Service accounts.',
       );
       return;
     }
@@ -39,13 +39,13 @@ export class FirebaseService implements OnModuleInit {
     this.app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    this.logger.log('Firebase Admin SDK da khoi tao thanh cong.');
+    this.logger.log('Firebase Admin SDK initialized successfully.');
   }
 
   private ensureApp(): admin.app.App {
     if (!this.app) {
       throw new Error(
-        'Firebase chua duoc khoi tao — thieu service account key. Xem log khi khoi dong server.',
+        'Firebase is not initialized — missing service account key. Check the server startup log.',
       );
     }
     return this.app;

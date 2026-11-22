@@ -30,7 +30,7 @@ export class AuditService {
         createdAt: new Date().toISOString(),
       });
     } catch (e) {
-      this.logger.warn(`Khong ghi duoc audit log ${action}: ${(e as Error).message}`);
+      this.logger.warn(`Failed to write audit log ${action}: ${(e as Error).message}`);
     }
   }
 

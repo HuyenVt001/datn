@@ -3,14 +3,14 @@ import { ArrayMinSize, IsArray, IsNotEmpty, IsString, MaxLength } from 'class-va
 
 /** Tao nhom chat. Nguoi tao tu dong la thanh vien; tong thanh vien <= 20. */
 export class CreateGroupDto {
-  @ApiProperty({ description: 'Ten nhom', maxLength: 100 })
+  @ApiProperty({ description: 'Group name', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   groupName!: string;
 
   @ApiProperty({
-    description: 'Danh sach uid thanh vien (khong can gom nguoi tao)',
+    description: 'Member uid list (creator not required)',
     type: [String],
   })
   @IsArray()

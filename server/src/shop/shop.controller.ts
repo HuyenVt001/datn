@@ -40,8 +40,8 @@ export class ShopController {
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
   @ApiOperation({
-    summary: 'Catalog Shop: mặt hàng đang mở bán + cờ đã sở hữu + số dư Astrite',
-    description: 'Trả { astrite, items[] } để màn Shop mở lên chỉ tốn 1 request.',
+    summary: 'Shop catalog: items on sale + owned flag + Astrite balance',
+    description: 'Returns { astrite, items[] } so opening the Shop costs a single request.',
   })
   getCatalog(@CurrentUser() user: AuthUser) {
     return this.shopService.getCatalogForUser(user.uid);
@@ -51,14 +51,14 @@ export class ShopController {
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
   @ApiOperation({
-    summary: 'Mua 1 vật phẩm bằng Astrite',
+    summary: 'Buy an item with Astrite',
     description:
-      'Chỉ nhận itemId — giá luôn tra ở server. Trừ Astrite, mở khóa vật phẩm, ghi lịch sử mua ' +
-      'và sổ cái SHOP_PURCHASE trong MỘT transaction Firestore.',
+      'Takes only itemId — the price is always looked up on the server. Debits Astrite, unlocks the item, writes purchase history' +
+      'and the SHOP_PURCHASE ledger in ONE Firestore transaction.',
   })
-  @ApiResponse({ status: 201, description: 'Mua thành công: { purchase, astriteAfter }' })
-  @ApiResponse({ status: 400, description: 'Không đủ Astrite / vật phẩm không mở bán' })
-  @ApiResponse({ status: 409, description: 'Đã sở hữu vật phẩm này' })
+  @ApiResponse({ status: 201, description: 'Purchase succeeded: { purchase, astriteAfter }' })
+  @ApiResponse({ status: 400, description: 'Not enough Astrite / item not on sale' })
+  @ApiResponse({ status: 409, description: 'Item already owned' })
   buy(@CurrentUser() user: AuthUser, @Body() dto: BuyItemDto) {
     return this.shopService.buyItem(user.uid, dto.itemId);
   }
@@ -66,8 +66,8 @@ export class ShopController {
   @Get('history')
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
-  @ApiOperation({ summary: 'Lịch sử mua của mình (mới nhất trước)' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Số bản ghi tối đa (mặc định 50)' })
+  @ApiOperation({ summary: 'Your purchase history (newest first)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Max records (default 50)' })
   getHistory(@CurrentUser() user: AuthUser, @Query('limit') limit?: string) {
     const parsed = Number(limit);
     return this.shopService.getPurchaseHistory(
@@ -82,7 +82,7 @@ export class ShopController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Toàn bộ mặt hàng, kể cả mặt hàng đang tắt' })
+  @ApiOperation({ summary: '[Admin] All items, including disabled ones' })
   listItemsAsAdmin() {
     return this.shopService.listAllItems();
   }
@@ -92,8 +92,8 @@ export class ShopController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Lịch sử mua toàn hệ thống (lọc theo user / loại / ngày)',
-    description: 'Bộ lọc chạy trong bộ nhớ — quy mô DATN, không cần composite index.',
+    summary: '[Admin] System-wide purchase history (filter by user / type / date)',
+    description: 'Filters run in memory — at this project\'s scale, no composite index is needed.',
   })
   listPurchasesAsAdmin(@Query() query: AdminPurchasesDto) {
     return this.shopService.listAllPurchases(query);
@@ -104,10 +104,10 @@ export class ShopController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Niêm yết mặt hàng mới (khung / skin / hiệu ứng)',
+    summary: '[Admin] List a new item (frame / skin / effect)',
     description:
-      'FRAME: refId = frameId của khung có unlockType SHOP. SKIN/EFFECT: refId = id số có sẵn ' +
-      'trong APK (≥ 1). Mỗi vật phẩm chỉ niêm yết 1 lần. Bỏ trống giá = giá mặc định theo loại.',
+      'FRAME: refId = frameId of a frame with unlockType SHOP. SKIN/EFFECT: refId = an existing numeric id' +
+      'in the APK (≥ 1). Each item can be listed once. Empty price = default price by type.',
   })
   async createItem(@CurrentUser() actor: AuthUser, @Body() dto: CreateShopItemDto) {
     const item = await this.shopService.createItem(dto);
@@ -115,14 +115,14 @@ export class ShopController {
       id: item.itemId,
       label: item.itemName,
     });
-    return { message: 'Đã niêm yết vật phẩm.', data: item };
+    return { message: 'Item listed.', data: item };
   }
 
   @Get('items/:id/owners')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Danh sách user đang sở hữu vật phẩm' })
+  @ApiOperation({ summary: '[Admin] List users who own an item' })
   listItemOwners(@Param('id') itemId: string) {
     return this.shopService.listItemOwners(itemId);
   }
@@ -132,10 +132,10 @@ export class ShopController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Tặng vật phẩm cho user',
+    summary: '[Admin] Gift an item to a user',
     description:
-      'Mở khóa thẳng vào tài khoản (demo / đền bù). Idempotent. Không trừ Astrite, ' +
-      'không ghi sổ cái, không ghi lịch sử mua.',
+      'Unlocks directly on the account (demo / compensation). Idempotent. No Astrite debit,' +
+      'no ledger entry, no purchase history.',
   })
   async grantItem(
     @CurrentUser() actor: AuthUser,
@@ -147,14 +147,14 @@ export class ShopController {
       id: uid,
       label: `${item.itemName} → ${uid}`,
     });
-    return { message: 'Đã tặng vật phẩm cho người dùng.', data: { itemId, uid } };
+    return { message: 'Item gifted to the user.', data: { itemId, uid } };
   }
 
   @Patch('items/:id')
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Sửa mặt hàng (tên / giá / ảnh / bật-tắt / thứ tự)' })
+  @ApiOperation({ summary: '[Admin] Edit an item (name / price / image / on-off / order)' })
   async updateItem(
     @CurrentUser() actor: AuthUser,
     @Param('id') itemId: string,
@@ -162,7 +162,7 @@ export class ShopController {
   ) {
     const item = await this.shopService.updateItem(itemId, dto);
     await this.auditService.log(actor, 'SHOP_ITEM_UPDATE', { id: itemId, label: item.itemName });
-    return { message: 'Đã cập nhật vật phẩm.', data: item };
+    return { message: 'Item updated.', data: item };
   }
 
   @Delete('items/:id')
@@ -170,12 +170,12 @@ export class ShopController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Gỡ mặt hàng khỏi Shop',
-    description: 'Người đã mua vẫn giữ. Muốn tạm ẩn thì dùng isActive=false.',
+    summary: '[Admin] Remove an item from the Shop',
+    description: 'Buyers keep it. To hide it temporarily, use isActive=false.',
   })
   async deleteItem(@CurrentUser() actor: AuthUser, @Param('id') itemId: string) {
     const item = await this.shopService.deleteItem(itemId);
     await this.auditService.log(actor, 'SHOP_ITEM_DELETE', { id: itemId, label: item.itemName });
-    return { message: 'Đã gỡ vật phẩm khỏi Cửa hàng.', data: { itemId } };
+    return { message: 'Item removed from the Shop.', data: { itemId } };
   }
 }

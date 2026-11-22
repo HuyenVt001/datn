@@ -38,7 +38,7 @@ Admin **không** chạm Firestore trực tiếp — mọi dữ liệu qua REST A
 | Lint/format | ESLint + Prettier (config chuẩn Vite React TS) |
 | Package manager | **npm** |
 
-> ❌ Không thêm: Redux/Zustand, SSR/Next, Tailwind, Docker, i18n framework (UI cố định tiếng Việt), lib chart (biểu đồ = SVG thuần). Nếu cần → hỏi user trước.
+> ❌ Không thêm: Redux/Zustand, SSR/Next, Tailwind, Docker, i18n framework (UI cố định tiếng Anh), lib chart (biểu đồ = SVG thuần). Nếu cần → hỏi user trước.
 
 ---
 
@@ -57,11 +57,11 @@ Page/Component ──► hook react-query (useQuery/useMutation) ──► api/*
 
 ## 4. Quy ước code
 
-- **Tên định danh tiếng Anh**; comment + text UI **tiếng Việt**.
+- **Tên định danh tiếng Anh**; comment **tiếng Việt**; text UI **tiếng Anh**.
 - File component `PascalCase.tsx`; file thường theo nhóm sẵn có; hook `useXxx`.
 - **TypeScript strict**: không `any` tùy tiện; response gõ kiểu qua `types/`.
-- Mutation xong → `queryClient.invalidateQueries` cho list liên quan + `message.success` tiếng Việt.
-- Lỗi API → `message.error(err.message)` — message server đã là tiếng Việt thân thiện, đừng ghi đè trừ khi rỗng. Query GET lỗi → hiện `Alert`.
+- Mutation xong → `queryClient.invalidateQueries` cho list liên quan + `message.success` tiếng Anh.
+- Lỗi API → `message.error(err.message)` — message server đã là tiếng Anh thân thiện, đừng ghi đè trừ khi rỗng. Query GET lỗi → hiện `Alert`.
 - Hành động nguy hiểm (khóa tài khoản, xóa khung/bài, cấp/thu admin) → bọc `Modal.confirm`/`Popconfirm`.
 - Chạy `npm run lint` trước khi coi là xong.
 

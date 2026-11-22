@@ -30,20 +30,20 @@ export class MessagesController {
 
   @Post()
   @ApiOperation({
-    summary: 'Gui tin nhan 1-1 (receiverId) hoac nhom (groupId). 1-1 cap nhat friend streak',
+    summary: 'Send a 1-1 (receiverId) or group (groupId) message. 1-1 updates the friend streak',
   })
   send(@CurrentUser() user: AuthUser, @Body() dto: SendMessageDto) {
     return this.messagesService.send(user, dto);
   }
 
   @Get('conversations')
-  @ApiOperation({ summary: 'Danh sach hoi thoai 1-1 (tin moi nhat voi tung nguoi)' })
+  @ApiOperation({ summary: '1-1 conversation list (latest message with each person)' })
   getConversations(@CurrentUser() user: AuthUser) {
     return this.messagesService.getConversations(user.uid);
   }
 
   @Get('with/:friendUid')
-  @ApiOperation({ summary: 'Thread 1-1 voi 1 nguoi (page 1 = tin moi nhat)' })
+  @ApiOperation({ summary: '1-1 thread with a person (page 1 = newest messages)' })
   getThread(
     @CurrentUser() user: AuthUser,
     @Param('friendUid') friendUid: string,
@@ -54,7 +54,7 @@ export class MessagesController {
 
   @Post(':id/reactions')
   @ApiOperation({
-    summary: 'Tha reaction len tin nhan (nguoi trong hoi thoai; bam lai cung emoji = go)',
+    summary: 'React to a message (conversation members; same emoji again = remove)',
   })
   react(
     @CurrentUser() user: AuthUser,
@@ -65,27 +65,27 @@ export class MessagesController {
   }
 
   @Patch(':id/seen')
-  @ApiOperation({ summary: 'Danh dau tin nhan da xem (chi nguoi nhan)' })
+  @ApiOperation({ summary: 'Mark a message as seen (recipient only)' })
   async markSeen(@CurrentUser() user: AuthUser, @Param('id') messageId: string) {
     await this.messagesService.markSeen(user.uid, messageId);
-    return { message: 'Da danh dau da xem.', data: { messageId } };
+    return { message: 'Marked as seen.', data: { messageId } };
   }
 
   @Post('groups')
-  @ApiOperation({ summary: 'Tao nhom chat (toi da 20 thanh vien, nguoi tao tu vao nhom)' })
+  @ApiOperation({ summary: 'Create a group chat (max 20 members, creator joins automatically)' })
   async createGroup(@CurrentUser() user: AuthUser, @Body() dto: CreateGroupDto) {
     const group = await this.messagesService.createGroup(user.uid, dto);
-    return { message: 'Tao nhom thanh cong.', data: group };
+    return { message: 'Group created.', data: group };
   }
 
   @Get('groups')
-  @ApiOperation({ summary: 'Danh sach nhom chat cua minh' })
+  @ApiOperation({ summary: 'Your group chats' })
   listMyGroups(@CurrentUser() user: AuthUser) {
     return this.messagesService.listMyGroups(user.uid);
   }
 
   @Get('groups/:groupId')
-  @ApiOperation({ summary: 'Thread nhom (phai la thanh vien)' })
+  @ApiOperation({ summary: 'Group thread (members only)' })
   getGroupThread(
     @CurrentUser() user: AuthUser,
     @Param('groupId') groupId: string,
@@ -95,53 +95,53 @@ export class MessagesController {
   }
 
   @Get('groups/:groupId/detail')
-  @ApiOperation({ summary: 'Chi tiet nhom + ho so thanh vien (phai la thanh vien)' })
+  @ApiOperation({ summary: 'Group details + member profiles (members only)' })
   getGroupDetail(@CurrentUser() user: AuthUser, @Param('groupId') groupId: string) {
     return this.messagesService.getGroupDetail(user.uid, groupId);
   }
 
   @Patch('groups/:groupId')
-  @ApiOperation({ summary: 'Doi ten / anh dai dien nhom (moi thanh vien deu doi duoc)' })
+  @ApiOperation({ summary: 'Rename / change group avatar (any member can)' })
   async updateGroup(
     @CurrentUser() user: AuthUser,
     @Param('groupId') groupId: string,
     @Body() dto: UpdateGroupDto,
   ) {
     const group = await this.messagesService.updateGroup(user.uid, groupId, dto);
-    return { message: 'Da cap nhat nhom.', data: group };
+    return { message: 'Group updated.', data: group };
   }
 
   @Post('groups/:groupId/members')
-  @ApiOperation({ summary: 'Them thanh vien vao nhom (chi them duoc ban be cua minh)' })
+  @ApiOperation({ summary: 'Add members to a group (only your friends)' })
   async addMembers(
     @CurrentUser() user: AuthUser,
     @Param('groupId') groupId: string,
     @Body() dto: AddGroupMembersDto,
   ) {
     const group = await this.messagesService.addMembers(user.uid, groupId, dto);
-    return { message: 'Da them thanh vien vao nhom.', data: group };
+    return { message: 'Members added to the group.', data: group };
   }
 
   @Delete('groups/:groupId/members/:memberUid')
-  @ApiOperation({ summary: 'Xoa thanh vien khoi nhom (chi nguoi tao nhom)' })
+  @ApiOperation({ summary: 'Remove a member from a group (group creator only)' })
   async removeMember(
     @CurrentUser() user: AuthUser,
     @Param('groupId') groupId: string,
     @Param('memberUid') memberUid: string,
   ) {
     const group = await this.messagesService.removeMember(user.uid, groupId, memberUid);
-    return { message: 'Da xoa thanh vien khoi nhom.', data: group };
+    return { message: 'Member removed from the group.', data: group };
   }
 
   @Post('groups/:groupId/leave')
-  @ApiOperation({ summary: 'Roi nhom (nguoi cuoi cung roi -> xoa nhom)' })
+  @ApiOperation({ summary: 'Leave a group (last member leaving -> group deleted)' })
   async leaveGroup(@CurrentUser() user: AuthUser, @Param('groupId') groupId: string) {
     await this.messagesService.leaveGroup(user.uid, groupId);
-    return { message: 'Da roi nhom.', data: { groupId } };
+    return { message: 'You left the group.', data: { groupId } };
   }
 
   @Patch('groups/:groupId/mute')
-  @ApiOperation({ summary: 'Bat/tat thong bao nhom cho rieng minh' })
+  @ApiOperation({ summary: 'Mute/unmute group notifications for yourself' })
   async muteGroup(
     @CurrentUser() user: AuthUser,
     @Param('groupId') groupId: string,
@@ -149,7 +149,7 @@ export class MessagesController {
   ) {
     const group = await this.messagesService.setGroupMuted(user.uid, groupId, dto.muted);
     return {
-      message: dto.muted ? 'Da tat thong bao nhom.' : 'Da bat thong bao nhom.',
+      message: dto.muted ? 'Group notifications muted.' : 'Group notifications unmuted.',
       data: group,
     };
   }

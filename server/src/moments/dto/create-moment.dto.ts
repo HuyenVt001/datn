@@ -4,21 +4,21 @@ import { MomentContentType } from '../entities/moment.entity';
 
 /** Dang 1 moment. mediaUrl lay tu ket qua POST /upload (da qua Cloudinary + check 5s). */
 export class CreateMomentDto {
-  @ApiProperty({ enum: ['PHOTO', 'VIDEO'], description: 'Loai noi dung' })
+  @ApiProperty({ enum: ['PHOTO', 'VIDEO'], description: 'Content type' })
   @IsIn(['PHOTO', 'VIDEO'])
   contentType!: MomentContentType;
 
-  @ApiProperty({ description: 'URL media tra ve tu POST /upload' })
+  @ApiProperty({ description: 'Media URL returned by POST /upload' })
   @IsUrl()
   @IsNotEmpty()
   mediaUrl!: string;
 
-  @ApiPropertyOptional({ description: 'Id khung anh ap len moment' })
+  @ApiPropertyOptional({ description: 'Frame id applied to the moment' })
   @IsOptional()
   @IsString()
   frameId?: string;
 
-  @ApiPropertyOptional({ description: 'Chu thich', maxLength: 500 })
+  @ApiPropertyOptional({ description: 'Caption', maxLength: 500 })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -26,8 +26,8 @@ export class CreateMomentDto {
 
   @ApiPropertyOptional({
     description:
-      'Id chong dang TRUNG (app sinh UUID, giu nguyen khi retry): request truoc ' +
-      'timeout nhung bai DA len -> retry tra lai bai cu thay vi tao ban sao',
+      'Anti-DUPLICATE id (app generates a UUID, kept on retry): if a previous request' +
+      'timed out but the post WENT through -> the retry returns the existing post instead of a copy',
     maxLength: 64,
   })
   @IsOptional()

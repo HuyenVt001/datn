@@ -41,9 +41,9 @@ import type { ShopItem, ShopItemType } from '../types';
 const DEFAULT_PRICE: Record<ShopItemType, number> = { FRAME: 320, SKIN: 4800, EFFECT: 1600 };
 
 const TYPE_META: Record<ShopItemType, { label: string; color: string }> = {
-  FRAME: { label: 'Khung ảnh', color: 'gold' },
-  SKIN: { label: 'Giao diện', color: 'orange' },
-  EFFECT: { label: 'Hiệu ứng chạm', color: 'purple' },
+  FRAME: { label: 'Frame', color: 'gold' },
+  SKIN: { label: 'Skin', color: 'orange' },
+  EFFECT: { label: 'Touch effect', color: 'purple' },
 };
 
 /**
@@ -72,7 +72,7 @@ interface ItemForm {
   sortOrder?: number;
 }
 
-const formatAstrite = (n: number) => `${n.toLocaleString('vi-VN')} ⭐`;
+const formatAstrite = (n: number) => `${n.toLocaleString('en-US')} ⭐`;
 
 /**
  * Trang quản lý mặt hàng Shop (2026-11-15 — thay Kho vật phẩm gacha).
@@ -170,7 +170,7 @@ export function ShopItemsPage() {
             sortOrder: values.sortOrder,
           }),
     onSuccess: () => {
-      message.success(editing ? 'Đã cập nhật vật phẩm.' : 'Đã niêm yết vật phẩm.');
+      message.success(editing ? 'Item updated.' : 'Item listed.');
       setModalOpen(false);
       void invalidate();
     },
@@ -181,7 +181,7 @@ export function ShopItemsPage() {
     mutationFn: ({ item, isActive }: { item: ShopItem; isActive: boolean }) =>
       updateShopItem(item.itemId, { isActive }),
     onSuccess: (_, { isActive }) => {
-      message.success(isActive ? 'Đã mở bán.' : 'Đã ẩn khỏi Shop.');
+      message.success(isActive ? 'Now on sale.' : 'Hidden from the Shop.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -190,7 +190,7 @@ export function ShopItemsPage() {
   const deleteMutation = useMutation({
     mutationFn: (itemId: string) => deleteShopItem(itemId),
     onSuccess: () => {
-      message.success('Đã gỡ vật phẩm khỏi Cửa hàng.');
+      message.success('Item removed from the Shop.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -221,7 +221,7 @@ export function ShopItemsPage() {
   const grantMutation = useMutation({
     mutationFn: ({ itemId, uid }: { itemId: string; uid: string }) => grantShopItem(itemId, uid),
     onSuccess: () => {
-      message.success('Đã tặng vật phẩm cho người dùng.');
+      message.success('Item gifted to the user.');
       setGrantTarget(null);
       setGrantUid(undefined);
       void queryClient.invalidateQueries({ queryKey: ['shop-item-owners'] });
@@ -243,25 +243,25 @@ export function ShopItemsPage() {
 
   const columns: ColumnsType<ShopItem> = [
     {
-      title: 'Ảnh',
+      title: 'Image',
       dataIndex: 'imageUrl',
       width: 90,
       render: (url: string | undefined, item) =>
         url ? (
           <Image src={url} width={48} height={48} style={{ objectFit: 'contain' }} />
         ) : item.itemType === 'FRAME' ? (
-          <Tooltip title="Khung chưa có ảnh — bấm Sửa để tải ảnh lên.">
-            <Tag color="red">Thiếu ảnh</Tag>
+          <Tooltip title="This frame has no image — click Edit to upload one.">
+            <Tag color="red">Missing image</Tag>
           </Tooltip>
         ) : (
-          <Tooltip title="Không có ảnh riêng — app tự vẽ xem trước từ asset trong APK.">
-            <Tag>Vẽ từ app</Tag>
+          <Tooltip title="No custom image — the app draws the preview from APK assets.">
+            <Tag>Drawn by app</Tag>
           </Tooltip>
         ),
     },
-    { title: 'Tên vật phẩm', dataIndex: 'itemName' },
+    { title: 'Item name', dataIndex: 'itemName' },
     {
-      title: 'Loại',
+      title: 'Type',
       dataIndex: 'itemType',
       width: 140,
       render: (type: ShopItemType) => (
@@ -269,7 +269,7 @@ export function ShopItemsPage() {
       ),
     },
     {
-      title: 'Giá',
+      title: 'Price',
       dataIndex: 'price',
       width: 120,
       sorter: (a, b) => a.price - b.price,
@@ -281,9 +281,9 @@ export function ShopItemsPage() {
       width: 130,
       render: (refId: string) => <Typography.Text code>{refId}</Typography.Text>,
     },
-    { title: 'Thứ tự', dataIndex: 'sortOrder', width: 80 },
+    { title: 'Order', dataIndex: 'sortOrder', width: 80 },
     {
-      title: 'Mở bán',
+      title: 'On sale',
       dataIndex: 'isActive',
       width: 100,
       render: (isActive: boolean, item) => (
@@ -295,29 +295,29 @@ export function ShopItemsPage() {
       ),
     },
     {
-      title: 'Hành động',
+      title: 'Actions',
       key: 'actions',
       width: 230,
       render: (_, item) => (
         <Space>
-          <Tooltip title="Tặng vật phẩm này cho một người dùng">
+          <Tooltip title="Gift this item to a user">
             <Button size="small" icon={<GiftOutlined />} onClick={() => openGrant(item)} />
           </Tooltip>
-          <Tooltip title="Ai đang sở hữu?">
+          <Tooltip title="Who owns this?">
             <Button size="small" icon={<TeamOutlined />} onClick={() => setOwnersTarget(item)} />
           </Tooltip>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(item)}>
-            Sửa
+            Edit
           </Button>
           <Popconfirm
-            title="Gỡ vật phẩm khỏi Cửa hàng?"
+            title="Remove item from the Shop?"
             description={
               item.itemType === 'FRAME'
-                ? 'Người đã mua vẫn giữ. Lưu ý: sửa khung ở trang Khung ảnh sẽ tự niêm yết lại khung này.'
-                : 'Người đã mua vẫn giữ. Muốn tạm ẩn thì tắt công tắc thay vì gỡ.'
+                ? 'Buyers keep it. Note: editing the frame on the Frames page will relist it automatically.'
+                : 'Buyers keep it. To hide it temporarily, turn off the switch instead of removing it.'
             }
-            okText="Gỡ"
-            cancelText="Hủy"
+            okText="Remove"
+            cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteMutation.mutate(item.itemId)}
           >
@@ -332,24 +332,24 @@ export function ShopItemsPage() {
     <div>
       <Space style={{ width: '100%', justifyContent: 'space-between' }} align="start">
         <Typography.Title level={4} style={{ marginTop: 0 }}>
-          Vật phẩm Cửa hàng
+          Shop items
         </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Niêm yết vật phẩm
+          List item
         </Button>
       </Space>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 820 }}>
-        Người dùng mua bằng Astrite trong màn Shop của app. <b>Khung ảnh tự động lên kệ</b> khi có
-        điều kiện mở khóa &quot;Bán tại Cửa hàng&quot; ở trang Khung ảnh (giá mặc định 320 ⭐ — sửa
-        giá tại đây). Giao diện và hiệu ứng chạm có sẵn trong app, niêm yết theo id. Gói nạp Astrite
-        quản lý ở trang <b>Gói nạp</b>.
+        Users buy with Astrite on the app&apos;s Shop screen. <b>Frames are listed automatically</b> when
+        their unlock condition is &quot;Sold in Shop&quot; on the Frames page (default price 320 ⭐ — edit
+        the price here). Skins and touch effects ship with the app and are listed by id. Astrite top-up
+        packages are managed on the <b>Top-up packages</b> page.
       </Typography.Paragraph>
       {error && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được danh sách vật phẩm."
+          message="Couldn't load items."
           description={(error as Error).message}
         />
       )}
@@ -358,10 +358,10 @@ export function ShopItemsPage() {
           value={typeFilter}
           onChange={(v) => setTypeFilter(v as ShopItemType | 'ALL')}
           options={[
-            { value: 'ALL', label: 'Tất cả' },
-            { value: 'FRAME', label: 'Khung ảnh' },
-            { value: 'SKIN', label: 'Giao diện' },
-            { value: 'EFFECT', label: 'Hiệu ứng chạm' },
+            { value: 'ALL', label: 'All' },
+            { value: 'FRAME', label: 'Frame' },
+            { value: 'SKIN', label: 'Skin' },
+            { value: 'EFFECT', label: 'Touch effect' },
           ]}
         />
       </Space>
@@ -370,17 +370,17 @@ export function ShopItemsPage() {
         columns={columns}
         dataSource={shown}
         loading={isLoading}
-        pagination={{ pageSize: 20, showTotal: (total) => `Tổng ${total} vật phẩm` }}
+        pagination={{ pageSize: 20, showTotal: (total) => `${total} items total` }}
       />
 
       <Modal
-        title={editing ? `Sửa: ${editing.itemName}` : 'Niêm yết vật phẩm mới'}
+        title={editing ? `Edit: ${editing.itemName}` : 'List a new item'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => void form.submit()}
         confirmLoading={saveMutation.isPending}
-        okText={editing ? 'Lưu' : 'Niêm yết'}
-        cancelText="Hủy"
+        okText={editing ? 'Save' : 'List'}
+        cancelText="Cancel"
         destroyOnClose
       >
         <Form
@@ -397,19 +397,19 @@ export function ShopItemsPage() {
               message={`${TYPE_META[editing.itemType]?.label ?? editing.itemType} · refId ${editing.refId}`}
               description={
                 <>
-                  Không đổi được loại và refId — hai giá trị này trỏ tới vật phẩm thật, đổi đi thì
-                  thứ người chơi <b>đã mua</b> bỗng thành thứ khác.
+                  Type and refId can&apos;t be changed — they point to the real item; changing them would
+                  turn what players <b>already bought</b> into something else.
                 </>
               }
             />
           ) : (
             <>
-              <Form.Item name="itemType" label="Loại vật phẩm" rules={[{ required: true }]}>
+              <Form.Item name="itemType" label="Item type" rules={[{ required: true }]}>
                 <Segmented
                   options={[
-                    { value: 'SKIN', label: 'Giao diện' },
-                    { value: 'EFFECT', label: 'Hiệu ứng chạm' },
-                    { value: 'FRAME', label: 'Khung ảnh' },
+                    { value: 'SKIN', label: 'Skin' },
+                    { value: 'EFFECT', label: 'Touch effect' },
+                    { value: 'FRAME', label: 'Frame' },
                   ]}
                   onChange={(v) => {
                     const type = v as ShopItemType;
@@ -420,16 +420,16 @@ export function ShopItemsPage() {
               {formType === 'FRAME' ? (
                 <Form.Item
                   name="refId"
-                  label="Khung ảnh"
-                  rules={[{ required: true, message: 'Chọn khung ảnh.' }]}
+                  label="Frame"
+                  rules={[{ required: true, message: 'Choose a frame.' }]}
                   extra={
                     frameOptions.length === 0
-                      ? 'Mọi khung "Bán tại Cửa hàng" đều đã lên kệ. Muốn bán khung khác: đổi điều kiện mở khóa của nó ở trang Khung ảnh.'
-                      : 'Chỉ hiện khung có điều kiện "Bán tại Cửa hàng" và chưa niêm yết.'
+                      ? 'Every "Sold in Shop" frame is already listed. To sell another frame, change its unlock condition on the Frames page.'
+                      : 'Only shows frames with the "Sold in Shop" condition that are not listed yet.'
                   }
                 >
                   <Select
-                    placeholder="Chọn khung..."
+                    placeholder="Choose a frame..."
                     options={frameOptions}
                     onChange={(id: string) => {
                       const f = frameOptions.find((o) => o.value === id);
@@ -443,13 +443,13 @@ export function ShopItemsPage() {
               ) : (
                 <Form.Item
                   name="refId"
-                  label={formType === 'SKIN' ? 'Mã giao diện trong app' : 'Mã hiệu ứng trong app'}
-                  rules={[{ required: true, message: 'Chọn hoặc nhập mã.' }]}
-                  extra="Mã phải có sẵn trong APK. Mã mới cần cập nhật app trước rồi mới niêm yết."
+                  label={formType === 'SKIN' ? 'Skin id in the app' : 'Effect id in the app'}
+                  rules={[{ required: true, message: 'Choose or enter an id.' }]}
+                  extra="The id must exist in the APK. New ids need an app update before they can be listed."
                 >
                   <Select
                     showSearch
-                    placeholder="Chọn mã..."
+                    placeholder="Choose an id..."
                     options={apkOptions}
                     onChange={(id: string) => {
                       const o = apkOptions.find((x) => x.value === id);
@@ -465,42 +465,42 @@ export function ShopItemsPage() {
 
           <Form.Item
             name="itemName"
-            label="Tên hiển thị trong Shop"
-            rules={[{ required: true, message: 'Nhập tên vật phẩm.' }]}
-            extra="App hiển thị tiếng Anh — nên đặt tên tiếng Anh (VD: Snow, Flower)."
+            label="Display name in the Shop"
+            rules={[{ required: true, message: 'Enter an item name.' }]}
+            extra="Shown as-is in the app (e.g. Snow, Flower)."
           >
             <Input maxLength={100} />
           </Form.Item>
 
           <Form.Item
             name="price"
-            label="Giá (Astrite)"
-            rules={[{ required: true, message: 'Nhập giá.' }]}
-            extra={`Mặc định: khung ${DEFAULT_PRICE.FRAME} · hiệu ứng ${DEFAULT_PRICE.EFFECT} · giao diện ${DEFAULT_PRICE.SKIN}.`}
+            label="Price (Astrite)"
+            rules={[{ required: true, message: 'Enter a price.' }]}
+            extra={`Defaults: frame ${DEFAULT_PRICE.FRAME} · effect ${DEFAULT_PRICE.EFFECT} · skin ${DEFAULT_PRICE.SKIN}.`}
           >
             <InputNumber min={0} precision={0} style={{ width: '100%' }} addonAfter="⭐" />
           </Form.Item>
 
           <Form.Item
-            label="Ảnh đại diện"
+            label="Thumbnail"
             extra={
               formType === 'FRAME'
-                ? 'Mặc định lấy ảnh của khung.'
-                : 'Tuỳ chọn — để trống thì app tự vẽ xem trước từ asset trong APK.'
+                ? 'Defaults to the frame image.'
+                : 'Optional — if empty, the app draws the preview from APK assets.'
             }
           >
             <ImageUploadField value={imageUrl} onChange={setImageUrl} maxPreviewHeight={140} />
           </Form.Item>
 
-          <Form.Item name="sortOrder" label="Thứ tự hiển thị (nhỏ lên trước)">
+          <Form.Item name="sortOrder" label="Display order (lower first)">
             <InputNumber min={0} precision={0} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item
             name="isActive"
-            label="Mở bán"
+            label="On sale"
             valuePropName="checked"
-            extra="Tắt = ẩn khỏi Shop; người đã mua vẫn giữ."
+            extra="Off = hidden from the Shop; buyers keep it."
           >
             <Switch />
           </Form.Item>
@@ -508,26 +508,26 @@ export function ShopItemsPage() {
       </Modal>
 
       <Modal
-        title={grantTarget ? `Tặng: ${grantTarget.itemName}` : 'Tặng vật phẩm'}
+        title={grantTarget ? `Gift: ${grantTarget.itemName}` : 'Gift item'}
         open={grantTarget !== null}
         onCancel={() => setGrantTarget(null)}
         onOk={() =>
           grantTarget && grantUid && grantMutation.mutate({ itemId: grantTarget.itemId, uid: grantUid })
         }
-        okText="Tặng"
-        cancelText="Hủy"
+        okText="Gift"
+        cancelText="Cancel"
         okButtonProps={{ disabled: !grantUid }}
         confirmLoading={grantMutation.isPending}
         destroyOnClose
       >
         <Typography.Paragraph type="secondary">
-          Mở khoá thẳng vào tài khoản (demo / đền bù). Người đã sở hữu rồi thì tặng lại không đổi
-          gì. Không trừ Astrite, không ghi lịch sử mua.
+          Unlocks directly on the account (demo / compensation). Gifting to someone who already owns
+          it changes nothing. No Astrite is debited and no purchase history is written.
         </Typography.Paragraph>
         <Select
           showSearch
           style={{ width: '100%' }}
-          placeholder="Tìm theo email hoặc tên..."
+          placeholder="Search by email or name..."
           value={grantUid}
           onChange={setGrantUid}
           onSearch={onUserSearch}
@@ -535,13 +535,13 @@ export function ShopItemsPage() {
           loading={searchingUsers}
           options={(userOptions?.items ?? []).map((u) => ({
             value: u.uid,
-            label: `${u.fullName || '(chưa đặt tên)'} — ${u.email ?? u.uid}`,
+            label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
           }))}
         />
       </Modal>
 
       <Drawer
-        title={ownersTarget ? `Ai đang sở hữu: ${ownersTarget.itemName}` : ''}
+        title={ownersTarget ? `Who owns: ${ownersTarget.itemName}` : ''}
         open={ownersTarget !== null}
         onClose={() => setOwnersTarget(null)}
         width={400}
@@ -552,12 +552,12 @@ export function ShopItemsPage() {
           <List
             loading={loadingOwners}
             dataSource={ownersData?.owners ?? []}
-            locale={{ emptyText: 'Chưa có ai sở hữu vật phẩm này.' }}
+            locale={{ emptyText: 'Nobody owns this item yet.' }}
             renderItem={(owner) => (
               <List.Item>
                 <List.Item.Meta
                   avatar={<Avatar src={owner.avatar}>{owner.fullName?.[0] ?? '?'}</Avatar>}
-                  title={owner.fullName || '(chưa đặt tên)'}
+                  title={owner.fullName || '(no name)'}
                   description={owner.email ?? owner.uid}
                 />
               </List.Item>

@@ -39,7 +39,7 @@ export function MomentsPage() {
   const deleteMutation = useMutation({
     mutationFn: (momentId: string) => deleteMoment(momentId),
     onSuccess: () => {
-      message.success('Đã xóa bài đăng vi phạm.');
+      message.success('Violating post deleted.');
       void queryClient.invalidateQueries({ queryKey: ['admin-moments'] });
       void queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     },
@@ -49,11 +49,11 @@ export function MomentsPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Kiểm duyệt bài đăng
+        Post moderation
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        Toàn bộ bài đăng mới nhất của mọi người dùng. Xóa bài vi phạm sẽ xóa cả lượt xem/reaction
-        và được ghi vào Nhật ký admin.
+        The latest posts from all users. Deleting a violating post also deletes its views/reactions
+        and is recorded in the Admin audit log.
       </Typography.Paragraph>
 
       {error && (
@@ -61,7 +61,7 @@ export function MomentsPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được danh sách bài đăng."
+          message="Couldn't load posts."
           description={(error as Error).message}
         />
       )}
@@ -71,7 +71,7 @@ export function MomentsPage() {
           <Spin />
         </div>
       ) : !data || data.items.length === 0 ? (
-        !error && <Empty description="Chưa có bài đăng nào." />
+        !error && <Empty description="No posts yet." />
       ) : (
         <>
           <Row gutter={[16, 16]}>
@@ -109,10 +109,10 @@ export function MomentsPage() {
                   actions={[
                     <Popconfirm
                       key="delete"
-                      title="Xóa bài đăng này?"
-                      description="Bài + lượt xem/reaction sẽ bị xóa vĩnh viễn (có ghi nhật ký)."
-                      okText="Xóa"
-                      cancelText="Hủy"
+                      title="Delete this post?"
+                      description="The post + its views/reactions will be permanently deleted (logged)."
+                      okText="Delete"
+                      cancelText="Cancel"
                       okButtonProps={{ danger: true }}
                       onConfirm={() => deleteMutation.mutate(moment.momentId)}
                     >
@@ -125,7 +125,7 @@ export function MomentsPage() {
                           deleteMutation.isPending && deleteMutation.variables === moment.momentId
                         }
                       >
-                        Xóa bài
+                        Delete post
                       </Button>
                     </Popconfirm>,
                   ]}
@@ -136,7 +136,7 @@ export function MomentsPage() {
                         {moment.authorName}
                         {moment.coopUserId && (
                           <Tag color="purple" style={{ marginLeft: 8 }}>
-                            <TeamOutlined /> Chụp chung
+                            <TeamOutlined /> Co-op
                           </Tag>
                         )}
                       </span>
@@ -152,7 +152,7 @@ export function MomentsPage() {
                           </Typography.Paragraph>
                         )}
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                          {new Date(moment.postTime).toLocaleString('vi-VN')}
+                          {new Date(moment.postTime).toLocaleString('en-US')}
                         </Typography.Text>
                       </>
                     }
@@ -168,7 +168,7 @@ export function MomentsPage() {
             total={data.total}
             onChange={setPage}
             showSizeChanger={false}
-            showTotal={(total) => `Tổng ${total} bài đăng`}
+            showTotal={(total) => `${total} posts total`}
           />
         </>
       )}

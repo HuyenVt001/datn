@@ -20,23 +20,23 @@ import { ITEM_TYPES, ItemType } from '../entities/shop-item.entity';
  * Rang buoc theo loai + chong trung (itemType, refId) kiem o ShopService.createItem.
  */
 export class CreateShopItemDto {
-  @ApiProperty({ description: 'Ten mat hang hien trong Shop', maxLength: 100 })
+  @ApiProperty({ description: 'Item name shown in the Shop', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   itemName!: string;
 
-  @ApiProperty({ description: 'Loai mat hang', enum: ITEM_TYPES })
+  @ApiProperty({ description: 'Item type', enum: ITEM_TYPES })
   @IsIn(ITEM_TYPES)
   itemType!: ItemType;
 
-  @ApiProperty({ description: 'FRAME -> frameId; SKIN/EFFECT -> id so trong app (vd "1")' })
+  @ApiProperty({ description: 'FRAME -> frameId; SKIN/EFFECT -> numeric id in the app (e.g. "1")' })
   @IsString()
   @IsNotEmpty()
   refId!: string;
 
   @ApiPropertyOptional({
-    description: 'Gia ban (Astrite). Bo trong = gia mac dinh theo loai (320 / 4800 / 1600)',
+    description: 'Price (Astrite). Empty = default price by type (320 / 4800 / 1600)',
   })
   @IsOptional()
   @Type(() => Number)
@@ -44,17 +44,17 @@ export class CreateShopItemDto {
   @Min(0)
   price?: number;
 
-  @ApiPropertyOptional({ description: 'Anh dai dien (tu /upload/admin hoac link ngoai)' })
+  @ApiPropertyOptional({ description: 'Thumbnail (from /upload/admin or an external link)' })
   @IsOptional()
   @IsUrl()
   imageUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Mo ban ngay (mac dinh bat)', default: true })
+  @ApiPropertyOptional({ description: 'On sale immediately (default on)', default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ description: 'Thu tu hien thi (nho len truoc)', default: 0 })
+  @ApiPropertyOptional({ description: 'Display order (lower first)', default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

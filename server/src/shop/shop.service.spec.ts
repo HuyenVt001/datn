@@ -72,7 +72,7 @@ describe('ShopService', () => {
 
   // ==================== Catalog ====================
 
-  it('getCatalogForUser: tra so du + isOwned dung theo tung loai', async () => {
+  it('getCatalogForUser: returns balance + correct isOwned per type', async () => {
     repo.listActiveItems.mockResolvedValue([
       item({ itemId: 'a', itemType: 'SKIN', refId: '1' }),
       item({ itemId: 'b', itemType: 'EFFECT', refId: '2' }),
@@ -101,7 +101,7 @@ describe('ShopService', () => {
 
   // ==================== Mua ====================
 
-  it('buyItem SKIN: tru dung gia, mo khoa dang SO, ghi lich su + so cai SHOP_PURCHASE', async () => {
+  it('buyItem SKIN: debits the exact price, unlocks as NUMBER, writes history + SHOP_PURCHASE ledger', async () => {
     repo.findItemById.mockResolvedValue(item());
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 5000 }));
 
@@ -127,7 +127,7 @@ describe('ShopService', () => {
     });
   });
 
-  it('buyItem EFFECT: mo khoa vao unlockedEffects dang so', async () => {
+  it('buyItem EFFECT: unlocks into unlockedEffects as number', async () => {
     repo.findItemById.mockResolvedValue(item({ itemType: 'EFFECT', refId: '3', price: 1600 }));
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 1600 }));
 
@@ -137,7 +137,7 @@ describe('ShopService', () => {
     expect(repo.unlockInTransaction).toHaveBeenCalledWith(tx, 'u1', 'unlockedEffects', 3);
   });
 
-  it('buyItem FRAME: khung SHOP -> mo khoa vao unlockedFrames dang CHUOI', async () => {
+  it('buyItem FRAME: SHOP frame -> unlocks into unlockedFrames as STRING', async () => {
     repo.findItemById.mockResolvedValue(item({ itemType: 'FRAME', refId: 'f1', price: 320 }));
     framesRepo.findById.mockResolvedValue({ frameId: 'f1', unlockType: 'SHOP' } as never);
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 500 }));
@@ -147,7 +147,7 @@ describe('ShopService', () => {
     expect(repo.unlockInTransaction).toHaveBeenCalledWith(tx, 'u1', 'unlockedFrames', 'f1');
   });
 
-  it('buyItem FRAME: khung khong con la SHOP -> 400, khong mo transaction', async () => {
+  it('buyItem FRAME: frame no longer SHOP -> 400, no transaction', async () => {
     repo.findItemById.mockResolvedValue(item({ itemType: 'FRAME', refId: 'f1' }));
     framesRepo.findById.mockResolvedValue({ frameId: 'f1', unlockType: 'DEFAULT' } as never);
 
@@ -155,17 +155,17 @@ describe('ShopService', () => {
     expect(repo.runTransaction).not.toHaveBeenCalled();
   });
 
-  it('buyItem: khong du Astrite -> 400, khong ghi gi', async () => {
+  it('buyItem: not enough Astrite -> 400, writes nothing', async () => {
     repo.findItemById.mockResolvedValue(item({ price: 4800 }));
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 4799 }));
 
-    await expect(service.buyItem('u1', 'i1')).rejects.toThrow('Bạn không đủ Astrite.');
+    await expect(service.buyItem('u1', 'i1')).rejects.toThrow('You don\'t have enough Astrite.');
     expect(astriteRepo.setBalanceInTransaction).not.toHaveBeenCalled();
     expect(astriteRepo.addEntryInTransaction).not.toHaveBeenCalled();
     expect(repo.unlockInTransaction).not.toHaveBeenCalled();
   });
 
-  it('buyItem: da so huu -> 409, khong tru tien', async () => {
+  it('buyItem: already owned -> 409, no debit', async () => {
     repo.findItemById.mockResolvedValue(item());
     repo.getWalletInTransaction.mockResolvedValue(
       wallet({ astrite: 99999, unlockedSkins: new Set(['1']) }),
@@ -175,7 +175,7 @@ describe('ShopService', () => {
     expect(astriteRepo.setBalanceInTransaction).not.toHaveBeenCalled();
   });
 
-  it('buyItem: mat hang dang tat hoac khong ton tai -> 400', async () => {
+  it('buyItem: item disabled or missing -> 400', async () => {
     repo.findItemById.mockResolvedValueOnce(item({ isActive: false }));
     await expect(service.buyItem('u1', 'i1')).rejects.toThrow(BadRequestException);
 
@@ -185,14 +185,14 @@ describe('ShopService', () => {
     expect(repo.runTransaction).not.toHaveBeenCalled();
   });
 
-  it('buyItem: user doc khong ton tai -> 404', async () => {
+  it('buyItem: user doc missing -> 404', async () => {
     repo.findItemById.mockResolvedValue(item());
     repo.getWalletInTransaction.mockResolvedValue(wallet({ exists: false }));
 
     await expect(service.buyItem('ghost', 'i1')).rejects.toThrow(NotFoundException);
   });
 
-  it('buyItem: mon gia 0 van ghi 1 dong so cai (giu bat bien so du <-> so cai)', async () => {
+  it('buyItem: a 0-price item still writes 1 ledger row (keeps balance <-> ledger invariant)', async () => {
     repo.findItemById.mockResolvedValue(item({ price: 0 }));
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 0 }));
 
@@ -206,7 +206,7 @@ describe('ShopService', () => {
 
   // ==================== Admin CRUD ====================
 
-  it('createItem SKIN: chuan hoa refId "01" -> "1", gia mac dinh 4800 khi bo trong', async () => {
+  it('createItem SKIN: normalizes refId "01" -> "1", default price 4800 when empty', async () => {
     const created = await service.createItem({
       itemName: 'Snow',
       itemType: 'SKIN',
@@ -219,7 +219,7 @@ describe('ShopService', () => {
     expect(repo.findItemByRef).toHaveBeenCalledWith('SKIN', '1');
   });
 
-  it('createItem EFFECT: gia admin nhap duoc giu nguyen', async () => {
+  it('createItem EFFECT: the admin-entered price is kept', async () => {
     const created = await service.createItem({
       itemName: 'Leaf',
       itemType: 'EFFECT',
@@ -230,7 +230,7 @@ describe('ShopService', () => {
   });
 
   it.each(['0', '-1', '1.5', 'abc'])(
-    'createItem SKIN: refId "%s" khong hop le -> 400',
+    'createItem SKIN: invalid refId "%s" -> 400',
     async (r) => {
       await expect(
         service.createItem({ itemName: 'x', itemType: 'SKIN', refId: r }),
@@ -238,7 +238,7 @@ describe('ShopService', () => {
     },
   );
 
-  it('createItem FRAME: khung SHOP -> dung anh khung khi khong gui anh, gia mac dinh 320', async () => {
+  it('createItem FRAME: SHOP frame -> uses the frame image when none is sent, default price 320', async () => {
     framesRepo.findById.mockResolvedValue({
       frameId: 'f1',
       unlockType: 'SHOP',
@@ -250,7 +250,7 @@ describe('ShopService', () => {
     expect(created).toEqual(expect.objectContaining({ price: 320, imageUrl: 'http://f.png' }));
   });
 
-  it('createItem FRAME: khung khong phai SHOP / khong ton tai -> 400', async () => {
+  it('createItem FRAME: frame not SHOP / missing -> 400', async () => {
     framesRepo.findById.mockResolvedValueOnce({ frameId: 'f1', unlockType: 'POST_COUNT' } as never);
     await expect(
       service.createItem({ itemName: 'x', itemType: 'FRAME', refId: 'f1' }),
@@ -262,7 +262,7 @@ describe('ShopService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('createItem: niem yet trung (itemType, refId) -> 409', async () => {
+  it('createItem: duplicate listing (itemType, refId) -> 409', async () => {
     repo.findItemByRef.mockResolvedValue(item());
 
     await expect(
@@ -271,7 +271,7 @@ describe('ShopService', () => {
     expect(repo.createItem).not.toHaveBeenCalled();
   });
 
-  it('updateItem: merge cac field gui len, bo qua undefined', async () => {
+  it('updateItem: merges sent fields, ignores undefined', async () => {
     repo.findItemById.mockResolvedValue(item({ price: 4800 }));
 
     const updated = await service.updateItem('i1', { price: 3000, itemName: undefined });
@@ -281,13 +281,13 @@ describe('ShopService', () => {
     expect(updated.itemName).toBe('Snow');
   });
 
-  it('updateItem / deleteItem: khong ton tai -> 404', async () => {
+  it('updateItem / deleteItem: missing -> 404', async () => {
     repo.findItemById.mockResolvedValue(null);
     await expect(service.updateItem('x', {})).rejects.toThrow(NotFoundException);
     await expect(service.deleteItem('x')).rejects.toThrow(NotFoundException);
   });
 
-  it('grantItem: mo khoa thang (SKIN dang so), khong dung toi so cai', async () => {
+  it('grantItem: unlocks directly (SKIN as number), ledger untouched', async () => {
     repo.findItemById.mockResolvedValue(item({ refId: '2' }));
     usersRepo.findByUid.mockResolvedValue({ uid: 'u2' } as never);
 
@@ -297,7 +297,7 @@ describe('ShopService', () => {
     expect(astriteRepo.addEntryInTransaction).not.toHaveBeenCalled();
   });
 
-  it('grantItem: uid khong ton tai -> 404 (chong sinh user doc "ma")', async () => {
+  it('grantItem: missing uid -> 404 (prevents creating a "ghost" user doc)', async () => {
     repo.findItemById.mockResolvedValue(item());
     usersRepo.findByUid.mockResolvedValue(null);
 
@@ -305,7 +305,7 @@ describe('ShopService', () => {
     expect(usersRepo.unlockCollectible).not.toHaveBeenCalled();
   });
 
-  it('listAllPurchases: loc uid / loai / ngay + enrich ten', async () => {
+  it('listAllPurchases: filters uid / type / date + enriches names', async () => {
     repo.listAllPurchases.mockResolvedValue([
       { purchaseId: 'p1', uid: 'u1', itemType: 'SKIN', createdAt: '2026-11-15T01:00:00Z' },
       { purchaseId: 'p2', uid: 'u1', itemType: 'FRAME', createdAt: '2026-11-15T02:00:00Z' },
@@ -325,7 +325,7 @@ describe('ShopService', () => {
 
   // ==================== Dong bo khung ====================
 
-  it('syncFrameListing(true): chua co -> tao mat hang gia mac dinh', async () => {
+  it('syncFrameListing(true): not listed -> creates an item at the default price', async () => {
     await service.syncFrameListing(
       { frameId: 'f1', frameName: 'Fire', imageUrl: 'http://f.png', unlockType: 'SHOP' } as never,
       true,
@@ -336,7 +336,7 @@ describe('ShopService', () => {
     );
   });
 
-  it('syncFrameListing(true): da co -> KHONG ghi de (giu gia admin da sua)', async () => {
+  it('syncFrameListing(true): already listed -> does NOT overwrite (keeps the admin-edited price)', async () => {
     repo.findItemByRef.mockResolvedValue(item({ itemType: 'FRAME', refId: 'f1', price: 50 }));
 
     await service.syncFrameListing({ frameId: 'f1' } as never, true);
@@ -345,7 +345,7 @@ describe('ShopService', () => {
     expect(repo.updateItem).not.toHaveBeenCalled();
   });
 
-  it('syncFrameListing(false): co mat hang -> go khoi Shop', async () => {
+  it('syncFrameListing(false): item exists -> removed from the Shop', async () => {
     repo.findItemByRef.mockResolvedValue(item({ itemId: 'g1', itemType: 'FRAME', refId: 'f1' }));
 
     await service.syncFrameListing({ frameId: 'f1' } as never, false);

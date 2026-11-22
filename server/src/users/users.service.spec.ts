@@ -29,7 +29,7 @@ describe('UsersService', () => {
   });
 
   describe('ensureUser', () => {
-    it('tra ve user co san (da co joinDate) khong ghi gi them', async () => {
+    it('returns the existing user (has joinDate) without writing', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
         email: 'a@b.c',
@@ -40,7 +40,7 @@ describe('UsersService', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('tao user moi khi dang nhap lan dau — KHONG dinh key avatar undefined (email/password)', async () => {
+    it('creates a new user on first sign-in — does NOT attach an undefined avatar key (email/password)', async () => {
       repo.findByUid.mockResolvedValue(null);
       const auth: AuthUser = { uid: 'u2', email: 'new@snap.get' }; // token khong co claim picture
       const result = await service.ensureUser(auth);
@@ -54,7 +54,7 @@ describe('UsersService', () => {
       expect(result.personalStreak).toBe(0);
     });
 
-    it('doc STUB (grant khung truoc khi dang nhap) -> backfill nhung GIU unlockedFrames', async () => {
+    it('STUB doc (frame granted before sign-in) -> backfills but KEEPS unlockedFrames', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u3',
         email: '',
@@ -74,28 +74,28 @@ describe('UsersService', () => {
       expect(result.unlockedFrames).toEqual(['f1']);
     });
 
-    it('doc thoi prototype co ten cu -> giu ten, chi bo sung field thieu', async () => {
+    it('prototype-era doc with an old name -> keeps the name, only fills missing fields', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u4',
         email: 'old@snap.get',
-        fullName: 'Ten Cu',
+        fullName: 'Old Name',
         joinDate: '',
         personalStreak: 3,
         unlockedFrames: [],
         fcmTokens: [],
       } as never);
 
-      const result = await service.ensureUser({ uid: 'u4', name: 'Ten Auth' } as AuthUser);
+      const result = await service.ensureUser({ uid: 'u4', name: 'Auth Name' } as AuthUser);
 
       const patch = repo.update.mock.calls[0][1];
-      expect(patch.fullName).toBe('Ten Cu'); // khong ghi de ten nguoi dung da dat
+      expect(patch.fullName).toBe('Old Name'); // khong ghi de ten nguoi dung da dat
       expect(patch.personalStreak).toBe(3);
-      expect(result.fullName).toBe('Ten Cu');
+      expect(result.fullName).toBe('Old Name');
     });
   });
 
   describe('getOrCreateInviteCode', () => {
-    it('giu nguyen ma khi con han', async () => {
+    it('keeps the code while valid', async () => {
       const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
@@ -109,7 +109,7 @@ describe('UsersService', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('sinh ma moi + han 30 ngay khi ma da het han', async () => {
+    it('generates a new code + 30-day expiry when the code expired', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
         inviteCode: 'oldcode',
@@ -129,7 +129,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('sinh ma moi khi ma cu chua co han (du lieu truoc TTL)', async () => {
+    it('generates a new code when the old one has no expiry (pre-TTL data)', async () => {
       repo.findByUid.mockResolvedValue({ uid: 'u1', inviteCode: 'legacy' } as never);
 
       const result = await service.getOrCreateInviteCode('u1');
@@ -140,7 +140,7 @@ describe('UsersService', () => {
   });
 
   describe('updateProfile', () => {
-    it('chi patch cac field co trong dto (khong dinh field undefined)', async () => {
+    it('only patches fields present in the dto (no undefined fields)', async () => {
       repo.findByUid.mockResolvedValue({ uid: 'u1', birthday: '2000-01-31' } as never);
 
       const result = await service.updateProfile('u1', { birthday: '2000-01-31' });
@@ -151,7 +151,7 @@ describe('UsersService', () => {
       expect(auth.updateUser).not.toHaveBeenCalled();
     });
 
-    it('doi fullName -> patch Firestore + SYNC displayName len Firebase Auth', async () => {
+    it('changing fullName -> patches Firestore + SYNCS displayName to Firebase Auth', async () => {
       repo.findByUid.mockResolvedValue({ uid: 'u1' } as never);
 
       await service.updateProfile('u1', { fullName: 'Hoang', birthday: '1999-12-01' });
@@ -163,12 +163,12 @@ describe('UsersService', () => {
       expect(auth.updateUser).toHaveBeenCalledWith('u1', { displayName: 'Hoang' });
     });
 
-    it('birthday o TUONG LAI -> bao loi, khong ghi gi', async () => {
+    it('birthday in the FUTURE -> error, writes nothing', async () => {
       await expect(service.updateProfile('u1', { birthday: '2999-01-01' })).rejects.toThrow();
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('sync Auth loi -> updateProfile van thanh cong (best-effort)', async () => {
+    it('Auth sync fails -> updateProfile still succeeds (best-effort)', async () => {
       repo.findByUid.mockResolvedValue({ uid: 'u1', fullName: 'Hoang' } as never);
       auth.updateUser.mockRejectedValue(new Error('auth down'));
 
@@ -177,12 +177,12 @@ describe('UsersService', () => {
   });
 
   describe('pushToUids', () => {
-    it('gom token cua cac uid (khu trung) roi gui multicast', async () => {
+    it('collects tokens of the uids (deduped) then sends multicast', async () => {
       repo.findByUid
         .mockResolvedValueOnce({ uid: 'a', fcmTokens: ['t1', 't2'] } as never)
         .mockResolvedValueOnce({ uid: 'b', fcmTokens: ['t2', 't3'] } as never);
 
-      const sent = await service.pushToUids(['a', 'b', 'a'], 'Tieu de', 'Noi dung');
+      const sent = await service.pushToUids(['a', 'b', 'a'], 'Title', 'Content');
 
       expect(messaging.sendEachForMulticast).toHaveBeenCalledWith(
         expect.objectContaining({ tokens: ['t1', 't2', 't3'] }),
@@ -190,7 +190,7 @@ describe('UsersService', () => {
       expect(sent).toBe(1);
     });
 
-    it('khong co token -> khong gui; loi FCM -> khong throw', async () => {
+    it('no tokens -> nothing sent; FCM error -> no throw', async () => {
       repo.findByUid.mockResolvedValue({ uid: 'a', fcmTokens: [] } as never);
       expect(await service.pushToUids(['a'], 't', 'b')).toBe(0);
       expect(messaging.sendEachForMulticast).not.toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe('UsersService', () => {
   });
 
   describe('registerActivityForStreak', () => {
-    it('reset ve 1 khi cach xa hon 1 ngay', async () => {
+    it('resets to 1 when more than 1 day apart', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
         personalStreak: 9,
@@ -213,7 +213,7 @@ describe('UsersService', () => {
       expect(repo.update).toHaveBeenCalled();
     });
 
-    it('detailed: cung ngay -> increased false, khong ghi', async () => {
+    it('detailed: same day -> increased false, no write', async () => {
       const today = new Date().toISOString().slice(0, 10);
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
@@ -228,7 +228,7 @@ describe('UsersService', () => {
       }
     });
 
-    it('detailed: dut chuoi -> bat dau lai 1 va increased true', async () => {
+    it('detailed: streak broken -> restarts at 1 and increased true', async () => {
       repo.findByUid.mockResolvedValue({
         uid: 'u1',
         personalStreak: 9,
@@ -242,7 +242,7 @@ describe('UsersService', () => {
   });
 
   describe('sendStreakReminders (cron 2026-11-15)', () => {
-    it('chi gui user streak > 0 co token, push DATA-ONLY type STREAK_REMINDER', async () => {
+    it('only sends to users with streak > 0 and a token, DATA-ONLY push type STREAK_REMINDER', async () => {
       repo.listByLastStreakDate.mockResolvedValue([
         { uid: 'a', personalStreak: 5, fcmTokens: ['t1', 't1', 't2'] },
         { uid: 'b', personalStreak: 0, fcmTokens: ['t3'] }, // streak 0 -> bo
@@ -260,7 +260,7 @@ describe('UsersService', () => {
       expect(payload.data.title).toContain('5-day streak');
     });
 
-    it('FCM loi 1 user -> khong throw, dem notified dung', async () => {
+    it('FCM fails for 1 user -> no throw, notified count correct', async () => {
       repo.listByLastStreakDate.mockResolvedValue([
         { uid: 'a', personalStreak: 2, fcmTokens: ['t1'] },
         { uid: 'b', personalStreak: 7, fcmTokens: ['t2'] },

@@ -43,13 +43,13 @@ class SessionCleaner @Inject constructor(
         settingsPreferences.resetAppearance()
 
         runCatching { PendingInviteStore.consume(context) }
-            .onFailure { Log.w(TAG, "Khong xoa duoc pending invite: ${it.message}") }
+            .onFailure { Log.w(TAG, "Failed to clear pending invite: ${it.message}") }
 
         runCatching {
             val imageLoader = SingletonImageLoader.get(context)
             imageLoader.memoryCache?.clear()
             imageLoader.diskCache?.clear()
-        }.onFailure { Log.w(TAG, "Khong xoa duoc cache anh: ${it.message}") }
+        }.onFailure { Log.w(TAG, "Failed to clear image cache: ${it.message}") }
     }
 
     private companion object {

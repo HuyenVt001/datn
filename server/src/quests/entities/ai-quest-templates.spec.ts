@@ -6,7 +6,7 @@ import { AI_QUEST_TEMPLATES, pickFallbackQuest, seededIndex } from './ai-quest-t
  * de them cau ve sau khong lam vo rang buoc phia server/app.
  */
 describe('AI_QUEST_TEMPLATES', () => {
-  it('moi lop ra de co >= 6 cau, tong 72, khong trung cau trong 1 lop', () => {
+  it('each quest class has >= 6 sentences, 72 total, no duplicates within a class', () => {
     let total = 0;
     for (const cls of AI_QUEST_CLASSES) {
       const list = AI_QUEST_TEMPLATES[cls];
@@ -17,7 +17,7 @@ describe('AI_QUEST_TEMPLATES', () => {
     expect(total).toBe(72);
   });
 
-  it('cau nao cung bat dau bang "Take a photo of", <= AI_QUEST_CONTENT_MAX ky tu, khong thua khoang trang', () => {
+  it('every sentence starts with "Take a photo of", <= AI_QUEST_CONTENT_MAX characters, no extra whitespace', () => {
     for (const cls of AI_QUEST_CLASSES) {
       for (const content of AI_QUEST_TEMPLATES[cls]) {
         expect(content.startsWith('Take a photo of')).toBe(true);
@@ -27,7 +27,7 @@ describe('AI_QUEST_TEMPLATES', () => {
     }
   });
 
-  it('lop ra de la tap con cua lop model hoc; 3 lop bi loai van nam trong model', () => {
+  it('quest classes are a subset of the model classes; the 3 excluded classes remain in the model', () => {
     for (const cls of AI_QUEST_CLASSES) {
       expect(AI_MODEL_CLASSES).toContain(cls);
     }
@@ -40,7 +40,7 @@ describe('AI_QUEST_TEMPLATES', () => {
 });
 
 describe('pickFallbackQuest', () => {
-  it('xac dinh theo ngay: cung input -> cung output (2 instance server chon giong nhau)', () => {
+  it('deterministic per day: same input -> same output (2 server instances pick the same)', () => {
     const a = pickFallbackQuest('2026-08-16', ['cup']);
     const b = pickFallbackQuest('2026-08-16', ['cup']);
     expect(a).toEqual(b);
@@ -48,7 +48,7 @@ describe('pickFallbackQuest', () => {
     expect(AI_QUEST_TEMPLATES[a.targetClass]).toContain(a.content);
   });
 
-  it('khong chon lop trong avoid; avoid het thi van chon duoc 1 lop', () => {
+  it('never picks a class in avoid; if all are avoided it still picks one', () => {
     for (let d = 1; d <= 28; d++) {
       const date = `2026-09-${String(d).padStart(2, '0')}`;
       const picked = pickFallbackQuest(date, ['cup', 'bottle', 'chair']);
@@ -58,7 +58,7 @@ describe('pickFallbackQuest', () => {
     expect(AI_QUEST_CLASSES).toContain(all.targetClass);
   });
 
-  it('30 ngay lien tiep (avoid 3 ngay truoc nhu server) -> khong lap vat the trong 3 ngay canh nhau', () => {
+  it('30 consecutive days (avoiding the previous 3 days like the server) -> no object repeats within 3 adjacent days', () => {
     const recent: string[] = [];
     const seen = new Set<string>();
     for (let d = 1; d <= 30; d++) {
@@ -71,8 +71,8 @@ describe('pickFallbackQuest', () => {
     expect(seen.size).toBeGreaterThanOrEqual(7); // 9 lop, avoid 3 — hau het lop deu ra trong 1 thang
   });
 
-  it('seededIndex luon trong [0, size)', () => {
-    for (const seed of ['a', '2026-08-16', '2026-08-16:cup', '', 'ữ']) {
+  it('seededIndex is always within [0, size)', () => {
+    for (const seed of ['a', '2026-08-16', '2026-08-16:cup', '', 'ü']) {
       const i = seededIndex(seed, 8);
       expect(i).toBeGreaterThanOrEqual(0);
       expect(i).toBeLessThan(8);

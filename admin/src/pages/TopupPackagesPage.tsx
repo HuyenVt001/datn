@@ -26,7 +26,7 @@ import {
 } from '../api/topup.api';
 import type { TopupPackage } from '../types';
 
-const vnd = (n: number) => `${n.toLocaleString('vi-VN')}đ`;
+const vnd = (n: number) => `${n.toLocaleString('en-US')} VND`;
 
 interface PackageForm {
   name: string;
@@ -63,7 +63,7 @@ export function TopupPackagesPage() {
     mutationFn: (values: PackageForm) =>
       editing ? updateTopupPackage(editing.packageId, values) : createTopupPackage(values),
     onSuccess: () => {
-      message.success(editing ? 'Đã cập nhật gói nạp.' : 'Đã thêm gói nạp.');
+      message.success(editing ? 'Package updated.' : 'Package added.');
       setModalOpen(false);
       void invalidate();
     },
@@ -74,7 +74,7 @@ export function TopupPackagesPage() {
     mutationFn: ({ pkg, isActive }: { pkg: TopupPackage; isActive: boolean }) =>
       updateTopupPackage(pkg.packageId, { isActive }),
     onSuccess: (_, { isActive }) => {
-      message.success(isActive ? 'Đã bật — gói hiện trong app.' : 'Đã tắt — gói ẩn khỏi app.');
+      message.success(isActive ? 'Enabled — package shown in the app.' : 'Disabled — package hidden from the app.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -83,7 +83,7 @@ export function TopupPackagesPage() {
   const deleteMutation = useMutation({
     mutationFn: (packageId: string) => deleteTopupPackage(packageId),
     onSuccess: () => {
-      message.success('Đã xoá gói nạp.');
+      message.success('Package deleted.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -111,13 +111,13 @@ export function TopupPackagesPage() {
 
   const columns: ColumnsType<TopupPackage> = [
     {
-      title: 'Tên gói',
+      title: 'Package name',
       dataIndex: 'name',
       render: (name: string, pkg) => (
         <Space>
           <Typography.Text strong>{name}</Typography.Text>
           {pkg.isTest && (
-            <Tooltip title="Gói dùng để kiểm thử. Vẫn là tiền thật — chỉ là giá rẻ.">
+            <Tooltip title="Test package. Still real money — just cheap.">
               <Tag color="volcano">TEST</Tag>
             </Tooltip>
           )}
@@ -129,10 +129,10 @@ export function TopupPackagesPage() {
       dataIndex: 'astrite',
       width: 140,
       align: 'right',
-      render: (n: number) => n.toLocaleString('vi-VN'),
+      render: (n: number) => n.toLocaleString('en-US'),
     },
     {
-      title: 'Giá',
+      title: 'Price',
       dataIndex: 'priceVnd',
       width: 130,
       align: 'right',
@@ -141,16 +141,16 @@ export function TopupPackagesPage() {
     {
       // Cột này để so sánh các gói với nhau: gói to phải đáng tiền hơn gói nhỏ,
       // nếu không thì không ai mua gói to.
-      title: 'Astrite / 1.000đ',
+      title: 'Astrite / 1,000 VND',
       key: 'rate',
       width: 150,
       align: 'right',
       render: (_, pkg) =>
-        Math.round((pkg.astrite / pkg.priceVnd) * 1000).toLocaleString('vi-VN'),
+        Math.round((pkg.astrite / pkg.priceVnd) * 1000).toLocaleString('en-US'),
     },
-    { title: 'Thứ tự', dataIndex: 'sortOrder', width: 90 },
+    { title: 'Order', dataIndex: 'sortOrder', width: 90 },
     {
-      title: 'Hiện trong app',
+      title: 'Shown in app',
       dataIndex: 'isActive',
       width: 140,
       render: (isActive: boolean, pkg) => (
@@ -164,19 +164,19 @@ export function TopupPackagesPage() {
       ),
     },
     {
-      title: 'Hành động',
+      title: 'Actions',
       key: 'actions',
       width: 170,
       render: (_, pkg) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(pkg)}>
-            Sửa
+            Edit
           </Button>
           <Popconfirm
-            title="Xoá gói nạp?"
-            description="Lịch sử đơn cũ vẫn giữ. Muốn tạm ẩn khỏi app thì tắt công tắc thay vì xoá."
-            okText="Xoá"
-            cancelText="Hủy"
+            title="Delete package?"
+            description="Old order history is kept. To hide it from the app temporarily, turn off the switch instead of deleting."
+            okText="Delete"
+            cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteMutation.mutate(pkg.packageId)}
           >
@@ -190,18 +190,18 @@ export function TopupPackagesPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Gói nạp Astrite
+        Astrite top-up packages
       </Typography.Title>
       <Alert
         type="warning"
         showIcon
         style={{ marginBottom: 16, maxWidth: 860 }}
-        message="Đây là tiền thật (PayOS production)"
+        message="This is real money (PayOS production)"
         description={
           <>
-            Sửa giá hoặc số Astrite ở đây <b>đổi ngay số tiền người dùng phải trả</b> cho các đơn tạo
-            từ lúc này. Đơn đã tạo giữ nguyên giá của chính nó nên không bị hồi tố. Mọi thao tác ở
-            trang này đều được ghi vào Nhật ký.
+            Editing the price or Astrite here <b>immediately changes what users pay</b> for orders
+            created from now on. Existing orders keep their own price, so nothing is retroactive. Every
+            action on this page is recorded in the Audit log.
           </>
         }
       />
@@ -210,13 +210,13 @@ export function TopupPackagesPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được danh sách gói nạp."
+          message="Couldn't load top-up packages."
           description={(error as Error).message}
         />
       )}
       <Space style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Thêm gói nạp
+          Add package
         </Button>
       </Space>
       <Table<TopupPackage>
@@ -228,13 +228,13 @@ export function TopupPackagesPage() {
       />
 
       <Modal
-        title={editing ? `Sửa: ${editing.name}` : 'Thêm gói nạp'}
+        title={editing ? `Edit: ${editing.name}` : 'Add package'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => void form.submit()}
         confirmLoading={saveMutation.isPending}
-        okText={editing ? 'Lưu' : 'Thêm'}
-        cancelText="Hủy"
+        okText={editing ? 'Save' : 'Add'}
+        cancelText="Cancel"
         destroyOnClose
       >
         <Form
@@ -245,48 +245,48 @@ export function TopupPackagesPage() {
         >
           <Form.Item
             name="name"
-            label="Tên gói"
-            rules={[{ required: true, message: 'Nhập tên gói.' }]}
-            extra="Hiện trong popup nạp của app. VD: 600 Astrite"
+            label="Package name"
+            rules={[{ required: true, message: 'Enter a package name.' }]}
+            extra="Shown in the app's top-up popup. e.g. 600 Astrite"
           >
             <Input placeholder="VD: 600 Astrite" maxLength={60} />
           </Form.Item>
 
           <Form.Item
             name="astrite"
-            label="Số Astrite nhận được"
-            rules={[{ required: true, message: 'Nhập số Astrite.' }]}
+            label="Astrite received"
+            rules={[{ required: true, message: 'Enter the Astrite amount.' }]}
           >
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item
             name="priceVnd"
-            label="Giá (VND)"
-            rules={[{ required: true, message: 'Nhập giá.' }]}
-            extra="Tối thiểu 1.000đ — dưới mức này PayOS từ chối tạo link thanh toán."
+            label="Price (VND)"
+            rules={[{ required: true, message: 'Enter a price.' }]}
+            extra="Minimum 1,000 VND — below this, PayOS refuses to create a payment link."
           >
             <InputNumber min={1000} step={1000} style={{ width: '100%' }} />
           </Form.Item>
 
-          <Form.Item name="sortOrder" label="Thứ tự hiển thị">
+          <Form.Item name="sortOrder" label="Display order">
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item
             name="isActive"
-            label="Hiện trong app"
+            label="Shown in app"
             valuePropName="checked"
-            extra="Tắt = ẩn khỏi popup nạp; đơn đã tạo không bị ảnh hưởng."
+            extra="Off = hidden from the top-up popup; existing orders are unaffected."
           >
             <Switch />
           </Form.Item>
 
           <Form.Item
             name="isTest"
-            label="Đánh dấu là gói kiểm thử"
+            label="Mark as test package"
             valuePropName="checked"
-            extra="Chỉ là nhãn cho dễ nhận ra ở trang này — vẫn thu tiền thật như mọi gói khác."
+            extra="Just a label to spot it on this page — it still charges real money like any other package."
           >
             <Switch />
           </Form.Item>

@@ -17,15 +17,15 @@ import { UsersPage } from './pages/UsersPage';
 /** Man hinh loi chung — tranh "trang trang" khi 1 trang render loi (errorElement). */
 function RouteErrorPage() {
   const error = useRouteError();
-  const message = error instanceof Error ? error.message : 'Đã có lỗi không mong muốn.';
+  const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
   return (
     <Result
       status="error"
-      title="Trang gặp lỗi khi hiển thị"
+      title="This page failed to render"
       subTitle={message}
       extra={
         <Button type="primary" onClick={() => window.location.assign('/')}>
-          Về trang Tổng quan
+          Back to Overview
         </Button>
       }
     />

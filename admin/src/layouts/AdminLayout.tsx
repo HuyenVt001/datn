@@ -19,24 +19,24 @@ import { useAuth } from '../auth/AuthContext';
 const { Header, Sider, Content } = Layout;
 
 const MENU_ITEMS = [
-  { key: '/', icon: <DashboardOutlined />, label: 'Tổng quan' },
-  { key: '/users', icon: <TeamOutlined />, label: 'Người dùng' },
-  { key: '/moments', icon: <CameraOutlined />, label: 'Bài đăng' },
-  { key: '/frames', icon: <PictureOutlined />, label: 'Khung ảnh' },
+  { key: '/', icon: <DashboardOutlined />, label: 'Overview' },
+  { key: '/users', icon: <TeamOutlined />, label: 'Users' },
+  { key: '/moments', icon: <CameraOutlined />, label: 'Posts' },
+  { key: '/frames', icon: <PictureOutlined />, label: 'Frames' },
   {
     // Nhóm Cửa hàng (2026-11-15 — thay gacha): vật phẩm + gói nạp + 2 trang lịch sử
     key: 'shop-group',
     icon: <ShopOutlined />,
-    label: 'Cửa hàng',
+    label: 'Shop',
     children: [
-      { key: '/shop', icon: <ShoppingOutlined />, label: 'Vật phẩm' },
-      { key: '/topup', icon: <WalletOutlined />, label: 'Gói nạp' },
-      { key: '/shop-history', icon: <ShoppingCartOutlined />, label: 'Lịch sử mua' },
-      { key: '/topup-history', icon: <DollarOutlined />, label: 'Lịch sử nạp' },
+      { key: '/shop', icon: <ShoppingOutlined />, label: 'Items' },
+      { key: '/topup', icon: <WalletOutlined />, label: 'Top-up packages' },
+      { key: '/shop-history', icon: <ShoppingCartOutlined />, label: 'Purchase history' },
+      { key: '/topup-history', icon: <DollarOutlined />, label: 'Top-up history' },
     ],
   },
   { key: '/ai-verifications', icon: <RobotOutlined />, label: 'AI quest' },
-  { key: '/logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
+  { key: '/logs', icon: <HistoryOutlined />, label: 'Audit log' },
 ];
 
 /** Các trang thuộc nhóm Cửa hàng — mở sẵn submenu khi vào thẳng 1 trang trong nhóm. */
@@ -98,7 +98,7 @@ export function AdminLayout() {
           <Space>
             <Typography.Text type="secondary">{email}</Typography.Text>
             <Button icon={<LogoutOutlined />} onClick={() => void handleLogout()}>
-              Đăng xuất
+              Sign out
             </Button>
           </Space>
         </Header>

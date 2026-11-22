@@ -7,12 +7,12 @@ import { AttachmentType, MessageType } from '../entities/message.entity';
  * content: van ban voi TEXT/EMOJI; URL file (tu /upload) voi VOICE/STICKER/PHOTO.
  */
 export class SendMessageDto {
-  @ApiPropertyOptional({ description: 'uid nguoi nhan (tin 1-1)' })
+  @ApiPropertyOptional({ description: 'Recipient uid (1-1 message)' })
   @IsOptional()
   @IsString()
   receiverId?: string;
 
-  @ApiPropertyOptional({ description: 'id nhom chat (tin nhom)' })
+  @ApiPropertyOptional({ description: 'Group chat id (group message)' })
   @IsOptional()
   @IsString()
   groupId?: string;
@@ -21,14 +21,14 @@ export class SendMessageDto {
   @IsIn(['TEXT', 'VOICE', 'EMOJI', 'STICKER', 'PHOTO'])
   messageType!: MessageType;
 
-  @ApiProperty({ description: 'Noi dung van ban hoac URL file', maxLength: 2000 })
+  @ApiProperty({ description: 'Text content or file URL', maxLength: 2000 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
   content!: string;
 
   @ApiPropertyOptional({
-    description: 'URL media dinh kem (tin reply bai dang gui kem anh/video cua bai)',
+    description: 'Attached media URL (post replies carry the post\'s photo/video)',
     maxLength: 2000,
   })
   @IsOptional()
@@ -36,13 +36,13 @@ export class SendMessageDto {
   @MaxLength(2000)
   attachmentUrl?: string;
 
-  @ApiPropertyOptional({ enum: ['PHOTO', 'VIDEO'], description: 'Loai media dinh kem' })
+  @ApiPropertyOptional({ enum: ['PHOTO', 'VIDEO'], description: 'Attached media type' })
   @IsOptional()
   @IsIn(['PHOTO', 'VIDEO'])
   attachmentType?: AttachmentType;
 
   @ApiPropertyOptional({
-    description: 'id tin nhan duoc reply (phai nam trong CUNG hoi thoai/nhom)',
+    description: 'id of the replied message (must be in the SAME conversation/group)',
     maxLength: 128,
   })
   @IsOptional()

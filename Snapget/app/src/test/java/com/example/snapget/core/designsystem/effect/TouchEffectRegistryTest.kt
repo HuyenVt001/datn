@@ -22,80 +22,80 @@ class TouchEffectRegistryTest {
     private val playable = TouchEffectRegistry.all.filter { it.id != TouchEffectRegistry.NONE_ID }
 
     @Test
-    fun `moi hieu ung tru None deu co spritesheet`() {
+    fun `every effect except None has a spritesheet`() {
         playable.forEach { effect ->
             assertNotNull(
-                "Hieu ung '${effect.displayName}' (id=${effect.id}) chua cam sheet",
+                "Effect '${effect.displayName}' (id=${effect.id}) has no sheet",
                 effect.sheet,
             )
         }
     }
 
     @Test
-    fun `None khong co animation va khong can anh`() {
+    fun `None has no animation and needs no image`() {
         assertEquals(0, TouchEffectRegistry.None.frameCount)
         assertEquals(0, TouchEffectRegistry.None.durationMs)
         assertNull(TouchEffectRegistry.None.sheet)
     }
 
     @Test
-    fun `id khong trung nhau`() {
+    fun `ids are unique`() {
         val ids = TouchEffectRegistry.all.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
     }
 
     @Test
-    fun `id khong vuot tran 10 hieu ung`() {
+    fun `ids do not exceed 10 effects`() {
         // User chot 2026-08-11: toi da 10 hieu ung cham.
         playable.forEach { effect ->
-            assertTrue("Hieu ung '${effect.displayName}' co id=${effect.id}, phai trong 1..10", effect.id in 1..10)
+            assertTrue("Effect '${effect.displayName}' has id=${effect.id}, must be within 1..10", effect.id in 1..10)
         }
     }
 
     @Test
-    fun `find voi id la roi ve None thay vi nem loi`() {
+    fun `find with unknown id falls back to None instead of throwing`() {
         // Ban app cu co the nhan id cua vat pham chi co o ban moi hon
         assertEquals(TouchEffectRegistry.None, TouchEffectRegistry.find(99))
         assertEquals(TouchEffectRegistry.None, TouchEffectRegistry.find(-1))
     }
 
     @Test
-    fun `tham so luoi spritesheet hop le`() {
+    fun `spritesheet grid parameters are valid`() {
         playable.forEach { effect ->
             val name = effect.displayName
-            assertTrue("$name: frameCount phai > 0", effect.frameCount > 0)
-            assertTrue("$name: columns phai > 0", effect.columns > 0)
+            assertTrue("$name: frameCount must be > 0", effect.frameCount > 0)
+            assertTrue("$name: columns must be > 0", effect.columns > 0)
             assertTrue(
-                "$name: columns (${effect.columns}) khong duoc lon hon frameCount (${effect.frameCount})",
+                "$name: columns (${effect.columns}) must not exceed frameCount (${effect.frameCount})",
                 effect.columns <= effect.frameCount,
             )
-            assertTrue("$name: fps phai > 0", effect.fps > 0)
-            assertTrue("$name: rows phai > 0", effect.rows > 0)
+            assertTrue("$name: fps must be > 0", effect.fps > 0)
+            assertTrue("$name: rows must be > 0", effect.rows > 0)
             assertTrue(
-                "$name: thumbFrame (${effect.thumbFrame}) phai trong 0..${effect.frameCount - 1}",
+                "$name: thumbFrame (${effect.thumbFrame}) must be within 0..${effect.frameCount - 1}",
                 effect.thumbFrame in 0 until effect.frameCount,
             )
         }
     }
 
     @Test
-    fun `luoi phu du so frame khai bao`() {
+    fun `grid covers the declared frame count`() {
         // rows × columns < frameCount -> frame cuoi nam ngoai luoi, ve ra o trong
         playable.forEach { effect ->
             assertTrue(
-                "${effect.displayName}: luoi ${effect.columns}×${effect.rows} khong chua du ${effect.frameCount} frame",
+                "${effect.displayName}: grid ${effect.columns}×${effect.rows} cannot hold ${effect.frameCount} frames",
                 effect.rows * effect.columns >= effect.frameCount,
             )
         }
     }
 
     @Test
-    fun `vong doi du dai de chay het frame`() {
+    fun `lifetime is long enough to play every frame`() {
         // playbackMs > durationMs -> `progress` cham tran 1f truoc khi frame cuoi
         // kip hien ra: animation bi cat dau duoi, nguoi dung khong bao gio thay
         // hoa no het.
         playable.forEach { effect ->
-            assertTrue("${effect.displayName}: durationMs phai > 0", effect.durationMs > 0)
+            assertTrue("${effect.displayName}: durationMs must be > 0", effect.durationMs > 0)
             assertTrue(
                 "${effect.displayName}: chay ${effect.frameCount} frame @${effect.fps}fps can " +
                     "${effect.playbackMs}ms nhung durationMs chi ${effect.durationMs}ms",
@@ -105,16 +105,16 @@ class TouchEffectRegistryTest {
     }
 
     @Test
-    fun `moc mo dan hop le`() {
+    fun `fade start is valid`() {
         playable.forEach { effect ->
             val name = effect.displayName
-            assertTrue("$name: fadeStart phai trong [0, 1]", effect.fadeStart in 0f..1f)
-            assertTrue("$name: sizeDp phai > 0", effect.sizeDp > 0f)
+            assertTrue("$name: fadeStart must be within [0, 1]", effect.fadeStart in 0f..1f)
+            assertTrue("$name: sizeDp must be > 0", effect.sizeDp > 0f)
         }
     }
 
     @Test
-    fun `None dung dau danh sach de luon la o dau tab Effects`() {
+    fun `None is first so it is always the first cell of the Effects tab`() {
         assertEquals(TouchEffectRegistry.NONE_ID, TouchEffectRegistry.all.first().id)
     }
 }

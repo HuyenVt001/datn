@@ -35,7 +35,7 @@ export const PAYOS_DESCRIPTION_MAX = 25;
 export const QUEST_DAILY_ASTRITE = 60; // Thuong khi xong 2/2 quest CO DINH trong ngay (THAY cho mo khung ngau nhien) — quest AI KHONG tinh vao moc nay
 
 // ==== AI Daily Quest (2026-08-15 — xem Snapget/.claude/QUEST_AI_PLAN.md) ====
-// Quest thu 3 moi ngay do AI sinh ("Chụp một chiếc cốc"), hoan thanh khi anh
+// Quest thu 3 moi ngay do AI sinh ("Take a photo of a cup"), hoan thanh khi anh
 // user DANG LEN FEED chua dung vat the (model tu train xac minh). Thieu env
 // AI_SERVICE_URL/AI_SERVICE_API_KEY -> toan bo tinh nang tat em, app chay y het 2 quest.
 

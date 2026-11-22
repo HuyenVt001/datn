@@ -21,7 +21,7 @@ describe('QuestsService', () => {
   const aiQuest: DailyQuest = {
     questId: `${today}_AI_CHALLENGE`,
     type: 'AI_CHALLENGE',
-    content: 'Chụp một chiếc cốc trên bàn của bạn',
+    content: 'Take a photo of a cup on your desk',
     releaseDate: today,
     targetClass: 'cup',
     source: 'FALLBACK',
@@ -114,7 +114,7 @@ describe('QuestsService', () => {
   });
 
   describe('getTodayQuests', () => {
-    it('lazy tao quest cua ngay + tu hoan thanh quest LOGIN', async () => {
+    it('lazily creates the day\'s quests + auto-completes the LOGIN quest', async () => {
       repo.getUserQuests.mockResolvedValue(new Map([['LOGIN', userQuest('LOGIN')]]));
 
       const result = await service.getTodayQuests('me');
@@ -128,12 +128,12 @@ describe('QuestsService', () => {
   });
 
   describe('registerMomentPosted', () => {
-    it('hoan thanh quest POST_MOMENT khi dang bai', async () => {
+    it('completes the POST_MOMENT quest when posting', async () => {
       await service.registerMomentPosted('me', 1);
       expect(repo.completeUserQuest).toHaveBeenCalledWith(today, 'me', 'POST_MOMENT');
     });
 
-    it('xong 2/2 quest -> cong 60 Astrite (khong mo khung nua)', async () => {
+    it('2/2 quests done -> credits 60 Astrite (no longer unlocks a frame)', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
@@ -148,7 +148,7 @@ describe('QuestsService', () => {
       expect(framesService.unlockForUser).not.toHaveBeenCalled();
     });
 
-    it('da thuong hom nay roi thi khong thuong lai (claim atomic tra ve false)', async () => {
+    it('already rewarded today -> no second reward (atomic claim returns false)', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
@@ -163,27 +163,27 @@ describe('QuestsService', () => {
       expect(repo.setDailyRewardAstrite).not.toHaveBeenCalled();
     });
 
-    it('cong Astrite FAIL -> tra lai claim de lan sau thu lai duoc', async () => {
+    it('Astrite credit FAILS -> releases the claim so it can be retried', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
           ['POST_MOMENT', userQuest('POST_MOMENT')],
         ]),
       );
-      astrite.credit.mockRejectedValue(new Error('mat mang'));
+      astrite.credit.mockRejectedValue(new Error('network down'));
 
-      await expect(service.registerMomentPosted('me', 1)).rejects.toThrow('mat mang');
+      await expect(service.registerMomentPosted('me', 1)).rejects.toThrow('network down');
       expect(repo.deleteDailyReward).toHaveBeenCalledWith(today, 'me');
     });
 
-    it('cong Astrite XONG nhung ghi moc thuong fail -> GIU claim (khong cong 2 lan)', async () => {
+    it('Astrite credited but writing the reward marker fails -> KEEPS the claim (no double credit)', async () => {
       repo.getUserQuests.mockResolvedValue(
         new Map([
           ['LOGIN', userQuest('LOGIN')],
           ['POST_MOMENT', userQuest('POST_MOMENT')],
         ]),
       );
-      repo.setDailyRewardAstrite.mockRejectedValue(new Error('ghi loi'));
+      repo.setDailyRewardAstrite.mockRejectedValue(new Error('write error'));
 
       await service.registerMomentPosted('me', 1);
 
@@ -191,7 +191,7 @@ describe('QuestsService', () => {
       expect(repo.deleteDailyReward).not.toHaveBeenCalled();
     });
 
-    it('quest da hoan thanh truoc do (isFirstTime=false) -> khong xet thuong lai', async () => {
+    it('quest already completed (isFirstTime=false) -> reward not re-evaluated', async () => {
       repo.completeUserQuest.mockResolvedValue(false);
 
       await service.registerMomentPosted('me', 1);
@@ -199,7 +199,7 @@ describe('QuestsService', () => {
       expect(repo.getUserQuests).not.toHaveBeenCalled();
     });
 
-    it('dat moc streak 7 -> mo khung cua moc 7', async () => {
+    it('reaching streak 7 -> unlocks the milestone-7 frame', async () => {
       framesRepo.list.mockResolvedValue([
         {
           frameId: 'f7',
@@ -216,7 +216,7 @@ describe('QuestsService', () => {
       expect(framesService.unlockForUser).toHaveBeenCalledWith('me', 'f7');
     });
 
-    it('streak khong phai moc (5) -> khong mo khung moc', async () => {
+    it('streak not a milestone (5) -> no milestone frame', async () => {
       framesRepo.list.mockResolvedValue([
         {
           frameId: 'f7',
@@ -237,15 +237,15 @@ describe('QuestsService', () => {
 
   // ==== Quest AI (2026-08-15 — QUEST_AI_PLAN.md) ====
 
-  describe('getTodayQuests + quest AI', () => {
-    it('AI tat -> van dung 2 quest, khong dong toi repo AI', async () => {
+  describe('getTodayQuests + AI quest', () => {
+    it('AI off -> still exactly 2 quests, AI repo untouched', async () => {
       const result = await service.getTodayQuests('me');
       expect(result.quests).toHaveLength(2);
       expect(repo.getAiQuest).not.toHaveBeenCalled();
       expect(repo.createAiQuestIfAbsent).not.toHaveBeenCalled();
     });
 
-    it('AI bat, cron chua sinh -> tao quest FALLBACK ngay (khong goi LLM) va tra 3 quest', async () => {
+    it('AI on, cron hasn\'t generated -> creates a FALLBACK quest right away (no LLM call) and returns 3 quests', async () => {
       ai.enabled = true;
 
       const result = await service.getTodayQuests('me');
@@ -261,7 +261,7 @@ describe('QuestsService', () => {
       expect(q?.completed).toBe(false);
     });
 
-    it('AI bat, quest AI da co -> dung lai, khong tao moi; da xong thi completed=true', async () => {
+    it('AI on, AI quest exists -> reused, nothing new created; completed=true when done', async () => {
       ai.enabled = true;
       repo.getAiQuest.mockResolvedValue(aiQuest);
       repo.getUserQuests.mockResolvedValue(
@@ -274,7 +274,7 @@ describe('QuestsService', () => {
       expect(result.quests.find((x) => x.type === 'AI_CHALLENGE')?.completed).toBe(true);
     });
 
-    it('fallback tranh lap vat the 3 ngay gan nhat', async () => {
+    it('fallback avoids objects from the last 3 days', async () => {
       ai.enabled = true;
       repo.getRecentAiTargets.mockResolvedValue(['cup', 'bottle', 'book']);
 
@@ -284,7 +284,7 @@ describe('QuestsService', () => {
       expect(['cup', 'bottle', 'book']).not.toContain(created.targetClass);
     });
 
-    it('doc quest AI loi -> van tra 2 quest co dinh (khong pha GET /quests/today)', async () => {
+    it('reading the AI quest fails -> still returns the 2 fixed quests (GET /quests/today not broken)', async () => {
       ai.enabled = true;
       repo.getAiQuest.mockRejectedValue(new Error('firestore down'));
 
@@ -300,30 +300,30 @@ describe('QuestsService', () => {
       repo.getAiQuest.mockResolvedValue(aiQuest);
     });
 
-    it('AI tat -> undefined, khong goi Space', async () => {
+    it('AI off -> undefined, Space not called', async () => {
       ai.enabled = false;
       expect(await service.verifyAiQuest('me', photo)).toBeUndefined();
       expect(ai.verify).not.toHaveBeenCalled();
     });
 
-    it('VIDEO -> undefined (chi verify anh)', async () => {
+    it('VIDEO -> undefined (only photos are verified)', async () => {
       expect(await service.verifyAiQuest('me', { ...photo, contentType: 'VIDEO' })).toBeUndefined();
       expect(ai.verify).not.toHaveBeenCalled();
     });
 
-    it('hom nay chua co quest AI -> undefined', async () => {
+    it('no AI quest today -> undefined', async () => {
       repo.getAiQuest.mockResolvedValue(null);
       expect(await service.verifyAiQuest('me', photo)).toBeUndefined();
       expect(ai.verify).not.toHaveBeenCalled();
     });
 
-    it('user da xong quest AI hom nay -> undefined, khong ton 1 lan goi Space', async () => {
+    it('user already finished today\'s AI quest -> undefined, no Space call wasted', async () => {
       repo.hasCompletedQuest.mockResolvedValue(true);
       expect(await service.verifyAiQuest('me', photo)).toBeUndefined();
       expect(ai.verify).not.toHaveBeenCalled();
     });
 
-    it('khop -> MATCHED, hoan thanh quest kem meta + cong 30 Astrite + log verify', async () => {
+    it('match -> MATCHED, completes quest with meta + credits 30 Astrite + logs verification', async () => {
       ai.verify.mockResolvedValue(verdict(true, 0.87));
 
       const result = await service.verifyAiQuest('me', photo);
@@ -355,7 +355,7 @@ describe('QuestsService', () => {
       );
     });
 
-    it('khong khop -> NOT_MATCHED, quest chua tick, khong cong tien, van log', async () => {
+    it('no match -> NOT_MATCHED, quest not ticked, no credit, still logged', async () => {
       ai.verify.mockResolvedValue(verdict(false, 0.12));
 
       const result = await service.verifyAiQuest('me', photo);
@@ -369,8 +369,8 @@ describe('QuestsService', () => {
       );
     });
 
-    it('Space loi/timeout -> SKIPPED, khong throw, khong cong tien', async () => {
-      ai.verify.mockRejectedValue(new Error('AI Space /verify timeout sau 3000ms'));
+    it('Space error/timeout -> SKIPPED, no throw, no credit', async () => {
+      ai.verify.mockRejectedValue(new Error('AI Space /verify timeout after 3000ms'));
 
       const result = await service.verifyAiQuest('me', photo);
 
@@ -383,7 +383,7 @@ describe('QuestsService', () => {
       );
     });
 
-    it('2 bai dang cung luc cung khop -> chi 1 lan +30 (completeUserQuest atomic tra false)', async () => {
+    it('2 simultaneous matching posts -> only one +30 (atomic completeUserQuest returns false)', async () => {
       ai.verify.mockResolvedValue(verdict(true));
       repo.completeUserQuest.mockResolvedValue(false);
 
@@ -393,9 +393,9 @@ describe('QuestsService', () => {
       expect(astrite.credit).not.toHaveBeenCalled();
     });
 
-    it('cong 30 Astrite FAIL -> xoa doc quest vua tao (lan dang sau thu lai) + tra SKIPPED', async () => {
+    it('crediting 30 Astrite FAILS -> deletes the new quest doc (next post retries) + returns SKIPPED', async () => {
       ai.verify.mockResolvedValue(verdict(true));
-      astrite.credit.mockRejectedValue(new Error('mat mang'));
+      astrite.credit.mockRejectedValue(new Error('network down'));
 
       const result = await service.verifyAiQuest('me', photo);
 
@@ -403,7 +403,7 @@ describe('QuestsService', () => {
       expect(result?.result).toBe('SKIPPED');
     });
 
-    it('log verify loi -> khong anh huong ket qua', async () => {
+    it('verification log error -> result unaffected', async () => {
       ai.verify.mockResolvedValue(verdict(true));
       repo.addAiVerification.mockRejectedValue(new Error('log fail'));
 
@@ -413,7 +413,7 @@ describe('QuestsService', () => {
       expect(result?.result).toBe('MATCHED');
     });
 
-    it('URL khong phai Cloudinary -> gui nguyen cho Space', async () => {
+    it('non-Cloudinary URL -> sent to Space as-is', async () => {
       ai.verify.mockResolvedValue(verdict(false));
       await service.verifyAiQuest('me', { ...photo, mediaUrl: 'https://cdn.example.com/a.jpg' });
       expect(ai.verify).toHaveBeenCalledWith('https://cdn.example.com/a.jpg', 'cup');
@@ -423,16 +423,16 @@ describe('QuestsService', () => {
   describe('generateAiQuests (cron)', () => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    it('AI tat -> mang rong, khong goi gi', async () => {
+    it('AI off -> empty array, no calls', async () => {
       expect(await service.generateAiQuests()).toEqual([]);
       expect(ai.generate).not.toHaveBeenCalled();
     });
 
-    it('LLM tra hop le -> tao quest source LLM cho hom nay + ngay mai', async () => {
+    it('valid LLM result -> creates LLM-source quests for today + tomorrow', async () => {
       ai.enabled = true;
       ai.generate.mockResolvedValue({
         targetClass: 'laptop',
-        content: 'Chụp chiếc laptop của bạn',
+        content: 'Take a photo of your laptop',
       });
 
       const results = await service.generateAiQuests();
@@ -444,7 +444,7 @@ describe('QuestsService', () => {
           releaseDate: today,
           source: 'LLM',
           targetClass: 'laptop',
-          content: 'Chụp chiếc laptop của bạn',
+          content: 'Take a photo of your laptop',
         }),
       );
       expect(repo.createAiQuestIfAbsent).toHaveBeenCalledWith(
@@ -452,9 +452,9 @@ describe('QuestsService', () => {
       );
     });
 
-    it('LLM tra targetClass ngoai danh sach ra de -> fallback template', async () => {
+    it('LLM returns a targetClass outside the quest list -> fallback template', async () => {
       ai.enabled = true;
-      ai.generate.mockResolvedValue({ targetClass: 'cat', content: 'Chụp một chú mèo' });
+      ai.generate.mockResolvedValue({ targetClass: 'cat', content: 'Take a photo of a cat' });
 
       await service.generateAiQuests();
 
@@ -463,10 +463,10 @@ describe('QuestsService', () => {
       );
     });
 
-    it('LLM tra targetClass nam trong avoid (con lua chon khac) -> fallback', async () => {
+    it('LLM returns a targetClass in avoid (other options exist) -> fallback', async () => {
       ai.enabled = true;
       repo.getRecentAiTargets.mockResolvedValue(['cup']);
-      ai.generate.mockResolvedValue({ targetClass: 'cup', content: 'Chụp một chiếc cốc' });
+      ai.generate.mockResolvedValue({ targetClass: 'cup', content: 'Take a photo of a cup' });
 
       await service.generateAiQuests();
 
@@ -475,7 +475,7 @@ describe('QuestsService', () => {
       expect(created.targetClass).not.toBe('cup');
     });
 
-    it('LLM tra content rong / qua dai -> fallback', async () => {
+    it('LLM returns empty / too long content -> fallback', async () => {
       ai.enabled = true;
       ai.generate.mockResolvedValueOnce({ targetClass: 'cup', content: '   ' });
       ai.generate.mockResolvedValueOnce({ targetClass: 'cup', content: 'x'.repeat(200) });
@@ -487,7 +487,7 @@ describe('QuestsService', () => {
       );
     });
 
-    it('LLM loi/timeout -> fallback, cron van tra ket qua', async () => {
+    it('LLM error/timeout -> fallback, cron still returns results', async () => {
       ai.enabled = true;
       ai.generate.mockRejectedValue(new Error('AI Space /generate timeout'));
 
@@ -497,14 +497,14 @@ describe('QuestsService', () => {
       expect(results[0].quest.source).toBe('FALLBACK');
     });
 
-    it('idempotent: ngay da co quest -> giu nguyen, created=false, khong goi LLM cho ngay do', async () => {
+    it('idempotent: a day with a quest -> unchanged, created=false, no LLM call for that day', async () => {
       ai.enabled = true;
       repo.getAiQuest.mockImplementation((date) =>
         Promise.resolve(date === today ? aiQuest : null),
       );
       ai.generate.mockResolvedValue({
         targetClass: 'chair',
-        content: 'Chụp chiếc ghế bạn đang ngồi',
+        content: 'Take a photo of the chair you are sitting on',
       });
 
       const results = await service.generateAiQuests();
@@ -514,11 +514,11 @@ describe('QuestsService', () => {
       expect(ai.generate).toHaveBeenCalledTimes(1);
     });
 
-    it('thua luong khac luc create -> dung quest cua luong thang (khong ghi de)', async () => {
+    it('loses the create race -> uses the winner\'s quest (no overwrite)', async () => {
       ai.enabled = true;
       ai.generate.mockResolvedValue({
         targetClass: 'chair',
-        content: 'Chụp chiếc ghế bạn đang ngồi',
+        content: 'Take a photo of the chair you are sitting on',
       });
       repo.createAiQuestIfAbsent.mockResolvedValue({ quest: aiQuest, created: false });
 
@@ -544,7 +544,7 @@ describe('QuestsService', () => {
       createdAt: `${date}T0${id}:00:00.000Z`,
     });
 
-    it('phan trang trong bo nho + loc outcome/date/uid', async () => {
+    it('in-memory pagination + outcome/date/uid filters', async () => {
       repo.listAiVerifications.mockResolvedValue([
         rec('1', 'MATCHED'),
         rec('2', 'NOT_MATCHED'),
@@ -569,7 +569,7 @@ describe('QuestsService', () => {
       expect(todayMine.items.map((v) => v.id)).toEqual(['1', '2']);
     });
 
-    it('thong ke hom nay: tong / khop / khong khop / bo qua', async () => {
+    it('today\'s stats: total / matched / not matched / skipped', async () => {
       repo.listAiVerificationsByDate.mockResolvedValue([
         rec('1', 'MATCHED'),
         rec('2', 'MATCHED'),

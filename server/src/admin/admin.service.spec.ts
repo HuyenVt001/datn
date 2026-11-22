@@ -62,10 +62,10 @@ describe('AdminService', () => {
     firebase = { auth: jest.fn().mockReturnValue(auth) };
     adminRepo = {
       getStats: jest.fn(),
-      getAllFullNames: jest.fn().mockResolvedValue(new Map([['u1', 'Nguyen Van An']])),
+      getAllFullNames: jest.fn().mockResolvedValue(new Map([['u1', 'John Michael Smith']])),
       getAllUserSummaries: jest
         .fn()
-        .mockResolvedValue(new Map([['u1', { fullName: 'Nguyen Van An', astrite: 1600 }]])),
+        .mockResolvedValue(new Map([['u1', { fullName: 'John Michael Smith', astrite: 1600 }]])),
       countMomentsByDay: jest.fn(),
     } as unknown as jest.Mocked<AdminRepository>;
     momentsRepo = {
@@ -95,7 +95,7 @@ describe('AdminService', () => {
     );
   });
 
-  it('getStats: gop thong ke chung + quest hom nay + so luot mua Shop', async () => {
+  it('getStats: combines general stats + today\'s quests + Shop purchase count', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 2, moments: 5 } as never);
     questsService.countCompletionsToday.mockResolvedValue(3);
     shopService.getPurchaseCounts.mockResolvedValue({ today: 7, total: 42 });
@@ -108,7 +108,7 @@ describe('AdminService', () => {
     expect(result.shopPurchasesTotal).toBe(42);
   });
 
-  it('getStats: kem so lan AI verify / khop hom nay (2026-08-16)', async () => {
+  it('getStats: includes today\'s AI verify / match counts (2026-08-16)', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
     shopService.getPurchaseCounts.mockResolvedValue({ today: 0, total: 0 });
     questsService.getAiVerificationStatsToday.mockResolvedValue({
@@ -125,7 +125,7 @@ describe('AdminService', () => {
     expect(result.aiMatchedToday).toBe(3);
   });
 
-  it('getStats: thong ke AI loi (collection chua co) -> 0, dashboard van tra', async () => {
+  it('getStats: AI stats fail (collection missing) -> 0, dashboard still returns', async () => {
     adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
     shopService.getPurchaseCounts.mockResolvedValue({ today: 0, total: 0 });
     questsService.getAiVerificationStatsToday.mockRejectedValue(new Error('no collection'));
@@ -151,14 +151,14 @@ describe('AdminService', () => {
     );
   });
 
-  it('listUsers: kem so du Astrite tu Firestore (user chua co field -> 0)', async () => {
+  it('listUsers: includes Astrite balance from Firestore (user without field -> 0)', async () => {
     const result = await service.listUsers({ page: 1, limit: 10 } as never);
 
     expect(result.items.find((u) => u.uid === 'u1')?.astrite).toBe(1600);
     expect(result.items.find((u) => u.uid === 'u2')?.astrite).toBe(0);
   });
 
-  it('getDailyStats: gop so moment theo ngay + dem user moi theo creationTime', async () => {
+  it('getDailyStats: groups moments by day + counts new users by creationTime', async () => {
     adminRepo.countMomentsByDay.mockResolvedValue([
       { date: '2026-01-01', moments: 4, newUsers: 0 },
       { date: '2026-01-02', moments: 1, newUsers: 0 },
@@ -172,30 +172,30 @@ describe('AdminService', () => {
     ]);
   });
 
-  it('listUsers: tim theo email + enrich fullName tu Firestore + co flag admin', async () => {
+  it('listUsers: search by email + enrich fullName from Firestore + admin flag', async () => {
     const result = await service.listUsers({ search: 'an@', page: 1, limit: 20 });
 
     expect(result.total).toBe(1);
     expect(result.items[0].uid).toBe('u1');
-    expect(result.items[0].fullName).toBe('Nguyen Van An'); // enrich tu Firestore
+    expect(result.items[0].fullName).toBe('John Michael Smith'); // enrich tu Firestore
     expect(result.items[0].admin).toBe(true); // tu custom claims
   });
 
-  it('listUsers: search chay tren ten FIRESTORE dang hien thi (khong phai displayName Auth)', async () => {
-    // u1 displayName Auth = "An" nhung Firestore = "Nguyen Van An" — search theo ten dang thay
-    const result = await service.listUsers({ search: 'nguyen van', page: 1, limit: 20 });
+  it('listUsers: search runs on the displayed FIRESTORE name (not the Auth displayName)', async () => {
+    // u1 displayName Auth = "An" nhung Firestore = "John Michael Smith" — search theo ten dang thay
+    const result = await service.listUsers({ search: 'john michael', page: 1, limit: 20 });
 
     expect(result.total).toBe(1);
     expect(result.items[0].uid).toBe('u1');
   });
 
-  it('listUsers: khong search thi tra het + phan trang', async () => {
+  it('listUsers: no search returns everything + paginated', async () => {
     const result = await service.listUsers({ page: 1, limit: 1 });
     expect(result.total).toBe(2);
     expect(result.items).toHaveLength(1);
   });
 
-  it('setUserDisabled: goi updateUser; khoa thi thu hoi refresh token + ghi audit', async () => {
+  it('setUserDisabled: calls updateUser; disabling revokes refresh tokens + writes audit', async () => {
     const result = await service.setUserDisabled(actor('admin1'), 'u2', true);
     expect(auth.updateUser).toHaveBeenCalledWith('u2', { disabled: true });
     expect(auth.revokeRefreshTokens).toHaveBeenCalledWith('u2');
@@ -207,19 +207,19 @@ describe('AdminService', () => {
     expect(result).toEqual({ uid: 'u2', disabled: true });
   });
 
-  it('setUserDisabled: mo khoa thi KHONG thu hoi refresh token', async () => {
+  it('setUserDisabled: enabling does NOT revoke refresh tokens', async () => {
     await service.setUserDisabled(actor('admin1'), 'u2', false);
     expect(auth.revokeRefreshTokens).not.toHaveBeenCalled();
   });
 
-  it('setUserDisabled: khong the tu khoa chinh minh', async () => {
+  it('setUserDisabled: cannot disable yourself', async () => {
     await expect(service.setUserDisabled(actor('u1'), 'u1', true)).rejects.toThrow(
       BadRequestException,
     );
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
-  it('grantAdmin: set claim admin=true va GIU cac claim khac', async () => {
+  it('grantAdmin: sets claim admin=true and KEEPS other claims', async () => {
     auth.getUser.mockResolvedValue({ uid: 'u2', customClaims: { beta: true } });
 
     const result = await service.grantAdmin(actor('me'), 'u2');
@@ -228,7 +228,7 @@ describe('AdminService', () => {
     expect(result).toEqual({ uid: 'u2', admin: true });
   });
 
-  it('revokeAdmin: thu quyen admin cua nguoi khac + ghi audit', async () => {
+  it('revokeAdmin: revokes another user\'s admin rights + writes audit', async () => {
     const result = await service.revokeAdmin(actor('me'), 'u1'); // u1 dang la admin
 
     expect(auth.setCustomUserClaims).toHaveBeenCalledWith('u1', { admin: false });
@@ -240,17 +240,17 @@ describe('AdminService', () => {
     expect(result).toEqual({ uid: 'u1', admin: false });
   });
 
-  it('revokeAdmin: khong the tu thu quyen chinh minh', async () => {
+  it('revokeAdmin: cannot revoke your own rights', async () => {
     await expect(service.revokeAdmin(actor('u1'), 'u1')).rejects.toThrow(BadRequestException);
     expect(auth.setCustomUserClaims).not.toHaveBeenCalled();
   });
 
-  it('revokeAdmin: nguoi dung khong phai admin -> bao loi', async () => {
+  it('revokeAdmin: user is not an admin -> error', async () => {
     await expect(service.revokeAdmin(actor('u1'), 'u2')).rejects.toThrow(BadRequestException);
     expect(auth.setCustomUserClaims).not.toHaveBeenCalled();
   });
 
-  it('revokeAdmin: race dua he thong ve 0 admin -> KHOI PHUC claim + bao loi', async () => {
+  it('revokeAdmin: race leaving the system with 0 admins -> RESTORES claim + error', async () => {
     // Sau khi ghi admin:false, dem lai thay khong con admin hoat dong nao
     auth.listUsers.mockResolvedValueOnce({
       users: [{ uid: 'u1', disabled: false, customClaims: { admin: false } }],
@@ -263,7 +263,7 @@ describe('AdminService', () => {
     expect(auth.setCustomUserClaims).toHaveBeenNthCalledWith(2, 'u1', { admin: true });
   });
 
-  it('listMoments: enrich ten tac gia tu Firestore + phan trang', async () => {
+  it('listMoments: enrich author name from Firestore + paginated', async () => {
     momentsRepo.listAll.mockResolvedValue([
       {
         momentId: 'm1',
@@ -277,10 +277,10 @@ describe('AdminService', () => {
     const result = await service.listMoments({ page: 1, limit: 10 });
 
     expect(result.total).toBe(1);
-    expect(result.items[0].authorName).toBe('Nguyen Van An');
+    expect(result.items[0].authorName).toBe('John Michael Smith');
   });
 
-  it('deleteMoment: xoa + ghi audit; khong ton tai -> 404', async () => {
+  it('deleteMoment: deletes + writes audit; missing -> 404', async () => {
     momentsRepo.findById.mockResolvedValue({ momentId: 'm1', userId: 'u1' } as never);
 
     await service.deleteMoment(actor('me'), 'm1');

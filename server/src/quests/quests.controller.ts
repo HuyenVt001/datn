@@ -23,11 +23,11 @@ export class QuestsController {
   @Get('today')
   @ApiOperation({
     summary:
-      'Quest hôm nay + trạng thái hoàn thành: 2 quest cố định (LOGIN, POST_MOMENT) + quest AI (AI_CHALLENGE, chỉ khi server bật AI). Gọi endpoint này tự hoàn thành LOGIN.',
+      'Today\'s quests + completion status: 2 fixed quests (LOGIN, POST_MOMENT) + AI quest (AI_CHALLENGE, only when the server has AI on). Calling this endpoint completes LOGIN.',
     description:
-      'Quest AI có thêm `targetClass` (1 trong 9 lớp vật thể ra đề — `AI_QUEST_CLASSES`) và `source` (LLM | FALLBACK). ' +
-      'Hoàn thành quest AI bằng cách đăng moment ảnh có chứa vật thể — server tự xác minh lúc POST /moments. ' +
-      '`rewardAstrite` vẫn là thưởng của mốc 2/2 quest cố định (+60); quest AI thưởng riêng +30.',
+      'The AI quest also has `targetClass` (1 of the 9 quest object classes — `AI_QUEST_CLASSES`) and `source` (LLM | FALLBACK).' +
+      'Complete the AI quest by posting a photo moment containing the object — the server verifies it during POST /moments.' +
+      '`rewardAstrite` is still the reward for completing 2/2 fixed quests (+60); the AI quest rewards a separate +30.',
   })
   today(@CurrentUser() user: AuthUser) {
     return this.questsService.getTodayQuests(user.uid);
@@ -44,29 +44,29 @@ export class QuestsController {
   @ApiHeader({
     name: CRON_SECRET_HEADER,
     required: true,
-    description: 'Secret của cron (env CRON_SECRET) — chỉ cron-job.org biết',
+    description: 'Cron secret (env CRON_SECRET) — known only to cron-job.org',
   })
   @ApiOperation({
-    summary: '[Cron] (tuỳ chọn) Sinh trước quest AI cho hôm nay + ngày mai từ bộ mẫu 72 câu',
+    summary: '[Cron] (optional) Pre-generate AI quests for today + tomorrow from the 72-sentence template set',
     description:
-      'Idempotent: ngày đã có quest AI thì trả lại quest đó (`created:false`), không ghi đè. ' +
-      'Sinh trước ngày mai để cron chạy giờ nào cũng được. AI tắt (thiếu env) → trả mảng rỗng. ' +
-      'Thiếu CRON_SECRET → 503; sai secret → 401.',
+      'Idempotent: a day that already has an AI quest returns it (`created:false`), never overwrites.' +
+      'Generates tomorrow ahead so the cron can run at any hour. AI off (missing env) → returns an empty array.' +
+      'Missing CRON_SECRET → 503; wrong secret → 401.',
   })
   @ApiResponse({
     status: 201,
-    description: 'Danh sách {date, quest, created} cho hôm nay + ngày mai',
+    description: 'List of {date, quest, created} for today + tomorrow',
   })
-  @ApiResponse({ status: 401, description: 'Sai cron secret' })
-  @ApiResponse({ status: 503, description: 'Server chưa cấu hình CRON_SECRET' })
+  @ApiResponse({ status: 401, description: 'Invalid cron secret' })
+  @ApiResponse({ status: 503, description: 'CRON_SECRET is not configured on the server' })
   async generateAiQuests() {
     const results = await this.questsService.generateAiQuests();
     const created = results.filter((r) => r.created).length;
     return {
       message:
         results.length === 0
-          ? 'AI dang tat — khong sinh quest.'
-          : `Da sinh ${created} quest AI moi.`,
+          ? 'AI is off — no quests generated.'
+          : `Generated ${created} new AI quests.`,
       data: results,
     };
   }

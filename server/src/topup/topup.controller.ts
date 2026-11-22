@@ -48,7 +48,7 @@ export class TopupController {
   @Get('packages')
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
-  @ApiOperation({ summary: 'Danh sách gói nạp đang bật' })
+  @ApiOperation({ summary: 'Active top-up packages' })
   listPackages() {
     return this.topupService.listPackagesForApp();
   }
@@ -57,10 +57,10 @@ export class TopupController {
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
   @ApiOperation({
-    summary: 'Tạo đơn nạp và lấy link thanh toán PayOS',
+    summary: 'Create a top-up order and get the PayOS payment link',
     description:
-      'Body CHỈ có packageId. Số tiền và số Astrite tra từ topupPackages ở server — ' +
-      'không bao giờ nhận từ client.',
+      'The body has ONLY packageId. Amount and Astrite are looked up from topupPackages on the server —' +
+      'never taken from the client.',
   })
   createOrder(@CurrentUser() user: AuthUser, @Body() dto: CreateTopupOrderDto) {
     return this.topupService.createOrder(user.uid, dto.packageId);
@@ -70,8 +70,8 @@ export class TopupController {
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
   @ApiOperation({
-    summary: 'Trạng thái đơn nạp của mình',
-    description: 'App poll endpoint này sau khi người dùng đóng trang thanh toán.',
+    summary: 'Your top-up order status',
+    description: 'The app polls this endpoint after the user closes the payment page.',
   })
   getOrder(@CurrentUser() user: AuthUser, @Param('orderCode', ParseIntPipe) orderCode: number) {
     return this.topupService.getOrderForUser(user.uid, orderCode);
@@ -80,8 +80,8 @@ export class TopupController {
   @Get('history')
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
-  @ApiOperation({ summary: 'Lịch sử nạp của mình (mới nhất trước)' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Số bản ghi tối đa (mặc định 50)' })
+  @ApiOperation({ summary: 'Your top-up history (newest first)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Max records (default 50)' })
   getHistory(@CurrentUser() user: AuthUser, @Query('limit') limit?: string) {
     const parsed = Number(limit);
     return this.topupService.listHistory(
@@ -94,11 +94,11 @@ export class TopupController {
   @ApiBearerAuth('firebase')
   @UseGuards(FirebaseAuthGuard)
   @ApiOperation({
-    summary: '[DEV] Giả lập PayOS báo đã thanh toán',
+    summary: '[DEV] Simulate PayOS reporting a payment',
     description:
-      'Chỉ chạy khi NODE_ENV !== production. Tiết kiệm hạn mức 100 giao dịch của gói FREE-100: ' +
-      'đi đúng đường mà webhook thật đi (verify chữ ký → transaction → cộng Astrite → ghi sổ cái). ' +
-      'Gọi nhiều lần cùng orderCode để kiểm tra idempotent.',
+      'Only runs when NODE_ENV !== production. Saves the 100-transaction quota of the FREE-100 plan:' +
+      'follows the exact path of the real webhook (verify signature → transaction → credit Astrite → write ledger).' +
+      'Call repeatedly with the same orderCode to test idempotency.',
   })
   simulate(@CurrentUser() user: AuthUser, @Body() dto: SimulateTopupDto) {
     return this.topupService.simulate(user.uid, dto);
@@ -116,12 +116,12 @@ export class TopupController {
   @Post('webhook')
   @Public()
   @ApiOperation({
-    summary: '[PayOS] Webhook báo kết quả thanh toán',
+    summary: '[PayOS] Payment result webhook',
     description:
-      'Verify chữ ký bằng PAYOS_CHECKSUM_KEY (sai → 401). Idempotent theo orderCode: ' +
-      'gọi lại bao nhiêu lần cũng chỉ cộng Astrite một lần.',
+      'Verifies the signature with PAYOS_CHECKSUM_KEY (wrong → 401). Idempotent per orderCode:' +
+      'no matter how many calls, Astrite is credited only once.',
   })
-  @ApiBody({ description: 'Payload PayOS gửi (code, desc, success, data, signature)' })
+  @ApiBody({ description: 'Payload sent by PayOS (code, desc, success, data, signature)' })
   handleWebhook(@Body() body: Webhook) {
     return this.topupService.handleWebhook(body);
   }
@@ -130,14 +130,14 @@ export class TopupController {
   @Public()
   @ApiExcludeEndpoint()
   paymentReturn(@Res() res: Response): void {
-    sendClosePage(res, 'Thanh toán thành công', 'Astrite sẽ được cộng vào ví trong giây lát.');
+    sendClosePage(res, 'Payment successful', 'Astrite will be added to your wallet in a moment.');
   }
 
   @Get('cancel')
   @Public()
   @ApiExcludeEndpoint()
   paymentCancel(@Res() res: Response): void {
-    sendClosePage(res, 'Đã huỷ thanh toán', 'Không có khoản tiền nào bị trừ.');
+    sendClosePage(res, 'Payment cancelled', 'You were not charged.');
   }
 
   // ==== Luong ADMIN (JWT server) ====
@@ -146,7 +146,7 @@ export class TopupController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Toàn bộ gói nạp, kể cả gói đang tắt' })
+  @ApiOperation({ summary: '[Admin] All top-up packages, including disabled ones' })
   listPackagesAsAdmin() {
     return this.topupService.listAllPackages();
   }
@@ -156,8 +156,8 @@ export class TopupController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Lịch sử nạp toàn hệ thống + thống kê doanh thu',
-    description: 'Bộ lọc chạy trong bộ nhớ — quy mô DATN, không cần composite index.',
+    summary: '[Admin] System-wide top-up history + revenue stats',
+    description: 'Filters run in memory — at this project\'s scale, no composite index is needed.',
   })
   listOrdersAsAdmin(@Query() query: AdminTopupsDto) {
     return this.topupService.listAllOrders(query);
@@ -167,14 +167,14 @@ export class TopupController {
   @ApiBearerAuth('admin')
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Thêm gói nạp' })
+  @ApiOperation({ summary: '[Admin] Add a top-up package' })
   async createPackage(@CurrentUser() actor: AuthUser, @Body() dto: CreateTopupPackageDto) {
     const pkg = await this.topupService.createPackage(dto);
     await this.auditService.log(actor, 'TOPUP_PACKAGE_CREATE', {
       id: pkg.packageId,
       label: pkg.name,
     });
-    return { message: 'Da them goi nap.', data: pkg };
+    return { message: 'Package added.', data: pkg };
   }
 
   @Patch('packages/:id')
@@ -182,8 +182,8 @@ export class TopupController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Sửa gói nạp',
-    description: 'Đơn đã tạo giữ nguyên giá và số Astrite của chính nó — sửa ở đây không hồi tố.',
+    summary: '[Admin] Edit a top-up package',
+    description: 'Existing orders keep their own price and Astrite — edits here are not retroactive.',
   })
   async updatePackage(
     @CurrentUser() actor: AuthUser,
@@ -192,7 +192,7 @@ export class TopupController {
   ) {
     const pkg = await this.topupService.updatePackage(packageId, dto);
     await this.auditService.log(actor, 'TOPUP_PACKAGE_UPDATE', { id: packageId, label: pkg.name });
-    return { message: 'Da cap nhat goi nap.', data: pkg };
+    return { message: 'Package updated.', data: pkg };
   }
 
   @Delete('packages/:id')
@@ -200,13 +200,13 @@ export class TopupController {
   @UseGuards(AdminJwtGuard, RolesGuard)
   @Roles('admin')
   @ApiOperation({
-    summary: '[Admin] Xoá gói nạp',
-    description: 'Lịch sử đơn cũ vẫn giữ. Muốn tạm ẩn khỏi app thì dùng isActive=false.',
+    summary: '[Admin] Delete a top-up package',
+    description: 'Old order history is kept. To hide it from the app temporarily, use isActive=false.',
   })
   async deletePackage(@CurrentUser() actor: AuthUser, @Param('id') packageId: string) {
     const pkg = await this.topupService.deletePackage(packageId);
     await this.auditService.log(actor, 'TOPUP_PACKAGE_DELETE', { id: packageId, label: pkg.name });
-    return { message: 'Da xoa goi nap.', data: { packageId } };
+    return { message: 'Package deleted.', data: { packageId } };
   }
 }
 
@@ -218,7 +218,7 @@ export class TopupController {
  */
 function sendClosePage(res: Response, title: string, subtitle: string): void {
   res.status(200).type('html').send(`<!doctype html>
-<html lang="vi"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title} · Snapget</title>
 <style>
@@ -229,6 +229,6 @@ function sendClosePage(res: Response, title: string, subtitle: string): void {
   p{margin:0;color:#B9B2A4;font-size:14px}
 </style></head>
 <body><div class="card"><h1>${title}</h1><p>${subtitle}</p>
-<p style="margin-top:16px">Bạn có thể đóng tab này và quay lại ứng dụng Snapget.</p>
+<p style="margin-top:16px">You can close this tab and return to the Snapget app.</p>
 </div></body></html>`);
 }

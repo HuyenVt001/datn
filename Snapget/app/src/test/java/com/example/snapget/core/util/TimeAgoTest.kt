@@ -20,7 +20,7 @@ class TimeAgoTest {
     private val day = 24 * hour
 
     @Test
-    fun `cac moc thoi gian`() {
+    fun `time thresholds`() {
         assertEquals("just now", timeAgo(iso, base + 30_000))
         assertEquals("5m ago", timeAgo(iso, base + 5 * minute))
         assertEquals("2h ago", timeAgo(iso, base + 2 * hour + 10 * minute))
@@ -29,12 +29,12 @@ class TimeAgoTest {
     }
 
     @Test
-    fun `thoi diem tuong lai do lech dong ho coi nhu vua xong`() {
+    fun `future time from clock skew counts as just now`() {
         assertEquals("just now", timeAgo(iso, base - 5 * minute))
     }
 
     @Test
-    fun `null hoac sai dinh dang thi an`() {
+    fun `null or malformed is hidden`() {
         assertNull(timeAgo(null))
         assertNull(timeAgo("2026-11-15"))
         assertNull(timeAgo("not-a-date-at-all-xx"))

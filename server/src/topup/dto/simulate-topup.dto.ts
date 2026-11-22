@@ -16,12 +16,12 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
  *                        kiem tra idempotent: so du chi duoc tang DUNG 1 lan.
  */
 export class SimulateTopupDto {
-  @ApiPropertyOptional({ description: 'Tạo đơn giả lập từ gói này rồi thanh toán luôn' })
+  @ApiPropertyOptional({ description: 'Create a simulated order from this package and pay it immediately' })
   @IsOptional()
   @IsString()
   packageId?: string;
 
-  @ApiPropertyOptional({ description: 'Phát lại webhook cho đơn đã tồn tại' })
+  @ApiPropertyOptional({ description: 'Replay the webhook for an existing order' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

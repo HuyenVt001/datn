@@ -201,40 +201,40 @@ export function DashboardPage() {
   const loadError = (statsError ?? dailyError) as Error | null;
 
   const cards: StatCard[] = [
-    { title: 'Người dùng', value: data?.users, icon: <TeamOutlined /> },
-    { title: 'Bài đăng', value: data?.moments, icon: <CameraOutlined /> },
-    { title: 'Bài đăng hôm nay', value: data?.momentsToday, icon: <FireOutlined /> },
-    { title: 'Tin nhắn', value: data?.messages, icon: <MessageOutlined /> },
-    { title: 'Cặp bạn bè', value: data?.friendships, icon: <HeartOutlined /> },
-    { title: 'Nhóm chat', value: data?.chatGroups, icon: <UsergroupAddOutlined /> },
+    { title: 'Users', value: data?.users, icon: <TeamOutlined /> },
+    { title: 'Posts', value: data?.moments, icon: <CameraOutlined /> },
+    { title: 'Posts today', value: data?.momentsToday, icon: <FireOutlined /> },
+    { title: 'Messages', value: data?.messages, icon: <MessageOutlined /> },
+    { title: 'Friend pairs', value: data?.friendships, icon: <HeartOutlined /> },
+    { title: 'Group chats', value: data?.chatGroups, icon: <UsergroupAddOutlined /> },
     {
-      title: 'Lượt hoàn thành quest hôm nay',
+      title: 'Quest completions today',
       value: data?.questCompletionsToday,
       icon: <TrophyOutlined />,
     },
     // Shop (2026-11-15 — thay luot quay gacha)
-    { title: 'Lượt mua hôm nay', value: data?.shopPurchasesToday, icon: <ShoppingCartOutlined /> },
-    { title: 'Tổng lượt mua', value: data?.shopPurchasesTotal, icon: <ShoppingOutlined /> },
+    { title: 'Purchases today', value: data?.shopPurchasesToday, icon: <ShoppingCartOutlined /> },
+    { title: 'Total purchases', value: data?.shopPurchasesTotal, icon: <ShoppingOutlined /> },
     // Quest AI (2026-08-16): so lan AI xac minh anh hom nay va so lan khop (quest AI tick)
     {
-      title: 'AI xác minh ảnh hôm nay',
+      title: 'AI photo verifications today',
       value: data?.aiVerificationsToday,
       icon: <RobotOutlined />,
     },
-    { title: 'Quest AI khớp hôm nay', value: data?.aiMatchedToday, icon: <CheckCircleOutlined /> },
+    { title: 'AI quests matched today', value: data?.aiMatchedToday, icon: <CheckCircleOutlined /> },
   ];
 
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Tổng quan
+        Overview
       </Typography.Title>
       {loadError && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được số liệu thống kê."
+          message="Couldn't load statistics."
           description={loadError.message}
         />
       )}
@@ -249,23 +249,23 @@ export function DashboardPage() {
       </Row>
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={12}>
-          <Card title="Bài đăng 7 ngày qua" loading={loadingDaily}>
+          <Card title="Posts in the last 7 days" loading={loadingDaily}>
             {daily && (
               <DailyBarChart
                 data={daily.map((d) => ({ date: d.date, value: d.moments }))}
                 color={CHART_COLORS.moments}
-                unit="bài đăng"
+                unit="posts"
               />
             )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Người dùng mới 7 ngày qua" loading={loadingDaily}>
+          <Card title="New users in the last 7 days" loading={loadingDaily}>
             {daily && (
               <DailyBarChart
                 data={daily.map((d) => ({ date: d.date, value: d.newUsers }))}
                 color={CHART_COLORS.newUsers}
-                unit="người dùng mới"
+                unit="new users"
               />
             )}
           </Card>

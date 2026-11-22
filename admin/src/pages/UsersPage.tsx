@@ -37,7 +37,7 @@ export function UsersPage() {
     mutationFn: ({ uid, disabled }: { uid: string; disabled: boolean }) =>
       setUserDisabled(uid, disabled),
     onSuccess: (result) => {
-      message.success(result.disabled ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.');
+      message.success(result.disabled ? 'Account disabled.' : 'Account enabled.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -46,7 +46,7 @@ export function UsersPage() {
   const grantMutation = useMutation({
     mutationFn: (uid: string) => grantAdmin(uid),
     onSuccess: () => {
-      message.success('Đã cấp quyền admin. Người dùng cần đăng nhập lại trang quản trị.');
+      message.success('Admin granted. The user must sign in to the admin panel again.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -55,7 +55,7 @@ export function UsersPage() {
   const revokeMutation = useMutation({
     mutationFn: (uid: string) => revokeAdmin(uid),
     onSuccess: () => {
-      message.success('Đã thu hồi quyền admin — hiệu lực ngay lập tức.');
+      message.success('Admin revoked — effective immediately.');
       void invalidate();
     },
     onError: (err: Error) => message.error(err.message),
@@ -68,17 +68,17 @@ export function UsersPage() {
       render: (email: string | undefined, user) => (
         <Space size={4}>
           {email || <Typography.Text type="secondary">—</Typography.Text>}
-          {user.uid === myUid && <Tag color="blue">Bạn</Tag>}
+          {user.uid === myUid && <Tag color="blue">You</Tag>}
         </Space>
       ),
     },
     {
-      title: 'Tên hiển thị',
+      title: 'Display name',
       dataIndex: 'fullName',
       render: (name: string) => name || <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
-      title: 'Vai trò',
+      title: 'Role',
       dataIndex: 'admin',
       width: 110,
       render: (admin: boolean) =>
@@ -97,53 +97,53 @@ export function UsersPage() {
       align: 'right',
       sorter: (a, b) => a.astrite - b.astrite,
       render: (astrite: number) => (
-        <Typography.Text strong={astrite > 0}>⭐ {astrite.toLocaleString('vi-VN')}</Typography.Text>
+        <Typography.Text strong={astrite > 0}>⭐ {astrite.toLocaleString('en-US')}</Typography.Text>
       ),
     },
     {
-      title: 'Ngày tạo',
+      title: 'Created',
       dataIndex: 'createdAt',
       width: 165,
-      render: (value: string) => (value ? new Date(value).toLocaleString('vi-VN') : '—'),
+      render: (value: string) => (value ? new Date(value).toLocaleString('en-US') : '—'),
     },
     {
-      title: 'Đăng nhập cuối',
+      title: 'Last sign-in',
       dataIndex: 'lastSignInAt',
       width: 165,
       render: (value?: string) =>
         value ? (
-          new Date(value).toLocaleString('vi-VN')
+          new Date(value).toLocaleString('en-US')
         ) : (
-          <Typography.Text type="secondary">Chưa đăng nhập</Typography.Text>
+          <Typography.Text type="secondary">Never signed in</Typography.Text>
         ),
     },
     {
-      title: 'Trạng thái',
+      title: 'Status',
       dataIndex: 'disabled',
       width: 110,
       render: (disabled: boolean) =>
-        disabled ? <Tag color="red">Đã khóa</Tag> : <Tag color="green">Hoạt động</Tag>,
+        disabled ? <Tag color="red">Disabled</Tag> : <Tag color="green">Active</Tag>,
     },
     {
-      title: 'Hành động',
+      title: 'Actions',
       key: 'actions',
       width: 280,
       render: (_, user) => {
         // Chinh minh: khong khoa / khong thu quyen duoc (server cung chan)
         if (user.uid === myUid) {
-          return <Typography.Text type="secondary">Tài khoản của bạn</Typography.Text>;
+          return <Typography.Text type="secondary">Your account</Typography.Text>;
         }
         return (
           <Space>
             <Popconfirm
-              title={user.disabled ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản này?'}
+              title={user.disabled ? 'Enable this account?' : 'Disable this account?'}
               description={
                 user.disabled
-                  ? 'Người dùng sẽ đăng nhập lại được.'
-                  : 'Người dùng sẽ không thể đăng nhập nữa (phiên hiện tại cũng bị thu hồi).'
+                  ? 'The user will be able to sign in again.'
+                  : 'The user will no longer be able to sign in (current sessions are revoked too).'
               }
-              okText={user.disabled ? 'Mở khóa' : 'Khóa'}
-              cancelText="Hủy"
+              okText={user.disabled ? 'Enable' : 'Disable'}
+              cancelText="Cancel"
               okButtonProps={{ danger: !user.disabled }}
               onConfirm={() => disableMutation.mutate({ uid: user.uid, disabled: !user.disabled })}
             >
@@ -153,15 +153,15 @@ export function UsersPage() {
                 icon={user.disabled ? <UnlockOutlined /> : <LockOutlined />}
                 loading={disableMutation.isPending && disableMutation.variables?.uid === user.uid}
               >
-                {user.disabled ? 'Mở khóa' : 'Khóa'}
+                {user.disabled ? 'Enable' : 'Disable'}
               </Button>
             </Popconfirm>
             {user.admin ? (
               <Popconfirm
-                title="Thu hồi quyền admin của người dùng này?"
-                description="Họ mất quyền truy cập trang quản trị NGAY lập tức."
-                okText="Thu hồi"
-                cancelText="Hủy"
+                title="Revoke this user's admin rights?"
+                description="They lose access to the admin panel IMMEDIATELY."
+                okText="Revoke"
+                cancelText="Cancel"
                 okButtonProps={{ danger: true }}
                 onConfirm={() => revokeMutation.mutate(user.uid)}
               >
@@ -171,15 +171,15 @@ export function UsersPage() {
                   icon={<UserDeleteOutlined />}
                   loading={revokeMutation.isPending && revokeMutation.variables === user.uid}
                 >
-                  Thu quyền
+                  Revoke
                 </Button>
               </Popconfirm>
             ) : (
               <Popconfirm
-                title="Cấp quyền admin cho người dùng này?"
-                description="Họ sẽ đăng nhập được trang quản trị này (đăng nhập lại để có hiệu lực)."
-                okText="Cấp quyền"
-                cancelText="Hủy"
+                title="Grant admin rights to this user?"
+                description="They will be able to sign in to this admin panel (takes effect after signing in again)."
+                okText="Grant"
+                cancelText="Cancel"
                 onConfirm={() => grantMutation.mutate(user.uid)}
               >
                 <Button
@@ -187,7 +187,7 @@ export function UsersPage() {
                   icon={<CrownOutlined />}
                   loading={grantMutation.isPending && grantMutation.variables === user.uid}
                 >
-                  Cấp admin
+                  Grant admin
                 </Button>
               </Popconfirm>
             )}
@@ -200,23 +200,23 @@ export function UsersPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Quản lý người dùng
+        Manage users
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        Chỉ tài khoản có vai trò <Tag color="gold">Admin</Tag> đăng nhập được trang quản trị này.
-        Người dùng thường phải được một admin cấp quyền mới truy cập được.
+        Only accounts with the <Tag color="gold">Admin</Tag> role can sign in to this admin panel.
+        Regular users must be granted rights by an admin first.
       </Typography.Paragraph>
       {error && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được danh sách người dùng."
+          message="Couldn't load users."
           description={(error as Error).message}
         />
       )}
       <Input.Search
-        placeholder="Tìm theo email hoặc tên..."
+        placeholder="Search by email or name..."
         allowClear
         style={{ maxWidth: 360, marginBottom: 16 }}
         onSearch={(value) => {
@@ -235,7 +235,8 @@ export function UsersPage() {
           total: data?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
-          showTotal: (total) => `Tổng ${total} người dùng`,
+          showTotal: (total) => `${total} users total`
+,
         }}
       />
     </div>

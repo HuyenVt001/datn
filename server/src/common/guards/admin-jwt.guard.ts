@@ -24,7 +24,7 @@ export class AdminJwtGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     if (type !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Thieu token admin.');
+      throw new UnauthorizedException('Missing admin token.');
     }
 
     let payload;
@@ -33,7 +33,7 @@ export class AdminJwtGuard implements CanActivate {
         secret: this.config.get<string>('JWT_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Token admin khong hop le hoac da het han.');
+      throw new UnauthorizedException('Admin token is invalid or expired.');
     }
 
     // Re-check quyen hien hanh — khong tin claim "role" nam trong JWT da phat.
@@ -41,13 +41,13 @@ export class AdminJwtGuard implements CanActivate {
     try {
       userRecord = await this.firebase.auth().getUser(payload.sub);
     } catch {
-      throw new UnauthorizedException('Tai khoan admin khong con ton tai.');
+      throw new UnauthorizedException('Admin account no longer exists.');
     }
     if (userRecord.customClaims?.admin !== true) {
-      throw new UnauthorizedException('Quyen admin cua ban da bi thu hoi.');
+      throw new UnauthorizedException('Your admin rights have been revoked.');
     }
     if (userRecord.disabled) {
-      throw new UnauthorizedException('Tai khoan cua ban da bi khoa.');
+      throw new UnauthorizedException('Your account has been disabled.');
     }
 
     (request as Request & { user: unknown }).user = {

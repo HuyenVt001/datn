@@ -10,7 +10,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
  * Astrite" (SHOP_PLAN.md phu luc PayOS).
  */
 export class CreateTopupOrderDto {
-  @ApiProperty({ description: 'Id gói nạp lấy từ GET /topup/packages' })
+  @ApiProperty({ description: 'Top-up package id from GET /topup/packages' })
   @IsString()
   @IsNotEmpty()
   packageId!: string;

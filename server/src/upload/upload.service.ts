@@ -31,12 +31,12 @@ export class UploadService implements OnModuleInit {
     const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
 
     if (!cloudName || !apiKey || !apiSecret) {
-      this.logger.warn('Thieu config Cloudinary trong .env — endpoint upload se bao loi.');
+      this.logger.warn('Cloudinary config missing in .env — upload endpoints will fail.');
       return;
     }
     cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
     this.configured = true;
-    this.logger.log('Cloudinary da cau hinh xong.');
+    this.logger.log('Cloudinary configured.');
   }
 
   /**
@@ -50,7 +50,7 @@ export class UploadService implements OnModuleInit {
   /** Upload buffer bat ky (vd: anh chup chung da ghep bang sharp) len Cloudinary. */
   async uploadBuffer(buffer: Buffer, folder = 'snapget'): Promise<UploadResult> {
     if (!this.configured) {
-      throw new BadRequestException('Server chua cau hinh Cloudinary.');
+      throw new BadRequestException('Cloudinary is not configured on the server.');
     }
 
     const res = await new Promise<UploadApiResponse>((resolve, reject) => {
@@ -75,8 +75,8 @@ export class UploadService implements OnModuleInit {
     if (!isAudio && resourceType === 'video' && (res.duration ?? 0) > MAX_VIDEO_SECONDS + 0.5) {
       await cloudinary.uploader
         .destroy(res.public_id, { resource_type: 'video' })
-        .catch(() => this.logger.warn(`Khong xoa duoc asset qua dai: ${res.public_id}`));
-      throw new BadRequestException(`Anh GIF toi da ${MAX_VIDEO_SECONDS} giay.`);
+        .catch(() => this.logger.warn(`Failed to delete over-length asset: ${res.public_id}`));
+      throw new BadRequestException(`GIFs can be at most ${MAX_VIDEO_SECONDS} seconds.`);
     }
 
     return {

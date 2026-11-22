@@ -147,7 +147,7 @@ describe('TopupService', () => {
     } as unknown as jest.Mocked<AstriteRepository>;
 
     usersRepo = {
-      getFullNamesByUids: jest.fn(async () => new Map([['u1', 'Nguyen Van An']])),
+      getFullNamesByUids: jest.fn(async () => new Map([['u1', 'John Michael Smith']])),
     } as unknown as jest.Mocked<UsersRepository>;
 
     payos = {
@@ -170,8 +170,8 @@ describe('TopupService', () => {
   const callWebhook = (data: WebhookData) =>
     service.handleWebhook({ code: '00', desc: 'success', success: true, data, signature: 'sig' });
 
-  describe('webhook idempotent (chống cộng tiền 2 lần)', () => {
-    it('gọi 3 lần cùng orderCode -> số dư chỉ tăng 1 lần, sổ cái chỉ 1 dòng', async () => {
+  describe('idempotent webhook (prevents double credit)', () => {
+    it('3 calls with the same orderCode -> balance increases once, ledger has 1 row', async () => {
       putOrder();
 
       const first = await callWebhook(webhookData());
@@ -186,7 +186,7 @@ describe('TopupService', () => {
       expect(ledger[0]).toMatchObject({ type: 'TOPUP', amount: PKG.astrite, refId: '111' });
     });
 
-    it('đơn chuyển sang PAID kèm mã giao dịch ngân hàng để đối soát', async () => {
+    it('order moves to PAID with the bank transaction reference for reconciliation', async () => {
       putOrder();
 
       await callWebhook(webhookData({ reference: 'FT-9999' }));
@@ -198,8 +198,8 @@ describe('TopupService', () => {
     });
   });
 
-  describe('webhook giả mạo / dữ liệu lạ', () => {
-    it('chữ ký sai -> 401 và không cộng gì', async () => {
+  describe('forged webhook / unexpected data', () => {
+    it('wrong signature -> 401 and no credit', async () => {
       putOrder();
       payos.verifyWebhook.mockRejectedValueOnce(new Error('Data not integrity'));
 
@@ -208,13 +208,13 @@ describe('TopupService', () => {
       expect(ledger).toHaveLength(0);
     });
 
-    it('chưa cấu hình khoá PayOS -> 401, không thể phân biệt thật/giả', async () => {
+    it('PayOS keys not configured -> 401, cannot tell real from fake', async () => {
       Object.defineProperty(payos, 'isConfigured', { get: () => false });
 
       await expect(callWebhook(webhookData())).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
-    it('số tiền báo về khác số tiền của đơn -> KHÔNG cộng, đơn giữ nguyên PENDING', async () => {
+    it('reported amount differs from the order amount -> NO credit, order stays PENDING', async () => {
       putOrder();
 
       const res = await callWebhook(webhookData({ amount: 1_000 }));
@@ -224,7 +224,7 @@ describe('TopupService', () => {
       expect(orders.get(111)?.status).toBe('PENDING');
     });
 
-    it('PayOS báo giao dịch không thành công (code != 00) -> không cộng', async () => {
+    it('PayOS reports a failed transaction (code != 00) -> no credit', async () => {
       putOrder();
 
       const res = await callWebhook(webhookData({ code: '01' }));
@@ -233,15 +233,15 @@ describe('TopupService', () => {
       expect(balance).toBe(1_000);
     });
 
-    it('mã đơn không tồn tại -> vẫn trả 200 (payload thử lúc đăng ký webhook)', async () => {
+    it('unknown order code -> still returns 200 (test payload during webhook registration)', async () => {
       const res = await callWebhook(webhookData({ orderCode: 123 }));
 
       expect(res).toEqual({ received: true, outcome: 'UNKNOWN_ORDER' });
     });
   });
 
-  describe('đơn quá hạn', () => {
-    it('đơn EXPIRED vẫn được cộng khi PayOS báo đã trả — người dùng không mất tiền', async () => {
+  describe('expired orders', () => {
+    it('an EXPIRED order is still credited when PayOS reports payment — users never lose money', async () => {
       putOrder({ status: 'EXPIRED' });
 
       const res = await callWebhook(webhookData());
@@ -251,8 +251,8 @@ describe('TopupService', () => {
     });
   });
 
-  describe('tạo đơn', () => {
-    it('ghi đơn TRƯỚC khi gọi PayOS — không bao giờ có link thanh toán mà thiếu đơn', async () => {
+  describe('create order', () => {
+    it('writes the order BEFORE calling PayOS — never a payment link without an order', async () => {
       const callOrder: string[] = [];
       repo.createOrder.mockImplementationOnce(async (o: TopupOrder) => {
         callOrder.push('createOrder');
@@ -269,7 +269,7 @@ describe('TopupService', () => {
       expect(callOrder).toEqual(['createOrder', 'payos']);
     });
 
-    it('trả về checkoutUrl + số tiền tra từ gói ở server (không nhận từ client)', async () => {
+    it('returns checkoutUrl + amount looked up from the server package (not from the client)', async () => {
       const created = await service.createOrder('u1', PKG.packageId);
 
       expect(created).toMatchObject({
@@ -279,14 +279,14 @@ describe('TopupService', () => {
       });
     });
 
-    it('tạo link PayOS thất bại -> đơn bị đánh dấu CANCELLED và lỗi được ném lên', async () => {
+    it('PayOS link creation fails -> order marked CANCELLED and the error is rethrown', async () => {
       payos.createPaymentLink.mockRejectedValueOnce(new Error('PayOS 500'));
 
       await expect(service.createOrder('u1', PKG.packageId)).rejects.toThrow('PayOS 500');
       expect([...orders.values()][0].status).toBe('CANCELLED');
     });
 
-    it('lưu checkoutUrl bằng patchOrder — KHÔNG ghi đè status', async () => {
+    it('stores checkoutUrl via patchOrder — does NOT overwrite status', async () => {
       // Ghi kem `status` o buoc nay tung la duong keo mot don da PAID ve PENDING
       // -> webhook goi lai se cong tien lan hai.
       await service.createOrder('u1', PKG.packageId);
@@ -299,7 +299,7 @@ describe('TopupService', () => {
       expect(repo.updateOrderStatus).not.toHaveBeenCalled();
     });
 
-    it('gói đang tắt -> từ chối', async () => {
+    it('disabled package -> rejected', async () => {
       repo.findPackageById.mockResolvedValueOnce({ ...PKG, isActive: false });
 
       await expect(service.createOrder('u1', PKG.packageId)).rejects.toBeInstanceOf(
@@ -308,16 +308,16 @@ describe('TopupService', () => {
     });
   });
 
-  describe('xem đơn', () => {
-    it('không đọc được đơn của người khác', async () => {
-      putOrder({ uid: 'nguoi-khac' });
+  describe('view order', () => {
+    it('cannot read another user\'s order', async () => {
+      putOrder({ uid: 'someone-else' });
 
       await expect(service.getOrderForUser('u1', 111)).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 
-  describe('dọn đơn quá hạn', () => {
-    it('dọn bằng transaction có điều kiện, KHÔNG ghi đè thẳng trạng thái', async () => {
+  describe('expire stale orders', () => {
+    it('cleans up with a conditional transaction, does NOT overwrite status directly', async () => {
       // Ghi thang se de len mot don vua duoc webhook chuyen sang PAID, va webhook
       // goi lai sau do khong con thay PAID de chan -> cong tien lan hai.
       const stale = putOrder({ orderCode: 99, createdAt: '2020-01-01T00:00:00.000Z' });
@@ -329,7 +329,7 @@ describe('TopupService', () => {
       expect(repo.updateOrderStatus).not.toHaveBeenCalled();
     });
 
-    it('đơn đã PAID thì không bị kéo về EXPIRED', async () => {
+    it('a PAID order is never moved back to EXPIRED', async () => {
       const paid = putOrder({ orderCode: 99, status: 'PAID' });
       repo.listStalePendingOrders.mockResolvedValueOnce([paid]);
 
@@ -339,8 +339,8 @@ describe('TopupService', () => {
     });
   });
 
-  describe('endpoint giả lập', () => {
-    it('tạo đơn giả lập từ packageId rồi cộng luôn (không gọi PayOS)', async () => {
+  describe('simulation endpoint', () => {
+    it('creates a simulated order from packageId and credits immediately (no PayOS call)', async () => {
       const res = await service.simulate('u1', { packageId: PKG.packageId });
 
       expect(res.outcome).toBe('CREDITED');
@@ -349,7 +349,7 @@ describe('TopupService', () => {
       expect(orders.get(res.orderCode)?.isSimulated).toBe(true);
     });
 
-    it('phát lại cùng orderCode -> vẫn chỉ cộng 1 lần', async () => {
+    it('replaying the same orderCode -> still credited once', async () => {
       const first = await service.simulate('u1', { packageId: PKG.packageId });
       const again = await service.simulate('u1', { orderCode: first.orderCode });
 
@@ -357,8 +357,8 @@ describe('TopupService', () => {
       expect(ledger).toHaveLength(1);
     });
 
-    it('không cộng được vào ví người khác dù đoán đúng mã đơn', async () => {
-      putOrder({ uid: 'nguoi-khac' });
+    it('cannot credit another user\'s wallet even with a guessed order code', async () => {
+      putOrder({ uid: 'someone-else' });
 
       await expect(service.simulate('u1', { orderCode: 111 })).rejects.toBeInstanceOf(
         ForbiddenException,
@@ -366,7 +366,7 @@ describe('TopupService', () => {
       expect(balance).toBe(1_000);
     });
 
-    it('môi trường production -> chặn hẳn', async () => {
+    it('production environment -> fully blocked', async () => {
       nodeEnv = 'production';
 
       await expect(service.simulate('u1', { packageId: PKG.packageId })).rejects.toBeInstanceOf(
@@ -375,8 +375,8 @@ describe('TopupService', () => {
     });
   });
 
-  describe('thống kê cho admin', () => {
-    it('doanh thu chỉ tính đơn PAID và tính trên toàn bộ tập đã lọc', async () => {
+  describe('admin stats', () => {
+    it('revenue counts only PAID orders across the whole filtered set', async () => {
       putOrder({ orderCode: 1, status: 'PAID', paidAt: '2026-08-05T01:00:00.000Z' });
       putOrder({ orderCode: 2, status: 'PAID', paidAt: '2026-08-05T02:00:00.000Z' });
       putOrder({ orderCode: 3, status: 'PENDING' });

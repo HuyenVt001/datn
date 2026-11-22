@@ -59,12 +59,12 @@ Cây thư mục thực tế + ý nghĩa từng file: **GUIDE.md mục 2**. Luậ
 
 ## 4. Quy ước code
 
-- **Tên định danh tiếng Anh, chuẩn NestJS.** Comment + Swagger description + GUIDE = **tiếng Việt**.
+- **Tên định danh tiếng Anh, chuẩn NestJS.** Comment + GUIDE = **tiếng Việt**; Swagger description = **tiếng Anh**.
 - File `kebab-case` (`users.service.ts`); class `PascalCase`; biến/hàm `camelCase`.
 - **TypeScript strict**: không `any` tùy tiện. Dữ liệu ra/vào API luôn qua DTO có `class-validator`.
 - `async/await`, không để promise lơ lửng (`no-floating-promises`).
 - Không log secret/token. Dùng `Logger` của Nest, không `console.log` trong code chạy thật.
-- Mỗi endpoint có Swagger decorator (`@ApiOperation`, `@ApiResponse`) mô tả **tiếng Việt** — Swagger là công cụ demo chính khi bảo vệ DATN.
+- Mỗi endpoint có Swagger decorator (`@ApiOperation`, `@ApiResponse`) mô tả **tiếng Anh** — Swagger là công cụ demo chính khi bảo vệ DATN.
 - Chạy `npm run lint` + `npm run format` trước khi coi là xong.
 
 ---
@@ -125,7 +125,7 @@ Mọi response qua global `ResponseInterceptor`; mọi lỗi qua global `AllExce
 ```
 
 - Ném lỗi bằng `HttpException` của Nest (`NotFoundException`, `BadRequestException`, …).
-- `message` lỗi cho client viết **tiếng Việt, thân thiện**; chi tiết kỹ thuật vào log.
+- `message` lỗi cho client viết **tiếng Anh, thân thiện**; chi tiết kỹ thuật vào log.
 - Phân trang → `data = { items, page, limit, total }` (chuẩn hóa trong `PaginationDto`).
 
 ---
@@ -166,7 +166,7 @@ Mọi response qua global `ResponseInterceptor`; mọi lỗi qua global `AllExce
 
 ### Thêm 1 module domain mới
 1. Module + controller + service + `<name>.repository.ts` (khung mục 3).
-2. Entity + DTO (`class-validator`, `@ApiProperty` tiếng Việt).
+2. Entity + DTO (`class-validator`, `@ApiProperty` tiếng Anh).
 3. Repository map Firestore ↔ entity (đúng tên field mục 6.1).
 4. Service (business logic + phân quyền) → Controller (route + guard + Swagger).
 5. Unit test + e2e.

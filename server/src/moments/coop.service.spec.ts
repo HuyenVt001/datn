@@ -93,16 +93,16 @@ describe('CoopService', () => {
   describe('createInvite', () => {
     const dto = { friendUid: 'bob' };
 
-    it('chan moi chinh minh', async () => {
+    it('blocks inviting yourself', async () => {
       await expect(service.createInvite('bob', dto)).rejects.toThrow(BadRequestException);
     });
 
-    it('chan moi nguoi KHONG phai ban be', async () => {
+    it('blocks inviting someone who is NOT a friend', async () => {
       friendshipsRepo.findPair.mockResolvedValue(null as never);
       await expect(service.createInvite('alice', dto)).rejects.toThrow(ForbiddenException);
     });
 
-    it('tao loi moi PENDING (khong kem anh)', async () => {
+    it('creates a PENDING invite (no photo)', async () => {
       repo.create.mockResolvedValue(pendingInvite as never);
 
       const result = await service.createInvite('alice', dto);
@@ -119,7 +119,7 @@ describe('CoopService', () => {
       expect(result.expiresAt).toBeDefined();
     });
 
-    it('push loi moi kem TEN nguoi moi', async () => {
+    it('invite push includes the inviter\'s NAME', async () => {
       repo.create.mockResolvedValue(pendingInvite as never);
       usersRepo.findByUid.mockResolvedValue({ uid: 'alice', fullName: 'Alice' } as never);
 
@@ -133,7 +133,7 @@ describe('CoopService', () => {
       );
     });
 
-    it('da co loi moi CON HAN cho cung nguoi -> tra ve loi moi cu, khong tao/push lai', async () => {
+    it('an UNEXPIRED invite to the same person exists -> returns it, no new invite/push', async () => {
       repo.listPendingBetween.mockResolvedValue([pendingInvite] as never);
 
       const result = await service.createInvite('alice', dto);
@@ -143,7 +143,7 @@ describe('CoopService', () => {
       expect(usersService.pushToUids).not.toHaveBeenCalled();
     });
 
-    it('loi moi cu da QUA HAN -> danh dau EXPIRED roi tao loi moi moi', async () => {
+    it('old invite EXPIRED -> marks EXPIRED then creates a new one', async () => {
       repo.listPendingBetween.mockResolvedValue([expiredInvite] as never);
       repo.create.mockResolvedValue(pendingInvite as never);
 
@@ -155,22 +155,22 @@ describe('CoopService', () => {
   });
 
   describe('accept', () => {
-    it('chan nguoi khong phai invitee', async () => {
+    it('blocks non-invitees', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await expect(service.accept('stranger', 'i1')).rejects.toThrow(ForbiddenException);
     });
 
-    it('chan loi moi da xu ly roi', async () => {
+    it('blocks already-handled invites', async () => {
       repo.findById.mockResolvedValue({ ...pendingInvite, status: 'DECLINED' } as never);
       await expect(service.accept('bob', 'i1')).rejects.toThrow(BadRequestException);
     });
 
-    it('chan loi moi da HET HAN (qua 5 phut)', async () => {
+    it('blocks EXPIRED invites (over 5 minutes)', async () => {
       repo.findById.mockResolvedValue(expiredInvite as never);
       await expect(service.accept('bob', 'i2')).rejects.toThrow(BadRequestException);
     });
 
-    it('PENDING -> ACCEPTED qua transaction + bao FCM cho nguoi moi', async () => {
+    it('PENDING -> ACCEPTED via transaction + FCM to the inviter', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
 
       const result = await service.accept('bob', 'i1');
@@ -185,7 +185,7 @@ describe('CoopService', () => {
       );
     });
 
-    it('chan accept khi decline vua khoa loi moi (transition false)', async () => {
+    it('blocks accept when a decline just locked the invite (transition false)', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       repo.transition.mockResolvedValue(false as never);
       await expect(service.accept('bob', 'i1')).rejects.toThrow(BadRequestException);
@@ -193,18 +193,18 @@ describe('CoopService', () => {
   });
 
   describe('getInvite', () => {
-    it('chan nguoi ngoai cuoc', async () => {
+    it('blocks outsiders', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await expect(service.getInvite('stranger', 'i1')).rejects.toThrow(ForbiddenException);
     });
 
-    it('nguoi moi poll duoc trang thai loi moi cua minh', async () => {
+    it('inviter can poll their invite status', async () => {
       repo.findById.mockResolvedValue(acceptedInvite as never);
       const result = await service.getInvite('alice', 'i1');
       expect(result.status).toBe('ACCEPTED');
     });
 
-    it('PENDING qua 5 phut -> tra ve EXPIRED + danh dau qua TRANSITION transactional', async () => {
+    it('PENDING over 5 minutes -> returns EXPIRED + marks via transactional TRANSITION', async () => {
       repo.findById.mockResolvedValue(expiredInvite as never);
 
       const result = await service.getInvite('alice', 'i2');
@@ -213,7 +213,7 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i2', 'PENDING', 'EXPIRED');
     });
 
-    it('phien ACCEPTED qua 10 phut -> EXPIRED', async () => {
+    it('ACCEPTED session over 10 minutes -> EXPIRED', async () => {
       repo.findById.mockResolvedValue(staleSession as never);
 
       const result = await service.getInvite('alice', 'i1');
@@ -222,7 +222,7 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'EXPIRED');
     });
 
-    it('phien ACCEPTED con han -> kem remainingSeconds cua phien', async () => {
+    it('unexpired ACCEPTED session -> includes the session\'s remainingSeconds', async () => {
       repo.findById.mockResolvedValue(acceptedInvite as never);
 
       const result = await service.getInvite('alice', 'i1');
@@ -230,7 +230,7 @@ describe('CoopService', () => {
       expect(result.remainingSeconds).toBeGreaterThan(590);
     });
 
-    it('thua transition EXPIRED (accept vua thang) -> tra ve trang thai THAT tu DB', async () => {
+    it('loses the EXPIRED transition (accept just won) -> returns the REAL status from DB', async () => {
       repo.findById
         .mockResolvedValueOnce(expiredInvite as never)
         .mockResolvedValueOnce({ ...expiredInvite, status: 'ACCEPTED' } as never);
@@ -245,7 +245,7 @@ describe('CoopService', () => {
   describe('submitMedia', () => {
     const dto = { mediaUrl: 'https://res.cloudinary.com/demo/half.jpg' };
 
-    it('chan URL KHONG phai Cloudinary (SSRF)', async () => {
+    it('blocks NON-Cloudinary URLs (SSRF)', async () => {
       repo.findById.mockResolvedValue(acceptedInvite as never);
       for (const mediaUrl of [
         'http://169.254.169.254/latest/meta-data',
@@ -259,7 +259,7 @@ describe('CoopService', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('chan nop anh khi phien da qua han 10 phut', async () => {
+    it('blocks submitting after the 10-minute session expired', async () => {
       repo.findById.mockResolvedValue(staleSession as never);
 
       await expect(service.submitMedia('alice', 'i1', dto)).rejects.toThrow(BadRequestException);
@@ -267,12 +267,12 @@ describe('CoopService', () => {
       expect(repo.update).not.toHaveBeenCalled();
     });
 
-    it('chan khi loi moi CHUA duoc chap nhan', async () => {
+    it('blocks when the invite is NOT accepted yet', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await expect(service.submitMedia('alice', 'i1', dto)).rejects.toThrow(BadRequestException);
     });
 
-    it('nguoi moi nop nua TRAI, thieu nua kia -> giu ACCEPTED cho doi', async () => {
+    it('inviter submits the LEFT half, other half missing -> stays ACCEPTED and waits', async () => {
       repo.findById
         .mockResolvedValueOnce(acceptedInvite as never)
         .mockResolvedValueOnce({ ...acceptedInvite, inviterMediaUrl: dto.mediaUrl } as never);
@@ -284,7 +284,7 @@ describe('CoopService', () => {
       expect(repo.transition).not.toHaveBeenCalled();
     });
 
-    it('du 2 nua -> khoa ACCEPTED->COMPLETED, ghep + upload -> mergedMediaUrl, hook khung/streak', async () => {
+    it('both halves -> locks ACCEPTED->COMPLETED, merge + upload -> mergedMediaUrl, frame/streak hooks', async () => {
       const bothHalves = {
         ...acceptedInvite,
         inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
@@ -314,7 +314,7 @@ describe('CoopService', () => {
       expect(framesService.unlockCoopFrames).toHaveBeenCalledWith('bob');
     });
 
-    it('2 ben nop cung luc: ben thua transaction KHONG ghep lai, tra ve trang thai THAT', async () => {
+    it('both submit at once: the transaction loser does NOT merge again, returns the REAL status', async () => {
       const bothHalves = {
         ...acceptedInvite,
         inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
@@ -339,7 +339,7 @@ describe('CoopService', () => {
       expect(result.mergedMediaUrl).toBe('https://cdn/merged.jpg');
     });
 
-    it('ghep FAIL -> tra loi moi ve ACCEPTED de nop lai', async () => {
+    it('merge FAILS -> invite returns to ACCEPTED for resubmission', async () => {
       const bothHalves = {
         ...acceptedInvite,
         inviterMediaUrl: 'https://res.cloudinary.com/demo/left.jpg',
@@ -353,7 +353,7 @@ describe('CoopService', () => {
           service as unknown as { mergeSideBySide(l: string, r: string): Promise<Buffer> },
           'mergeSideBySide',
         )
-        .mockRejectedValue(new BadRequestException('Khong tai duoc anh de ghep.'));
+        .mockRejectedValue(new BadRequestException('Couldn\'t download the photos to merge.'));
 
       await expect(service.submitMedia('bob', 'i1', dto)).rejects.toThrow(BadRequestException);
       // Revert qua TRANSITION co khoa, khong update tran
@@ -362,7 +362,7 @@ describe('CoopService', () => {
   });
 
   describe('listPending', () => {
-    it('bo loi moi het han khoi danh sach cho', async () => {
+    it('drops expired invites from the pending list', async () => {
       repo.listPendingForInvitee.mockResolvedValue([pendingInvite, expiredInvite] as never);
 
       const result = await service.listPending('bob');
@@ -373,7 +373,7 @@ describe('CoopService', () => {
   });
 
   describe('decline', () => {
-    it('nguoi nhan tu choi -> DECLINED qua transaction', async () => {
+    it('invitee declines -> DECLINED via transaction', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
 
       await service.decline('bob', 'i1');
@@ -381,7 +381,7 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i1', 'PENDING', 'DECLINED');
     });
 
-    it('NGUOI MOI cung huy duoc loi moi dang cho cua minh + bao nguoi nhan (data-only)', async () => {
+    it('the INVITER can also cancel their pending invite + notify the invitee (data-only)', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await service.decline('alice', 'i1');
       expect(repo.transition).toHaveBeenCalledWith('i1', 'PENDING', 'DECLINED');
@@ -391,13 +391,13 @@ describe('CoopService', () => {
       });
     });
 
-    it('nguoi nhan tu choi -> KHONG gui push huy', async () => {
+    it('invitee declines -> NO cancel push', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await service.decline('bob', 'i1');
       expect(usersService.pushDataToUids).not.toHaveBeenCalled();
     });
 
-    it('HUY duoc phien dang ACCEPTED (roi man chup) — ca 2 phia', async () => {
+    it('can CANCEL an ACCEPTED session (leaving the capture screen) — both sides', async () => {
       repo.findById.mockResolvedValue(acceptedInvite as never);
 
       await service.decline('alice', 'i1');
@@ -407,7 +407,7 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledTimes(2);
     });
 
-    it('chan nguoi ngoai cuoc + loi moi da COMPLETED', async () => {
+    it('blocks outsiders + COMPLETED invites', async () => {
       repo.findById.mockResolvedValue(pendingInvite as never);
       await expect(service.decline('stranger', 'i1')).rejects.toThrow(ForbiddenException);
 

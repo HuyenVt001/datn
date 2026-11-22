@@ -142,7 +142,7 @@ class AuthRepository @Inject constructor(
         val response = try {
             credentialManager.getCredential(activity, request)
         } catch (e: NoCredentialException) {
-            Log.w(tag, "Khong co tai khoan Google nao tren may: ${e.message}")
+            Log.w(tag, "No Google account on this device: ${e.message}")
             throw AppException.UnexpectedException(
                 "No Google account on this device. Add one in Settings, then try again.",
             )
@@ -260,7 +260,7 @@ class AuthRepository @Inject constructor(
             userApi.addFcmToken(FcmTokenRequest(token)).ensureSuccess()
             Log.d(tag, "FCM token registered with server")
         } catch (e: Exception) {
-            Log.w(tag, "Sync with server failed (se thu lai lan dang nhap sau): ${e.message}")
+            Log.w(tag, "Sync with server failed (will retry on next sign-in): ${e.message}")
         }
     }
 
@@ -277,7 +277,7 @@ class AuthRepository @Inject constructor(
             userApi.addFcmToken(FcmTokenRequest(token)).ensureSuccess()
             Log.d(tag, "FCM token registered with server")
         } catch (e: Exception) {
-            Log.w(tag, "Khong dang ky duoc FCM token: ${e.message}")
+            Log.w(tag, "Failed to register FCM token: ${e.message}")
         }
     }
 
@@ -287,7 +287,7 @@ class AuthRepository @Inject constructor(
             val token = FirebaseMessaging.getInstance().token.await()
             userApi.removeFcmToken(token).ensureSuccess()
         } catch (e: Exception) {
-            Log.w(tag, "Khong go duoc FCM token: ${e.message}")
+            Log.w(tag, "Failed to remove FCM token: ${e.message}")
         }
     }
 }

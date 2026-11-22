@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 
 /** Dang ky / go FCM token (nhan push notification). */
 export class FcmTokenDto {
-  @ApiProperty({ description: 'FCM registration token cua thiet bi' })
+  @ApiProperty({ description: 'Device FCM registration token' })
   @IsString()
   @IsNotEmpty()
   token!: string;

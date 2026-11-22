@@ -13,41 +13,41 @@ export class CoopController {
   constructor(private readonly coopService: CoopService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Gui loi moi chup chung (khong kem anh, hieu luc 5 phut)' })
+  @ApiOperation({ summary: 'Send a co-op capture invite (no photo, valid for 5 minutes)' })
   async createInvite(@CurrentUser() user: AuthUser, @Body() dto: CreateCoopInviteDto) {
     const invite = await this.coopService.createInvite(user.uid, dto);
-    return { message: 'Da gui loi moi chup chung.', data: invite };
+    return { message: 'Co-op invite sent.', data: invite };
   }
 
   @Get('pending')
-  @ApiOperation({ summary: 'Danh sach loi moi chup chung dang cho minh tra loi' })
+  @ApiOperation({ summary: 'Co-op invites waiting for your reply' })
   listPending(@CurrentUser() user: AuthUser) {
     return this.coopService.listPending(user.uid);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiet loi moi (2 ben poll trang thai o man chup coop)' })
+  @ApiOperation({ summary: 'Invite details (both sides poll status on the co-op capture screen)' })
   getInvite(@CurrentUser() user: AuthUser, @Param('id') inviteId: string) {
     return this.coopService.getInvite(user.uid, inviteId);
   }
 
   @Post(':id/accept')
-  @ApiOperation({ summary: 'Chap nhan loi moi -> ACCEPTED, ca 2 vao man chup coop' })
+  @ApiOperation({ summary: 'Accept invite -> ACCEPTED, both enter the co-op capture screen' })
   async accept(@CurrentUser() user: AuthUser, @Param('id') inviteId: string) {
     const invite = await this.coopService.accept(user.uid, inviteId);
-    return { message: 'Da chap nhan loi moi chup chung.', data: invite };
+    return { message: 'Co-op invite accepted.', data: invite };
   }
 
   @Post(':id/decline')
-  @ApiOperation({ summary: 'Tu choi (nguoi nhan) / huy (nguoi moi) loi moi dang cho' })
+  @ApiOperation({ summary: 'Decline (invitee) / cancel (inviter) a pending invite' })
   async decline(@CurrentUser() user: AuthUser, @Param('id') inviteId: string) {
     await this.coopService.decline(user.uid, inviteId);
-    return { message: 'Da tu choi loi moi.', data: { inviteId } };
+    return { message: 'Invite declined.', data: { inviteId } };
   }
 
   @Post(':id/media')
   @ApiOperation({
-    summary: 'Nop nua anh cua minh (sau ACCEPTED) — du 2 nua server ghep -> mergedMediaUrl',
+    summary: 'Submit your half photo (after ACCEPTED) — once both halves are in, the server merges -> mergedMediaUrl',
   })
   async submitMedia(
     @CurrentUser() user: AuthUser,
@@ -55,6 +55,6 @@ export class CoopController {
     @Body() dto: SubmitCoopMediaDto,
   ) {
     const invite = await this.coopService.submitMedia(user.uid, inviteId, dto);
-    return { message: 'Da nhan nua anh cua ban.', data: invite };
+    return { message: 'Your half photo was received.', data: invite };
   }
 }

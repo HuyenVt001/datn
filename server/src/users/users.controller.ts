@@ -23,22 +23,22 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Lay ho so cua chinh minh (tu tao neu dang nhap lan dau)' })
+  @ApiOperation({ summary: 'Get your own profile (created on first sign-in)' })
   getMe(@CurrentUser() user: AuthUser) {
     return this.usersService.getProfile(user);
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Cap nhat ho so (ten hien thi / avatar)' })
+  @ApiOperation({ summary: 'Update profile (display name / avatar)' })
   updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateUserDto) {
     return this.usersService.updateProfile(user.uid, dto);
   }
 
   @Post('me/fcm-tokens')
-  @ApiOperation({ summary: 'Dang ky FCM token cua thiet bi' })
+  @ApiOperation({ summary: 'Register the device FCM token' })
   async addFcmToken(@CurrentUser() user: AuthUser, @Body() dto: FcmTokenDto) {
     await this.usersService.addFcmToken(user.uid, dto.token);
-    return { message: 'Da dang ky nhan thong bao.', data: { token: dto.token } };
+    return { message: 'Registered for notifications.', data: { token: dto.token } };
   }
 
   /**
@@ -52,31 +52,31 @@ export class UsersController {
   @ApiHeader({
     name: CRON_SECRET_HEADER,
     required: true,
-    description: 'Secret của cron (env CRON_SECRET) — chỉ cron-job.org biết',
+    description: 'Cron secret (env CRON_SECRET) — known only to cron-job.org',
   })
   @ApiOperation({
-    summary: '[Cron] Gửi push nhắc giữ streak cho user chưa đăng bài hôm nay',
+    summary: '[Cron] Send streak reminder pushes to users who haven\'t posted today',
     description:
-      'Chọn user có streak > 0 và lần tăng streak cuối là HÔM QUA (hôm nay chưa đăng → nửa đêm mất streak). ' +
-      'Push DATA-ONLY `type=STREAK_REMINDER` để app tự hiện thông báo theo toggle "Streak reminders". ' +
-      'Trả `{candidates, notified}`.',
+      'Selects users with streak > 0 whose last streak increase was YESTERDAY (no post today → streak lost at midnight).' +
+      'DATA-ONLY push `type=STREAK_REMINDER` so the app shows the notification based on the "Streak reminders" toggle.' +
+      'Returns `{candidates, notified}`.',
   })
-  @ApiResponse({ status: 200, description: 'Đã gửi — data = {candidates, notified}' })
-  @ApiResponse({ status: 401, description: 'Sai cron secret' })
-  @ApiResponse({ status: 503, description: 'Chưa cấu hình CRON_SECRET' })
+  @ApiResponse({ status: 200, description: 'Sent — data = {candidates, notified}' })
+  @ApiResponse({ status: 401, description: 'Invalid cron secret' })
+  @ApiResponse({ status: 503, description: 'CRON_SECRET is not configured' })
   sendStreakReminders() {
     return this.usersService.sendStreakReminders();
   }
 
   @Delete('me/fcm-tokens/:token')
-  @ApiOperation({ summary: 'Go FCM token (khi logout / het han)' })
+  @ApiOperation({ summary: 'Remove the FCM token (on logout / expiry)' })
   async removeFcmToken(@CurrentUser() user: AuthUser, @Param('token') token: string) {
     await this.usersService.removeFcmToken(user.uid, token);
-    return { message: 'Da go token.', data: { token } };
+    return { message: 'Token removed.', data: { token } };
   }
 
   @Get(':uid')
-  @ApiOperation({ summary: 'Xem ho so cong khai cua nguoi dung khac' })
+  @ApiOperation({ summary: 'View another user\'s public profile' })
   getPublicProfile(@Param('uid') uid: string) {
     return this.usersService.getPublicProfile(uid);
   }

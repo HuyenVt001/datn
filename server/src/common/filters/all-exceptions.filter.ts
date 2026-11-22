@@ -21,7 +21,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const res = ctx.getResponse<Response>();
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Da co loi xay ra, vui long thu lai.';
+    let message = 'Something went wrong, please try again.';
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -38,7 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else {
       // Thu vien ben thu 3 (vd Cloudinary SDK) reject bang plain object,
       // khong phai Error — van phai log, khong duoc nuot im lang.
-      this.logger.error(`Loi khong phai Error: ${JSON.stringify(exception)}`);
+      this.logger.error(`Non-Error thrown: ${JSON.stringify(exception)}`);
     }
 
     res.status(statusCode).json({

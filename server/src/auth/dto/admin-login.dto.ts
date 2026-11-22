@@ -6,7 +6,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
  * gui token do len day. Server verify + kiem tra quyen admin -> phat JWT rieng.
  */
 export class AdminLoginDto {
-  @ApiProperty({ description: 'Firebase ID token cua tai khoan admin' })
+  @ApiProperty({ description: 'Firebase ID token of the admin account' })
   @IsString()
   @IsNotEmpty()
   idToken!: string;

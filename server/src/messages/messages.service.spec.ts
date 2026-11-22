@@ -51,21 +51,21 @@ describe('MessagesService', () => {
   });
 
   describe('send', () => {
-    it('bao loi khi dien ca receiverId lan groupId (hoac khong dien gi)', async () => {
+    it('error when both receiverId and groupId are set (or neither)', async () => {
       await expect(service.send(me, textDto({}))).rejects.toThrow(BadRequestException);
       await expect(service.send(me, textDto({ receiverId: 'a', groupId: 'g' }))).rejects.toThrow(
         BadRequestException,
       );
     });
 
-    it('chan nhan tin 1-1 khi chua la ban be', async () => {
+    it('blocks 1-1 messages when not friends', async () => {
       friendshipsRepo.findPair.mockResolvedValue(null);
       await expect(service.send(me, textDto({ receiverId: 'stranger' }))).rejects.toThrow(
         ForbiddenException,
       );
     });
 
-    it('gui 1-1 thanh cong + wire friend streak', async () => {
+    it('1-1 send succeeds + wires friend streak', async () => {
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
 
       const result = await service.send(me, textDto({ receiverId: 'friend' }));
@@ -76,12 +76,12 @@ describe('MessagesService', () => {
       expect(result.messageId).toBe('msg1');
     });
 
-    it('chan gui vao nhom khong phai thanh vien', async () => {
+    it('blocks sending to a group you\'re not in', async () => {
       repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['a', 'b'] } as never);
       await expect(service.send(me, textDto({ groupId: 'g' }))).rejects.toThrow(ForbiddenException);
     });
 
-    it('reply 1-1: snapshot type/content/sender cua tin goc vao tin moi', async () => {
+    it('reply 1-1: snapshots type/content/sender of the original into the new message', async () => {
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.findById.mockResolvedValue({
         messageId: 'orig',
@@ -103,7 +103,7 @@ describe('MessagesService', () => {
       );
     });
 
-    it('chan reply tin KHONG nam trong hoi thoai (cua cap khac / cua nhom)', async () => {
+    it('blocks replying to a message NOT in the conversation (another pair / a group)', async () => {
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.findById.mockResolvedValue({
         messageId: 'orig',
@@ -117,7 +117,7 @@ describe('MessagesService', () => {
       expect(repo.createMessage).not.toHaveBeenCalled();
     });
 
-    it('reply trong nhom: tin goc phai thuoc CUNG nhom', async () => {
+    it('reply in group: the original must belong to the SAME group', async () => {
       repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['me', 'a'] } as never);
       repo.findById.mockResolvedValue({
         messageId: 'orig',
@@ -132,14 +132,14 @@ describe('MessagesService', () => {
   });
 
   describe('createGroup', () => {
-    it(`chan nhom qua ${MAX_GROUP_SIZE} thanh vien`, async () => {
+    it(`blocks groups over ${MAX_GROUP_SIZE} members`, async () => {
       const tooMany = Array.from({ length: MAX_GROUP_SIZE }, (_, i) => `u${i}`);
       await expect(
         service.createGroup('me', { groupName: 'g', memberIds: tooMany }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('nguoi tao tu dong vao nhom + khu trung lap', async () => {
+    it('creator joins automatically + duplicates removed', async () => {
       repo.createGroup.mockResolvedValue({ groupId: 'g1' } as never);
       friendshipsRepo.listAccepted.mockResolvedValue([
         { userIds: ['me', 'a'], status: 'ACCEPTED' },
@@ -152,7 +152,7 @@ describe('MessagesService', () => {
       );
     });
 
-    it('chan them NGUOI LA vao nhom (chi ban be)', async () => {
+    it('blocks adding STRANGERS to a group (friends only)', async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([
         { userIds: ['me', 'a'], status: 'ACCEPTED' },
       ] as never);
@@ -178,11 +178,11 @@ describe('MessagesService', () => {
       repo.findGroup.mockResolvedValue(group() as never);
     });
 
-    it('getGroupDetail: chan nguoi ngoai nhom', async () => {
+    it('getGroupDetail: blocks non-members', async () => {
       await expect(service.getGroupDetail('outsider', 'g')).rejects.toThrow(ForbiddenException);
     });
 
-    it('getGroupDetail: tra ve nhom + ho so cong khai tung thanh vien', async () => {
+    it('getGroupDetail: returns group + each member\'s public profile', async () => {
       usersService.getPublicProfile.mockImplementation(
         async (uid: string) => ({ uid, fullName: `name-${uid}` }) as never,
       );
@@ -193,7 +193,7 @@ describe('MessagesService', () => {
       expect(result.members[1]).toEqual({ uid: 'me', fullName: 'name-me', avatar: undefined });
     });
 
-    it('updateGroup: doi ten/avatar, bao loi khi body rong', async () => {
+    it('updateGroup: renames/changes avatar, errors on empty body', async () => {
       const updated = await service.updateGroup('me', 'g', { groupName: 'New name' });
 
       expect(repo.updateGroup).toHaveBeenCalledWith('g', {
@@ -204,7 +204,7 @@ describe('MessagesService', () => {
       await expect(service.updateGroup('me', 'g', {})).rejects.toThrow(BadRequestException);
     });
 
-    it('addMembers: chi them duoc BAN BE cua nguoi moi', async () => {
+    it('addMembers: can only add the inviter\'s FRIENDS', async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([
         { userIds: ['me', 'friend'], status: 'ACCEPTED' },
       ] as never);
@@ -215,7 +215,7 @@ describe('MessagesService', () => {
       expect(repo.updateGroup).not.toHaveBeenCalled();
     });
 
-    it('addMembers: them ban be thanh cong, khu trung nguoi da trong nhom', async () => {
+    it('addMembers: adds friends, skips people already in the group', async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([
         { userIds: ['me', 'friend'], status: 'ACCEPTED' },
       ] as never);
@@ -228,7 +228,7 @@ describe('MessagesService', () => {
       );
     });
 
-    it(`addMembers: chan nhom vuot ${MAX_GROUP_SIZE} thanh vien`, async () => {
+    it(`addMembers: blocks groups exceeding ${MAX_GROUP_SIZE} members`, async () => {
       const full = group();
       full.memberIds = Array.from({ length: MAX_GROUP_SIZE }, (_, i) => (i === 0 ? 'me' : `u${i}`));
       repo.findGroup.mockResolvedValue(full as never);
@@ -238,20 +238,20 @@ describe('MessagesService', () => {
       );
     });
 
-    it('removeMember: chi NGUOI TAO nhom xoa duoc thanh vien', async () => {
+    it('removeMember: only the group CREATOR can remove members', async () => {
       await expect(service.removeMember('me', 'g', 'other')).rejects.toThrow(ForbiddenException);
 
       const updated = await service.removeMember('creator', 'g', 'other');
       expect(updated.memberIds).toEqual(['creator', 'me']);
     });
 
-    it('removeMember: nguoi tao khong tu xoa minh (phai dung roi nhom)', async () => {
+    it('removeMember: creator cannot remove themselves (must leave the group)', async () => {
       await expect(service.removeMember('creator', 'g', 'creator')).rejects.toThrow(
         BadRequestException,
       );
     });
 
-    it('leaveGroup: thanh vien thuong roi nhom', async () => {
+    it('leaveGroup: a regular member leaves', async () => {
       await service.leaveGroup('me', 'g');
       expect(repo.updateGroup).toHaveBeenCalledWith('g', {
         memberIds: ['creator', 'other'],
@@ -260,7 +260,7 @@ describe('MessagesService', () => {
       });
     });
 
-    it('leaveGroup: nguoi tao roi -> chuyen quyen cho thanh vien dau tien con lai', async () => {
+    it('leaveGroup: creator leaves -> ownership passes to the first remaining member', async () => {
       await service.leaveGroup('creator', 'g');
       expect(repo.updateGroup).toHaveBeenCalledWith(
         'g',
@@ -268,7 +268,7 @@ describe('MessagesService', () => {
       );
     });
 
-    it('leaveGroup: nguoi cuoi cung roi -> xoa nhom', async () => {
+    it('leaveGroup: last member leaves -> group deleted', async () => {
       const solo = group();
       solo.memberIds = ['me'];
       repo.findGroup.mockResolvedValue(solo as never);
@@ -279,7 +279,7 @@ describe('MessagesService', () => {
       expect(repo.updateGroup).not.toHaveBeenCalled();
     });
 
-    it('setGroupMuted: bat/tat thong bao cho rieng minh', async () => {
+    it('setGroupMuted: mute/unmute for yourself only', async () => {
       const muted = await service.setGroupMuted('me', 'g', true);
       expect(muted.mutedBy).toEqual(['me']);
 
@@ -290,7 +290,7 @@ describe('MessagesService', () => {
       expect(unmuted.mutedBy).toEqual(['other']);
     });
 
-    it('send nhom: KHONG push FCM cho thanh vien da mute', async () => {
+    it('group send: NO FCM push to muted members', async () => {
       const withMuted = group();
       withMuted.memberIds = ['me', 'a', 'b'];
       withMuted.mutedBy = ['b'];
@@ -303,12 +303,12 @@ describe('MessagesService', () => {
   });
 
   describe('markSeen', () => {
-    it('chi nguoi nhan moi danh dau duoc', async () => {
+    it('only the recipient can mark as seen', async () => {
       repo.findById.mockResolvedValue({ messageId: 'm', receiverId: 'someone-else' } as never);
       await expect(service.markSeen('me', 'm')).rejects.toThrow(ForbiddenException);
     });
 
-    it('nguoi nhan danh dau thanh cong', async () => {
+    it('recipient marks as seen successfully', async () => {
       repo.findById.mockResolvedValue({ messageId: 'm', receiverId: 'me' } as never);
       await service.markSeen('me', 'm');
       expect(repo.markSeen).toHaveBeenCalledWith('m');
@@ -316,12 +316,12 @@ describe('MessagesService', () => {
   });
 
   describe('react', () => {
-    it('chan nguoi ngoai hoi thoai 1-1 tha reaction', async () => {
+    it('blocks outsiders from reacting in a 1-1 conversation', async () => {
       repo.findById.mockResolvedValue({ messageId: 'm', senderId: 'a', receiverId: 'b' } as never);
       await expect(service.react('me', 'm', '💛')).rejects.toThrow(ForbiddenException);
     });
 
-    it('nguoi trong hoi thoai tha reaction thanh cong', async () => {
+    it('conversation member reacts successfully', async () => {
       repo.findById.mockResolvedValue({
         messageId: 'm',
         senderId: 'friend',
@@ -335,7 +335,7 @@ describe('MessagesService', () => {
       expect(result.reactions).toEqual({ me: '💛' });
     });
 
-    it('bam lai cung emoji = go reaction (toggle)', async () => {
+    it('same emoji again = remove reaction (toggle)', async () => {
       repo.findById.mockResolvedValue({
         messageId: 'm',
         senderId: 'friend',
@@ -349,7 +349,7 @@ describe('MessagesService', () => {
       expect(result.reactions).toEqual({});
     });
 
-    it('tin nhom: chi thanh vien nhom moi tha duoc', async () => {
+    it('group message: only group members can react', async () => {
       repo.findById.mockResolvedValue({ messageId: 'm', senderId: 'a', groupId: 'g' } as never);
       repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['a', 'b'] } as never);
       await expect(service.react('me', 'm', '💛')).rejects.toThrow(ForbiddenException);
@@ -357,7 +357,7 @@ describe('MessagesService', () => {
   });
 
   describe('getConversations', () => {
-    it('lay tin moi nhat voi tung nguoi, bo qua tin nhom', async () => {
+    it('gets the latest message with each person, skips group messages', async () => {
       repo.listInvolving.mockResolvedValue([
         {
           messageId: '1',

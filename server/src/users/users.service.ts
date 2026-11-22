@@ -90,7 +90,7 @@ export class UsersService {
   async getPublicProfile(uid: string): Promise<PublicUser> {
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
-      throw new NotFoundException('Khong tim thay nguoi dung.');
+      throw new NotFoundException('User not found.');
     }
     return this.usersRepo.toPublic(user);
   }
@@ -99,7 +99,7 @@ export class UsersService {
   async updateProfile(uid: string, dto: UpdateUserDto): Promise<User> {
     // Ngay sinh khong duoc o TUONG LAI (DTO chi validate format yyyy-MM-dd)
     if (dto.birthday !== undefined && dto.birthday > dateKey()) {
-      throw new BadRequestException('Ngay sinh khong the o tuong lai.');
+      throw new BadRequestException('Birthday can\'t be in the future.');
     }
     // Firestore KHONG nhan class instance (ValidationPipe transform tao ra
     // UpdateUserDto co prototype) -> chuyen ve plain object, bo field undefined
@@ -120,13 +120,13 @@ export class UsersService {
         .auth()
         .updateUser(uid, authPatch)
         .catch((e) =>
-          this.logger.warn(`Khong sync duoc displayName len Auth: ${(e as Error).message}`),
+          this.logger.warn(`Failed to sync displayName to Auth: ${(e as Error).message}`),
         );
     }
 
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
-      throw new NotFoundException('Khong tim thay nguoi dung.');
+      throw new NotFoundException('User not found.');
     }
     return user;
   }
@@ -157,10 +157,10 @@ export class UsersService {
         notification: { title, body },
         ...(data ? { data } : {}),
       });
-      this.logger.log(`FCM: gui ${res.successCount}/${tokens.length} thiet bi.`);
+      this.logger.log(`FCM: sent to ${res.successCount}/${tokens.length} devices.`);
       return res.successCount;
     } catch (e) {
-      this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
+      this.logger.warn(`Failed to send FCM: ${(e as Error).message}`);
       return 0;
     }
   }
@@ -188,7 +188,7 @@ export class UsersService {
       });
       return res.successCount;
     } catch (e) {
-      this.logger.warn(`Khong gui duoc FCM data-only: ${(e as Error).message}`);
+      this.logger.warn(`Failed to send data-only FCM: ${(e as Error).message}`);
       return 0;
     }
   }
@@ -223,7 +223,7 @@ export class UsersService {
           notified++;
         }
       } catch (e) {
-        this.logger.warn(`Khong gui duoc nhac streak cho ${user.uid}: ${(e as Error).message}`);
+        this.logger.warn(`Failed to send streak reminder to ${user.uid}: ${(e as Error).message}`);
       }
     }
     this.logger.log(`Nhac streak: ${notified}/${users.length} user.`);
@@ -246,7 +246,7 @@ export class UsersService {
   async getOrCreateInviteCode(uid: string): Promise<{ inviteCode: string; expiresAt: string }> {
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
-      throw new NotFoundException('Khong tim thay nguoi dung.');
+      throw new NotFoundException('User not found.');
     }
     if (
       user.inviteCode &&
@@ -287,7 +287,7 @@ export class UsersService {
   ): Promise<{ personalStreak: number; increased: boolean }> {
     const user = await this.usersRepo.findByUid(uid);
     if (!user) {
-      throw new NotFoundException('Khong tim thay nguoi dung.');
+      throw new NotFoundException('User not found.');
     }
     // dateKey CHUNG voi daily quest (common/constants) — 2 he thong phai khop ngay
     const today = dateKey();

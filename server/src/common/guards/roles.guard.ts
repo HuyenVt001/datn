@@ -27,7 +27,7 @@ export class RolesGuard implements CanActivate {
     const isAdmin = user?.admin === true || user?.role === 'admin';
 
     if (required.includes('admin') && !isAdmin) {
-      throw new ForbiddenException('Ban khong co quyen truy cap chuc nang nay.');
+      throw new ForbiddenException('You don\'t have permission to access this feature.');
     }
     return true;
   }

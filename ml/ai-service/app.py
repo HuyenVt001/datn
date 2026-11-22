@@ -6,7 +6,7 @@ Doi cho deploy = doi AI_SERVICE_URL o server, khong sua code.
 
 2 nhiem vu (QUEST_AI_PLAN.md muc 6–7):
   POST /verify    ONNX MobileNetV3-Small + head 12 lop (TU TRAIN) — "anh co chua X khong?"
-  POST /generate  Qwen2.5-1.5B-Instruct GGUF Q4 (llama-cpp) — viet cau quest tieng Viet
+  POST /generate  Qwen2.5-1.5B-Instruct GGUF Q4 (llama-cpp) — writes the English quest sentence
   GET  /health    public (cron keep-warm) — modelVersion + trang thai LLM
 
 Chi NestJS goi service nay (header X-API-Key). App Android KHONG bao gio goi truc tiep.
@@ -86,7 +86,7 @@ app = FastAPI(title="Snapget AI Space", version="1.0", docs_url=None, redoc_url=
 # ---------------------------------------------------------------------------
 def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
     if not API_KEY:
-        raise HTTPException(status_code=503, detail="Space chua cau hinh API_KEY")
+        raise HTTPException(status_code=503, detail="API_KEY is not configured on this Space")
     if not x_api_key or not secrets.compare_digest(x_api_key, API_KEY):
         raise HTTPException(status_code=401, detail="Sai API key")
 
@@ -108,7 +108,7 @@ def download_model(model_dir: Path) -> None:
             shutil.copyfile(src, model_dir / name)
         log.info("Da tai model tu HF repo %s", MODEL_REPO)
     except Exception as e:
-        log.warning("Khong tai duoc model tu %s: %s", MODEL_REPO, e)
+        log.warning("Failed to download model from %s: %s", MODEL_REPO, e)
 
 
 class Verifier:
@@ -126,7 +126,7 @@ class Verifier:
     def _load(self, model_dir: Path) -> None:
         onnx_path = model_dir / "model.onnx"
         if not onnx_path.exists():
-            log.warning("Khong thay %s — /verify se tra 503 cho toi khi upload model", onnx_path)
+            log.warning("%s not found — /verify returns 503 until the model is uploaded", onnx_path)
             return
         import onnxruntime as ort  # import muon: Space van boot duoc neu thieu package
 
@@ -146,7 +146,7 @@ class Verifier:
         if thr_path.exists():
             self.thresholds = {k: float(v) for k, v in json.loads(thr_path.read_text(encoding="utf-8")).items()}
         else:
-            log.warning("Khong thay thresholds.json — dung nguong mac dinh 0.5 cho moi lop")
+            log.warning("thresholds.json not found — using default threshold 0.5 for every class")
         log.info("Model %s san sang (%d lop, input %d)", self.meta.get("modelVersion"), len(self.classes), self.input_size)
 
     @property
@@ -190,14 +190,14 @@ verifier = Verifier(MODEL_DIR)
 
 async def fetch_image(url: str) -> bytes:
     if not re.match(r"^https?://", url):
-        raise HTTPException(status_code=400, detail="imageUrl phai la http(s)")
+        raise HTTPException(status_code=400, detail="imageUrl must be http(s)")
     try:
         # User-Agent ro rang: mot so host (Wikimedia...) tra 403 cho client khong co UA — Cloudinary khong can
         headers = {"User-Agent": "snapget-ai/1.0 (+https://github.com/HuyenVt001/datn)"}
         async with httpx.AsyncClient(timeout=IMAGE_TIMEOUT_S, follow_redirects=True, headers=headers) as client:
             async with client.stream("GET", url) as res:
                 if res.status_code != 200:
-                    raise HTTPException(status_code=422, detail=f"Khong tai duoc anh (HTTP {res.status_code})")
+                    raise HTTPException(status_code=422, detail=f"Failed to download image (HTTP {res.status_code})")
                 buf = bytearray()
                 async for chunk in res.aiter_bytes():
                     buf.extend(chunk)
@@ -205,7 +205,7 @@ async def fetch_image(url: str) -> bytes:
                         raise HTTPException(status_code=422, detail="Anh qua lon")
                 return bytes(buf)
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=422, detail=f"Khong tai duoc anh: {type(e).__name__}") from e
+        raise HTTPException(status_code=422, detail=f"Failed to download image: {type(e).__name__}") from e
 
 
 class VerifyRequest(BaseModel):
@@ -225,16 +225,16 @@ class VerifyResponse(BaseModel):
 @app.post("/verify", response_model=VerifyResponse, dependencies=[Depends(require_api_key)])
 async def verify(req: VerifyRequest) -> VerifyResponse:
     if not verifier.ready:
-        raise HTTPException(status_code=503, detail="Model chua duoc upload len Space")
+        raise HTTPException(status_code=503, detail="Model has not been uploaded to the Space")
     target = req.targetClass.strip().lower()
     if target not in verifier.classes:
-        raise HTTPException(status_code=400, detail=f"targetClass khong hop le: {req.targetClass}")
+        raise HTTPException(status_code=400, detail=f"Invalid targetClass: {req.targetClass}")
     image_bytes = await fetch_image(req.imageUrl)
     t0 = time.perf_counter()
     try:
         scores = verifier.predict(image_bytes)
     except Exception as e:  # anh hong / khong decode duoc
-        raise HTTPException(status_code=422, detail=f"Khong doc duoc anh: {type(e).__name__}") from e
+        raise HTTPException(status_code=422, detail=f"Failed to read image: {type(e).__name__}") from e
     latency_ms = int((time.perf_counter() - t0) * 1000)
     threshold = verifier.threshold_for(target)
     score = scores[target]
@@ -275,7 +275,7 @@ class Generator:
             log.info("LLM %s/%s san sang", LLM_REPO, LLM_FILE)
         except Exception as e:  # thieu package / het RAM / khong tai duoc
             self.error = f"{type(e).__name__}: {e}"
-            log.warning("Khong tai duoc LLM (%s) — /generate tra 503, server dung template", self.error)
+            log.warning("Failed to load LLM (%s) — /generate returns 503, server uses templates", self.error)
         finally:
             self.loading = False
 
@@ -286,23 +286,17 @@ class Generator:
     def generate(self, classes: list[str], avoid: list[str]) -> dict[str, str]:
         assert self.llm is not None
         candidates = [c for c in classes if c not in avoid] or classes
-        vi_names = {
-            "cup": "cái cốc / ly", "bottle": "chai nước", "book": "quyển sách", "chair": "cái ghế",
-            "potted plant": "chậu cây", "laptop": "laptop", "keyboard": "bàn phím máy tính",
-            "backpack": "ba lô", "clock": "đồng hồ", "umbrella": "cái ô (dù)",
-            "bicycle": "xe đạp", "motorcycle": "xe máy",
-        }
-        options = "\n".join(f'- "{c}" ({vi_names.get(c, c)})' for c in candidates)
+        options = "\n".join(f'- "{c}"' for c in candidates)
         system = (
-            "Bạn viết nhiệm vụ chụp ảnh hằng ngày cho một app mạng xã hội dành cho sinh viên Việt Nam. "
-            "Chỉ trả về JSON hợp lệ, không giải thích."
+            "You write daily photo quests for a social app for university students. "
+            "Return valid JSON only, no explanation."
         )
         user = (
-            "Chọn ĐÚNG MỘT vật thể trong danh sách sau (giữ nguyên chuỗi tiếng Anh làm targetClass):\n"
+            "Pick EXACTLY ONE object from this list (use the string as-is for targetClass):\n"
             f"{options}\n\n"
-            "Viết MỘT câu tiếng Việt có dấu, bắt đầu bằng \"Chụp\", tối đa 60 ký tự, gợi cảm hứng, "
-            "nói rõ vật thể đó (có thể thêm bối cảnh: bàn học, quán cà phê, sân trường...). "
-            'Trả về đúng dạng: {"targetClass": "<tên tiếng Anh trong danh sách>", "content": "<câu tiếng Việt>"}'
+            "Write ONE English sentence starting with \"Take a photo of\", at most 60 characters, inspiring, "
+            "clearly naming that object (you may add a setting: study desk, cafe, campus...). "
+            'Return exactly: {"targetClass": "<name from the list>", "content": "<English sentence>"}'
         )
         with self._lock:
             out = self.llm.create_chat_completion(
@@ -315,7 +309,7 @@ class Generator:
         text = out["choices"][0]["message"]["content"].strip()
         m = re.search(r"\{.*\}", text, re.S)
         if not m:
-            raise ValueError(f"LLM khong tra JSON: {text[:120]}")
+            raise ValueError(f"LLM did not return JSON: {text[:120]}")
         data = json.loads(m.group(0))
         return {"targetClass": str(data.get("targetClass", "")).strip().lower(),
                 "content": str(data.get("content", "")).strip()}
@@ -337,7 +331,7 @@ class GenerateResponse(BaseModel):
 @app.post("/generate", response_model=GenerateResponse, dependencies=[Depends(require_api_key)])
 def generate(req: GenerateRequest) -> GenerateResponse:
     if not generator.ready:
-        detail = "LLM dang tai" if generator.loading else f"LLM khong san sang: {generator.error or 'unknown'}"
+        detail = "LLM is loading" if generator.loading else f"LLM not ready: {generator.error or 'unknown'}"
         raise HTTPException(status_code=503, detail=detail)
     classes = [c.strip().lower() for c in req.classes] or list(DEFAULT_CLASSES)
     avoid = [c.strip().lower() for c in req.avoid]
@@ -347,10 +341,10 @@ def generate(req: GenerateRequest) -> GenerateResponse:
             result = generator.generate(classes, avoid)
             if result["targetClass"] in classes and result["content"]:
                 return GenerateResponse(**result)
-            last_err = ValueError(f"ket qua khong hop le: {result}")
+            last_err = ValueError(f"invalid result: {result}")
         except Exception as e:  # JSON hong, timeout...
             last_err = e
-    raise HTTPException(status_code=502, detail=f"LLM tra ket qua khong dung: {last_err}")
+    raise HTTPException(status_code=502, detail=f"LLM returned an invalid result: {last_err}")
 
 
 # ---------------------------------------------------------------------------

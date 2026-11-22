@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Snapget — Lời mời kết bạn</title>
+  <title>Snapget — Friend invite</title>
   <!-- Landing page cho link mời kết bạn https://snapget-d8693.web.app/invite/{code}.
        Máy đã cài app + App Links verify OK sẽ mở thẳng app, không thấy trang này.
        Trang này dành cho: máy chưa cài app, hoặc bấm link trên máy tính. -->
@@ -59,17 +59,17 @@
 <body>
   <div class="card">
     <div class="logo">📸</div>
-    <h1>Lời mời kết bạn Snapget</h1>
-    <p>Bạn của bạn muốn kết nối trên Snapget!<br>Mở app để gửi lời mời kết bạn — chủ link xác nhận là hai bạn thành bạn bè.</p>
+    <h1>Snapget friend invite</h1>
+    <p>Your friend wants to connect on Snapget!<br>Open the app to send a friend request — once the link owner accepts, you're friends.</p>
     <div class="code" id="inviteCode">—</div>
-    <a class="btn" id="openApp" href="#">Mở app Snapget</a>
-    <p class="hint">Chưa cài Snapget? Hãy cài app trước (APK từ nhóm phát triển), sau đó bấm lại link này hoặc nhập mã mời ở màn "Add new friend".</p>
+    <a class="btn" id="openApp" href="#">Open Snapget</a>
+    <p class="hint">Don't have Snapget yet? Install the app first (APK from the dev team), then tap this link again or enter the invite code on the "Add new friend" screen.</p>
   </div>
   <script>
     // Lấy mã mời từ path /invite/{code} (rewrite về index.html nên path còn nguyên)
     var match = location.pathname.match(/\/invite\/([^\/]+)/);
     var code = match ? match[1] : '';
-    document.getElementById('inviteCode').textContent = code || 'Không tìm thấy mã';
+    document.getElementById('inviteCode').textContent = code || 'Code not found';
     var btn = document.getElementById('openApp');
     if (code) {
       // intent:// mở app qua scheme snapget:// trên Chrome Android; máy khác fallback scheme thô

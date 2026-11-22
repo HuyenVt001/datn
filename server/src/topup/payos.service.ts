@@ -41,19 +41,19 @@ export class PayosService {
 
     if (clientId && apiKey && checksumKey) {
       this.client = new PayOS({ clientId, apiKey, checksumKey });
-      this.logger.log('PayOS da san sang (che do TIEN THAT).');
+      this.logger.log('PayOS ready (REAL MONEY mode).');
       if (!this.returnUrl || !this.cancelUrl) {
         // Bat som o day thay vi de PayOS tra 400 kho hieu luc nguoi dung bam nap.
         this.logger.error(
-          'Co du 3 khoa PayOS nhung THIEU PAYOS_RETURN_URL / PAYOS_CANCEL_URL — ' +
-            'tao link thanh toan se that bai. Nho tien to /api trong 2 URL nay.',
+          'All 3 PayOS keys are set but PAYOS_RETURN_URL / PAYOS_CANCEL_URL are MISSING —' +
+            'creating payment links will fail. Remember the /api prefix in these 2 URLs.',
         );
       }
     } else {
       this.client = null;
       this.logger.warn(
-        'Chua cau hinh PAYOS_CLIENT_ID / PAYOS_API_KEY / PAYOS_CHECKSUM_KEY — ' +
-          'luong nap tien TAT. Cac chuc nang khac khong bi anh huong.',
+        'PAYOS_CLIENT_ID / PAYOS_API_KEY / PAYOS_CHECKSUM_KEY not configured —' +
+          'top-up flow OFF. Other features are unaffected.',
       );
     }
   }
@@ -80,7 +80,7 @@ export class PayosService {
     const client = this.requireClient();
     if (!this.returnUrl || !this.cancelUrl) {
       throw new ServiceUnavailableException(
-        'Server thiếu cấu hình đường dẫn quay lại của PayOS. Vui lòng thử lại sau.',
+        'The server is missing the PayOS return URL configuration. Please try again later.',
       );
     }
     return client.paymentRequests.create({
@@ -113,7 +113,7 @@ export class PayosService {
     const client = this.requireClient();
     const signature = await client.crypto.createSignatureFromObj(data, client.checksumKey);
     if (!signature) {
-      throw new ServiceUnavailableException('Không ký được dữ liệu giả lập webhook.');
+      throw new ServiceUnavailableException('Failed to sign the simulated webhook data.');
     }
     return signature;
   }
@@ -124,13 +124,13 @@ export class PayosService {
    */
   async confirmWebhook(webhookUrl: string): Promise<void> {
     await this.requireClient().webhooks.confirm(webhookUrl);
-    this.logger.log('Da dang ky webhook voi PayOS.');
+    this.logger.log('Webhook registered with PayOS.');
   }
 
   private requireClient(): PayOS {
     if (!this.client) {
       throw new ServiceUnavailableException(
-        'Chức năng nạp Astrite chưa được cấu hình trên server. Vui lòng thử lại sau.',
+        'Astrite top-up is not configured on the server. Please try again later.',
       );
     }
     return this.client;

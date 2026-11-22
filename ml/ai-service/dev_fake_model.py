@@ -64,7 +64,7 @@ def main() -> None:
                 "inputSize": 224,
                 "mean": [0.485, 0.456, 0.406],
                 "std": [0.229, 0.224, 0.225],
-                "note": "MODEL GIA de test local — logits = mean pixel * W. KHONG deploy.",
+                "note": "FAKE MODEL for local testing — logits = mean pixel * W. DO NOT deploy.",
             },
             ensure_ascii=False,
             indent=2,

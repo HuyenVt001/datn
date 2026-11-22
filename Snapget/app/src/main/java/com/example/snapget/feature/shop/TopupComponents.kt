@@ -34,10 +34,10 @@ import com.example.snapget.core.network.dto.TopupPackageDto
 import java.text.NumberFormat
 import java.util.Locale
 
-/** Dinh dang tien Viet: 145000 -> "145.000d". */
-internal fun formatVnd(amount: Int): String = NumberFormat.getInstance(Locale("vi", "VN")).format(amount) + "đ"
+/** VND price: 145000 -> "145,000 VND". */
+internal fun formatVnd(amount: Int): String = NumberFormat.getInstance(Locale.US).format(amount) + " VND"
 
-internal fun formatAstrite(amount: Int): String = NumberFormat.getInstance(Locale("vi", "VN")).format(amount)
+internal fun formatAstrite(amount: Int): String = NumberFormat.getInstance(Locale.US).format(amount)
 
 /**
  * Tab Astrite cua Shop — danh sach goi nap PayOS (chuyen tu `TopupSheet` cua

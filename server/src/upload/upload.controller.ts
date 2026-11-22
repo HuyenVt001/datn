@@ -39,7 +39,7 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody(FILE_BODY_SCHEMA)
-  @ApiOperation({ summary: 'Upload anh/video len Cloudinary (video toi da 5s), tra ve URL' })
+  @ApiOperation({ summary: 'Upload a photo/video to Cloudinary (video max 5s), returns the URL' })
   async upload(
     @UploadedFile(
       new ParseFilePipe({
@@ -61,7 +61,7 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody(FILE_BODY_SCHEMA)
-  @ApiOperation({ summary: '[Admin] Upload anh (khung anh...) len Cloudinary, tra ve URL' })
+  @ApiOperation({ summary: '[Admin] Upload an image (frames...) to Cloudinary, returns the URL' })
   async uploadAsAdmin(
     @UploadedFile(
       new ParseFilePipe({
@@ -78,7 +78,7 @@ export class UploadController {
     // audio/: tin nhan thoai (VOICE) ghi tu app (.m4a = audio/mp4)
     const allowed = ['image/', 'video/', 'audio/'];
     if (!allowed.some((prefix) => file.mimetype.startsWith(prefix))) {
-      throw new BadRequestException('Chi nhan file anh, video hoac ghi am.');
+      throw new BadRequestException('Only image, video or audio files are accepted.');
     }
     return this.uploadService.upload(file);
   }

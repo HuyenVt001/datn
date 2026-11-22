@@ -15,7 +15,7 @@ class ShopUiStateTest {
     private fun item(id: String, type: String, refId: String, price: Int = 100, owned: Boolean = false) = ShopItemDto(itemId = id, itemName = id, itemType = type, refId = refId, price = price, isOwned = owned)
 
     @Test
-    fun `an skin va effect co refId APK khong biet, giu moi khung`() {
+    fun `hides skins and effects with refIds unknown to the APK, keeps all frames`() {
         val items = listOf(
             item("frame", ShopItemDto.TYPE_FRAME, "frame_gold"),
             item("snow", ShopItemDto.TYPE_SKIN, "1"),
@@ -34,7 +34,7 @@ class ShopUiStateTest {
     }
 
     @Test
-    fun `itemsOf chia dung tab, tab Astrite khong co mat hang`() {
+    fun `itemsOf splits tabs correctly, Astrite tab has no items`() {
         val state = ShopUiState(
             items = listOf(
                 item("f", ShopItemDto.TYPE_FRAME, "a"),
@@ -50,7 +50,7 @@ class ShopUiStateTest {
     }
 
     @Test
-    fun `canAfford tinh ca truong hop vua dung so du`() {
+    fun `canAfford includes the exact-balance case`() {
         val state = ShopUiState(astrite = 320)
 
         assertTrue(state.canAfford(item("x", ShopItemDto.TYPE_FRAME, "a", price = 320)))
@@ -58,7 +58,7 @@ class ShopUiStateTest {
     }
 
     @Test
-    fun `isInUse chi dung cho skin va effect dang ap dung`() {
+    fun `isInUse is true only for the applied skin and effect`() {
         val state = ShopUiState(currentSkinId = 2, currentEffectId = 3)
 
         assertTrue(state.isInUse(item("s", ShopItemDto.TYPE_SKIN, "2", owned = true)))

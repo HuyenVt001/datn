@@ -64,11 +64,11 @@ export class AiService {
     this.apiKey = this.config.get<string>('AI_SERVICE_API_KEY')?.trim() ?? '';
 
     if (this.enabled) {
-      this.logger.log('AI service da cau hinh — xac minh anh quest AI BAT.');
+      this.logger.log('AI service configured — AI quest photo verification ON.');
     } else {
       this.logger.warn(
-        'Chua cau hinh AI_SERVICE_URL / AI_SERVICE_API_KEY — quest AI TAT, ' +
-          'moi ngay chi co 2 quest co dinh. Cac chuc nang khac khong bi anh huong.',
+        'AI_SERVICE_URL / AI_SERVICE_API_KEY not configured — AI quest OFF,' +
+          'only the 2 fixed quests each day. Other features are unaffected.',
       );
     }
   }
@@ -140,7 +140,7 @@ export class AiService {
     timeoutMs: number,
   ): Promise<T> {
     if (!this.enabled) {
-      throw new Error('AI service chua duoc cau hinh (AI_SERVICE_URL / AI_SERVICE_API_KEY).');
+      throw new Error('AI service is not configured (AI_SERVICE_URL / AI_SERVICE_API_KEY).');
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -156,13 +156,13 @@ export class AiService {
         signal: controller.signal,
       });
       if (!res.ok) {
-        throw new Error(`AI service ${path} tra ${res.status}`);
+        throw new Error(`AI service ${path} returned ${res.status}`);
       }
       return (await res.json()) as T;
     } catch (e) {
       const err = e as Error;
       if (err.name === 'AbortError') {
-        throw new Error(`AI service ${path} timeout sau ${timeoutMs}ms`);
+        throw new Error(`AI service ${path} timeout after ${timeoutMs}ms`);
       }
       throw err;
     } finally {

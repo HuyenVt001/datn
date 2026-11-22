@@ -100,7 +100,7 @@ export class TopupService {
   async createOrder(uid: string, packageId: string): Promise<CreatedOrder> {
     const pkg = await this.requirePackage(packageId);
     if (!pkg.isActive) {
-      throw new BadRequestException('Gói nạp này hiện không khả dụng.');
+      throw new BadRequestException('This top-up package is not available right now.');
     }
 
     const order = await this.insertOrder(uid, pkg);
@@ -120,9 +120,9 @@ export class TopupService {
       await this.repo
         .updateOrderStatus(order.orderCode, 'CANCELLED')
         .catch((err) =>
-          this.logger.error(`Khong danh dau duoc don ${order.orderCode} la CANCELLED: ${err}`),
+          this.logger.error(`Failed to mark order ${order.orderCode} as CANCELLED: ${err}`),
         );
-      this.logger.error(`Tao link PayOS that bai cho don ${order.orderCode}: ${describe(e)}`);
+      this.logger.error(`PayOS link creation failed for order ${order.orderCode}: ${describe(e)}`);
       throw e;
     }
 
@@ -132,7 +132,7 @@ export class TopupService {
       checkoutUrl: link.checkoutUrl,
       payosPaymentLinkId: link.paymentLinkId,
     });
-    this.logger.log(`Tao don nap ${order.orderCode} (${order.amountVnd}d) cho ${uid}`);
+    this.logger.log(`Created top-up order ${order.orderCode} (${order.amountVnd} VND) for ${uid}`);
 
     return {
       orderCode: order.orderCode,
@@ -147,11 +147,11 @@ export class TopupService {
   async getOrderForUser(uid: string, orderCode: number): Promise<TopupOrder> {
     const order = await this.repo.findOrder(orderCode);
     if (!order) {
-      throw new NotFoundException('Không tìm thấy đơn nạp này.');
+      throw new NotFoundException('Top-up order not found.');
     }
     if (order.uid !== uid) {
       // Ma don la so doan duoc -> phai chan doc don cua nguoi khac.
-      throw new ForbiddenException('Đơn nạp này không phải của bạn.');
+      throw new ForbiddenException('This top-up order isn\'t yours.');
     }
     return order;
   }
@@ -179,8 +179,8 @@ export class TopupService {
   async handleWebhook(body: Webhook): Promise<{ received: true; outcome: WebhookOutcome }> {
     if (!this.payos.isConfigured) {
       // Khong co khoa checksum thi khong the phan biet that/gia -> tu choi han.
-      this.logger.error('Nhan webhook nhung server chua cau hinh khoa PayOS.');
-      throw new UnauthorizedException('Webhook chưa được cấu hình.');
+      this.logger.error('Received a webhook but PayOS keys are not configured on the server.');
+      throw new UnauthorizedException('Webhook is not configured.');
     }
 
     let data: WebhookData;
@@ -188,8 +188,8 @@ export class TopupService {
       data = await this.payos.verifyWebhook(body);
     } catch (e) {
       // KHONG log body: chua chu ky va thong tin giao dich.
-      this.logger.warn(`Webhook bi tu choi vi chu ky khong hop le: ${describe(e)}`);
-      throw new UnauthorizedException('Chữ ký webhook không hợp lệ.');
+      this.logger.warn(`Webhook rejected due to invalid signature: ${describe(e)}`);
+      throw new UnauthorizedException('Invalid webhook signature.');
     }
 
     const outcome = await this.applyVerifiedWebhook(data);
@@ -204,27 +204,27 @@ export class TopupService {
   async applyVerifiedWebhook(data: WebhookData): Promise<WebhookOutcome> {
     // SDK chi kiem tra toan ven du lieu, KHONG kiem tra giao dich thanh cong.
     if (data.code !== '00') {
-      this.logger.warn(`Webhook don ${data.orderCode}: giao dich khong thanh cong (${data.code}).`);
+      this.logger.warn(`Webhook for order ${data.orderCode}: transaction failed (${data.code}).`);
       return 'NOT_SUCCESS';
     }
 
     const outcome = await this.creditOrderOnce(data);
     switch (outcome) {
       case 'CREDITED':
-        this.logger.log(`Don ${data.orderCode}: da cong Astrite.`);
+        this.logger.log(`Order ${data.orderCode}: Astrite credited.`);
         break;
       case 'ALREADY_PAID':
         // Duong nhien xay ra: PayOS goi lai khi timeout mang. Khong phai loi.
-        this.logger.log(`Don ${data.orderCode}: da cong tu truoc, bo qua (idempotent).`);
+        this.logger.log(`Order ${data.orderCode}: already credited, skipped (idempotent).`);
         break;
       case 'UNKNOWN_ORDER':
-        this.logger.log(`Webhook cho ma don khong co trong he thong: ${data.orderCode}.`);
+        this.logger.log(`Webhook for an order code not in the system: ${data.orderCode}.`);
         break;
       case 'AMOUNT_MISMATCH':
         // Tien that -> khong tu doan. Giu don PENDING de admin doi soat tay.
         this.logger.error(
-          `Don ${data.orderCode}: so tien bao ve (${data.amount}) khac so tien cua don. ` +
-            'KHONG cong Astrite — can doi soat thu cong.',
+          `Order ${data.orderCode}: reported amount (${data.amount}) differs from the order amount.` +
+            'Astrite NOT credited — manual reconciliation needed.',
         );
         break;
       default:
@@ -258,7 +258,7 @@ export class TopupService {
       }
       if (order.status !== 'PENDING') {
         this.logger.warn(
-          `Don ${order.orderCode} dang o trang thai ${order.status} nhung PayOS bao da tra — van cong.`,
+          `Order ${order.orderCode} is ${order.status} but PayOS reports it paid — crediting anyway.`,
         );
       }
 
@@ -295,14 +295,14 @@ export class TopupService {
     dto: SimulateTopupDto,
   ): Promise<{ orderCode: number; outcome: WebhookOutcome }> {
     if (this.config.get<string>('NODE_ENV') === 'production') {
-      throw new ForbiddenException('Endpoint giả lập chỉ chạy ở môi trường dev.');
+      throw new ForbiddenException('The simulation endpoint only runs in dev.');
     }
 
     let orderCode = dto.orderCode;
     if (!orderCode) {
       if (!dto.packageId) {
         throw new BadRequestException(
-          'Cần truyền packageId (tạo đơn mới) hoặc orderCode (phát lại).',
+          'Provide packageId (new order) or orderCode (replay).',
         );
       }
       const pkg = await this.requirePackage(dto.packageId);
@@ -329,7 +329,7 @@ export class TopupService {
       return { orderCode, outcome: result.outcome };
     }
 
-    this.logger.warn('Chua co PAYOS_CHECKSUM_KEY — gia lap bo qua buoc verify chu ky.');
+    this.logger.warn('No PAYOS_CHECKSUM_KEY — simulation skips signature verification.');
     return { orderCode, outcome: await this.applyVerifiedWebhook(data) };
   }
 
@@ -365,7 +365,7 @@ export class TopupService {
   private async requirePackage(packageId: string): Promise<TopupPackage> {
     const pkg = await this.repo.findPackageById(packageId);
     if (!pkg) {
-      throw new NotFoundException('Không tìm thấy gói nạp này.');
+      throw new NotFoundException('Top-up package not found.');
     }
     return pkg;
   }
@@ -396,7 +396,7 @@ export class TopupService {
         return order;
       }
     }
-    throw new BadRequestException('Không tạo được đơn nạp, vui lòng thử lại.');
+    throw new BadRequestException('Couldn\'t create the top-up order, please try again.');
   }
 
   /**
@@ -416,7 +416,7 @@ export class TopupService {
       await this.repo
         .expireOrderIfPending(order.orderCode)
         .catch((e) =>
-          this.logger.warn(`Khong danh dau duoc don ${order.orderCode}: ${describe(e)}`),
+          this.logger.warn(`Failed to mark order ${order.orderCode}: ${describe(e)}`),
         );
     }
   }
@@ -468,5 +468,5 @@ function summarize(orders: TopupOrder[]): TopupRevenueSummary {
 
 /** Lay message cua loi de log — KHONG bao gio in ca object (co the chua khoa). */
 function describe(e: unknown): string {
-  return e instanceof Error ? e.message : 'loi khong xac dinh';
+  return e instanceof Error ? e.message : 'unknown error';
 }

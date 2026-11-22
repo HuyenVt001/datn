@@ -4,7 +4,7 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 
 /** Query danh sach nguoi dung (tim theo email / ten hien thi). */
 export class ListUsersDto extends PaginationDto {
-  @ApiPropertyOptional({ description: 'Tu khoa tim kiem (email hoac ten)' })
+  @ApiPropertyOptional({ description: 'Search keyword (email or name)' })
   @IsOptional()
   @IsString()
   @MaxLength(100)

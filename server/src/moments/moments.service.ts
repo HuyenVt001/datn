@@ -87,14 +87,14 @@ export class MomentsService {
       streakIncreased = result.increased;
       streakKnown = true;
     } catch (e) {
-      this.logger.warn(`Khong cap nhat duoc personal streak: ${(e as Error).message}`);
+      this.logger.warn(`Failed to update personal streak: ${(e as Error).message}`);
     }
 
     // Quest: dang bai = hoan thanh POST_MOMENT; dong thoi xet thuong khung theo moc streak.
     const unlockedFrameId = await this.questsService
       .registerMomentPosted(authUser.uid, personalStreak)
       .catch((e: Error) => {
-        this.logger.warn(`Khong cap nhat duoc quest: ${e.message}`);
+        this.logger.warn(`Failed to update quest: ${e.message}`);
         return undefined;
       });
 
@@ -113,7 +113,7 @@ export class MomentsService {
     // gioi han timeout 3s + tra SKIPPED, va chi goi AI service khi user CHUA xong quest AI.
     // Loi o day KHONG BAO GIO lam fail dang bai.
     const aiQuest = await this.questsService.verifyAiQuest(authUser.uid, moment).catch((e) => {
-      this.logger.warn(`Khong xac minh duoc quest AI: ${(e as Error).message}`);
+      this.logger.warn(`Failed to verify AI quest: ${(e as Error).message}`);
       return undefined;
     });
 
@@ -122,10 +122,10 @@ export class MomentsService {
     // tren Render free (2 user coop cung dang 1 luc la client timeout du bai DA len).
     // Ket qua 2 hook nay user khong can thay ngay trong response.
     void this.unlockPostCountFrames(authUser.uid).catch((e) => {
-      this.logger.warn(`Khong mo duoc khung theo so bai dang: ${(e as Error).message}`);
+      this.logger.warn(`Failed to unlock post-count frames: ${(e as Error).message}`);
     });
     void this.notifyFriends(authUser).catch((e) => {
-      this.logger.warn(`Khong gui duoc FCM: ${(e as Error).message}`);
+      this.logger.warn(`Failed to send FCM: ${(e as Error).message}`);
     });
 
     return {
@@ -170,7 +170,7 @@ export class MomentsService {
     if (targetUid !== currentUid) {
       const pair = await this.friendshipsRepo.findPair(currentUid, targetUid);
       if (!pair || pair.status !== 'ACCEPTED') {
-        throw new ForbiddenException('Chi xem duoc moment cua ban be.');
+        throw new ForbiddenException('You can only view friends\' moments.');
       }
     }
     const [own, coop] = await Promise.all([
@@ -208,10 +208,10 @@ export class MomentsService {
   async delete(momentId: string, uid: string): Promise<void> {
     const moment = await this.repo.findById(momentId);
     if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
+      throw new NotFoundException('Post not found.');
     }
     if (moment.userId !== uid) {
-      throw new ForbiddenException('Chi chu bai moi xoa duoc bai dang nay.');
+      throw new ForbiddenException('Only the owner can delete this post.');
     }
     await this.repo.delete(momentId);
   }
@@ -242,7 +242,7 @@ export class MomentsService {
   private async getMomentForInteraction(momentId: string, uid: string): Promise<Moment> {
     const moment = await this.repo.findById(momentId);
     if (!moment) {
-      throw new NotFoundException('Khong tim thay bai dang.');
+      throw new NotFoundException('Post not found.');
     }
     if (moment.userId === uid || moment.coopUserId === uid) {
       return moment;
@@ -257,7 +257,7 @@ export class MomentsService {
         return moment;
       }
     }
-    throw new ForbiddenException('Chi tuong tac duoc voi bai dang cua ban be.');
+    throw new ForbiddenException('You can only interact with friends\' posts.');
   }
 
   /** Bao ban be "X da dang khoanh khac moi" (helper push chung o UsersService). */

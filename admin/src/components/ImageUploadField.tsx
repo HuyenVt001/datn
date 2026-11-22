@@ -20,7 +20,7 @@ interface ImageUploadFieldProps {
 export function ImageUploadField({
   value,
   onChange,
-  buttonText = 'Tải ảnh lên',
+  buttonText = 'Upload image',
   maxPreviewHeight = 200,
 }: ImageUploadFieldProps) {
   const { message } = AntApp.useApp();
@@ -38,7 +38,7 @@ export function ImageUploadField({
           onChange(result.url);
           onSuccess?.(result);
         } catch (err) {
-          message.error(err instanceof Error ? err.message : 'Upload thất bại.');
+          message.error(err instanceof Error ? err.message : 'Upload failed.');
           onError?.(err as Error);
         } finally {
           setUploading(false);
@@ -46,10 +46,10 @@ export function ImageUploadField({
       }}
     >
       {value ? (
-        <div style={{ cursor: 'pointer' }} title="Bấm để đổi ảnh khác">
+        <div style={{ cursor: 'pointer' }} title="Click to change the image">
           <img
             src={value}
-            alt="Ảnh xem trước"
+            alt="Preview"
             style={{
               maxWidth: '100%',
               maxHeight: maxPreviewHeight,

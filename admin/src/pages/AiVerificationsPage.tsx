@@ -28,9 +28,9 @@ const PAGE_SIZE = 15;
 
 /** Nhãn + màu kết quả — khớp `AiQuestResult.result` phía server. */
 const OUTCOME_META: Record<AiVerificationOutcome, { label: string; color: string; hint: string }> = {
-  MATCHED: { label: 'Khớp', color: 'green', hint: 'Ảnh có vật thể → quest AI hoàn thành, +30 Astrite' },
-  NOT_MATCHED: { label: 'Không khớp', color: 'orange', hint: 'Bài vẫn đăng, quest chưa tick' },
-  SKIPPED: { label: 'Bỏ qua', color: 'default', hint: 'AI service lỗi/timeout — không ảnh hưởng đăng bài' },
+  MATCHED: { label: 'Matched', color: 'green', hint: 'Photo contains the object → AI quest completed, +30 Astrite' },
+  NOT_MATCHED: { label: 'Not matched', color: 'orange', hint: 'Post still published, quest not ticked' },
+  SKIPPED: { label: 'Skipped', color: 'default', hint: 'AI service error/timeout — posting unaffected' },
 };
 
 const OUTCOME_OPTIONS = (Object.keys(OUTCOME_META) as AiVerificationOutcome[]).map((o) => ({
@@ -40,18 +40,18 @@ const OUTCOME_OPTIONS = (Object.keys(OUTCOME_META) as AiVerificationOutcome[]).m
 
 /** Tên tiếng Việt cho 12 lớp model (9 lớp ra đề + 3 lớp chỉ có trong `scores`). */
 const CLASS_VI: Record<string, string> = {
-  cup: 'cốc',
-  bottle: 'chai nước',
-  book: 'sách',
-  chair: 'ghế',
-  'potted plant': 'chậu cây',
+  cup: 'cup',
+  bottle: 'bottle',
+  book: 'book',
+  chair: 'chair',
+  'potted plant': 'potted plant',
   laptop: 'laptop',
-  keyboard: 'bàn phím',
-  backpack: 'ba lô',
-  clock: 'đồng hồ',
-  umbrella: 'ô/dù',
-  bicycle: 'xe đạp',
-  motorcycle: 'xe máy',
+  keyboard: 'keyboard',
+  backpack: 'backpack',
+  clock: 'clock',
+  umbrella: 'umbrella',
+  bicycle: 'bicycle',
+  motorcycle: 'motorcycle',
 };
 
 function classLabel(cls: string) {
@@ -66,7 +66,7 @@ function ScoreCell({ row }: { row: AiVerification }) {
   const pct = Math.round(row.score * 100);
   const thr = row.threshold !== undefined ? Math.round(row.threshold * 100) : undefined;
   return (
-    <Tooltip title={thr !== undefined ? `Điểm ${pct}% · ngưỡng ${thr}%` : `Điểm ${pct}%`}>
+    <Tooltip title={thr !== undefined ? `Score ${pct}% · threshold ${thr}%` : `Score ${pct}%`}>
       <div style={{ minWidth: 120 }}>
         <Progress
           percent={pct}
@@ -76,7 +76,7 @@ function ScoreCell({ row }: { row: AiVerification }) {
         />
         {thr !== undefined && (
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            ngưỡng {thr}%
+            threshold {thr}%
           </Typography.Text>
         )}
       </div>
@@ -148,13 +148,13 @@ export function AiVerificationsPage() {
 
   const columns: ColumnsType<AiVerification> = [
     {
-      title: 'Thời điểm',
+      title: 'Time',
       dataIndex: 'createdAt',
       width: 160,
-      render: (value: string) => new Date(value).toLocaleString('vi-VN'),
+      render: (value: string) => new Date(value).toLocaleString('en-US'),
     },
     {
-      title: 'Ảnh',
+      title: 'Photo',
       dataIndex: 'mediaUrl',
       width: 90,
       render: (url: string | undefined) =>
@@ -165,7 +165,7 @@ export function AiVerificationsPage() {
         ),
     },
     {
-      title: 'Người dùng',
+      title: 'User',
       dataIndex: 'uid',
       width: 200,
       render: (value: string, row) => (
@@ -180,7 +180,7 @@ export function AiVerificationsPage() {
       ),
     },
     {
-      title: 'Quest yêu cầu',
+      title: 'Required quest',
       dataIndex: 'targetClass',
       width: 150,
       render: (cls: string, row) => (
@@ -193,7 +193,7 @@ export function AiVerificationsPage() {
       ),
     },
     {
-      title: 'Kết quả',
+      title: 'Outcome',
       dataIndex: 'outcome',
       width: 120,
       render: (o: AiVerificationOutcome, row) => (
@@ -203,13 +203,13 @@ export function AiVerificationsPage() {
       ),
     },
     {
-      title: 'Điểm / ngưỡng',
+      title: 'Score / threshold',
       key: 'score',
       width: 160,
       render: (_, row) => <ScoreCell row={row} />,
     },
     {
-      title: 'Top 3 lớp',
+      title: 'Top 3 classes',
       key: 'top',
       render: (_, row) => <TopScores scores={row.scores} target={row.targetClass} />,
     },
@@ -232,26 +232,26 @@ export function AiVerificationsPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        AI xác minh ảnh quest
+        AI quest photo verification
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 780 }}>
-        Mỗi dòng là một lần server hỏi AI service "ảnh vừa đăng có chứa vật thể của quest hôm nay
-        không" — ghi cả trượt và bỏ qua. Dùng để đo độ chính xác thực tế và soi lớp yếu; ảnh là
-        bản đã thu nhỏ 224×224 mà model nhìn thấy.
+        Each row is one time the server asked the AI service &quot;does the photo just posted contain
+        today&apos;s quest object?&quot; — misses and skips are logged too. Use it to measure real-world
+        accuracy and spot weak classes; the image is the 224×224 downscaled version the model saw.
       </Typography.Paragraph>
       {error && (
         <Alert
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được log AI."
+          message="Couldn't load AI logs."
           description={(error as Error).message}
         />
       )}
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Input.Search
-          placeholder="Lọc theo uid người dùng..."
+          placeholder="Filter by user uid..."
           allowClear
           style={{ width: 300 }}
           onSearch={(value) => {
@@ -260,7 +260,7 @@ export function AiVerificationsPage() {
           }}
         />
         <Select
-          placeholder="Mọi kết quả"
+          placeholder="All outcomes"
           allowClear
           style={{ width: 170 }}
           value={outcome}
@@ -271,7 +271,7 @@ export function AiVerificationsPage() {
           options={OUTCOME_OPTIONS}
         />
         <DatePicker
-          placeholder="Mọi ngày"
+          placeholder="All dates"
           value={date}
           onChange={(d) => {
             setDate(d);
@@ -281,20 +281,20 @@ export function AiVerificationsPage() {
           disabledDate={(d) => d.isAfter(dayjs(), 'day')}
         />
         <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={isFetching}>
-          Tải lại
+          Reload
         </Button>
       </Space>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Tổng lần verify (theo lọc)" value={summary.total} />
+            <Statistic title="Total verifications (filtered)" value={summary.total} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic
-              title="Tỉ lệ khớp (trang này)"
+              title="Match rate (this page)"
               value={summary.matchRate ?? '—'}
               suffix={summary.matchRate !== undefined ? '%' : undefined}
             />
@@ -302,13 +302,13 @@ export function AiVerificationsPage() {
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
-            <Statistic title="Bỏ qua (trang này)" value={summary.skipped} />
+            <Statistic title="Skipped (this page)" value={summary.skipped} />
           </Card>
         </Col>
         <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic
-              title="Latency model TB (trang này)"
+              title="Avg model latency (this page)"
               value={summary.avgLatency ?? '—'}
               suffix={summary.avgLatency !== undefined ? 'ms' : undefined}
             />
@@ -328,7 +328,7 @@ export function AiVerificationsPage() {
           total: data?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
-          showTotal: (total) => `Tổng ${total} lần verify`,
+          showTotal: (total) => `${total} verifications total`,
         }}
       />
     </div>

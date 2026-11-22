@@ -37,7 +37,7 @@ class AuthInterceptor @Inject constructor(
         val token = try {
             auth.currentUser?.let { Tasks.await(it.getIdToken(false)).token }
         } catch (e: Exception) {
-            Log.w("AuthInterceptor", "Khong lay duoc ID token: ${e.message}")
+            Log.w("AuthInterceptor", "Failed to get ID token: ${e.message}")
             null
         }
 

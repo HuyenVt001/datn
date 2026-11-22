@@ -21,19 +21,19 @@ class InviteExpiryLabelTest {
     }
 
     @Test
-    fun `con nhieu ngay hien so ngay`() {
+    fun `several days left shows day count`() {
         // Chi doc phan ngay -> 30 ngay sau co the ra 29 tuy gio hien tai
         val label = inviteExpiryLabel(isoInDays(30))
         assert(label == "Expires in 30 days" || label == "Expires in 29 days") { label.toString() }
     }
 
     @Test
-    fun `da qua han bao link moi se duoc tao`() {
+    fun `expired says a new link will be generated`() {
         assertEquals("Expired — a new link will be generated", inviteExpiryLabel(isoInDays(-2)))
     }
 
     @Test
-    fun `null hoac sai dinh dang thi an nhan`() {
+    fun `null or malformed hides the label`() {
         assertNull(inviteExpiryLabel(null))
         assertNull(inviteExpiryLabel("not-a-date"))
     }

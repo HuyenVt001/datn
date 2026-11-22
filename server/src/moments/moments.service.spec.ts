@@ -69,7 +69,7 @@ describe('MomentsService', () => {
       mediaUrl: 'https://res.cloudinary.com/x/img.jpg',
     };
 
-    it('tao moment + tang personal streak', async () => {
+    it('creates a moment + increases personal streak', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
 
       const result = await service.create(me, dto);
@@ -85,7 +85,7 @@ describe('MomentsService', () => {
 
     // ==== Field streak cho man an mung cua app (2026-11-15) ====
 
-    it('bai dau ngay -> streak.increased true, khong cham moc -> milestone null', async () => {
+    it('first post of the day -> streak.increased true, no milestone hit -> milestone null', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
 
       const result = await service.create(me, dto);
@@ -98,7 +98,7 @@ describe('MomentsService', () => {
       });
     });
 
-    it('cham moc 7 + mo khung -> milestone 7 va unlockedFrameId', async () => {
+    it('hits milestone 7 + unlocks frame -> milestone 7 and unlockedFrameId', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       usersService.registerActivityForStreakDetailed.mockResolvedValue({
         personalStreak: 7,
@@ -116,7 +116,7 @@ describe('MomentsService', () => {
       });
     });
 
-    it('bai thu 2 trong ngay -> increased false, khong bao moc du streak = 7', async () => {
+    it('second post of the day -> increased false, no milestone even with streak = 7', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       usersService.registerActivityForStreakDetailed.mockResolvedValue({
         personalStreak: 7,
@@ -134,7 +134,7 @@ describe('MomentsService', () => {
       });
     });
 
-    it('loi cap nhat streak -> response KHONG co field streak, van dang bai', async () => {
+    it('streak update error -> response has NO streak field, post still published', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       usersService.registerActivityForStreakDetailed.mockRejectedValue(new Error('db down'));
 
@@ -144,7 +144,7 @@ describe('MomentsService', () => {
       expect('streak' in result).toBe(false);
     });
 
-    it('van dang bai thanh cong khi quest service loi', async () => {
+    it('post still succeeds when the quest service fails', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1' } as never);
       questsService.registerMomentPosted.mockRejectedValue(new Error('quest down'));
 
@@ -153,7 +153,7 @@ describe('MomentsService', () => {
 
     // ==== Quest AI (2026-08-15) ====
 
-    it('khong co gi de xac minh (AI tat / da xong) -> response KHONG co field aiQuest', async () => {
+    it('nothing to verify (AI off / already done) -> response has NO aiQuest field', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
 
       const result = await service.create(me, dto);
@@ -165,12 +165,12 @@ describe('MomentsService', () => {
       expect('aiQuest' in result).toBe(false);
     });
 
-    it('AI xac minh khop -> response kem aiQuest MATCHED (bai van la moment vua tao)', async () => {
+    it('AI verification matches -> response includes aiQuest MATCHED (post is still the new moment)', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       questsService.verifyAiQuest.mockResolvedValue({
         result: 'MATCHED',
         score: 0.9,
-        questContent: 'Chụp một chiếc cốc',
+        questContent: 'Take a photo of a cup',
       });
 
       const result = await service.create(me, dto);
@@ -179,11 +179,11 @@ describe('MomentsService', () => {
       expect(result.aiQuest).toEqual({
         result: 'MATCHED',
         score: 0.9,
-        questContent: 'Chụp một chiếc cốc',
+        questContent: 'Take a photo of a cup',
       });
     });
 
-    it('verifyAiQuest throw (khong mong doi) -> van dang bai, khong co aiQuest', async () => {
+    it('verifyAiQuest throws (unexpected) -> post still published, no aiQuest', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       questsService.verifyAiQuest.mockRejectedValue(new Error('boom'));
 
@@ -193,14 +193,14 @@ describe('MomentsService', () => {
       expect(result.aiQuest).toBeUndefined();
     });
 
-    it('van dang bai thanh cong khi FCM loi', async () => {
+    it('post still succeeds when FCM fails', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1' } as never);
       friendshipsRepo.listAccepted.mockRejectedValue(new Error('fcm down'));
 
       await expect(service.create(me, dto)).resolves.toBeDefined();
     });
 
-    it('retry CUNG clientRequestId -> tra lai bai DA dang, khong tao ban sao', async () => {
+    it('retry with the SAME clientRequestId -> returns the ALREADY published post, no copy', async () => {
       repo.findByClientRequestId.mockResolvedValue({ momentId: 'm-old', userId: 'me' } as never);
 
       const result = await service.create(me, { ...dto, clientRequestId: 'req-1' });
@@ -209,7 +209,7 @@ describe('MomentsService', () => {
       expect(repo.create).not.toHaveBeenCalled();
     });
 
-    it('clientRequestId MOI -> tao bai + luu id de dedupe lan retry sau', async () => {
+    it('NEW clientRequestId -> creates the post + stores the id to dedupe later retries', async () => {
       repo.create.mockResolvedValue({ momentId: 'm1' } as never);
 
       await service.create(me, { ...dto, clientRequestId: 'req-1' });
@@ -222,12 +222,12 @@ describe('MomentsService', () => {
   });
 
   describe('react', () => {
-    it('bao loi khi moment khong ton tai', async () => {
+    it('error when the moment does not exist', async () => {
       repo.findById.mockResolvedValue(null);
       await expect(service.react('bad', 'me', '❤️')).rejects.toThrow(NotFoundException);
     });
 
-    it('tha reaction (la ban be voi chu bai)', async () => {
+    it('reacts (friends with the owner)', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'owner' } as never);
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.addReaction.mockResolvedValue({ reactionId: 'r1', emojiType: '❤️' } as never);
@@ -237,7 +237,7 @@ describe('MomentsService', () => {
       expect(repo.addReaction).toHaveBeenCalledWith('m1', 'me', '❤️');
     });
 
-    it('NGUOI LA (khong phai ban be) tha reaction -> 403, khong ghi gi', async () => {
+    it('a STRANGER (not a friend) reacts -> 403, writes nothing', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'owner' } as never);
       friendshipsRepo.findPair.mockResolvedValue(null);
 
@@ -245,7 +245,7 @@ describe('MomentsService', () => {
       expect(repo.addReaction).not.toHaveBeenCalled();
     });
 
-    it('ban cua NGUOI CHUP CHUNG (khong phai ban tac gia) van tuong tac duoc', async () => {
+    it('a friend of the CO-OP PARTNER (not the author\'s friend) can still interact', async () => {
       repo.findById.mockResolvedValue({
         momentId: 'm1',
         userId: 'author',
@@ -260,7 +260,7 @@ describe('MomentsService', () => {
       await expect(service.react('m1', 'partner-friend', '❤️')).resolves.toBeDefined();
     });
 
-    it('tu tha emoji bai cua minh van duoc', async () => {
+    it('reacting to your own post is allowed', async () => {
       repo.findById.mockResolvedValue({ momentId: 'm1', userId: 'me' } as never);
       repo.addReaction.mockResolvedValue({ reactionId: 'r1' } as never);
 
@@ -269,7 +269,7 @@ describe('MomentsService', () => {
   });
 
   describe('getFeed', () => {
-    it('gop moment cua minh + ban be va phan trang', async () => {
+    it('merges your moments + friends\' and paginates', async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([{ userIds: ['friend', 'me'] }] as never);
       repo.listByUserIds.mockResolvedValue([
         { momentId: 'a', postTime: '2026-07-12' },
@@ -285,7 +285,7 @@ describe('MomentsService', () => {
   });
 
   describe('listMine', () => {
-    it('chi lay moment cua chinh minh', async () => {
+    it('only fetches your own moments', async () => {
       repo.listByUserIds.mockResolvedValue([{ momentId: 'a', userId: 'me' }] as never);
 
       const result = await service.listMine('me', { page: 1, limit: 20 });
@@ -296,7 +296,7 @@ describe('MomentsService', () => {
   });
 
   describe('listOfUser', () => {
-    it('chan xem moment cua nguoi KHONG phai ban be', async () => {
+    it('blocks viewing moments of someone who is NOT a friend', async () => {
       friendshipsRepo.findPair.mockResolvedValue(null as never);
 
       await expect(service.listOfUser('me', 'stranger', { page: 1, limit: 20 })).rejects.toThrow(
@@ -304,7 +304,7 @@ describe('MomentsService', () => {
       );
     });
 
-    it('ban be xem duoc moment cua nhau', async () => {
+    it('friends can view each other\'s moments', async () => {
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.listByUserIds.mockResolvedValue([{ momentId: 'a', userId: 'friend' }] as never);
 
@@ -314,7 +314,7 @@ describe('MomentsService', () => {
       expect(result.items).toHaveLength(1);
     });
 
-    it('tu xem moment cua minh khong can check ban be', async () => {
+    it('viewing your own moments needs no friend check', async () => {
       repo.listByUserIds.mockResolvedValue([] as never);
 
       await service.listOfUser('me', 'me', { page: 1, limit: 20 });

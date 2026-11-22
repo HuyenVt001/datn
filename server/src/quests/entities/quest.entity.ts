@@ -5,7 +5,7 @@ import { AiQuestClass } from '../../common/constants';
  * xem Snapget/.claude/QUEST_AI_PLAN.md):
  *   - LOGIN: dang nhap vao app (tu hoan thanh khi goi GET /quests/today)
  *   - POST_MOMENT: dang 1 anh/video bat ky (tu hoan thanh khi tao moment)
- *   - AI_CHALLENGE: quest do AI sinh ("Chụp một chiếc cốc") — tu hoan thanh khi
+ *   - AI_CHALLENGE: quest do AI sinh ("Take a photo of a cup") — tu hoan thanh khi
  *     anh user DANG LEN FEED duoc model AI xac minh co chua vat the (`targetClass`).
  *     Chi ton tai khi server co cau hinh AI (thieu env -> ngay do chi co 2 quest).
  */

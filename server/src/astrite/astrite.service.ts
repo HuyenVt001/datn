@@ -31,7 +31,7 @@ export class AstriteService {
    */
   async credit(uid: string, amount: number, type: AstriteTxType, refId?: string): Promise<number> {
     if (amount <= 0) {
-      throw new BadRequestException('So Astrite cong vao phai lon hon 0.');
+      throw new BadRequestException('Astrite amount to credit must be greater than 0.');
     }
     return this.repo.runTransaction(async (tx) => {
       const balance = (await this.repo.getBalanceInTransaction(tx, uid)) + amount;
@@ -47,12 +47,12 @@ export class AstriteService {
    */
   async debit(uid: string, amount: number, type: AstriteTxType, refId?: string): Promise<number> {
     if (amount <= 0) {
-      throw new BadRequestException('So Astrite tru phai lon hon 0.');
+      throw new BadRequestException('Astrite amount to debit must be greater than 0.');
     }
     return this.repo.runTransaction(async (tx) => {
       const current = await this.repo.getBalanceInTransaction(tx, uid);
       if (current < amount) {
-        throw new BadRequestException('Bạn không đủ Astrite.');
+        throw new BadRequestException('You don\'t have enough Astrite.');
       }
       const balance = current - amount;
       this.repo.setBalanceInTransaction(tx, uid, balance);
@@ -90,7 +90,7 @@ export class AstriteService {
     });
 
     if (granted) {
-      this.logger.log(`Tang ${SIGNUP_BONUS_ASTRITE} Astrite tan thu cho ${uid}`);
+      this.logger.log(`Granted ${SIGNUP_BONUS_ASTRITE} welcome Astrite to ${uid}`);
     }
   }
 }

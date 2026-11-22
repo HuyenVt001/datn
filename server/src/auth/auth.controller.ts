@@ -13,7 +13,7 @@ export class AuthController {
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 10 } }) // siet rieng: chong brute-force login
   @Post('admin/login')
-  @ApiOperation({ summary: 'Admin dang nhap: doi Firebase token lay JWT server' })
+  @ApiOperation({ summary: 'Admin login: exchange a Firebase token for a server JWT' })
   adminLogin(@Body() dto: AdminLoginDto) {
     return this.authService.adminLogin(dto.idToken);
   }

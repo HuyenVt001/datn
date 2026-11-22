@@ -9,29 +9,29 @@ const PAGE_SIZE = 15;
 
 /** Nhan + mau hien thi cho tung hanh dong. */
 const ACTION_META: Record<AdminAction, { label: string; color: string }> = {
-  USER_DISABLE: { label: 'Khóa tài khoản', color: 'red' },
-  USER_ENABLE: { label: 'Mở khóa tài khoản', color: 'green' },
-  GRANT_ADMIN: { label: 'Cấp quyền admin', color: 'gold' },
-  REVOKE_ADMIN: { label: 'Thu quyền admin', color: 'volcano' },
-  FRAME_CREATE: { label: 'Thêm khung', color: 'blue' },
-  FRAME_UPDATE: { label: 'Sửa khung', color: 'geekblue' },
-  FRAME_DELETE: { label: 'Xóa khung', color: 'magenta' },
-  FRAME_GRANT: { label: 'Cấp khung', color: 'cyan' },
-  MOMENT_DELETE: { label: 'Xóa bài đăng', color: 'purple' },
-  SHOP_ITEM_CREATE: { label: 'Niêm yết vật phẩm', color: 'blue' },
-  SHOP_ITEM_UPDATE: { label: 'Sửa vật phẩm Shop', color: 'geekblue' },
-  SHOP_ITEM_DELETE: { label: 'Gỡ vật phẩm Shop', color: 'magenta' },
-  SHOP_ITEM_GRANT: { label: 'Tặng vật phẩm', color: 'cyan' },
+  USER_DISABLE: { label: 'Disable account', color: 'red' },
+  USER_ENABLE: { label: 'Enable account', color: 'green' },
+  GRANT_ADMIN: { label: 'Grant admin', color: 'gold' },
+  REVOKE_ADMIN: { label: 'Revoke admin', color: 'volcano' },
+  FRAME_CREATE: { label: 'Add frame', color: 'blue' },
+  FRAME_UPDATE: { label: 'Edit frame', color: 'geekblue' },
+  FRAME_DELETE: { label: 'Delete frame', color: 'magenta' },
+  FRAME_GRANT: { label: 'Grant frame', color: 'cyan' },
+  MOMENT_DELETE: { label: 'Delete post', color: 'purple' },
+  SHOP_ITEM_CREATE: { label: 'List item', color: 'blue' },
+  SHOP_ITEM_UPDATE: { label: 'Edit Shop item', color: 'geekblue' },
+  SHOP_ITEM_DELETE: { label: 'Remove Shop item', color: 'magenta' },
+  SHOP_ITEM_GRANT: { label: 'Gift item', color: 'cyan' },
   // Log cũ trước 2026-11-15 (gacha đã bỏ)
-  GACHA_ITEM_CREATE: { label: 'Thêm vật phẩm gacha', color: 'blue' },
-  GACHA_ITEM_UPDATE: { label: 'Sửa vật phẩm gacha', color: 'geekblue' },
-  GACHA_ITEM_DELETE: { label: 'Xóa vật phẩm gacha', color: 'magenta' },
-  GACHA_ITEM_GRANT: { label: 'Tặng vật phẩm', color: 'cyan' },
+  GACHA_ITEM_CREATE: { label: 'Add gacha item', color: 'blue' },
+  GACHA_ITEM_UPDATE: { label: 'Edit gacha item', color: 'geekblue' },
+  GACHA_ITEM_DELETE: { label: 'Delete gacha item', color: 'magenta' },
+  GACHA_ITEM_GRANT: { label: 'Gift item', color: 'cyan' },
   // Gói nạp đụng tiền thật — 3 hành động này là thứ cần soát lại đầu tiên khi
   // có tranh chấp "sao tôi trả từng này mà nhận được từng kia".
-  TOPUP_PACKAGE_CREATE: { label: 'Thêm gói nạp', color: 'green' },
-  TOPUP_PACKAGE_UPDATE: { label: 'Sửa gói nạp', color: 'gold' },
-  TOPUP_PACKAGE_DELETE: { label: 'Xóa gói nạp', color: 'volcano' },
+  TOPUP_PACKAGE_CREATE: { label: 'Add top-up package', color: 'green' },
+  TOPUP_PACKAGE_UPDATE: { label: 'Edit top-up package', color: 'gold' },
+  TOPUP_PACKAGE_DELETE: { label: 'Delete top-up package', color: 'volcano' },
 };
 
 function actionMeta(action: AdminAction) {
@@ -50,18 +50,18 @@ export function LogsPage() {
 
   const columns: ColumnsType<AdminLog> = [
     {
-      title: 'Thời gian',
+      title: 'Time',
       dataIndex: 'createdAt',
       width: 170,
-      render: (value: string) => (value ? new Date(value).toLocaleString('vi-VN') : '—'),
+      render: (value: string) => (value ? new Date(value).toLocaleString('en-US') : '—'),
     },
     {
-      title: 'Admin thao tác',
+      title: 'Admin',
       dataIndex: 'actorEmail',
       render: (email: string | undefined, log) => email ?? log.actorUid,
     },
     {
-      title: 'Hành động',
+      title: 'Action',
       dataIndex: 'action',
       width: 170,
       render: (action: AdminAction) => (
@@ -69,7 +69,7 @@ export function LogsPage() {
       ),
     },
     {
-      title: 'Đối tượng',
+      title: 'Target',
       key: 'target',
       render: (_, log) =>
         log.targetLabel || log.targetId ? (
@@ -90,11 +90,11 @@ export function LogsPage() {
   return (
     <div>
       <Typography.Title level={4} style={{ marginTop: 0 }}>
-        Nhật ký admin
+        Admin audit log
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        Mọi hành động quản trị (khóa tài khoản, cấp/thu quyền, quản lý khung, xóa bài) đều được ghi
-        lại tự động để đối soát.
+        Every admin action (disabling accounts, granting/revoking rights, managing frames, deleting
+        posts) is logged automatically for auditing.
       </Typography.Paragraph>
 
       {error && (
@@ -102,7 +102,7 @@ export function LogsPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Không tải được nhật ký."
+          message="Couldn't load the audit log."
           description={(error as Error).message}
         />
       )}
@@ -118,7 +118,7 @@ export function LogsPage() {
           total: data?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
-          showTotal: (total) => `Tổng ${total} dòng nhật ký`,
+          showTotal: (total) => `${total} log entries total`,
         }}
       />
     </div>

@@ -39,7 +39,7 @@ async function bootstrap() {
   // Swagger tai /docs
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Snapget API')
-    .setDescription('API server cho app Snapget (NestJS -> Firebase). Xem GUIDE.md.')
+    .setDescription('API server for the Snapget app (NestJS -> Firebase). See GUIDE.md.')
     .setVersion('0.1')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -60,7 +60,7 @@ async function bootstrap() {
   const port = config.get<number>('PORT') ?? 3000;
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`Snapget server chay tai http://localhost:${port} (docs: /docs)`);
+  console.log(`Snapget server running at http://localhost:${port} (docs: /docs)`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

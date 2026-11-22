@@ -44,7 +44,7 @@ class TokenAuthenticator @Inject constructor(
 
         // Da thu lai 1 lan ma van 401 => token khong the cuu duoc nua.
         if (priorRetryCount(response) >= 1) {
-            forceSignOut("van 401 sau khi da lam moi token")
+            forceSignOut("still 401 after refreshing token")
             return null
         }
 
@@ -55,12 +55,12 @@ class TokenAuthenticator @Inject constructor(
         } catch (e: Exception) {
             // Refresh that bai = tai khoan bi xoa/khoa, hoac refresh token bi revoke
             // (server goi revokeRefreshTokens khi admin khoa user).
-            forceSignOut("khong lam moi duoc ID token: ${e.message}")
+            forceSignOut("failed to refresh ID token: ${e.message}")
             return null
         }
 
         if (freshToken.isNullOrBlank()) {
-            forceSignOut("ID token lam moi ra rong")
+            forceSignOut("refreshed ID token is empty")
             return null
         }
 
@@ -93,7 +93,7 @@ class TokenAuthenticator @Inject constructor(
      * KHONG log token/email — chi log ly do.
      */
     private fun forceSignOut(reason: String) {
-        Log.w(TAG, "Phien dang nhap het hieu luc ($reason) -> dang xuat")
+        Log.w(TAG, "Session expired ($reason) -> signing out")
         Handler(Looper.getMainLooper()).post { auth.signOut() }
     }
 

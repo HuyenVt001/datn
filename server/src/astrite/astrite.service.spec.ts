@@ -45,7 +45,7 @@ describe('AstriteService', () => {
   });
 
   describe('credit', () => {
-    it('cong dung so va ghi 1 dong so cai kem balanceAfter', async () => {
+    it('credits the exact amount and writes 1 ledger row with balanceAfter', async () => {
       const balance = await service.credit('u1', 60, 'QUEST_REWARD', '2026-08-05');
 
       expect(balance).toBe(560);
@@ -61,13 +61,13 @@ describe('AstriteService', () => {
       ]);
     });
 
-    it('so tien <= 0 -> bao loi, khong ghi gi', async () => {
+    it('amount <= 0 -> error, writes nothing', async () => {
       await expect(service.credit('u1', 0, 'TOPUP')).rejects.toThrow(BadRequestException);
       expect(entries).toHaveLength(0);
       expect(written).toBeUndefined();
     });
 
-    it('user chua co field astrite -> coi nhu 0', async () => {
+    it('user without astrite field -> treated as 0', async () => {
       userData = {};
       const balance = await service.credit('u1', 1600, 'SIGNUP_BONUS');
       expect(balance).toBe(1600);
@@ -75,7 +75,7 @@ describe('AstriteService', () => {
   });
 
   describe('debit', () => {
-    it('tru dung so va ghi so cai voi amount AM', async () => {
+    it('debits the exact amount and writes a ledger row with NEGATIVE amount', async () => {
       const balance = await service.debit('u1', 160, 'SHOP_PURCHASE', 'purchase-1');
 
       expect(balance).toBe(340);
@@ -83,22 +83,22 @@ describe('AstriteService', () => {
       expect(entries[0]).toMatchObject({ amount: -160, balanceAfter: 340, refId: 'purchase-1' });
     });
 
-    it('khong du Astrite -> nem loi va KHONG ghi so cai', async () => {
+    it('not enough Astrite -> throws and does NOT write ledger', async () => {
       await expect(service.debit('u1', 501, 'SHOP_PURCHASE')).rejects.toThrow(
-        'Bạn không đủ Astrite.',
+        'You don\'t have enough Astrite.',
       );
       expect(entries).toHaveLength(0);
       expect(written).toBeUndefined();
     });
 
-    it('tieu dung het so du -> cho phep, con lai 0', async () => {
+    it('spending the whole balance -> allowed, 0 left', async () => {
       const balance = await service.debit('u1', 500, 'SHOP_PURCHASE');
       expect(balance).toBe(0);
     });
   });
 
   describe('grantSignupBonusOnce', () => {
-    it('lan dau -> cong 1600 + danh dau signupBonusClaimed', async () => {
+    it('first time -> credits 1600 + marks signupBonusClaimed', async () => {
       userData = { astrite: 0 };
 
       await service.grantSignupBonusOnce('u1');
@@ -108,7 +108,7 @@ describe('AstriteService', () => {
       expect(entries[0]).toMatchObject({ type: 'SIGNUP_BONUS', amount: SIGNUP_BONUS_ASTRITE });
     });
 
-    it('da nhan roi -> KHONG cong lan hai (goi lai moi lan mo app van an toan)', async () => {
+    it('already claimed -> NOT credited twice (safe to call on every app open)', async () => {
       userData = { astrite: 1600, signupBonusClaimed: true };
 
       await service.grantSignupBonusOnce('u1');

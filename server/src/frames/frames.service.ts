@@ -36,7 +36,7 @@ export class FramesService {
   async listOwners(frameId: string): Promise<{ frame: Frame; owners: FrameOwner[] }> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
-      throw new NotFoundException('Khong tim thay khung anh.');
+      throw new NotFoundException('Frame not found.');
     }
     const users = await this.usersRepo.listByUnlockedFrame(frameId);
     const owners = users.map((u) => ({
@@ -77,7 +77,7 @@ export class FramesService {
   async update(frameId: string, dto: UpdateFrameDto): Promise<Frame> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
-      throw new NotFoundException('Khong tim thay khung anh.');
+      throw new NotFoundException('Frame not found.');
     }
 
     const unlockType = dto.unlockType ?? frame.unlockType;
@@ -113,7 +113,7 @@ export class FramesService {
   async delete(frameId: string): Promise<void> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
-      throw new NotFoundException('Khong tim thay khung anh.');
+      throw new NotFoundException('Frame not found.');
     }
     await this.repo.delete(frameId);
     await this.syncShopListing(frame, false);
@@ -131,7 +131,7 @@ export class FramesService {
       await this.shopService.syncFrameListing(frame, listed);
     } catch (err) {
       this.logger.error(
-        `Dong bo Shop cho khung ${frame.frameId} that bai`,
+        `Shop sync for frame ${frame.frameId} failed`,
         err instanceof Error ? err.stack : String(err),
       );
     }
@@ -144,7 +144,7 @@ export class FramesService {
   async unlockForUser(uid: string, frameId: string): Promise<void> {
     const frame = await this.repo.findById(frameId);
     if (!frame) {
-      throw new NotFoundException('Khong tim thay khung anh.');
+      throw new NotFoundException('Frame not found.');
     }
     await this.usersRepo.unlockFrame(uid, frameId);
   }
@@ -185,19 +185,19 @@ export class FramesService {
       case 'STREAK_MILESTONE':
         if (!value || !STREAK_MILESTONES.includes(value)) {
           throw new BadRequestException(
-            `Moc streak phai la mot trong: ${STREAK_MILESTONES.join(', ')}.`,
+            `Streak milestone must be one of: ${STREAK_MILESTONES.join(', ')}.`,
           );
         }
         return value;
       case 'POST_COUNT':
         if (!value || value < 1) {
-          throw new BadRequestException('Dieu kien so bai dang can nguong N >= 1.');
+          throw new BadRequestException('Post count condition needs a threshold N >= 1.');
         }
         return value;
       case 'FRIEND_COUNT':
         if (!value || value < 1 || value > MAX_FRIENDS) {
           throw new BadRequestException(
-            `Dieu kien so ban be can nguong N tu 1 den ${MAX_FRIENDS}.`,
+            `Friend count condition needs a threshold N from 1 to ${MAX_FRIENDS}.`,
           );
         }
         return value;

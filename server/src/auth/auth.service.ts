@@ -20,15 +20,15 @@ export class AuthService {
     try {
       decoded = await this.firebase.auth().verifyIdToken(idToken);
     } catch {
-      throw new UnauthorizedException('Firebase token khong hop le.');
+      throw new UnauthorizedException('Invalid Firebase token.');
     }
 
     const userRecord = await this.firebase.auth().getUser(decoded.uid);
     if (userRecord.customClaims?.admin !== true) {
-      throw new UnauthorizedException('Tai khoan nay khong co quyen admin.');
+      throw new UnauthorizedException('This account does not have admin rights.');
     }
     if (userRecord.disabled) {
-      throw new UnauthorizedException('Tai khoan da bi khoa.');
+      throw new UnauthorizedException('This account has been disabled.');
     }
 
     const accessToken = await this.jwt.signAsync({
