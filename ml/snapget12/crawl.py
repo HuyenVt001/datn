@@ -114,9 +114,15 @@ class OpenverseSource:
         while len(out) < limit and page <= 10:
             # KHONG loc size/category: phan lon anh Openverse thieu 2 metadata nay -> loc la mat ~90% ket qua
             # (do 2026-11-23: "plastic stool Vietnam" 26 -> 2-3). Kich thuoc da loc bang --min-side o script 17.
-            data = _get_json(self.s, f"{self.API}/images/", {
-                "q": query, "page": page, "page_size": self.page_size, "mature": "false",
-            }, self.headers)
+            # Openverse hay 504 (qua tai phia ho) -> chi thu lai 2 lan, va loi o trang sau van GIU ket qua trang truoc
+            try:
+                data = _get_json(self.s, f"{self.API}/images/", {
+                    "q": query, "page": page, "page_size": self.page_size, "mature": "false",
+                }, self.headers, retries=2)
+            except Exception:
+                if out:
+                    break
+                raise
             res = data.get("results", [])
             for it in res:
                 lic = f"CC {it.get('license', '').upper()} {it.get('license_version') or ''}".strip()

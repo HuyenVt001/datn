@@ -106,11 +106,45 @@ class Store:
         st = json.loads(self.state_path.read_text(encoding="utf-8")) if self.state_path.exists() else {}
         self.seen: set[str] = set(st.get("seen", []))
         self.hash_cache: dict[str, int] = {k: int(v) for k, v in st.get("hashes", {}).items()}
+        # So thu tu DA CAP theo nhom — chi tang, KHONG BAO GIO dung lai (ke ca khi anh bi xoa khoi train/review)
+        self.next_index: dict[str, int] = {k: int(v) for k, v in st.get("next_index", {}).items()}
+        self.used_names: set[str] = self._names_in_csvs()
+        for name in self.used_names:  # lan chay bang ban code cu (chua co next_index) -> khoi phuc tu CSV
+            m = NAME_RE.match(clean_stem(name))
+            if m:
+                self.next_index[m.group(1)] = max(self.next_index.get(m.group(1), 0), int(m.group(2)))
+
+    def _names_in_csvs(self) -> set[str]:
+        """Ten file da tung xuat hien trong metadata/attribution (ke ca anh da bi xoa) — khong cap lai."""
+        names: set[str] = set()
+        for p in (self.out / "metadata.csv", self.out / "review" / "metadata_pending.csv", self.out / "web_attributions.csv"):
+            if p.exists():
+                with open(p, newline="", encoding="utf-8-sig") as f:
+                    names |= {r["filename"].strip() for r in csv.DictReader(f) if r.get("filename")}
+        return names
+
+    def reserve_name(self, group: str, start: int = 0) -> str:
+        """Ten moi gg_<nhom>_NNNN.jpg CHUA tung dung: lon hon moi so da cap / dang co tren dia / da ghi trong CSV,
+        va file chua ton tai o train/ lan review/ -> anh moi KHONG BAO GIO de len anh cu."""
+        key = group.replace(" ", "_")
+        n = max(self.next_index.get(key, 0), start)
+        while True:
+            n += 1
+            name = f"gg_{key}_{n:04d}.jpg"
+            if name in self.used_names:
+                continue
+            if any((self.out / s / sub / (name if sub == "images" else name[:-4] + ".txt")).exists()
+                   for s in ("train", "review") for sub in ("images", "labels")):
+                continue
+            break
+        self.next_index[key] = n
+        self.used_names.add(name)
+        return name
 
     def save_state(self) -> None:
         tmp = self.state_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"seen": sorted(self.seen), "hashes": {k: str(v) for k, v in self.hash_cache.items()}}),
-                       encoding="utf-8")
+        tmp.write_text(json.dumps({"seen": sorted(self.seen), "hashes": {k: str(v) for k, v in self.hash_cache.items()},
+                                   "next_index": self.next_index}), encoding="utf-8")
         tmp.replace(self.state_path)
 
     def file_hash(self, p: Path) -> int:
@@ -197,6 +231,8 @@ class AutoLabeler:
 
 # ---------------------------------------------------------------------------
 def save_jpeg(img: Image.Image, path: Path, max_side: int = 4032) -> None:
+    if path.exists():  # lop bao ve cuoi: reserve_name da tranh trung, day chi la chot chan — KHONG BAO GIO ghi de
+        raise FileExistsError(f"{path} da ton tai — khong ghi de anh cu")
     if max(img.size) > max_side:
         s = max_side / max(img.size)
         img = img.resize((round(img.width * s), round(img.height * s)), Image.LANCZOS)
@@ -217,10 +253,20 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
             text = q.get("vi") if src.name == "ddg" else q.get("en")
             if not text:
                 continue
+            # Ngat mach: nguon loi lien tiep -> tam tat 1 luc, chay tiep bang nguon khac (Openverse hay 504 hang loat)
+            if time.time() < getattr(src, "paused_until", 0):
+                continue
             try:
                 cands = src.search(text, args.per_query)
+                src.fails = 0
             except Exception as e:
-                print(f"   [{src.name}] '{text}': loi tim kiem {type(e).__name__}: {e}")
+                src.fails = getattr(src, "fails", 0) + 1
+                print(f"   [{src.name}] '{text}': loi tim kiem {type(e).__name__}: {str(e)[:120]}")
+                if src.fails >= args.max_source_fails:
+                    src.paused_until = time.time() + args.source_pause * 60
+                    src.fails = 0
+                    print(f"   !! [{src.name}] loi {args.max_source_fails} lan lien tiep — tam tat {args.source_pause} phut, "
+                          "chay tiep bang nguon khac")
                 continue
             cands = [c for c in cands if c.url and c.url not in store.seen]
             if not args.no_domain_block:
@@ -258,8 +304,7 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
                     continue
                 if d.status == "accept" and accepted >= need:
                     continue
-                next_idx += 1
-                name = f"gg_{group.replace(' ', '_')}_{next_idx:04d}.jpg"
+                name = store.reserve_name(group, next_idx)  # khong bao gio trung/de len anh cu
                 split = "train" if d.status == "accept" else "review"
                 index_of = store.index_of if split == "train" else None  # review/ luon theo thu tu CLASSES
                 save_jpeg(img, store.out / split / "images" / name)
@@ -317,6 +362,9 @@ def promote(store: Store, export_dir: Path) -> None:
                  if 0 <= c < len(to_ours) and to_ours[c] is not None]
         src = review_imgs[stem]
         dst = store.out / "train" / "images" / src.name
+        if dst.exists() or (store.out / "train" / "labels" / (stem + ".txt")).exists():
+            print(f"   !! {src.name} da co trong train/ — BO QUA, khong ghi de (kiem tra lai trung ten)")
+            continue
         shutil.move(str(src), dst)
         (store.out / "review" / "labels" / (stem + ".txt")).unlink(missing_ok=True)
         write_yolo_labels(store.out / "train" / "labels" / (stem + ".txt"), boxes)
@@ -388,7 +436,7 @@ def main() -> None:
     ap.add_argument("--per-class", type=int, default=100, help="so anh ACCEPT can co moi lop (tinh ca lan chay truoc)")
     ap.add_argument("--negatives", type=int, default=150)
     ap.add_argument("--hard-negatives", type=int, default=150)
-    ap.add_argument("--sources", default="openverse,wikimedia,ddg")
+    ap.add_argument("--sources", default="ddg,wikimedia,openverse", help="thu tu = thu tu thu; Openverse hay 504 nen de cuoi")
     ap.add_argument("--ddg-license", default=None, help="None = moi license | Share | ShareCommercially | Modify | ModifyCommercially")
     ap.add_argument("--per-query", type=int, default=40, help="so ket qua lay moi (truy van x nguon)")
     ap.add_argument("--min-side", type=int, default=1024, help="canh dai toi thieu (DATASET_SPEC muc E)")
@@ -402,6 +450,8 @@ def main() -> None:
     ap.add_argument("--accept", type=float, default=1.6, help="nguong ACCEPT (boi so cua nguong giu box)")
     ap.add_argument("--strong", type=float, default=2.1)
     ap.add_argument("--no-domain-block", action="store_true", help="tat chan ten mien stock/TMDT (anh watermark)")
+    ap.add_argument("--max-source-fails", type=int, default=3, help="nguon loi lien tiep bao nhieu lan thi tam tat")
+    ap.add_argument("--source-pause", type=float, default=15, help="so phut tam tat nguon bi loi")
     ap.add_argument("--contact", default=None, help="(tuy chon) thong tin lien he them vao User-Agent — Wikimedia it chan hon")
     ap.add_argument("--promote", help="thu muc export YOLO tu Roboflow chua anh REVIEW da sua")
     args = ap.parse_args()

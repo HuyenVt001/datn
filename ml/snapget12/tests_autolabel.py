@@ -163,3 +163,38 @@ def test_metadata_estimates_and_quality():
     studio.paste(Image.new("RGB", (400, 400), (200, 30, 30)), (600, 400))
     assert "studio" in check_quality(studio)
     assert "ti le" in check_quality(Image.new("RGB", (4000, 1000), (90, 90, 90)))
+
+
+def _load_script17():
+    import importlib.util
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[1] / "scripts" / "17_crawl_autolabel.py"
+    spec = importlib.util.spec_from_file_location("crawl17", p)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_crawler_never_reuses_or_overwrites_names(tmp_path):
+    m = _load_script17()
+    out = tmp_path / "vn_web"
+    st = m.Store(out)
+    # lan chay truoc: con gg_cup_0001..0003 tren dia; gg_cup_0005 da bi XOA nhung con dong trong metadata.csv
+    for i in (1, 2, 3):
+        Image.new("RGB", (8, 8)).save(out / "train" / "images" / f"gg_cup_{i:04d}.jpg")
+    (out / "metadata.csv").write_text("filename,split\ngg_cup_0005.jpg,train\n", encoding="utf-8")
+    st = m.Store(out)  # mo lai nhu lan chay moi
+    _, _, mx = st.counts()
+    assert st.reserve_name("cup", mx["cup"]) == "gg_cup_0006.jpg"  # khong dung lai 0004/0005
+    st.save_state()
+    # file nhan mo coi o review (anh bi xoa, nhan con) cung chan so do
+    (out / "review" / "labels" / "gg_cup_0007.txt").write_text("")
+    st2 = m.Store(out)
+    assert st2.reserve_name("cup", 3) == "gg_cup_0008.jpg"
+    assert st2.reserve_name("potted plant") == "gg_potted_plant_0001.jpg"
+    # chot chan cuoi: save_jpeg tu choi ghi de
+    import pytest
+
+    with pytest.raises(FileExistsError):
+        m.save_jpeg(Image.new("RGB", (8, 8)), out / "train" / "images" / "gg_cup_0001.jpg")
