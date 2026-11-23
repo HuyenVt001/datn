@@ -152,13 +152,15 @@ Notebook [`notebooks/snapget_crawl_autolabel.ipynb`](notebooks/snapget_crawl_aut
 
 | Bước | Làm gì |
 |---|---|
-| Tìm ảnh | từ khoá bối cảnh VN trong [`crawl_queries.yaml`](crawl_queries.yaml) (tiếng Anh cho **Openverse + Wikimedia Commons** — ảnh Creative Commons có license; tiếng Việt cho **DuckDuckGo**). **Không** cào thẳng Google Images (Google chặn IP Colab, điều khoản cấm) — DuckDuckGo cho kết quả tương đương |
+| Tìm ảnh | từ khoá bối cảnh VN trong [`crawl_queries.yaml`](crawl_queries.yaml). Nguồn: **Google Images qua SerpApi** (key free, tìm tiếng Việt, `gl=vn`) · **Flickr** · **Pexels** · **Pixabay** (key free) · **DuckDuckGo** (tiếng Việt) · **Wikimedia Commons** · **Openverse** (CC, hay quá tải nên để cuối). Không cào thẳng trang Google (chặn IP Colab, điều khoản cấm; Custom Search API đã đóng với tài khoản mới, ngừng 01/01/2027) |
 | Lọc | cạnh dài ≥ 1024px · bỏ nền trắng studio · bỏ ảnh ghép/banner · **chặn tên miền kho ảnh stock & sàn TMĐT** (hay có watermark/logo/chữ chèn) · khử trùng dHash với ảnh đã có **và ảnh TEST** |
 | Gán box | **2 model**: YOLO11x (COCO) + YOLO-World (prompt "plastic stool", "bubble tea cup", "scooter"… và hard negative "wristwatch", "conical hat", "bowl", "sofa", màn hình/poster…) → gộp box → loại box trùng hard negative (đồng hồ đeo tay ≠ clock, nón lá ≠ umbrella) và vật thể trên màn hình (mục D.4) |
 | Quyết định | **accept** → `train/` (2 model cùng thấy hoặc điểm rất cao, không box nghi vấn, box lớp khác cũng chắc, laptop có box keyboard) · **review** → `review/` + lý do trong `review_queue.csv` · **reject** → bỏ |
 | Metadata | tự điền `metadata.csv`: `scene` theo từ khoá, `lighting`/`distance` ước lượng từ ảnh + box, `phone = web`, kèm `provider/license/creator/url`; trích nguồn đầy đủ ở `web_attributions.csv` + `data_sources.md` |
 
 **Chính sách nhãn tự động (ngoại lệ có chủ đích của mục D.6):** ảnh **accept** vào thẳng VN-train **không** qua người duyệt từng ảnh — đổi lại phải **xem mẫu ~10%** (ô 4 của notebook) và báo lớp nào sai nhiều. Ảnh **review** vẫn sửa tay trên Roboflow rồi `--promote` vào train. **VN-test không đổi: 100% tự chụp, 100% người gán + người thứ 2 kiểm.**
+
+**Ảnh đã tải sẵn bằng code khác** (vd `vn.rar`): chạy **`18_clean_dataset.py`** trước (ảnh hỏng/nhỏ/mờ/studio, trùng y hệt + gần trùng, rò rỉ train↔test, ảnh test không có EXIF máy ảnh = nghi ảnh Internet → `_quarantine/`, không xoá; tính lại `lighting/distance` thay giá trị ngẫu nhiên), rồi gán nhãn bằng `17 --import-dir` (notebook ô 1–1d). **Metadata phải đo từ ảnh thật, không được điền ngẫu nhiên; ảnh tải từ Internet không được đặt tên `self_` hay đưa vào test.**
 
 Ảnh cào nằm ở thư mục riêng (`snapget-ml/data/vn_web/`, chỉ có `train/`, tên `gg_<lớp>_NNNN.jpg`, `gg_neg_*`, `gg_hardneg_*`) — script 11 dùng song song với ảnh tự chụp: `--vn <ảnh tự chụp> --vn <vn_web>`. Số ảnh cào mặc định 100/lớp + 150 negative + 150 hard negative → cộng ≥ 50 ảnh tự chụp/lớp là đủ mục A.
 

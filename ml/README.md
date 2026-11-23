@@ -28,7 +28,8 @@ ml/
 │   ├─ metrics.py                 AP/F1/false-reject, chọn ngưỡng per-class, confusion cấp ảnh, chọn lớp quest
 │   ├─ autolabel.py               gán nhãn tự động: gộp YOLO11x + YOLO-World, loại hard negative/màn hình, accept/review/reject,
 │   │                             ước lượng lighting/distance, lọc chất lượng ảnh
-│   ├─ crawl.py                   nguồn ảnh Openverse / Wikimedia / DuckDuckGo + tải song song + chặn tên miền watermark
+│   ├─ crawl.py                   nguồn ảnh (SerpApi-Google, Flickr, Pexels, Pixabay, DuckDuckGo, Wikimedia, Openverse) + tải song song
+│   │                             + chặn tên miền watermark; nguồn thiếu key tự bỏ qua, key sai/hết quota tự tắt
 │   ├─ model.py, data.py          v0: MobileNetV3 + head, manifest/augment
 │   └─ tests_metrics.py, tests_yolo.py, tests_autolabel.py   pytest (không cần torch)
 ├─ scripts/
@@ -39,9 +40,11 @@ ml/
 │   ├─ 14_eval_yolo.py            ablation: mAP50/50-95, confusion 13×13, verify cấp ảnh, chọn ngưỡng trên real-calib
 │   ├─ 15_select_classes.py       áp tiêu chí → class_selection.json/.md + AI_QUEST_CLASSES cho server
 │   ├─ 16_export_yolo_onnx.py     ONNX fp32 + model_meta.json (arch "yolo") + so khớp PyTorch + upload HF
-│   ├─ 17_crawl_autolabel.py      TỰ ĐỘNG cào ảnh Internet + gán nhãn → thư mục VN-train (resume được, --promote ảnh đã duyệt)
+│   ├─ 17_crawl_autolabel.py      TỰ ĐỘNG cào ảnh Internet + gán nhãn → thư mục VN-train (resume, không ghi đè, --promote ảnh đã duyệt,
+│   │                             --import-dir gán nhãn ảnh đã tải sẵn). Nguồn: serpapi(Google) flickr pexels pixabay ddg wikimedia openverse
+│   ├─ 18_clean_dataset.py        LÀM SẠCH tập VN trước mọi bước: hỏng/nhỏ/mờ/studio, trùng, rò rỉ train↔test, test không EXIF → _quarantine
 │   └─ 01–08_*.py                 pipeline v0 (giữ làm baseline/ablation)
-├─ notebooks/
+├─ notebooks/                    (sinh từ notebooks/build/*.py — sửa file build, đừng sửa tay .ipynb)
 │   ├─ snapget_crawl_autolabel.ipynb ← **chạy TRƯỚC**: cào + gán nhãn ảnh Internet (script 17) → Drive `data/vn_web/`
 │   ├─ snapget_yolo_train.ipynb   ← **y1 — Google Colab** (chạy 10→16, ô resume; tự dùng `vn_web` nếu có)
 │   └─ snapget12_train.ipynb      v0
@@ -68,7 +71,7 @@ ml/
 
 Kiểm thử cục bộ (không cần GPU/dữ liệu thật):
 ```bash
-cd ml && pytest snapget12/tests_metrics.py snapget12/tests_yolo.py snapget12/tests_autolabel.py -q
+cd ml && pytest snapget12/tests_metrics.py snapget12/tests_yolo.py snapget12/tests_autolabel.py snapget12/tests_clean.py -q
 cd ml/ai-service && pip install -r requirements.txt onnx pytest && pytest test_app.py -q
 python dev_fake_model.py --arch yolo && $env:API_KEY='dev-key'; python -m uvicorn app:app --port 8080
 ```

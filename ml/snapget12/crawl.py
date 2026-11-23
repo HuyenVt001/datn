@@ -5,9 +5,16 @@ Nguon anh Internet cho tap VN-train (ml/DATASET_SPEC.md muc G) — dung boi scri
   wikimedia  Wikimedia Commons API (CC) — CO license
   ddg        DuckDuckGo Images (thu vien `ddgs`) — ket qua giong cong cu tim kiem thuong, ho tro tieng Viet
              (region vn-vi); license khong ro -> ghi "unknown". Chi dung hoc thuat, KHONG phat tan lai anh.
+  --- them 2026-11-24 (CAN API KEY mien phi, dat trong bien moi truong / Colab Secrets) ---
+  serpapi    GOOGLE IMAGES qua SerpApi (SERPAPI_KEY) — cach hop phap de lay ket qua Google; tim tieng Viet, gl=vn
+  flickr     Flickr API (FLICKR_API_KEY) — anh CC/PD that, nhieu anh du lich/doi thuong VN, co license
+  pexels     Pexels API (PEXELS_API_KEY) — anh chat luong cao, Pexels License
+  pixabay    Pixabay API (PIXABAY_API_KEY) — Pixabay License, anh lon nhat 1280px
 
 KHONG cao truc tiep Google Images: Google chan request tu dong (dac biet IP Colab -> CAPTCHA/ket qua rong)
-va dieu khoan Google cam. DuckDuckGo cho ket qua tuong duong.
+va dieu khoan Google cam. Google Custom Search JSON API DA DONG voi khach hang moi (2026) va ngung han
+01/01/2027 -> dung SerpApi (dich vu tra ket qua Google Images qua API).
+Nguon thieu key -> bo qua kem thong bao (khong lam hong ca lan chay).
 
 Moi request: User-Agent chung (khong chua thong tin ca nhan), timeout, gioi han dung luong, lui lai khi 429.
 """
@@ -68,6 +75,21 @@ def _session():
     return s
 
 
+class KeyRejected(PermissionError):
+    """API key sai / het quota — tat han nguon trong lan chay nay."""
+
+
+class MissingKey(Exception):
+    pass
+
+
+def _key(env: str) -> str:
+    v = os.environ.get(env, "").strip()
+    if not v:
+        raise MissingKey(env)
+    return v
+
+
 def _get_json(session, url: str, params: dict, headers: dict | None = None, retries: int = 4):
     for attempt in range(retries):
         try:
@@ -85,6 +107,8 @@ def _get_json(session, url: str, params: dict, headers: dict | None = None, retr
             print(f"   ({r.status_code} tu {url.split('/')[2]} — thu lai)")
             time.sleep(5 * (attempt + 1))
             continue
+        if r.status_code in (401, 403):  # key sai / het quota -> khong thu lai vo ich, script 17 tat nguon nay
+            raise KeyRejected(f"{url.split('/')[2]}: HTTP {r.status_code} — API key sai hoac het quota")
         r.raise_for_status()
         return r.json()
     raise RuntimeError(f"{url}: van loi (429/5xx/mang) sau {retries} lan")
@@ -95,6 +119,7 @@ class OpenverseSource:
     """https://api.openverse.org — an danh duoc (gioi han thap); co OPENVERSE_CLIENT_ID/SECRET thi xin token (gioi han cao hon)."""
 
     name = "openverse"
+    lang = "en"
     API = "https://api.openverse.org/v1"
 
     def __init__(self) -> None:
@@ -139,6 +164,7 @@ class OpenverseSource:
 
 class WikimediaSource:
     name = "wikimedia"
+    lang = "en"
     API = "https://commons.wikimedia.org/w/api.php"
 
     def __init__(self, thumb_width: int = 2048) -> None:
@@ -177,6 +203,7 @@ class DuckDuckGoSource:
     """Thu vien `ddgs` (ten cu `duckduckgo_search`) — API thay doi theo phien ban nen goi tham so vi tri."""
 
     name = "ddg"
+    lang = "vi"
 
     def __init__(self, region: str = "vn-vi", license_image: str | None = None, pause: float = 2.0) -> None:
         try:
@@ -208,14 +235,177 @@ class DuckDuckGoSource:
                           extra={"site": r.get("source", "")}) for r in res if r.get("image")]
 
 
-def make_sources(names: list[str], ddg_license: str | None = None) -> list:
+class SerpApiGoogleSource:
+    """GOOGLE IMAGES qua SerpApi (https://serpapi.com, engine google_images). 1 lan tim = ~100 anh = 1 luot quota
+    (goi free gioi han so luot/thang — xem trang SerpApi). Tim tieng Viet, gl=vn -> dung boi canh VN nhat."""
+
+    name = "serpapi"
+    lang = "vi"
+    API = "https://serpapi.com/search.json"
+
+    def __init__(self) -> None:
+        self.key = _key("SERPAPI_KEY")
+        self.s = _session()
+
+    @staticmethod
+    def parse(data: dict) -> list[Candidate]:
+        if data.get("error") and "images_results" not in data:
+            msg = str(data["error"])
+            if "key" in msg.lower() or "run out" in msg.lower() or "limit" in msg.lower():
+                raise KeyRejected(f"serpapi: {msg}")
+            return []  # vd "Google hasn't returned any results"
+        out = []
+        for it in data.get("images_results", []):
+            if not it.get("original"):
+                continue
+            out.append(Candidate(url=it["original"], provider="serpapi", page=it.get("link", ""), license="unknown",
+                                 title=it.get("title", ""), width=int(it.get("original_width") or 0),
+                                 height=int(it.get("original_height") or 0), extra={"site": it.get("source", "")}))
+        return out
+
+    def search(self, query: str, limit: int) -> list[Candidate]:
+        out: list[Candidate] = []
+        page = 0
+        while len(out) < limit and page < 3:  # moi trang ~100 anh -> thuong 1 trang la du (tiet kiem quota)
+            data = _get_json(self.s, self.API, {"engine": "google_images", "q": query, "gl": "vn", "hl": "vi",
+                                                "ijn": page, "safe": "active", "tbs": "isz:l", "api_key": self.key},
+                             retries=2)
+            got = self.parse(data)
+            out += got
+            if len(got) < 50:
+                break
+            page += 1
+        return out[:limit]
+
+
+FLICKR_LICENSES = {"1": "CC BY-NC-SA 2.0", "2": "CC BY-NC 2.0", "3": "CC BY-NC-ND 2.0", "4": "CC BY 2.0",
+                   "5": "CC BY-SA 2.0", "6": "CC BY-ND 2.0", "7": "No known copyright", "8": "US Government Work",
+                   "9": "CC0 1.0", "10": "Public Domain Mark 1.0"}
+
+
+class FlickrSource:
+    """Flickr API (key mien phi: https://www.flickr.com/services/apps/create/). Chi lay anh CC / public domain.
+    vn_only=True: chi anh gan toa do trong lanh tho VN (it anh hon nhung chac boi canh VN)."""
+
+    name = "flickr"
+    lang = "en"
+    API = "https://www.flickr.com/services/rest/"
+    VN_BBOX = "102.1,8.4,109.5,23.4"
+
+    def __init__(self, vn_only: bool = False) -> None:
+        self.key = _key("FLICKR_API_KEY")
+        self.s = _session()
+        self.vn_only = vn_only
+
+    @staticmethod
+    def parse(data: dict) -> list[Candidate]:
+        if data.get("stat") == "fail":
+            if data.get("code") in (100, 105):  # 100 = key sai
+                raise KeyRejected(f"flickr: {data.get('message')}")
+            return []
+        out = []
+        for p in (data.get("photos") or {}).get("photo", []):
+            # uu tien anh goc (neu khong qua lon), roi url_l (canh dai 1024), roi url_c (800 -> se bi loc)
+            for suf in ("o", "l", "c"):
+                u, w, h = p.get(f"url_{suf}"), int(p.get(f"width_{suf}") or 0), int(p.get(f"height_{suf}") or 0)
+                if u and (suf != "o" or max(w, h) <= 6000):
+                    break
+            else:
+                continue
+            out.append(Candidate(url=u, provider="flickr", page=f"https://www.flickr.com/photos/{p.get('owner')}/{p.get('id')}",
+                                 license=FLICKR_LICENSES.get(str(p.get("license")), "unknown"),
+                                 creator=p.get("ownername", ""), title=p.get("title", ""), width=w, height=h))
+        return out
+
+    def search(self, query: str, limit: int) -> list[Candidate]:
+        params = {"method": "flickr.photos.search", "api_key": self.key, "text": query, "license": ",".join(FLICKR_LICENSES),
+                  "content_type": 1, "media": "photos", "safe_search": 1, "sort": "relevance", "per_page": min(limit * 2, 250),
+                  "extras": "url_o,url_l,url_c,owner_name,license", "format": "json", "nojsoncallback": 1}
+        if self.vn_only:
+            params["bbox"] = self.VN_BBOX
+        return self.parse(_get_json(self.s, self.API, params, retries=3))[:limit]
+
+
+class PexelsSource:
+    """Pexels API (key mien phi: https://www.pexels.com/api/). Pexels License (dung tu do)."""
+
+    name = "pexels"
+    lang = "en"
+    API = "https://api.pexels.com/v1/search"
+
+    def __init__(self) -> None:
+        self.headers = {"Authorization": _key("PEXELS_API_KEY")}
+        self.s = _session()
+
+    @staticmethod
+    def parse(data: dict) -> list[Candidate]:
+        out = []
+        for p in data.get("photos", []):
+            src = p.get("src") or {}
+            u = src.get("large2x") or src.get("original")  # large2x ~1880px: du net, nhe hon anh goc nhieu MB
+            if u:
+                out.append(Candidate(url=u, provider="pexels", page=p.get("url", ""), license="Pexels License",
+                                     creator=p.get("photographer", ""), title=p.get("alt", ""),
+                                     width=int(p.get("width") or 0), height=int(p.get("height") or 0)))
+        return out
+
+    def search(self, query: str, limit: int) -> list[Candidate]:
+        data = _get_json(self.s, self.API, {"query": query, "per_page": min(limit, 80), "page": 1}, self.headers, retries=3)
+        return self.parse(data)[:limit]
+
+
+class PixabaySource:
+    """Pixabay API (key mien phi: https://pixabay.com/api/docs/). Pixabay License. largeImageURL toi da 1280px."""
+
+    name = "pixabay"
+    lang = "en"
+    API = "https://pixabay.com/api/"
+
+    def __init__(self) -> None:
+        self.key = _key("PIXABAY_API_KEY")
+        self.s = _session()
+
+    @staticmethod
+    def parse(data: dict) -> list[Candidate]:
+        return [Candidate(url=h["largeImageURL"], provider="pixabay", page=h.get("pageURL", ""), license="Pixabay License",
+                          creator=h.get("user", ""), title=h.get("tags", ""),
+                          # largeImageURL thu nho canh dai ve 1280 -> ghi kich thuoc THAT se tai ve
+                          width=round(int(h.get("imageWidth") or 0) * min(1, 1280 / max(int(h.get("imageWidth") or 1), int(h.get("imageHeight") or 1)))),
+                          height=round(int(h.get("imageHeight") or 0) * min(1, 1280 / max(int(h.get("imageWidth") or 1), int(h.get("imageHeight") or 1)))))
+                for h in data.get("hits", []) if h.get("largeImageURL")]
+
+    def search(self, query: str, limit: int) -> list[Candidate]:
+        data = _get_json(self.s, self.API, {"key": self.key, "q": query[:100], "image_type": "photo", "safesearch": "true",
+                                            "per_page": max(3, min(limit, 200)), "min_width": 1024}, retries=3)
+        return self.parse(data)[:limit]
+
+
+ALL_SOURCES = ("serpapi", "flickr", "pexels", "pixabay", "ddg", "wikimedia", "openverse")  # thu tu "auto"
+KEY_ENV = {"serpapi": "SERPAPI_KEY", "flickr": "FLICKR_API_KEY", "pexels": "PEXELS_API_KEY", "pixabay": "PIXABAY_API_KEY"}
+
+
+def make_sources(names: list[str], ddg_license: str | None = None, flickr_vn_only: bool = False) -> list:
+    """names co the chua 'auto' = moi nguon co key (+ ddg, wikimedia, openverse). Nguon thieu key -> bo qua + bao."""
     table = {"openverse": OpenverseSource, "wikimedia": WikimediaSource,
-             "ddg": lambda: DuckDuckGoSource(license_image=ddg_license)}
-    out = []
+             "ddg": lambda: DuckDuckGoSource(license_image=ddg_license),
+             "serpapi": SerpApiGoogleSource, "flickr": lambda: FlickrSource(vn_only=flickr_vn_only),
+             "pexels": PexelsSource, "pixabay": PixabaySource}
+    expanded: list[str] = []
     for n in names:
+        expanded += list(ALL_SOURCES) if n == "auto" else [n]
+    out = []
+    for n in dict.fromkeys(expanded):
         if n not in table:
-            raise SystemExit(f"!! nguon '{n}' khong ho tro (openverse | wikimedia | ddg)")
-        out.append(table[n]())
+            raise SystemExit(f"!! nguon '{n}' khong ho tro ({' | '.join(ALL_SOURCES)} | auto)")
+        try:
+            out.append(table[n]())
+        except MissingKey as e:
+            print(f"   (bo qua nguon '{n}': chua co bien moi truong {e} — xem o 2 notebook)")
+        except ImportError as e:
+            print(f"   (bo qua nguon '{n}': thieu thu vien {e.name})")
+    if not out:
+        raise SystemExit("!! khong co nguon anh nao dung duoc")
+    print("Nguon anh:", ", ".join(s.name for s in out))
     return out
 
 

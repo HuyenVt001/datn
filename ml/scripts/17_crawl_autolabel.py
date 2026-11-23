@@ -44,7 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np  # noqa: E402
 import yaml  # noqa: E402
-from PIL import Image  # noqa: E402
+from PIL import Image, ImageOps  # noqa: E402
 
 from snapget12 import CLASSES  # noqa: E402
 from snapget12.autolabel import (  # noqa: E402
@@ -58,7 +58,7 @@ from snapget12.autolabel import (  # noqa: E402
     to_yolo_lines,
     world_vocabulary,
 )
-from snapget12.crawl import blocked, download_many, make_sources, set_contact  # noqa: E402
+from snapget12.crawl import KeyRejected, blocked, download_many, make_sources, set_contact  # noqa: E402
 from snapget12.yolo import (  # noqa: E402
     COCO80_INDEX,
     clean_stem,
@@ -250,7 +250,9 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
         for src in sources:
             if accepted >= need:
                 return accepted
-            text = q.get("vi") if src.name == "ddg" else q.get("en")
+            # moi nguon tim bang ngon ngu cua no (Google/DDG: tieng Viet; kho anh CC: tieng Anh); thieu thi dung ban kia
+            lang = getattr(src, "lang", "en")
+            text = q.get(lang) or q.get("en" if lang == "vi" else "vi")
             if not text:
                 continue
             # Ngat mach: nguon loi lien tiep -> tam tat 1 luc, chay tiep bang nguon khac (Openverse hay 504 hang loat)
@@ -259,6 +261,10 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
             try:
                 cands = src.search(text, args.per_query)
                 src.fails = 0
+            except KeyRejected as e:  # key sai / het quota (vd SerpApi het luot thang) -> tat han trong lan chay nay
+                src.paused_until = float("inf")
+                print(f"   !! [{src.name}] {e} — TAT nguon nay cho het lan chay")
+                continue
             except Exception as e:
                 src.fails = getattr(src, "fails", 0) + 1
                 print(f"   [{src.name}] '{text}': loi tim kiem {type(e).__name__}: {str(e)[:120]}")
@@ -336,6 +342,108 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
 
 
 # ---------------------------------------------------------------------------
+IMPORT_NAME = re.compile(r"^(?:self|gg|kg|web)_([a-z_]+?)_\d+$")
+
+
+def import_group(path: Path) -> str | None:
+    """Nhom (lop | neg | hardneg) cua anh import: tu ten file '<nguon>_<lop>_NNNN' hoac ten thu muc cha."""
+    m = IMPORT_NAME.match(clean_stem(path.name))
+    cands = [m.group(1)] if m else []
+    cands += [path.parent.name.lower().replace(" ", "_").replace("-", "_")]
+    for c in cands:
+        if c in ("neg", "hardneg"):
+            return c
+        if c.replace("_", " ") in CLASSES:
+            return c.replace("_", " ")
+    return None
+
+
+def import_dir(store: Store, labeler: AutoLabeler, src_dir: Path, args, ref_hashes: np.ndarray, report: dict) -> None:
+    """Anh Internet da tai san -> CUNG quy trinh nhu anh cao: loc chat luong, khu trung (ca voi anh TEST),
+    gan nhan 2 model, accept/review/reject, metadata UOC LUONG tu anh (khong dung gia tri ngau nhien), ten moi
+    khong de anh cu. File goc KHONG bi xoa/sua. Chay lai = bo qua anh da import (crawl_state.json)."""
+    urls: dict[str, str] = {}
+    if args.import_meta and Path(args.import_meta).exists():
+        with open(args.import_meta, newline="", encoding="utf-8-sig") as f:
+            urls = {clean_stem(r["filename"]): r.get("url", "") for r in csv.DictReader(f) if r.get("filename")}
+    imgs = list_images(src_dir)
+    todo, skipped = [], Counter()
+    for p in imgs:
+        key = f"import:{p.resolve()}"
+        if key in store.seen:
+            skipped["da import lan truoc"] += 1
+            continue
+        if any(part.lower() == "test" for part in p.parts[len(src_dir.parts):]):
+            skipped["nam trong thu muc test — KHONG import anh Internet vao test"] += 1
+            continue
+        g = import_group(p)
+        if g is None:
+            skipped["khong xac dinh duoc lop (ten file / thu muc)"] += 1
+            continue
+        todo.append((p, g, key))
+    n_self = sum(clean_stem(p.name).startswith("self_") for p, _, _ in todo)
+    print(f"[import] {src_dir}: {len(imgs)} anh, xu ly {len(todo)}; bo qua {dict(skipped)}")
+    if n_self:
+        print(f"   !! {n_self} anh ten 'self_' nhung la anh TAI TU INTERNET -> doi ten thanh gg_ (DATASET_SPEC: self = tu chup)")
+    hashes = ref_hashes
+    for i in range(0, len(todo), 32):
+        batch = []
+        for p, g, key in todo[i : i + 32]:
+            store.seen.add(key)
+            stats = report.setdefault(g, {"accepted": 0, "review": 0, "reject": Counter(), "filtered": Counter()})
+            try:
+                with Image.open(p) as im:
+                    img = ImageOps.exif_transpose(im).convert("RGB")
+            except Exception:
+                stats["filtered"]["khong mo duoc anh"] += 1
+                continue
+            why = check_quality(img, args.min_side)
+            if why:
+                stats["filtered"][why.split(" (")[0]] += 1
+                continue
+            h = np.array([dhash(img)], dtype=np.uint64)
+            if len(hashes) and len(near_duplicates(h, hashes, args.dup_dist)):
+                stats["filtered"]["trung anh da co / anh test"] += 1
+                continue
+            hashes = np.concatenate([hashes, h])
+            batch.append((p, g, img, int(h[0])))
+        dets_all = labeler([b[2] for b in batch]) if batch else []
+        meta_rows, pend_rows, attr_rows, queue_rows = [], [], [], []
+        for (p, g, img, hv), dets in zip(batch, dets_all):
+            stats = report[g]
+            target = None if g in ("neg", "hardneg") else g
+            d = decide(dets, target, labeler.th)
+            if d.status == "reject":
+                stats["reject"][d.reasons[-1] if d.reasons else "?"] += 1
+                continue
+            name = store.reserve_name(g)
+            split = "train" if d.status == "accept" else "review"
+            save_jpeg(img, store.out / split / "images" / name)
+            write_yolo_labels(store.out / split / "labels" / (name[:-4] + ".txt"),
+                              to_yolo_lines(d.clusters, store.index_of if split == "train" else None))
+            store.hash_cache[str(store.out / split / "images" / name)] = hv
+            url = urls.get(clean_stem(p.name), "")
+            row = {"filename": name, "split": "train", "source": "gg", "url": url, "scene": "other",
+                   "lighting": estimate_lighting(img), "distance": estimate_distance(d.clusters, target), "phone": "web",
+                   "provider": "import", "license": "unknown", "creator": "", "query": f"import:{p.name}",
+                   "autolabel": d.status, "target_conf": round(d.target_score * labeler.th.keep["coco"], 3)}
+            attr_rows.append({"filename": name, "provider": "import", "url": url, "page": "", "license": "unknown",
+                              "creator": "", "title": p.name})
+            if d.status == "accept":
+                meta_rows.append(row)
+                stats["accepted"] += 1
+            else:
+                pend_rows.append(row)
+                queue_rows.append({"filename": name, "group": g, "reasons": "; ".join(d.reasons), "url": url})
+                stats["review"] += 1
+        Store.append_csv(store.out / "metadata.csv", META_FIELDS, meta_rows)
+        Store.append_csv(store.out / "review" / "metadata_pending.csv", META_FIELDS, pend_rows)
+        Store.append_csv(store.out / "review" / "review_queue.csv", ["filename", "group", "reasons", "url"], queue_rows)
+        Store.append_csv(store.out / "web_attributions.csv", ATTR_FIELDS, attr_rows)
+        store.save_state()
+        print(f"   {min(i + 32, len(todo))}/{len(todo)}: +{len(meta_rows)} accept, +{len(pend_rows)} review")
+
+
 def promote(store: Store, export_dir: Path) -> None:
     """Anh REVIEW da sua tren Roboflow -> train/. Dung anh goc trong review/ (Roboflow hay resize), nhan tu export."""
     names = find_names(export_dir)
@@ -436,7 +544,9 @@ def main() -> None:
     ap.add_argument("--per-class", type=int, default=100, help="so anh ACCEPT can co moi lop (tinh ca lan chay truoc)")
     ap.add_argument("--negatives", type=int, default=150)
     ap.add_argument("--hard-negatives", type=int, default=150)
-    ap.add_argument("--sources", default="ddg,wikimedia,openverse", help="thu tu = thu tu thu; Openverse hay 504 nen de cuoi")
+    ap.add_argument("--sources", default="auto", help="auto = moi nguon co key (serpapi,flickr,pexels,pixabay) + ddg,wikimedia,openverse; "
+                    "hoac liet ke, vd serpapi,ddg,flickr. Thu tu = thu tu thu; Openverse hay 504 nen de cuoi")
+    ap.add_argument("--flickr-vn-only", action="store_true", help="Flickr: chi anh gan toa do trong VN")
     ap.add_argument("--ddg-license", default=None, help="None = moi license | Share | ShareCommercially | Modify | ModifyCommercially")
     ap.add_argument("--per-query", type=int, default=40, help="so ket qua lay moi (truy van x nguon)")
     ap.add_argument("--min-side", type=int, default=1024, help="canh dai toi thieu (DATASET_SPEC muc E)")
@@ -454,6 +564,10 @@ def main() -> None:
     ap.add_argument("--source-pause", type=float, default=15, help="so phut tam tat nguon bi loi")
     ap.add_argument("--contact", default=None, help="(tuy chon) thong tin lien he them vao User-Agent — Wikimedia it chan hon")
     ap.add_argument("--promote", help="thu muc export YOLO tu Roboflow chua anh REVIEW da sua")
+    ap.add_argument("--import-dir", action="append", default=[],
+                    help="thu muc anh Internet DA TAI SAN (vd bang code rieng): loc + khu trung + GAN NHAN nhu anh cao. "
+                         "Lop lay tu ten file <nguon>_<lop>_NNNN hoac ten thu muc cha. Chi vao train/review, KHONG vao test")
+    ap.add_argument("--import-meta", help="(tuy chon) metadata.csv di kem anh import — chi lay cot url de trich nguon")
     args = ap.parse_args()
 
     store = Store(Path(args.out))
@@ -474,7 +588,6 @@ def main() -> None:
     th = Thresholds(accept=args.accept, strong=args.strong)
     print("Nap model gan nhan ...")
     labeler = AutoLabeler(args.coco_model, args.world_model or None, args.imgsz, args.device, th)
-    sources = make_sources([s.strip() for s in args.sources.split(",") if s.strip()], args.ddg_license)
 
     # hash anh da co (train + review) + anh test -> khu trung / chong ro ri
     ref = [store.file_hash(p) for p in list_images(store.out / "train" / "images") + list_images(store.out / "review" / "images")]
@@ -485,6 +598,13 @@ def main() -> None:
     print(f"{len(ref_hashes)} anh tham chieu (da co + test) de khu trung")
 
     report: dict = {}
+    if args.import_dir:
+        for d in args.import_dir:
+            import_dir(store, labeler, Path(d), args, ref_hashes, report)
+            ref_hashes = np.array([h for h in store.hash_cache.values() if h], dtype=np.uint64)
+        write_report(store, report, queries, wanted)
+        return
+    sources = make_sources([s.strip() for s in args.sources.split(",") if s.strip()], args.ddg_license, args.flickr_vn_only)
     groups = [(c, c, args.per_class, queries["classes"][c]) for c in wanted]
     groups += [("neg", None, args.negatives, queries.get("negatives", [])),
                ("hardneg", None, args.hard_negatives, queries.get("hard_negatives", []))]

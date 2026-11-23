@@ -198,3 +198,50 @@ def test_crawler_never_reuses_or_overwrites_names(tmp_path):
 
     with pytest.raises(FileExistsError):
         m.save_jpeg(Image.new("RGB", (8, 8)), out / "train" / "images" / "gg_cup_0001.jpg")
+
+
+def test_new_source_parsers_and_key_handling(monkeypatch):
+    import pytest
+
+    from snapget12 import crawl
+
+    serp = {"images_results": [{"original": "https://a.vn/x.jpg", "original_width": 1600, "original_height": 1200,
+                                "link": "https://a.vn/p", "title": "ghe nhua", "source": "a.vn"}, {"title": "no url"}]}
+    c = crawl.SerpApiGoogleSource.parse(serp)
+    assert len(c) == 1 and c[0].provider == "serpapi" and c[0].width == 1600 and c[0].page == "https://a.vn/p"
+    with pytest.raises(crawl.KeyRejected):
+        crawl.SerpApiGoogleSource.parse({"error": "Your account has run out of searches."})
+    assert crawl.SerpApiGoogleSource.parse({"error": "Google hasn't returned any results for this query."}) == []
+
+    fl = {"stat": "ok", "photos": {"photo": [
+        {"id": "1", "owner": "u", "title": "t", "license": "4", "ownername": "A", "url_o": "o.jpg", "width_o": 9000, "height_o": 6000,
+         "url_l": "l.jpg", "width_l": "1024", "height_l": "683"},
+        {"id": "2", "owner": "u", "license": "9", "url_o": "o2.jpg", "width_o": 3000, "height_o": 2000}]}}
+    f = crawl.FlickrSource.parse(fl)
+    assert [x.url for x in f] == ["l.jpg", "o2.jpg"]  # anh goc 9000px qua lon -> dung url_l
+    assert f[0].license == "CC BY 2.0" and f[1].license == "CC0 1.0" and f[0].width == 1024
+    with pytest.raises(crawl.KeyRejected):
+        crawl.FlickrSource.parse({"stat": "fail", "code": 100, "message": "Invalid API Key"})
+
+    px = crawl.PexelsSource.parse({"photos": [{"width": 4000, "height": 3000, "url": "p", "photographer": "B",
+                                               "src": {"large2x": "l2.jpg", "original": "o.jpg"}}]})
+    assert px[0].url == "l2.jpg" and px[0].license == "Pexels License"
+    pb = crawl.PixabaySource.parse({"hits": [{"largeImageURL": "big.jpg", "imageWidth": 4000, "imageHeight": 3000, "pageURL": "pg"}]})
+    assert pb[0].width == 1280 and pb[0].height == 960  # kich thuoc THAT cua largeImageURL
+
+    for env in crawl.KEY_ENV.values():
+        monkeypatch.delenv(env, raising=False)
+    srcs = crawl.make_sources(["serpapi", "flickr", "wikimedia"])  # thieu key -> bo qua, khong loi
+    assert [s.name for s in srcs] == ["wikimedia"]
+    monkeypatch.setenv("PEXELS_API_KEY", "k")
+    assert "pexels" in [s.name for s in crawl.make_sources(["auto"])]
+
+
+def test_import_group_from_filename_or_folder(tmp_path):
+    from pathlib import Path
+
+    m = _load_script17()
+    assert m.import_group(Path("x/gg_potted_plant_0012.jpg")) == "potted plant"
+    assert m.import_group(Path("x/self_hardneg_0003.jpg")) == "hardneg"
+    assert m.import_group(Path("google/motorcycle/abc123.jpg")) == "motorcycle"
+    assert m.import_group(Path("google/random/abc.jpg")) is None
