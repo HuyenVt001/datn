@@ -51,10 +51,7 @@ export function MomentsPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Post moderation
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        The latest posts from all users. Deleting a violating post also deletes its views/reactions
-        and is recorded in the Admin audit log.
-      </Typography.Paragraph>
+
 
       {error && (
         <Alert

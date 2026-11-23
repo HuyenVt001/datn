@@ -5,7 +5,7 @@ Phục vụ 2 việc cho tính năng **AI Daily Quest** (kế hoạch: `Snapget/
 | Route | Auth | Việc |
 |---|---|---|
 | `GET /health` | public | keep-warm + trạng thái model/LLM |
-| `POST /verify` | `X-API-Key` | ONNX MobileNetV3-Small + head 12 lớp (**tự train**) — ảnh có chứa `targetClass` không |
+| `POST /verify` | `X-API-Key` | ONNX 12 lớp (**tự train**) — ảnh có chứa `targetClass` không. Theo `model_meta.json` `"arch"`: **`yolo`** (y1, YOLO11 detection, letterbox 640, điểm = max theo anchor, trả thêm `box`) hoặc `classifier` (v0, MobileNetV3, mặc định khi không có `arch`) |
 | `POST /generate` | `X-API-Key` | (tuỳ chọn) Qwen2.5-1.5B GGUF viết câu quest tiếng Việt — mặc định **TẮT**, xem mục "LLM" |
 
 Chỉ server NestJS gọi service này; app Android không bao giờ gọi trực tiếp.
@@ -44,7 +44,12 @@ gcloud run deploy snapget-ai \
 
 ## Model artifact
 
-3 file trong `model/` (không commit vào repo): `model.onnx` (backbone fp32 + head int8, ~3.9MB — **không** quantize Conv: MobileNetV3 bị phá bởi ConvInteger, xem `scripts/05_export_onnx.py`), `thresholds.json`, `model_meta.json`. Hai cách nạp:
+3 file trong `model/` (không commit vào repo): `model.onnx`, `thresholds.json`, `model_meta.json`.
+- **y1** (`scripts/16_export_yolo_onnx.py`): YOLO11 ONNX **fp32**, input `1×3×640×640` RGB/255 letterbox, output `1×16×8400`, không NMS; YOLO11s ~36MB (YOLO11n ~10MB). `model_meta.json` có `"arch": "yolo"`. Lần cold start tải 36MB từ HF lâu hơn v0 → giữ ping `/health`; nếu vẫn chậm, dùng cách 2 bên dưới.
+- **v0** (`scripts/05_export_onnx.py`): backbone fp32 + head int8, ~3.9MB — **không** quantize Conv (MobileNetV3 bị phá bởi ConvInteger).
+- **Rollback** y1 → v0: upload lại 3 file v0 rồi restart — không sửa code.
+
+Hai cách nạp:
 
 1. **HF Model repo (khuyến nghị)** — Model repo vẫn **miễn phí** (chỉ Space mới thu phí). Notebook bước 5 upload lên `<user>/snapget-ai-model`; service tự tải lúc khởi động khi có env `MODEL_REPO`. Đổi model = *Cloud Run → Edit & deploy new revision* (hoặc deploy lại), không cần build lại từ đầu.
 2. **Nhồi vào image** — copy 3 file vào `model/` rồi deploy; không phụ thuộc HF lúc chạy.

@@ -58,7 +58,7 @@ export class CoopService {
   /** Gui loi moi chup chung (chi moi duoc ban be; khong kem anh). */
   async createInvite(inviterId: string, dto: CreateCoopInviteDto): Promise<CoopInvite> {
     if (inviterId === dto.friendUid) {
-      throw new BadRequestException('You can\'t invite yourself to a co-op capture.');
+      throw new BadRequestException("You can't invite yourself to a co-op capture.");
     }
     const pair = await this.friendshipsRepo.findPair(inviterId, dto.friendUid);
     if (!pair || pair.status !== 'ACCEPTED') {
@@ -222,7 +222,9 @@ export class CoopService {
     const invite = await this.assertParticipant(uid, inviteId);
     if (invite.status !== 'ACCEPTED') {
       throw new BadRequestException(
-        invite.status === 'PENDING' ? 'This invite hasn\'t been accepted yet.' : 'This invite has already been handled.',
+        invite.status === 'PENDING'
+          ? "This invite hasn't been accepted yet."
+          : 'This invite has already been handled.',
       );
     }
     if (this.isSessionExpired(invite)) {
@@ -294,7 +296,7 @@ export class CoopService {
       throw new NotFoundException('Co-op invite not found.');
     }
     if (invite.inviterId !== uid && invite.inviteeId !== uid) {
-      throw new ForbiddenException('This invite isn\'t for you.');
+      throw new ForbiddenException("This invite isn't for you.");
     }
     return invite;
   }
@@ -306,7 +308,7 @@ export class CoopService {
       throw new NotFoundException('Co-op invite not found.');
     }
     if (invite.inviteeId !== uid) {
-      throw new ForbiddenException('This invite isn\'t for you.');
+      throw new ForbiddenException("This invite isn't for you.");
     }
     if (invite.status !== 'PENDING') {
       throw new BadRequestException('This invite has already been handled.');
@@ -404,7 +406,7 @@ export class CoopService {
   private async downloadImage(url: string): Promise<Buffer> {
     const res = await fetch(url);
     if (!res.ok) {
-      throw new BadRequestException('Couldn\'t download the photos to merge.');
+      throw new BadRequestException("Couldn't download the photos to merge.");
     }
     return Buffer.from(await res.arrayBuffer());
   }

@@ -16,7 +16,9 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
  *                        kiem tra idempotent: so du chi duoc tang DUNG 1 lan.
  */
 export class SimulateTopupDto {
-  @ApiPropertyOptional({ description: 'Create a simulated order from this package and pay it immediately' })
+  @ApiPropertyOptional({
+    description: 'Create a simulated order from this package and pay it immediately',
+  })
   @IsOptional()
   @IsString()
   packageId?: string;

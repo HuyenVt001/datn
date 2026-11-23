@@ -12,7 +12,7 @@ import {
 
 /** Admin them goi nap moi. */
 export class CreateTopupPackageDto {
-  @ApiProperty({ description: 'Package name shown in the app\'s top-up popup', maxLength: 60 })
+  @ApiProperty({ description: "Package name shown in the app's top-up popup", maxLength: 60 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(60)
@@ -33,7 +33,10 @@ export class CreateTopupPackageDto {
   @Min(1000, { message: 'Package price must be at least 1,000 VND (PayOS limit).' })
   priceVnd!: number;
 
-  @ApiPropertyOptional({ description: 'Off = hidden from the top-up popup (default on)', default: true })
+  @ApiPropertyOptional({
+    description: 'Off = hidden from the top-up popup (default on)',
+    default: true,
+  })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

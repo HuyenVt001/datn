@@ -281,7 +281,9 @@ export class QuestsService {
           );
         }
       } catch (e) {
-        this.logger.warn(`LLM quest generation for ${date} failed: ${(e as Error).message} — using fallback`);
+        this.logger.warn(
+          `LLM quest generation for ${date} failed: ${(e as Error).message} — using fallback`,
+        );
       }
     }
 

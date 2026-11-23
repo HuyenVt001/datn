@@ -58,7 +58,9 @@ describe('AiService', () => {
 
     it('Space returns non-2xx -> throws with status (does not leak key)', async () => {
       fetchMock.mockResolvedValue({ ok: false, status: 503, json: () => Promise.resolve({}) });
-      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow('/verify returned 503');
+      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow(
+        '/verify returned 503',
+      );
     });
 
     it('timeout (AbortError) -> throws "timeout"', async () => {
@@ -88,13 +90,13 @@ describe('AiService', () => {
   });
 
   describe('toVerifyImageUrl', () => {
-    it('inserts the 224 transform into a Cloudinary URL without one', () => {
+    it('inserts the 640 c_limit transform (keeps aspect ratio, no crop) into a Cloudinary URL without one', () => {
       expect(
         AiService.toVerifyImageUrl(
           'https://res.cloudinary.com/demo/image/upload/v1712/snapget/abc.jpg',
         ),
       ).toBe(
-        'https://res.cloudinary.com/demo/image/upload/w_224,h_224,c_fill,f_jpg,q_auto/v1712/snapget/abc.jpg',
+        'https://res.cloudinary.com/demo/image/upload/w_640,h_640,c_limit,f_jpg,q_auto/v1712/snapget/abc.jpg',
       );
     });
 

@@ -66,7 +66,7 @@ describe('FriendshipsService', () => {
   });
 
   describe('getInviteInfo', () => {
-    it('returns the inviter\'s public profile + link expiry', async () => {
+    it("returns the inviter's public profile + link expiry", async () => {
       users.findByInviteCode.mockResolvedValue(validInviter() as never);
       users.getPublicProfile.mockResolvedValue({
         uid: 'friend',

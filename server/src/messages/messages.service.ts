@@ -54,7 +54,7 @@ export class MessagesService {
   private async sendDirect(authUser: AuthUser, dto: SendMessageDto): Promise<Message> {
     const receiverId = dto.receiverId as string;
     if (receiverId === authUser.uid) {
-      throw new BadRequestException('You can\'t message yourself.');
+      throw new BadRequestException("You can't message yourself.");
     }
     const pair = await this.friendshipsRepo.findPair(authUser.uid, receiverId);
     if (!pair || pair.status !== 'ACCEPTED') {
@@ -198,7 +198,7 @@ export class MessagesService {
     if (message.groupId) {
       const group = await this.repo.findGroup(message.groupId);
       if (!group || !group.memberIds.includes(uid)) {
-        throw new ForbiddenException('You\'re not a member of this group.');
+        throw new ForbiddenException("You're not a member of this group.");
       }
     } else if (message.senderId !== uid && message.receiverId !== uid) {
       throw new ForbiddenException('Only conversation members can react.');
@@ -359,7 +359,7 @@ export class MessagesService {
       throw new NotFoundException('Group chat not found.');
     }
     if (!group.memberIds.includes(uid)) {
-      throw new ForbiddenException('You\'re not a member of this group.');
+      throw new ForbiddenException("You're not a member of this group.");
     }
     return group;
   }

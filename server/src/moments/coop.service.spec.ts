@@ -119,7 +119,7 @@ describe('CoopService', () => {
       expect(result.expiresAt).toBeDefined();
     });
 
-    it('invite push includes the inviter\'s NAME', async () => {
+    it("invite push includes the inviter's NAME", async () => {
       repo.create.mockResolvedValue(pendingInvite as never);
       usersRepo.findByUid.mockResolvedValue({ uid: 'alice', fullName: 'Alice' } as never);
 
@@ -222,7 +222,7 @@ describe('CoopService', () => {
       expect(repo.transition).toHaveBeenCalledWith('i1', 'ACCEPTED', 'EXPIRED');
     });
 
-    it('unexpired ACCEPTED session -> includes the session\'s remainingSeconds', async () => {
+    it("unexpired ACCEPTED session -> includes the session's remainingSeconds", async () => {
       repo.findById.mockResolvedValue(acceptedInvite as never);
 
       const result = await service.getInvite('alice', 'i1');
@@ -353,7 +353,7 @@ describe('CoopService', () => {
           service as unknown as { mergeSideBySide(l: string, r: string): Promise<Buffer> },
           'mergeSideBySide',
         )
-        .mockRejectedValue(new BadRequestException('Couldn\'t download the photos to merge.'));
+        .mockRejectedValue(new BadRequestException("Couldn't download the photos to merge."));
 
       await expect(service.submitMedia('bob', 'i1', dto)).rejects.toThrow(BadRequestException);
       // Revert qua TRANSITION co khoa, khong update tran

@@ -76,7 +76,7 @@ describe('MessagesService', () => {
       expect(result.messageId).toBe('msg1');
     });
 
-    it('blocks sending to a group you\'re not in', async () => {
+    it("blocks sending to a group you're not in", async () => {
       repo.findGroup.mockResolvedValue({ groupId: 'g', memberIds: ['a', 'b'] } as never);
       await expect(service.send(me, textDto({ groupId: 'g' }))).rejects.toThrow(ForbiddenException);
     });
@@ -182,7 +182,7 @@ describe('MessagesService', () => {
       await expect(service.getGroupDetail('outsider', 'g')).rejects.toThrow(ForbiddenException);
     });
 
-    it('getGroupDetail: returns group + each member\'s public profile', async () => {
+    it("getGroupDetail: returns group + each member's public profile", async () => {
       usersService.getPublicProfile.mockImplementation(
         async (uid: string) => ({ uid, fullName: `name-${uid}` }) as never,
       );
@@ -204,7 +204,7 @@ describe('MessagesService', () => {
       await expect(service.updateGroup('me', 'g', {})).rejects.toThrow(BadRequestException);
     });
 
-    it('addMembers: can only add the inviter\'s FRIENDS', async () => {
+    it("addMembers: can only add the inviter's FRIENDS", async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([
         { userIds: ['me', 'friend'], status: 'ACCEPTED' },
       ] as never);

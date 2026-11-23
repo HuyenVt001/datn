@@ -93,7 +93,7 @@ export class ShopController {
   @Roles('admin')
   @ApiOperation({
     summary: '[Admin] System-wide purchase history (filter by user / type / date)',
-    description: 'Filters run in memory — at this project\'s scale, no composite index is needed.',
+    description: "Filters run in memory — at this project's scale, no composite index is needed.",
   })
   listPurchasesAsAdmin(@Query() query: AdminPurchasesDto) {
     return this.shopService.listAllPurchases(query);

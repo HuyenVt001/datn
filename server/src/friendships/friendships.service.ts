@@ -62,7 +62,7 @@ export class FriendshipsService {
   async connect(currentUid: string, inviteCode: string): Promise<Friendship> {
     const { inviter } = await this.resolveInviter(inviteCode);
     if (inviter.uid === currentUid) {
-      throw new BadRequestException('You can\'t add yourself as a friend.');
+      throw new BadRequestException("You can't add yourself as a friend.");
     }
 
     const result = await this.repo.createPendingRequest(currentUid, inviter.uid, MAX_FRIENDS);
@@ -86,7 +86,7 @@ export class FriendshipsService {
         await this.unlockFriendCountFrames(currentUid, inviter.uid);
         return result.friendship;
       case 'ALREADY_FRIENDS':
-        throw new BadRequestException('You\'re already friends.');
+        throw new BadRequestException("You're already friends.");
       case 'ALREADY_REQUESTED':
         throw new BadRequestException('You already sent a request — waiting for acceptance.');
       case 'LIMIT_REQUESTER':
@@ -157,7 +157,9 @@ export class FriendshipsService {
         const count = (await this.repo.listAccepted(uid)).length;
         await this.framesService.unlockByThreshold(uid, 'FRIEND_COUNT', count);
       } catch (e) {
-        this.logger.warn(`Failed to unlock friend-count frames for ${uid}: ${(e as Error).message}`);
+        this.logger.warn(
+          `Failed to unlock friend-count frames for ${uid}: ${(e as Error).message}`,
+        );
       }
     }
   }
@@ -199,7 +201,7 @@ export class FriendshipsService {
   async removeFriend(currentUid: string, friendUid: string): Promise<void> {
     const existing = await this.repo.findPair(currentUid, friendUid);
     if (!existing) {
-      throw new NotFoundException('You\'re not friends.');
+      throw new NotFoundException("You're not friends.");
     }
     await this.repo.delete(currentUid, friendUid);
   }

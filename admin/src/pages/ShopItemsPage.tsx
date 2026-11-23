@@ -338,12 +338,7 @@ export function ShopItemsPage() {
           List item
         </Button>
       </Space>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 820 }}>
-        Users buy with Astrite on the app&apos;s Shop screen. <b>Frames are listed automatically</b> when
-        their unlock condition is &quot;Sold in Shop&quot; on the Frames page (default price 320 ⭐ — edit
-        the price here). Skins and touch effects ship with the app and are listed by id. Astrite top-up
-        packages are managed on the <b>Top-up packages</b> page.
-      </Typography.Paragraph>
+
       {error && (
         <Alert
           type="error"

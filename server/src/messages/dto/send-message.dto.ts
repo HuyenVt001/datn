@@ -28,7 +28,7 @@ export class SendMessageDto {
   content!: string;
 
   @ApiPropertyOptional({
-    description: 'Attached media URL (post replies carry the post\'s photo/video)',
+    description: "Attached media URL (post replies carry the post's photo/video)",
     maxLength: 2000,
   })
   @IsOptional()

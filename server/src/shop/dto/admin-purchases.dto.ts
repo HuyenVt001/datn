@@ -15,7 +15,10 @@ export class AdminPurchasesDto {
   @IsIn(ITEM_TYPES)
   itemType?: ItemType;
 
-  @ApiPropertyOptional({ description: 'Filter by UTC date, format YYYY-MM-DD', example: '2026-11-15' })
+  @ApiPropertyOptional({
+    description: 'Filter by UTC date, format YYYY-MM-DD',
+    example: '2026-11-15',
+  })
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' })
   date?: string;

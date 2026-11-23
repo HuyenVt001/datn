@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Bản đồ **sống** của server: đọc trước khi sửa. Luật/quy ước đầy đủ ở `.claude/CLAUDE.md`. File này = "đang có gì, ở đâu, làm tới đâu".
-> Cập nhật lần cuối: **2026-11-15**.
+> Cập nhật lần cuối: **2026-11-23**.
 
 ---
 
@@ -93,7 +93,7 @@ helmet (security headers, CSP off cho Swagger)
 | `messages` | Chat 1-1 (chỉ bạn bè) + nhóm ≤20, reaction (toggle emoji), **reply tin nhắn (snapshot tin gốc)**, attachment (reply bài đăng), conversations, markSeen | users, friendships |
 | `frames` | Catalog khung + 6 điều kiện mở khóa `unlockType`; hook tự mở đặt trong moments/friendships/coop; CRUD + grant + owners cho admin; **(2026-11-15)** tự đồng bộ Shop khi CRUD khung (SHOP ⇒ có mặt hàng trong `shopItems`, khác/xóa ⇒ gỡ khỏi Shop) | users, audit, shop (forwardRef) |
 | `quests` | **3 quest/ngày (2026-08-15)**: 2 quest cố định (LOGIN + POST_MOMENT) lazy tạo, tự hoàn thành, xong 2/2 = **+60 Astrite** (giữ nguyên) + **quest AI `AI_CHALLENGE`** ("Chụp một chiếc cốc"): nội dung do LLM trên HF Space viết (cron `POST /quests/ai/generate`) hoặc template fallback; hoàn thành khi ảnh user đăng lên feed được model AI xác minh có chứa `targetClass` → **+30 Astrite riêng**; log mọi lần verify vào `aiVerifications`; mốc streak 3/7/14/30 vẫn thưởng khung | astrite, frames, **ai** |
-| `ai` | **(2026-08-15, sửa 2026-08-16)** `AiService` = HTTP client DUY NHẤT gọi AI service (FastAPI + ONNX trên **Google Cloud Run**, code ở `ml/ai-service/`): `verify(imageUrl, targetClass)` timeout 3s · `health()` · `generate(avoid)` (điểm cắm LLM — hiện service tắt, trả 503 → bộ mẫu); auth `X-API-Key`; `toVerifyImageUrl()` chèn transform Cloudinary `w_224,h_224,c_fill`. Không controller, không repository. Thiếu env → `enabled=false`, không verify (quest AI vẫn hiện, không tick) | config |
+| `ai` | **(2026-08-15, sửa 2026-08-16)** `AiService` = HTTP client DUY NHẤT gọi AI service (FastAPI + ONNX trên **Google Cloud Run**, code ở `ml/ai-service/`): `verify(imageUrl, targetClass)` timeout 3s · `health()` · `generate(avoid)` (điểm cắm LLM — hiện service tắt, trả 503 → bộ mẫu); auth `X-API-Key`; `toVerifyImageUrl()` chèn transform Cloudinary `w_640,h_640,c_limit` (giữ tỉ lệ, không cắt — từ 2026-11-23 cho model YOLO y1; trước là `w_224,h_224,c_fill`). Không controller, không repository. Thiếu env → `enabled=false`, không verify (quest AI vẫn hiện, không tick) | config |
 | `astrite` | **(2026-08-05)** Ví Astrite: `credit`/`debit`/`grantSignupBonusOnce` — MỌI thay đổi số dư đi qua đây để sổ cái luôn khớp | firebase |
 | `shop` | **(2026-11-15 — thay `gacha`)** Cửa hàng mua đứt bằng Astrite: catalog `shopItems` (FRAME/SKIN/EFFECT, giá do admin đặt) + `POST /shop/buy` (trừ tiền + mở khóa + `shopPurchases` + sổ cái `SHOP_PURCHASE` trong 1 transaction); admin CRUD/grant/owners/lịch sử mua | astrite, auth, frames (forwardRef), users, audit |
 | `topup` | **(2026-08-05 — G6)** Nạp Astrite bằng **tiền thật** qua PayOS: `topupPackages` (admin CRUD) · tạo đơn + link thanh toán · **webhook verify chữ ký + idempotent theo `orderCode`** · `/topup/simulate` chỉ chạy ở dev · lịch sử + doanh thu cho admin. `PayosService` là nơi DUY NHẤT gọi SDK `@payos/node` | astrite, auth, users, audit |
@@ -213,7 +213,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | messages | ✅ | chỉ-bạn-bè, nhóm ≤20 (chỉ thêm bạn bè — cả lúc tạo lẫn lúc mời thêm), seen, reaction toggle, reply cùng-hội-thoại, quản lý nhóm (rename/avatar/mời/xóa — chỉ creator/rời/mute) | ✅ | ✅ |
 | frames | ✅ | 6 unlockType + hook tự mở ở moments/friendships/coop | ✅ | ✅ |
 | quests | ✅ | 2 quest/ngày lazy; **(G2)** thưởng 2/2 = +60 Astrite (claim atomic 1 lần/ngày; cộng tiền fail → trả lại claim, cộng xong → GIỮ claim để không cộng 2 lần); mốc streak = khung. **(2026-08-15 — AI)** quest thứ 3 `AI_CHALLENGE`: sinh idempotent (create atomic, không ghi đè), fallback template seed theo ngày tránh lặp 3 ngày; verify chỉ PHOTO + chưa xong; MATCHED → complete atomic + **+30 Astrite** (`AI_QUEST_REWARD`), cộng fail → xoá doc quest để thử lại; Space lỗi → SKIPPED; LLM trả rác → fallback | ✅ 33 test | ✅ |
-| **ai** | ✅ | **(2026-08-15)** fail-safe env (`enabled`), fetch + AbortController timeout, không log key, transform URL Cloudinary 224 | ✅ 9 test | ✅ |
+| **ai** | ✅ | **(2026-08-15)** fail-safe env (`enabled`), fetch + AbortController timeout, không log key, transform URL Cloudinary 640 `c_limit` (2026-11-23) | ✅ 9 test | ✅ |
 | admin | ✅ | chặn tự khóa/tự thu quyền (luôn ≥1 admin), guard re-check mỗi request, khóa = revoke refresh token, audit log | ✅ | ✅ |
 | upload | ✅ | ≤25MB, ảnh GIF ≤3s enforce | ⬜ | ✅ |
 | audit | ✅ | ghi best-effort, không chặn hành động chính | — | ✅ |
@@ -312,7 +312,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | GET | `/api/admin/moments` | [Admin] Bài đăng mới nhất (kiểm duyệt, kèm tên tác giả) | Admin JWT |
 | DELETE | `/api/admin/moments/:id` | [Admin] Xóa bài vi phạm (kèm subcollection; ghi audit log) | Admin JWT |
 | GET | `/api/admin/logs` | [Admin] Audit log hành động admin (`?page&limit`) | Admin JWT |
-| GET | `/api/admin/ai-verifications` | **(2026-08-16)** Log AI xác minh ảnh quest (mới nhất trước) — thumbnail 224, điểm 12 lớp, ngưỡng, model, latency; lọc `outcome`/`date`/`uid`; phân trang trong bộ nhớ (quét ≤500 log). `GET /admin/stats` thêm `aiVerificationsToday`, `aiMatchedToday` | Admin JWT |
+| GET | `/api/admin/ai-verifications` | **(2026-08-16)** Log AI xác minh ảnh quest (mới nhất trước) — thumbnail (ảnh đã gửi AI: 640 giữ tỉ lệ; log trước 2026-11-23: 224 cắt vuông), điểm 12 lớp, ngưỡng, model, latency; lọc `outcome`/`date`/`uid`; phân trang trong bộ nhớ (quét ≤500 log). `GET /admin/stats` thêm `aiVerificationsToday`, `aiMatchedToday` | Admin JWT |
 
 Swagger: `http://localhost:3000/docs`.
 
@@ -360,6 +360,7 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-11-23 — AI quest: ảnh verify giữ nguyên khung cho model YOLO y1**: `AiService.toVerifyImageUrl` đổi `w_224,h_224,c_fill` → **`w_640,h_640,c_limit,f_jpg,q_auto`** — ảnh dọc không còn bị cắt vuông mất ~25% trên/dưới (1 trong 3 nguyên nhân model v0 nhận diện kém, `QUEST_AI_PLAN.md` mục 2). Contract AI service không đổi (thêm `box?` trong `/verify`, `arch` trong `/health` — server bỏ qua). `AI_QUEST_CLASSES` **giữ 9 lớp** tới khi có số liệu y1 trên ảnh thật (`ml/scripts/15_select_classes.py`). Spec cập nhật URL kỳ vọng (`ai.service.spec.ts`, `quests.service.spec.ts`). Cùng đợt `npm run lint` (có `--fix`) tự format lại ~35 file (chỉ xuống dòng/nháy — không đổi logic). **265 test / 13 suite** pass.
 - **2026-11-16 — Co-op: đếm ngược + chống spam + hạn phiên + vá SSRF**: (1) response coop kèm `expiresAt`/`remainingSeconds` (`CoopService.present`, không lưu DB) — **contract thêm field, an toàn với APK cũ**. (2) `createInvite` chống gửi lặp: lời mời PENDING còn hạn cùng cặp → trả lời mời cũ (repo `listPendingBetween`, 3 điều kiện equality → không cần composite index); push lời mời kèm **tên người mời**. (3) Phiên ACCEPTED hạn **10 phút** (`COOP_SESSION_TTL_MINUTES`, tính từ `respondedAt`) — `getInvite`/`submitMedia` chuyển EXPIRED qua transition. (4) Người mời hủy lời mời PENDING → push **data-only** `COOP_CANCELLED` qua helper mới `UsersService.pushDataToUids`. (5) `listPendingForInvitee` lọc `status==PENDING` ngay trên query (trước đọc toàn bộ lịch sử). (6) Ghép lỗi revert bằng `transition('COMPLETED','ACCEPTED')` thay update trần. (7) **SSRF**: `submitMedia` chỉ nhận URL `https` host `res.cloudinary.com` (`COOP_MEDIA_ALLOWED_HOSTS`) — SECURITY.md P13 xong. Test coop 22 → **30**, suite moments 52 pass. App sync cùng đợt.
 - **2026-11-15 — Toàn bộ push FCM viết tiếng Anh** (khớp UI app): tin nhắn (`MessagesService.pushTo` — fallback "New message", preview "🎤 Voice message" / "Sent a sticker" / "📷 Photo"), co-op (`CoopService` — "Co-op capture invite 📸" / "Co-op invite accepted 🎉" / "Co-op capture complete 🎉"), moment mới (`MomentsService.notifyFriends` — "X just posted a new moment!"). `data.type` không đổi; message lỗi API + log vẫn tiếng Việt.
 

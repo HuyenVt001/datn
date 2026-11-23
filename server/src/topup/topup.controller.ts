@@ -157,7 +157,7 @@ export class TopupController {
   @Roles('admin')
   @ApiOperation({
     summary: '[Admin] System-wide top-up history + revenue stats',
-    description: 'Filters run in memory — at this project\'s scale, no composite index is needed.',
+    description: "Filters run in memory — at this project's scale, no composite index is needed.",
   })
   listOrdersAsAdmin(@Query() query: AdminTopupsDto) {
     return this.topupService.listAllOrders(query);
@@ -183,7 +183,8 @@ export class TopupController {
   @Roles('admin')
   @ApiOperation({
     summary: '[Admin] Edit a top-up package',
-    description: 'Existing orders keep their own price and Astrite — edits here are not retroactive.',
+    description:
+      'Existing orders keep their own price and Astrite — edits here are not retroactive.',
   })
   async updatePackage(
     @CurrentUser() actor: AuthUser,
@@ -201,7 +202,8 @@ export class TopupController {
   @Roles('admin')
   @ApiOperation({
     summary: '[Admin] Delete a top-up package',
-    description: 'Old order history is kept. To hide it from the app temporarily, use isActive=false.',
+    description:
+      'Old order history is kept. To hide it from the app temporarily, use isActive=false.',
   })
   async deletePackage(@CurrentUser() actor: AuthUser, @Param('id') packageId: string) {
     const pkg = await this.topupService.deletePackage(packageId);

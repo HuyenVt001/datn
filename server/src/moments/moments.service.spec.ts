@@ -245,7 +245,7 @@ describe('MomentsService', () => {
       expect(repo.addReaction).not.toHaveBeenCalled();
     });
 
-    it('a friend of the CO-OP PARTNER (not the author\'s friend) can still interact', async () => {
+    it("a friend of the CO-OP PARTNER (not the author's friend) can still interact", async () => {
       repo.findById.mockResolvedValue({
         momentId: 'm1',
         userId: 'author',
@@ -269,7 +269,7 @@ describe('MomentsService', () => {
   });
 
   describe('getFeed', () => {
-    it('merges your moments + friends\' and paginates', async () => {
+    it("merges your moments + friends' and paginates", async () => {
       friendshipsRepo.listAccepted.mockResolvedValue([{ userIds: ['friend', 'me'] }] as never);
       repo.listByUserIds.mockResolvedValue([
         { momentId: 'a', postTime: '2026-07-12' },
@@ -304,7 +304,7 @@ describe('MomentsService', () => {
       );
     });
 
-    it('friends can view each other\'s moments', async () => {
+    it("friends can view each other's moments", async () => {
       friendshipsRepo.findPair.mockResolvedValue({ status: 'ACCEPTED' } as never);
       repo.listByUserIds.mockResolvedValue([{ momentId: 'a', userId: 'friend' }] as never);
 

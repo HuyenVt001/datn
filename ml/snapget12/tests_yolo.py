@@ -1,0 +1,131 @@
+"""pytest snapget12/tests_yolo.py — tien ich YOLO y1 + metrics chon lop (khong can torch)."""
+import numpy as np
+import pytest
+from PIL import Image
+
+from snapget12.classes import CLASSES
+from snapget12.metrics import evaluate, image_confusion, select_quest_classes
+from snapget12.yolo import (
+    best_box,
+    dhash,
+    image_scores_from_raw,
+    label_path_for,
+    letterbox,
+    map_class,
+    multi_hot,
+    near_duplicates,
+    norm_name,
+    portrait_crop_boxes,
+    validate_boxes,
+)
+
+
+def test_letterbox_portrait_matches_ultralytics_geometry():
+    # anh doc 300x400 -> scale 1.6 -> 480x640, pad ngang 80 moi ben
+    x, info = letterbox(Image.new("RGB", (300, 400), (255, 0, 0)), 640)
+    assert x.shape == (1, 3, 640, 640) and x.dtype == np.float32
+    assert info["pad"] == (80, 0) and abs(info["ratio"] - 1.6) < 1e-9
+    assert np.allclose(x[0, :, 320, 0], 114 / 255)  # vung pad
+    assert np.allclose(x[0, :, 320, 320], [1.0, 0.0, 0.0])  # RGB, khong mean/std
+
+
+def test_image_scores_and_best_box_back_to_original():
+    num = len(CLASSES)
+    raw = np.zeros((1, 4 + num, 10), dtype=np.float32)
+    raw[0, 4 + 0, 3] = 0.9  # cup cao nhat o anchor 3
+    raw[0, 4 + 0, 7] = 0.4
+    raw[0, :4, 3] = [320, 320, 160, 320]  # cx, cy, w, h tren anh letterbox
+    s = image_scores_from_raw(raw)
+    assert s.shape == (1, num) and abs(s[0, 0] - 0.9) < 1e-6 and s[0, 1] == 0
+    _, info = letterbox(Image.new("RGB", (300, 400)), 640)
+    box = best_box(raw, 0, info)
+    # x: (240-80)/1.6=100 -> /300 ; (400-80)/1.6=200 -> /300 ; y: 160/1.6=100 -> /400 ; 480/1.6=300 -> /400
+    assert box == pytest.approx([1 / 3, 0.25, 2 / 3, 0.75], abs=1e-3)
+    with pytest.raises(ValueError):
+        image_scores_from_raw(np.zeros((1, 10, 5)))
+
+
+def test_label_path_and_multi_hot_and_validate():
+    assert str(label_path_for("/a/images/train/x.jpg")).replace("\\", "/") == "/a/labels/train/x.txt"
+    y = multi_hot([(0, .5, .5, .1, .1), (11, .5, .5, .1, .1), (0, .2, .2, .1, .1)])
+    assert y.tolist() == [1] + [0] * 10 + [1]
+    assert validate_boxes([(0, .5, .5, .2, .2)]) == []
+    assert len(validate_boxes([(12, .5, .5, .2, .2), (0, 1.2, .5, .2, 0)])) == 2
+
+
+def test_portrait_crop_keeps_and_drops_boxes():
+    # anh 800x600 -> khung doc rong 450; cat tu x=100 -> [100, 550]
+    boxes = [(0, 300 / 800, 0.5, 100 / 800, 0.2),   # [250,350] nam tron -> giu
+             (1, 750 / 800, 0.5, 100 / 800, 0.2),   # [700,800] ngoai -> bo
+             (2, 560 / 800, 0.5, 100 / 800, 0.2)]   # [510,610] con 40/100 = 0.4 -> giu (bien)
+    out, crop_w = portrait_crop_boxes(boxes, 800, 600, 100)
+    assert crop_w == 450
+    assert [b[0] for b in out] == [0, 2]
+    assert out[0][1] == pytest.approx((300 - 100) / 450) and out[0][3] == pytest.approx(100 / 450)
+
+
+def test_class_map_normalization():
+    cmap = {norm_name("Coffee_Cup"): "cup", "motorbike": "motorcycle", "person": None, **{c: c for c in CLASSES}}
+    assert map_class("coffee-cup", cmap) == CLASSES.index("cup")
+    assert map_class("Motorbike", cmap) == CLASSES.index("motorcycle")
+    assert map_class("person", cmap) is None and map_class("unknown", cmap) is None
+
+
+def test_dhash_near_duplicates():
+    rng = np.random.default_rng(0)
+    base = Image.fromarray((rng.random((64, 64, 3)) * 255).astype(np.uint8))
+    other = Image.fromarray((rng.random((64, 64, 3)) * 255).astype(np.uint8))
+    h = np.array([dhash(base), dhash(base.resize((128, 128))), dhash(other)], dtype=np.uint64)
+    hits = near_duplicates(h[[1, 2]], h[[0]], max_dist=5)
+    assert hits.tolist() == [0]
+
+
+def _toy(n=400, seed=1):
+    rng = np.random.default_rng(seed)
+    y = (rng.random((n, len(CLASSES))) < 0.2).astype(int)
+    s = np.clip(y * 0.7 + rng.normal(0.15, 0.08, size=y.shape), 0, 1)
+    s[:, 3] = np.clip(y[:, 3] * 0.2 + rng.normal(0.4, 0.2, size=n), 0, 1)  # chair: gan nhu ngau nhien
+    return y, s
+
+
+def test_image_confusion_and_selection():
+    y, s = _toy()
+    thr = {c: 0.5 for c in CLASSES}
+    rep = evaluate(y, s, thr)
+    assert rep["perClass"]["cup"]["falseRejectRate"] is not None
+    conf = image_confusion(y, s, thr)
+    assert conf["rows"][-1] == "negative" and set(conf["cols"]) == set(CLASSES)
+    assert conf["matrix"]["cup"]["cup"] == rep["perClass"]["cup"]["recall"]
+    sel = select_quest_classes(rep, conf, det_per_class={"cup": {"ap50": 0.9, "ap50_95": 0.6}},
+                               criteria={"minSupport": 5})
+    assert "chair" not in sel["selected"] and "cup" in sel["selected"]
+    assert sel["perClass"]["cup"]["checks"]["detAP50"] is True
+    assert sel["perClass"]["bottle"]["checks"]["detAP50"] is None  # thieu so lieu detection -> khong tinh truot
+    assert sel["fallbackUsed"] is False
+
+
+def test_selection_fallback_to_top_f1():
+    y, s = _toy()
+    thr = {c: 0.5 for c in CLASSES}
+    rep = evaluate(y, s, thr)
+    sel = select_quest_classes(rep, image_confusion(y, s, thr), criteria={"minF1": 1.01, "minClasses": 4})
+    assert sel["fallbackUsed"] is True and len(sel["selected"]) == 4 and "chair" not in sel["selected"]
+
+
+def test_clean_stem_strips_roboflow_suffix():
+    from snapget12.yolo import clean_stem
+
+    assert clean_stem("self_cup_0001_jpg.rf.ab12CD34.jpg") == "self_cup_0001"
+    assert clean_stem("gg_potted_plant_0042_png.rf.0f9e.png") == "gg_potted_plant_0042"
+    assert clean_stem("self_cup_0001.jpg") == "self_cup_0001"
+
+
+def test_find_names_prefers_shallowest_file(tmp_path):
+    from snapget12.yolo import find_names
+
+    (tmp_path / "review").mkdir()
+    (tmp_path / "review" / "data.yaml").write_text("names: [cup, bottle]")
+    (tmp_path / "classes.txt").write_text("bottle\ncup\n")
+    assert find_names(tmp_path) == ["bottle", "cup"]
+    (tmp_path / "data.yaml").write_text("names: {0: chair, 1: cup}")
+    assert find_names(tmp_path) == ["chair", "cup"]  # cung do sau: data.yaml uu tien hon classes.txt

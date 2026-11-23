@@ -18,7 +18,7 @@ export class MomentsController {
   @ApiOperation({
     summary: 'Post a moment (photo/video). Increases personal streak + notifies friends via FCM',
     description:
-      'Response = the new moment. If the server has AI on, the moment is a PHOTO and the user hasn\'t finished today\'s AI quest:' +
+      "Response = the new moment. If the server has AI on, the moment is a PHOTO and the user hasn't finished today's AI quest:" +
       'adds field `aiQuest: { result: MATCHED | NOT_MATCHED | SKIPPED, score?, questContent? }` —' +
       'MATCHED = AI quest auto-completed + 30 Astrite credited; NOT_MATCHED = post still published, quest not done;' +
       'SKIPPED = AI error/timeout, posting unaffected. (2026-08-15)',
@@ -29,7 +29,7 @@ export class MomentsController {
   }
 
   @Get('feed')
-  @ApiOperation({ summary: 'Feed: your moments + friends\' (newest first, paginated)' })
+  @ApiOperation({ summary: "Feed: your moments + friends' (newest first, paginated)" })
   getFeed(@CurrentUser() user: AuthUser, @Query() pagination: PaginationDto) {
     return this.momentsService.getFeed(user.uid, pagination);
   }
@@ -41,7 +41,7 @@ export class MomentsController {
   }
 
   @Get('user/:uid')
-  @ApiOperation({ summary: 'A user\'s moments — only friends (or yourself) can view' })
+  @ApiOperation({ summary: "A user's moments — only friends (or yourself) can view" })
   listOfUser(
     @CurrentUser() user: AuthUser,
     @Param('uid') uid: string,
@@ -65,13 +65,15 @@ export class MomentsController {
   }
 
   @Post(':id/reactions')
-  @ApiOperation({ summary: 'React to a moment with an emoji (updates friend streak with the owner)' })
+  @ApiOperation({
+    summary: 'React to a moment with an emoji (updates friend streak with the owner)',
+  })
   react(@CurrentUser() user: AuthUser, @Param('id') momentId: string, @Body() dto: ReactDto) {
     return this.momentsService.react(momentId, user.uid, dto.emojiType);
   }
 
   @Get(':id/reactions')
-  @ApiOperation({ summary: 'A moment\'s reactions (only people who can see the post)' })
+  @ApiOperation({ summary: "A moment's reactions (only people who can see the post)" })
   listReactions(@CurrentUser() user: AuthUser, @Param('id') momentId: string) {
     return this.momentsService.listReactions(momentId, user.uid);
   }

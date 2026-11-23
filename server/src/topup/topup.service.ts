@@ -151,7 +151,7 @@ export class TopupService {
     }
     if (order.uid !== uid) {
       // Ma don la so doan duoc -> phai chan doc don cua nguoi khac.
-      throw new ForbiddenException('This top-up order isn\'t yours.');
+      throw new ForbiddenException("This top-up order isn't yours.");
     }
     return order;
   }
@@ -301,9 +301,7 @@ export class TopupService {
     let orderCode = dto.orderCode;
     if (!orderCode) {
       if (!dto.packageId) {
-        throw new BadRequestException(
-          'Provide packageId (new order) or orderCode (replay).',
-        );
+        throw new BadRequestException('Provide packageId (new order) or orderCode (replay).');
       }
       const pkg = await this.requirePackage(dto.packageId);
       const order = await this.insertOrder(uid, pkg, { isSimulated: true });
@@ -396,7 +394,7 @@ export class TopupService {
         return order;
       }
     }
-    throw new BadRequestException('Couldn\'t create the top-up order, please try again.');
+    throw new BadRequestException("Couldn't create the top-up order, please try again.");
   }
 
   /**
@@ -415,9 +413,7 @@ export class TopupService {
     for (const order of stale) {
       await this.repo
         .expireOrderIfPending(order.orderCode)
-        .catch((e) =>
-          this.logger.warn(`Failed to mark order ${order.orderCode}: ${describe(e)}`),
-        );
+        .catch((e) => this.logger.warn(`Failed to mark order ${order.orderCode}: ${describe(e)}`));
     }
   }
 }

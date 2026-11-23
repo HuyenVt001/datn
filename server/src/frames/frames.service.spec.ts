@@ -30,7 +30,7 @@ describe('FramesService', () => {
     service = new FramesService(repo, usersRepo, shopService);
   });
 
-  it('listForUser: sets isUnlocked from the user\'s unlockedFrames; DEFAULT frame is always unlocked', async () => {
+  it("listForUser: sets isUnlocked from the user's unlockedFrames; DEFAULT frame is always unlocked", async () => {
     repo.list.mockResolvedValue([
       { frameId: 'f1', frameName: 'Fire', unlockType: 'SHOP' },
       { frameId: 'f2', frameName: 'Star', unlockType: 'SHOP' },

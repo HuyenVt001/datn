@@ -43,7 +43,7 @@ export class FriendshipsController {
     const friendship = await this.friendshipsService.connect(user.uid, dto.inviteCode);
     const message =
       friendship.status === 'ACCEPTED'
-        ? 'You\'re now friends.'
+        ? "You're now friends."
         : 'Friend request sent — waiting for acceptance.';
     return { message, data: friendship };
   }
@@ -55,7 +55,9 @@ export class FriendshipsController {
   }
 
   @Post('requests/:requesterUid/accept')
-  @ApiOperation({ summary: 'Accept a friend request (re-checks the 20-friend limit on both sides)' })
+  @ApiOperation({
+    summary: 'Accept a friend request (re-checks the 20-friend limit on both sides)',
+  })
   async acceptRequest(@CurrentUser() user: AuthUser, @Param('requesterUid') requesterUid: string) {
     const friendship = await this.friendshipsService.acceptRequest(user.uid, requesterUid);
     return { message: 'Friend request accepted.', data: friendship };

@@ -95,7 +95,7 @@ describe('AdminService', () => {
     );
   });
 
-  it('getStats: combines general stats + today\'s quests + Shop purchase count', async () => {
+  it("getStats: combines general stats + today's quests + Shop purchase count", async () => {
     adminRepo.getStats.mockResolvedValue({ users: 2, moments: 5 } as never);
     questsService.countCompletionsToday.mockResolvedValue(3);
     shopService.getPurchaseCounts.mockResolvedValue({ today: 7, total: 42 });
@@ -108,7 +108,7 @@ describe('AdminService', () => {
     expect(result.shopPurchasesTotal).toBe(42);
   });
 
-  it('getStats: includes today\'s AI verify / match counts (2026-08-16)', async () => {
+  it("getStats: includes today's AI verify / match counts (2026-08-16)", async () => {
     adminRepo.getStats.mockResolvedValue({ users: 1 } as never);
     shopService.getPurchaseCounts.mockResolvedValue({ today: 0, total: 0 });
     questsService.getAiVerificationStatsToday.mockResolvedValue({
@@ -228,7 +228,7 @@ describe('AdminService', () => {
     expect(result).toEqual({ uid: 'u2', admin: true });
   });
 
-  it('revokeAdmin: revokes another user\'s admin rights + writes audit', async () => {
+  it("revokeAdmin: revokes another user's admin rights + writes audit", async () => {
     const result = await service.revokeAdmin(actor('me'), 'u1'); // u1 dang la admin
 
     expect(auth.setCustomUserClaims).toHaveBeenCalledWith('u1', { admin: false });

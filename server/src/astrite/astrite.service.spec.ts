@@ -85,7 +85,7 @@ describe('AstriteService', () => {
 
     it('not enough Astrite -> throws and does NOT write ledger', async () => {
       await expect(service.debit('u1', 501, 'SHOP_PURCHASE')).rejects.toThrow(
-        'You don\'t have enough Astrite.',
+        "You don't have enough Astrite.",
       );
       expect(entries).toHaveLength(0);
       expect(written).toBeUndefined();

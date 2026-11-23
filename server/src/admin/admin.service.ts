@@ -188,7 +188,7 @@ export class AdminService {
     if (remaining === 0) {
       await this.firebase.auth().setCustomUserClaims(uid, { ...user.customClaims, admin: true });
       throw new BadRequestException(
-        'Cannot revoke: the system would have no admins left. This user\'s rights were kept.',
+        "Cannot revoke: the system would have no admins left. This user's rights were kept.",
       );
     }
     await this.audit.log(actor, 'REVOKE_ADMIN', { id: uid, label: user.email ?? uid });

@@ -170,7 +170,7 @@ export class MomentsService {
     if (targetUid !== currentUid) {
       const pair = await this.friendshipsRepo.findPair(currentUid, targetUid);
       if (!pair || pair.status !== 'ACCEPTED') {
-        throw new ForbiddenException('You can only view friends\' moments.');
+        throw new ForbiddenException("You can only view friends' moments.");
       }
     }
     const [own, coop] = await Promise.all([
@@ -257,7 +257,7 @@ export class MomentsService {
         return moment;
       }
     }
-    throw new ForbiddenException('You can only interact with friends\' posts.');
+    throw new ForbiddenException("You can only interact with friends' posts.");
   }
 
   /** Bao ban be "X da dang khoanh khac moi" (helper push chung o UsersService). */

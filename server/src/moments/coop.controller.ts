@@ -47,7 +47,8 @@ export class CoopController {
 
   @Post(':id/media')
   @ApiOperation({
-    summary: 'Submit your half photo (after ACCEPTED) — once both halves are in, the server merges -> mergedMediaUrl',
+    summary:
+      'Submit your half photo (after ACCEPTED) — once both halves are in, the server merges -> mergedMediaUrl',
   })
   async submitMedia(
     @CurrentUser() user: AuthUser,

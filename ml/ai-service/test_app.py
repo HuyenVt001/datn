@@ -100,10 +100,11 @@ def test_verify_matched_and_not(client, monkeypatch):
     r = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "motorcycle"}, headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == {"matched", "score", "threshold", "scores", "modelVersion", "latencyMs"}
+    assert set(body) == {"matched", "score", "threshold", "scores", "modelVersion", "latencyMs", "box"}
     assert len(body["scores"]) == 12
     assert body["threshold"] == 0.9
     assert body["matched"] is True and body["score"] >= 0.9
+    assert body["box"] is None  # classifier khong co box
 
     r = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "cup"}, headers=headers)
     assert r.json()["matched"] is False
@@ -136,3 +137,61 @@ def test_preprocess_shape_and_exif(client):
     _, app_module = client
     x = app_module.verifier.preprocess(_jpeg((10, 20, 30), size=(640, 480)))
     assert x.shape == (1, 3, 224, 224) and x.dtype == np.float32
+
+
+# ---------------------------------------------------------------------------
+# Duong YOLO (arch "yolo" trong model_meta.json) — model gia cua dev_fake_model.py
+# ---------------------------------------------------------------------------
+@pytest.fixture()
+def yolo_verifier(client, tmp_path, monkeypatch):
+    """Doi `verifier` toan cuc sang model YOLO gia trong luc test (route doc bien toan cuc luc goi)."""
+    _, app_module = client
+    import dev_fake_model
+
+    dev_fake_model.build_yolo(tmp_path)
+    v = app_module.Verifier(tmp_path)
+    monkeypatch.setattr(app_module, "verifier", v)
+    return v
+
+
+def test_yolo_meta_and_health(client, yolo_verifier):
+    c, _ = client
+    assert yolo_verifier.arch == "yolo" and yolo_verifier.input_size == 640
+    body = c.get("/health").json()
+    assert body["arch"] == "yolo" and body["modelVersion"] == "fake-dev-yolo" and body["verifierReady"] is True
+
+
+def test_yolo_letterbox_portrait_geometry(client, yolo_verifier):
+    _, app_module = client
+    x, info = app_module.letterbox(Image.new("RGB", (300, 400), (255, 0, 0)), 640)
+    assert x.shape == (1, 3, 640, 640) and x.dtype == np.float32
+    assert info["pad"] == (80, 0)  # anh doc: KHONG cat, pad 2 ben (khac classifier center-crop)
+    assert np.allclose(x[0, :, 320, 0], 114 / 255) and np.allclose(x[0, :, 320, 320], [1.0, 0.0, 0.0])
+    assert yolo_verifier.preprocess(_jpeg(size=(1080, 1920))).shape == (1, 3, 640, 640)
+
+
+def test_yolo_verify_scores_and_box(client, yolo_verifier, monkeypatch):
+    c, app_module = client
+
+    async def fake_fetch(url: str) -> bytes:
+        return _jpeg((255, 255, 255), size=(300, 400)) if "white" in url else _jpeg((0, 0, 0), size=(300, 400))
+
+    monkeypatch.setattr(app_module, "fetch_image", fake_fetch)
+    h = {"X-API-Key": "test-key-123"}
+    body = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "motorcycle"}, headers=h).json()
+    assert body["matched"] is True and body["modelVersion"] == "fake-dev-yolo" and len(body["scores"]) == 12
+    # box gia o giua anh letterbox (320,320,200,200) -> doi ve anh goc 300x400: x (220-80)/1.6/300 ...
+    assert body["box"] == pytest.approx([140 / 1.6 / 300, 220 / 1.6 / 400, 340 / 1.6 / 300, 420 / 1.6 / 400], abs=1e-3)
+    assert c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "cup"}, headers=h).json()["matched"] is False
+    assert c.post("/verify", json={"imageUrl": "https://x/black.jpg", "targetClass": "cup"}, headers=h).json()["matched"] is True
+
+
+def test_unknown_arch_disables_verify(client, tmp_path):
+    _, app_module = client
+    import dev_fake_model
+
+    dev_fake_model.build_yolo(tmp_path)
+    meta = json.loads((tmp_path / "model_meta.json").read_text())
+    meta["arch"] = "segformer"
+    (tmp_path / "model_meta.json").write_text(json.dumps(meta))
+    assert app_module.Verifier(tmp_path).ready is False

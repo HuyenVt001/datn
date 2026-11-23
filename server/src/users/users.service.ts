@@ -99,7 +99,7 @@ export class UsersService {
   async updateProfile(uid: string, dto: UpdateUserDto): Promise<User> {
     // Ngay sinh khong duoc o TUONG LAI (DTO chi validate format yyyy-MM-dd)
     if (dto.birthday !== undefined && dto.birthday > dateKey()) {
-      throw new BadRequestException('Birthday can\'t be in the future.');
+      throw new BadRequestException("Birthday can't be in the future.");
     }
     // Firestore KHONG nhan class instance (ValidationPipe transform tao ra
     // UpdateUserDto co prototype) -> chuyen ve plain object, bo field undefined

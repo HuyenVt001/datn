@@ -250,7 +250,7 @@ export interface AiVerification {
   id: string;
   uid: string;
   momentId: string;
-  /** URL anh DA resize 224 gui cho AI service — dung lam thumbnail. */
+  /** URL anh DA thu nho gui cho AI service (canh dai <= 640, giu ti le; log cu: 224x224) — dung lam thumbnail. */
   mediaUrl?: string;
   /** Ngay quest (YYYY-MM-DD UTC). */
   date: string;

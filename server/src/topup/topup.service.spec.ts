@@ -309,7 +309,7 @@ describe('TopupService', () => {
   });
 
   describe('view order', () => {
-    it('cannot read another user\'s order', async () => {
+    it("cannot read another user's order", async () => {
       putOrder({ uid: 'someone-else' });
 
       await expect(service.getOrderForUser('u1', 111)).rejects.toBeInstanceOf(ForbiddenException);
@@ -357,7 +357,7 @@ describe('TopupService', () => {
       expect(ledger).toHaveLength(1);
     });
 
-    it('cannot credit another user\'s wallet even with a guessed order code', async () => {
+    it("cannot credit another user's wallet even with a guessed order code", async () => {
       putOrder({ uid: 'someone-else' });
 
       await expect(service.simulate('u1', { orderCode: 111 })).rejects.toBeInstanceOf(

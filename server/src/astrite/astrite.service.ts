@@ -52,7 +52,7 @@ export class AstriteService {
     return this.repo.runTransaction(async (tx) => {
       const current = await this.repo.getBalanceInTransaction(tx, uid);
       if (current < amount) {
-        throw new BadRequestException('You don\'t have enough Astrite.');
+        throw new BadRequestException("You don't have enough Astrite.");
       }
       const balance = current - amount;
       this.repo.setBalanceInTransaction(tx, uid, balance);

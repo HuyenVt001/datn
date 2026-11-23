@@ -9,7 +9,7 @@ import { AiQuestClass } from '../../common/constants';
 export interface AiVerification {
   uid: string;
   momentId: string;
-  /** URL anh DA gui cho AI service (Cloudinary 224x224) — de trang admin hien thumbnail, khong can join posts. */
+  /** URL anh DA gui cho AI service (Cloudinary canh dai <= 640, giu ti le; log truoc 2026-11-23 la 224x224) — de trang admin hien thumbnail, khong can join posts. */
   mediaUrl?: string;
   /** Ngay quest (YYYY-MM-DD UTC). */
   date: string;

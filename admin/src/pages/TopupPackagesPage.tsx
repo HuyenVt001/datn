@@ -192,19 +192,6 @@ export function TopupPackagesPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Astrite top-up packages
       </Typography.Title>
-      <Alert
-        type="warning"
-        showIcon
-        style={{ marginBottom: 16, maxWidth: 860 }}
-        message="This is real money (PayOS production)"
-        description={
-          <>
-            Editing the price or Astrite here <b>immediately changes what users pay</b> for orders
-            created from now on. Existing orders keep their own price, so nothing is retroactive. Every
-            action on this page is recorded in the Audit log.
-          </>
-        }
-      />
       {error && (
         <Alert
           type="error"

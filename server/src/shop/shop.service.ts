@@ -100,7 +100,7 @@ export class ShopService {
         throw new ConflictException('You already own this item.');
       }
       if (wallet.astrite < item.price) {
-        throw new BadRequestException('You don\'t have enough Astrite.');
+        throw new BadRequestException("You don't have enough Astrite.");
       }
 
       const balanceAfter = wallet.astrite - item.price;

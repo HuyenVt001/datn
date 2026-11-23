@@ -114,7 +114,7 @@ describe('QuestsService', () => {
   });
 
   describe('getTodayQuests', () => {
-    it('lazily creates the day\'s quests + auto-completes the LOGIN quest', async () => {
+    it("lazily creates the day's quests + auto-completes the LOGIN quest", async () => {
       repo.getUserQuests.mockResolvedValue(new Map([['LOGIN', userQuest('LOGIN')]]));
 
       const result = await service.getTodayQuests('me');
@@ -245,7 +245,7 @@ describe('QuestsService', () => {
       expect(repo.createAiQuestIfAbsent).not.toHaveBeenCalled();
     });
 
-    it('AI on, cron hasn\'t generated -> creates a FALLBACK quest right away (no LLM call) and returns 3 quests', async () => {
+    it("AI on, cron hasn't generated -> creates a FALLBACK quest right away (no LLM call) and returns 3 quests", async () => {
       ai.enabled = true;
 
       const result = await service.getTodayQuests('me');
@@ -317,7 +317,7 @@ describe('QuestsService', () => {
       expect(ai.verify).not.toHaveBeenCalled();
     });
 
-    it('user already finished today\'s AI quest -> undefined, no Space call wasted', async () => {
+    it("user already finished today's AI quest -> undefined, no Space call wasted", async () => {
       repo.hasCompletedQuest.mockResolvedValue(true);
       expect(await service.verifyAiQuest('me', photo)).toBeUndefined();
       expect(ai.verify).not.toHaveBeenCalled();
@@ -328,9 +328,9 @@ describe('QuestsService', () => {
 
       const result = await service.verifyAiQuest('me', photo);
 
-      // Gui URL Cloudinary DA resize 224 cho Space
+      // Gui URL Cloudinary DA thu nho (canh dai <= 640, giu ti le) cho AI service
       expect(ai.verify).toHaveBeenCalledWith(
-        'https://res.cloudinary.com/demo/image/upload/w_224,h_224,c_fill,f_jpg,q_auto/v1/snapget/abc.jpg',
+        'https://res.cloudinary.com/demo/image/upload/w_640,h_640,c_limit,f_jpg,q_auto/v1/snapget/abc.jpg',
         'cup',
       );
       expect(result).toEqual({ result: 'MATCHED', score: 0.87, questContent: aiQuest.content });
@@ -348,9 +348,9 @@ describe('QuestsService', () => {
           momentId: 'm1',
           outcome: 'MATCHED',
           score: 0.87,
-          // Luu URL DA transform 224 de trang admin hien thumbnail khong can join posts
+          // Luu URL DA transform de trang admin hien thumbnail khong can join posts
           mediaUrl:
-            'https://res.cloudinary.com/demo/image/upload/w_224,h_224,c_fill,f_jpg,q_auto/v1/snapget/abc.jpg',
+            'https://res.cloudinary.com/demo/image/upload/w_640,h_640,c_limit,f_jpg,q_auto/v1/snapget/abc.jpg',
         }),
       );
     });
@@ -514,7 +514,7 @@ describe('QuestsService', () => {
       expect(ai.generate).toHaveBeenCalledTimes(1);
     });
 
-    it('loses the create race -> uses the winner\'s quest (no overwrite)', async () => {
+    it("loses the create race -> uses the winner's quest (no overwrite)", async () => {
       ai.enabled = true;
       ai.generate.mockResolvedValue({
         targetClass: 'chair',
@@ -569,7 +569,7 @@ describe('QuestsService', () => {
       expect(todayMine.items.map((v) => v.id)).toEqual(['1', '2']);
     });
 
-    it('today\'s stats: total / matched / not matched / skipped', async () => {
+    it("today's stats: total / matched / not matched / skipped", async () => {
       repo.listAiVerificationsByDate.mockResolvedValue([
         rec('1', 'MATCHED'),
         rec('2', 'MATCHED'),

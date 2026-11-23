@@ -15,7 +15,10 @@ export class AdminTopupsDto {
   @IsIn(TOPUP_ORDER_STATUSES)
   status?: TopupOrderStatus;
 
-  @ApiPropertyOptional({ description: 'Filter by UTC date, format YYYY-MM-DD', example: '2026-08-05' })
+  @ApiPropertyOptional({
+    description: 'Filter by UTC date, format YYYY-MM-DD',
+    example: '2026-08-05',
+  })
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'Date must be in YYYY-MM-DD format.' })
   date?: string;

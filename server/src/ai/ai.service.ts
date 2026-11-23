@@ -81,7 +81,7 @@ export class AiService {
   /**
    * Xac minh anh co chua `targetClass` khong. Nem loi khi AI service loi/timeout —
    * caller (QuestsService) bat va coi la SKIPPED, KHONG bao gio lam fail dang bai.
-   * `imageUrl` nen la URL Cloudinary DA resize 224 (xem [toVerifyImageUrl]).
+   * `imageUrl` nen la URL Cloudinary DA thu nho (xem [toVerifyImageUrl]).
    */
   async verify(imageUrl: string, targetClass: AiQuestClass): Promise<AiVerifyResponse> {
     return this.post<AiVerifyResponse>('/verify', { imageUrl, targetClass }, AI_VERIFY_TIMEOUT_MS);
@@ -106,9 +106,12 @@ export class AiService {
   }
 
   /**
-   * URL Cloudinary da transform de AI service chi tai dung 224x224 (~10-20KB thay vi
-   * vai MB): chen `w_224,h_224,c_fill,f_jpg/` sau `/upload/`. Khong phai URL
-   * Cloudinary (hoac da co transform) -> tra nguyen — AI service tu resize.
+   * URL Cloudinary da transform de AI service chi tai ban thu nho (~50-90KB thay vi vai MB):
+   * chen `w_640,h_640,c_limit,f_jpg,q_auto/` sau `/upload/`. `c_limit` = thu nho cho canh dai
+   * <= 640, GIU TI LE, KHONG CAT — model YOLO y1 (2026-11-23) tu letterbox ve 640.
+   * Truoc day dung `w_224,h_224,c_fill`: anh doc 3:4 bi cat vuong mat ~25% tren/duoi + chi con
+   * 224px -> vat the nho/lech tam bi mat (1 trong 3 nguyen nhan v0 nhan dien kem, QUEST_AI_PLAN muc 2).
+   * Khong phai URL Cloudinary (hoac da co transform) -> tra nguyen — AI service tu resize.
    */
   static toVerifyImageUrl(mediaUrl: string): string {
     const marker = '/image/upload/';
@@ -122,7 +125,7 @@ export class AiService {
     if (/^[a-z]{1,2}_[^/]+\//.test(tail)) {
       return mediaUrl;
     }
-    return `${head}w_224,h_224,c_fill,f_jpg,q_auto/${tail}`;
+    return `${head}w_640,h_640,c_limit,f_jpg,q_auto/${tail}`;
   }
 
   private post<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {

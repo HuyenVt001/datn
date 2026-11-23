@@ -1,57 +1,81 @@
-# `ml/` — AI Daily Quest: model xác minh ảnh (tự train) + HF Space phục vụ
+# `ml/` — AI Daily Quest: model xác minh ảnh (tự train) + AI service
 
-> Kế hoạch & quyết định đã chốt: [`Snapget/.claude/QUEST_AI_PLAN.md`](../Snapget/.claude/QUEST_AI_PLAN.md). Thư mục này chỉ chứa **code + notebook**, KHÔNG chứa data/model nhị phân (`.gitignore`).
-> Phần server (NestJS `src/ai/`, `src/quests/`) xem `server/GUIDE.md`; phần app Android xem `Snapget/.claude/GUIDE.md`.
+> Kế hoạch & quyết định đã chốt: [`Snapget/.claude/QUEST_AI_PLAN.md`](../Snapget/.claude/QUEST_AI_PLAN.md). Đặc tả dữ liệu Việt Nam (đọc trước khi chụp/gán nhãn): [`DATASET_SPEC.md`](DATASET_SPEC.md).
+> Thư mục này chỉ chứa **code + notebook**, KHÔNG chứa data/model nhị phân (`.gitignore`). Server: `server/GUIDE.md` (module `ai`, `quests`); app: `Snapget/.claude/GUIDE.md`.
+
+**Hai thế hệ model** (cùng 12 lớp, cùng contract với server):
+
+| | v0 (production đến khi y1 lên) | **y1** (2026-11-23) |
+|---|---|---|
+| Kiến trúc | MobileNetV3-Small đóng băng + head 576→256→12 (classifier) | **YOLO11s detection** fine-tune (Ultralytics) |
+| Dữ liệu | COCO subset | COCO + Kaggle + ảnh Google + **tập VN tự chụp** |
+| Verify | sigmoid(logit) ≥ ngưỡng | **max điểm lớp theo anchor** ≥ ngưỡng |
+| Ngưỡng chọn trên | COCO val | **ảnh thật (real-calib)** |
+| Pipeline | scripts `01–08`, `snapget12_train.ipynb` | scripts **`10–16`**, **`snapget_yolo_train.ipynb`** |
 
 ## Cấu trúc
 
 ```
 ml/
-├─ README.md                    ← file này
-├─ requirements.txt             ← thư viện train/eval (Colab/Kaggle)
-├─ snapget12/                   ← package Python dùng chung
-│   ├─ classes.py               12 lớp model học (thứ tự = output model = server AI_MODEL_CLASSES; app ra đề 9 lớp AI_QUEST_CLASSES)
-│   ├─ model.py                 MobileNetV3-Small backbone + Head(576→256→12); v0 đóng băng, v1 mở block cuối
-│   ├─ data.py                  manifest CSV multi-hot, Dataset, augmentation (crop dọc 3:4), Snapget-12 scanner
-│   ├─ metrics.py               AP/mAP/F1, chọn ngưỡng per-class (precision ≥ 0.8, max recall), PR curve
-│   └─ tests_metrics.py         pytest (không cần torch)
-├─ scripts/                     ← pipeline, chạy tuần tự (mỗi script có docstring hướng dẫn)
-│   ├─ 01_prepare_coco.py       FiftyOne tải COCO 2017 subset 12 lớp + negative → data/manifest.csv
-│   ├─ 02_cache_embeddings.py   backbone đóng băng → data/embeddings.npz (576-dim, ~120MB)
-│   ├─ 03_train_head.py         train head v0 từ cache (BCE + pos_weight) → artifacts/v0/head.pt
-│   ├─ 04_eval_thresholds.py    thresholds.json (val) + metrics/PR curve (val, test)
-│   ├─ 05_export_onnx.py        ONNX → int8 + model_meta.json (+ --upload lên Space)
-│   ├─ 06_finetune_v1.py        fine-tune v1 (mở block conv cuối, augmentation) — cần GPU
-│   ├─ 07_ablation_owlvit.py    OWL-ViT zero-shot trên cùng 2 tập test (ablation báo cáo)
-│   └─ 08_eval_images.py        đánh giá bất kỳ model (.pt/.onnx) trên COCO test + Snapget-12
-├─ notebooks/snapget12_train.ipynb  ← notebook Colab MỎNG gọi các script trên theo thứ tự
-└─ ai-service/                  ← service phục vụ model (FastAPI) — deploy lên Google Cloud Run
-    ├─ app.py                   /health · /verify (ONNX) · /generate (tắt mặc định — điểm cắm LLM)
-    ├─ requirements.txt, Dockerfile (đọc $PORT — chạy được cả Cloud Run/Render/HF), README.md (hướng dẫn deploy)
-    ├─ test_app.py              smoke test với model ONNX giả (pytest)
-    ├─ dev_fake_model.py        tạo model ONNX giả vào model/ → chạy service local, test end-to-end trước khi train
-    └─ model/                   RỖNG trong repo — tải từ HF Model repo lúc chạy (env MODEL_REPO) hoặc copy tay
+├─ README.md, DATASET_SPEC.md     ← file này + đặc tả tập VN (cho thành viên đi chụp/gán nhãn)
+├─ requirements.txt               ← thư viện train/eval (Colab)
+├─ yolo_class_map.yaml            ← map tên lớp dataset ngoài (mug, motorbike…) → 12 lớp chuẩn
+├─ crawl_queries.yaml             ← từ khoá cào ảnh bối cảnh VN (en/vi, scene, hard negative concept)
+├─ snapget12/                     ← package Python dùng chung
+│   ├─ classes.py                 12 lớp (THỨ TỰ = output model = server AI_MODEL_CLASSES)
+│   ├─ yolo.py                    y1: letterbox, điểm cấp ảnh = max theo anchor, nhãn YOLO, dHash chống trùng,
+│   │                             class map, clean_stem (tên Roboflow), slice_coco_head (cắt head 80→12 lớp)
+│   ├─ metrics.py                 AP/F1/false-reject, chọn ngưỡng per-class, confusion cấp ảnh, chọn lớp quest
+│   ├─ autolabel.py               gán nhãn tự động: gộp YOLO11x + YOLO-World, loại hard negative/màn hình, accept/review/reject,
+│   │                             ước lượng lighting/distance, lọc chất lượng ảnh
+│   ├─ crawl.py                   nguồn ảnh Openverse / Wikimedia / DuckDuckGo + tải song song + chặn tên miền watermark
+│   ├─ model.py, data.py          v0: MobileNetV3 + head, manifest/augment
+│   └─ tests_metrics.py, tests_yolo.py, tests_autolabel.py   pytest (không cần torch)
+├─ scripts/
+│   ├─ 10_export_coco_yolo.py     COCO 2017 → dataset YOLO 12 lớp (+ background, + bản cắt dọc 3:4)
+│   ├─ 11_merge_external.py       gộp Kaggle/Google/VN, KIỂM TRA tập VN theo DATASET_SPEC, dHash chống rò rỉ → data.yaml + lists
+│   ├─ 12_prelabel.py             YOLO11x gán box nháp cho ảnh chưa nhãn → sửa tay trên Roboflow
+│   ├─ 13_train_yolo.py           fine-tune YOLO11 (khởi tạo head COCO đã cắt, KeepHeadTrainer, resume Colab)
+│   ├─ 14_eval_yolo.py            ablation: mAP50/50-95, confusion 13×13, verify cấp ảnh, chọn ngưỡng trên real-calib
+│   ├─ 15_select_classes.py       áp tiêu chí → class_selection.json/.md + AI_QUEST_CLASSES cho server
+│   ├─ 16_export_yolo_onnx.py     ONNX fp32 + model_meta.json (arch "yolo") + so khớp PyTorch + upload HF
+│   ├─ 17_crawl_autolabel.py      TỰ ĐỘNG cào ảnh Internet + gán nhãn → thư mục VN-train (resume được, --promote ảnh đã duyệt)
+│   └─ 01–08_*.py                 pipeline v0 (giữ làm baseline/ablation)
+├─ notebooks/
+│   ├─ snapget_crawl_autolabel.ipynb ← **chạy TRƯỚC**: cào + gán nhãn ảnh Internet (script 17) → Drive `data/vn_web/`
+│   ├─ snapget_yolo_train.ipynb   ← **y1 — Google Colab** (chạy 10→16, ô resume; tự dùng `vn_web` nếu có)
+│   └─ snapget12_train.ipynb      v0
+└─ ai-service/                    FastAPI trên Google Cloud Run — phục vụ CẢ v0 lẫn y1 (theo model_meta.json "arch")
+    ├─ app.py                     /health · /verify · /generate (tắt mặc định)
+    ├─ test_app.py                smoke test (model ONNX giả, cả classifier lẫn yolo)
+    ├─ dev_fake_model.py          model giả để chạy local: mặc định classifier, --arch yolo
+    └─ model/                     RỖNG trong repo — tải từ HF Model repo lúc chạy (env MODEL_REPO)
 ```
 
-## Luồng train (Colab T4, ~1 buổi)
+## Luồng y1 (Google Colab T4) — chi tiết từng ô trong notebook
 
-Mở `notebooks/snapget12_train.ipynb` trên Colab, chạy từ trên xuống. Tóm tắt:
-
-| Bước | Script | Ra | Thời gian |
+| Bước | Script | Ra | Ghi chú |
 |---|---|---|---|
-| 1 | `01_prepare_coco.py` | `data/manifest.csv` (~45–55k ảnh trên disk Colab) | 20–40 phút (tải) |
-| 2 | `02_cache_embeddings.py` | `data/embeddings.npz` | ~10 phút GPU |
-| 3 | `03_train_head.py` | `artifacts/v0/head.pt` | ~1–2 phút |
-| 4 | `04_eval_thresholds.py` | `thresholds.json`, `metrics_val/test.json`, PR curve PNG | giây |
-| 5 | `05_export_onnx.py --upload <user>/snapget-ai-model` | `model.onnx` (backbone fp32 + head int8, ~3.9MB — ⚠️ int8 cả Conv phá MobileNetV3, xem docstring) + `model_meta.json` → **HF Model repo** (free) → Cloud Run tự tải | phút |
-| 6 (M6) | `06_finetune_v1.py` → `08_eval_images.py` → `05 --full` | v1 + số liệu Snapget-12 | 30–60 phút GPU |
-| 7 (M6) | `07_ablation_owlvit.py` | `artifacts/owlvit/metrics_*.json` | tuỳ GPU |
+| 0 | `17_crawl_autolabel.py` (notebook riêng) | `data/vn_web/` (train/ + review/ + metadata.csv + web_attributions.csv) | 100 ảnh/lớp + 300 negative; xem mẫu 10%, sửa `review/` trên Roboflow → `--promote` |
+| 1 | `10_export_coco_yolo.py` | `/content/yolo/coco` + `stats.json` | lần đầu tải 20–40', notebook tự zip lên Drive, phiên sau chỉ giải nén |
+| 2 | (notebook) | Kaggle qua API, giải nén `vn.zip`, `google_labeled.zip` | token `kaggle.json` để trên Drive |
+| 3 | `12_prelabel.py` | box nháp + `needs_review.txt` | tuỳ chọn, cho ảnh chưa nhãn |
+| 4 | `11_merge_external.py` | `data.yaml`, `real_calib.yaml`, `real_test.yaml`, `lists/*.txt`, `merge_report.json` | **dừng** nếu tập VN sai đặc tả |
+| 5 | `13_train_yolo.py` | `artifacts/yolo/y1-s/weights/best.pt` (Drive) | ~40 epoch × 8–12'; `--resume` khi Colab ngắt |
+| 6 | `14_eval_yolo.py` | `artifacts/eval/<model>/…`, `ablation.json` | so v0 / YOLO COCO không FT / y1-n / y1-s |
+| 7 | `15_select_classes.py` | `class_selection.json/.md` | tiêu chí: AP ảnh ≥ .85 · F1 ≥ .85 · AP50 ≥ .75 · từ chối sai ≤ 15% · bị nhầm ≤ 5% |
+| 8 | `16_export_yolo_onnx.py --upload <user>/snapget-ai-model` | `model.onnx` (fp32) + `thresholds.json` + `model_meta.json` → HF | restart Cloud Run → `/health` `modelVersion:"y1"`, `arch:"yolo"` |
 
-Số liệu cho báo cáo (mục 14 plan): `artifacts/{v0,v1,owlvit}/metrics_{test,snapget12}.json` + `pr_curves_*.png`; ô cuối notebook in bảng tổng hợp.
+Kiểm thử cục bộ (không cần GPU/dữ liệu thật):
+```bash
+cd ml && pytest snapget12/tests_metrics.py snapget12/tests_yolo.py snapget12/tests_autolabel.py -q
+cd ml/ai-service && pip install -r requirements.txt onnx pytest && pytest test_app.py -q
+python dev_fake_model.py --arch yolo && $env:API_KEY='dev-key'; python -m uvicorn app:app --port 8080
+```
 
 ## Deploy AI service (Google Cloud Run)
 
-> HF Spaces đã thu phí Docker Space (2026) → chuyển sang **Cloud Run free tier**. Chi tiết từng lệnh: `ai-service/README.md`; checklist thao tác: `Snapget/.claude/QUEST_AI_PLAN.md` mục 17.B.
+Chi tiết: `ai-service/README.md`. Đổi model = upload 3 file lên HF Model repo + restart (`MODEL_RELOAD`), **không** build lại image. Rollback về v0 = upload lại 3 file của v0 (service tự chọn đường classifier vì `model_meta.json` không có `arch`).
 
 ```bash
 cd ml/ai-service
@@ -61,17 +85,16 @@ gcloud run deploy snapget-ai --source . --region asia-southeast1 --allow-unauthe
   --set-secrets API_KEY=snapget-ai-api-key:latest
 ```
 
-Kiểm tra `GET <Service URL>/health` → `{"status":"ok","modelVersion":"v0","verifierReady":true}`. Keep-warm: cron-job.org ping `/health` mỗi 10 phút (Cloud Run scale về 0, cold start ~2–4s có thể vượt timeout verify 3s).
-
-Test cục bộ: `cd ml/ai-service && pip install -r requirements.txt onnx pytest && pytest test_app.py -q` (không cần model thật, không cần Docker).
-
 ## Contract với server (khớp `server/src/ai/ai.service.ts`)
 
 ```
-GET  /health                    → { status, modelVersion, verifierReady, llm, llmLoading, llmError }
-POST /verify    (X-API-Key)     { imageUrl, targetClass } → { matched, score, threshold, scores{12}, modelVersion, latencyMs }
-POST /generate  (X-API-Key)     { classes[12], avoid[] }  → { targetClass, content }     (server validate lại + fallback template)
+GET  /health                 → { status, modelVersion, arch, verifierReady, llm, llmLoading, llmError }
+POST /verify  (X-API-Key)    { imageUrl, targetClass } → { matched, score, threshold, scores{12}, modelVersion, latencyMs, box? }
+POST /generate (X-API-Key)   { classes, avoid } → { targetClass, content }      (tắt mặc định)
 ```
-Lỗi: 401 sai key · 400 targetClass lạ · 422 không tải/đọc được ảnh · 503 model/LLM chưa sẵn sàng · 502 LLM trả rác. Server coi mọi lỗi/timeout 3s là `SKIPPED` — không bao giờ làm fail đăng bài.
+- `imageUrl`: server gửi Cloudinary `w_640,h_640,c_limit,f_jpg,q_auto` (giữ tỉ lệ, không cắt).
+- `box`: chỉ model YOLO — `[x1,y1,x2,y2]` chuẩn hoá trên ảnh gốc nơi target có điểm cao nhất; v0 trả `null`. Field mới, server hiện bỏ qua.
+- Lỗi: 401 sai key · 400 targetClass lạ · 422 không tải/đọc được ảnh · 503 model chưa sẵn sàng. Server coi mọi lỗi/timeout 3s là `SKIPPED` — không bao giờ làm fail đăng bài.
+- Model học 12 lớp; lớp **ra đề** = `AI_QUEST_CLASSES` ở server (hiện 9 — cập nhật theo `15_select_classes.py`).
 
-> ⚠️ `/generate` **tắt mặc định** (user chốt 2026-08-16 bỏ LLM sinh quest): nội dung quest lấy từ bộ mẫu 72 câu (9 lớp × 8) ở `server/src/quests/entities/ai-quest-templates.ts`. AI trong hệ thống = **xác minh ảnh**. Model học 12 lớp nhưng app chỉ ra đề 9 (bỏ book/backpack/keyboard — QUEST_AI_PLAN mục 2.3).
+> License: Ultralytics YOLO **AGPL-3.0** (chấp nhận cho DATN — mã nguồn dự án đã mở trên GitHub).

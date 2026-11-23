@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
-> Cập nhật lần cuối: **2026-11-15**.
+> Cập nhật lần cuối: **2026-11-23**.
 
 ---
 
@@ -180,6 +180,7 @@ admin/
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
 
+- **2026-11-23 — Trang AI quest: mô tả ảnh thumbnail theo model y1**. `AiVerificationsPage` đổi dòng giải thích ảnh (nay là bản thu nhỏ **giữ nguyên khung, cạnh dài 640px** mà model YOLO y1 thấy; log trước 11/2026 là ảnh 224×224 cắt vuông) + comment `AiVerification.mediaUrl` ở `types/index.ts`. Không đổi API/logic. Server đổi transform Cloudinary sang `w_640,h_640,c_limit` (`server/GUIDE.md` changelog 2026-11-23). **Chưa deploy hosting** — build + deploy khi tiện.
 - **2026-11-15 — Bỏ gacha → nhóm "Cửa hàng" (phần ADMIN của `Snapget/.claude/SHOP_PLAN.md`)**. Xoá `gacha.api.ts` + `GachaItemsPage` + `GachaHistoryPage` (route `/gacha`, `/gacha-history`). Mới: `shop.api.ts`, **`ShopItemsPage`** (`/shop` — cột giá, niêm yết SKIN/EFFECT theo id có trong APK hoặc FRAME SHOP chưa lên kệ, sửa tên/giá/ảnh, gỡ, tặng, owners), **`ShopHistoryPage`** (`/shop-history`), component dùng chung **`components/ImageUploadField.tsx`** (tách từ FramesPage). Menu: submenu **Cửa hàng** = Vật phẩm · Gói nạp · Lịch sử mua · Lịch sử nạp (tự mở khi vào thẳng trang trong nhóm). `FramesPage`: điều kiện `GACHA` → **`SHOP`** ("Bán tại Cửa hàng", tag 🛍️, mặc định khi thêm khung). Dashboard: 2 ô lượt quay → **Lượt mua hôm nay / Tổng lượt mua** (`shopPurchasesToday/Total`). Types: `UnlockType` `SHOP`, `ShopItem`/`ShopItemType`/`ShopItemOwnersResult`/`AdminPurchase`, `AdminAction` thêm `SHOP_ITEM_*` (giữ `GACHA_ITEM_*` để log cũ hiện đúng nhãn); `LogsPage` thêm 4 nhãn. Khớp server cùng ngày (`server/GUIDE.md` mục 9).
 
 - **2026-08-16 — Trang "AI quest" (`/ai-verifications`)**: bảng log AI xác minh ảnh quest từ `GET /admin/ai-verifications` — thumbnail 224 (đúng ảnh model nhìn), uid + momentId, lớp yêu cầu (tên Việt), kết quả (Khớp/Không khớp/Bỏ qua — tooltip lý do), thanh điểm kèm ngưỡng, **top 3 lớp** model nghĩ là gì (soi vì sao trượt), model/latency; lọc uid/kết quả/ngày; 4 ô tổng hợp trên trang. Dashboard thêm 2 ô "AI xác minh ảnh hôm nay" / "Quest AI khớp hôm nay" (`AdminStats.aiVerificationsToday/aiMatchedToday`). Types `AiVerification`, api `listAiVerifications`. Chỉ đọc — không có hành động, không audit. Bối cảnh: `Snapget/.claude/QUEST_AI_PLAN.md` mục 15.3 (đã đóng), 5.2 (calibrate ngưỡng).

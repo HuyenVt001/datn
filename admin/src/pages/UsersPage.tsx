@@ -202,10 +202,7 @@ export function UsersPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Manage users
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        Only accounts with the <Tag color="gold">Admin</Tag> role can sign in to this admin panel.
-        Regular users must be granted rights by an admin first.
-      </Typography.Paragraph>
+      
       {error && (
         <Alert
           type="error"

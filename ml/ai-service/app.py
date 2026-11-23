@@ -5,7 +5,12 @@ Chay duoc nguyen xi tren HF Space / Render / VPS: chi doc bien PORT (mac dinh 80
 Doi cho deploy = doi AI_SERVICE_URL o server, khong sua code.
 
 2 nhiem vu (QUEST_AI_PLAN.md muc 6–7):
-  POST /verify    ONNX MobileNetV3-Small + head 12 lop (TU TRAIN) — "anh co chua X khong?"
+  POST /verify    ONNX 12 lop (TU TRAIN) — "anh co chua X khong?". 2 kien truc, chon theo
+                  model_meta.json "arch":
+                    "yolo"       (y1, 2026-11-23) YOLO11 detection: letterbox 640, output (1,4+12,A),
+                                 diem lop = max theo anchor (khong NMS) + box tot nhat cua target
+                    "classifier" (v0, mac dinh) MobileNetV3-Small + head: center-crop 224, logits -> sigmoid
+                  Rollback = upload lai 3 file cua model cu, khong sua code.
   POST /generate  Qwen2.5-1.5B-Instruct GGUF Q4 (llama-cpp) — writes the English quest sentence
   GET  /health    public (cron keep-warm) — modelVersion + trang thai LLM
 
@@ -15,10 +20,10 @@ Artifact model nam trong thu muc model/ — KHONG commit vao monorepo. 2 cach na
   1. MODEL_REPO=<user>/snapget-ai-model  -> tu tai tu HF Model repo (MIEN PHI, khac Space)
      luc khoi dong. Doi model = restart service, KHONG can build lai image.
   2. Copy san 3 file vao model/ truoc khi build image (offline, khong phu thuoc HF).
-  model/model.onnx        backbone + head, input 1x3x224x224 float32, output logits 1x12
-  model/thresholds.json   {"cup": 0.35, ...} nguong RIENG tung lop (precision >= 0.8, max recall)
-  model/model_meta.json   {"modelVersion": "v0", "classes": [...12], "inputSize": 224,
-                           "mean": [...], "std": [...], "trainedAt": "..."}
+  model/model.onnx        yolo: input 1x3x640x640 (RGB/255), output 1x16xA | classifier: 1x3x224x224, logits 1x12
+  model/thresholds.json   {"cup": 0.35, ...} nguong RIENG tung lop (chon tren anh that real-calib)
+  model/model_meta.json   {"modelVersion": "y1", "arch": "yolo", "classes": [...12], "inputSize": 640, ...}
+                          (classifier: "arch" vang mat, co "mean"/"std", inputSize 224)
 Thieu model -> /verify tra 503 (server coi la SKIPPED), /health van 200 de biet Space song.
 """
 from __future__ import annotations
@@ -69,6 +74,22 @@ DEFAULT_CLASSES = [
 ]
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
+YOLO_PAD_VALUE = 114
+
+
+def letterbox(img: Image.Image, size: int, pad_value: int = YOLO_PAD_VALUE) -> tuple[np.ndarray, dict]:
+    """GIONG HET ml/snapget12/yolo.py `letterbox` (= Ultralytics LetterBox auto=False, center=True):
+    resize giu ti le, pad 114, RGB / 255, KHONG mean/std. Sua o day thi sua ca ben do."""
+    w, h = img.size
+    r = min(size / h, size / w)
+    nw, nh = int(round(w * r)), int(round(h * r))
+    if (nw, nh) != (w, h):
+        img = img.resize((nw, nh), Image.BILINEAR)
+    left, top = int(round((size - nw) / 2 - 0.1)), int(round((size - nh) / 2 - 0.1))
+    canvas = Image.new("RGB", (size, size), (pad_value, pad_value, pad_value))
+    canvas.paste(img, (left, top))
+    arr = np.asarray(canvas, dtype=np.float32) / 255.0
+    return arr.transpose(2, 0, 1)[None, ...].copy(), {"ratio": r, "pad": (left, top), "orig": (w, h)}
 
 
 
@@ -121,6 +142,7 @@ class Verifier:
         self.mean = np.array(IMAGENET_MEAN, dtype=np.float32).reshape(3, 1, 1)
         self.std = np.array(IMAGENET_STD, dtype=np.float32).reshape(3, 1, 1)
         self.input_name = "input"
+        self.arch = "classifier"
         self._load(model_dir)
 
     def _load(self, model_dir: Path) -> None:
@@ -139,7 +161,12 @@ class Verifier:
         if meta_path.exists():
             self.meta = json.loads(meta_path.read_text(encoding="utf-8"))
             self.classes = list(self.meta.get("classes", DEFAULT_CLASSES))
-            self.input_size = int(self.meta.get("inputSize", 224))
+            self.arch = str(self.meta.get("arch", "classifier"))
+            if self.arch not in ("classifier", "yolo"):
+                log.warning("Unknown arch '%s' in model_meta.json — /verify disabled", self.arch)
+                self.session = None
+                return
+            self.input_size = int(self.meta.get("inputSize", 640 if self.arch == "yolo" else 224))
             self.mean = np.array(self.meta.get("mean", IMAGENET_MEAN), dtype=np.float32).reshape(3, 1, 1)
             self.std = np.array(self.meta.get("std", IMAGENET_STD), dtype=np.float32).reshape(3, 1, 1)
         thr_path = model_dir / "thresholds.json"
@@ -147,7 +174,8 @@ class Verifier:
             self.thresholds = {k: float(v) for k, v in json.loads(thr_path.read_text(encoding="utf-8")).items()}
         else:
             log.warning("thresholds.json not found — using default threshold 0.5 for every class")
-        log.info("Model %s san sang (%d lop, input %d)", self.meta.get("modelVersion"), len(self.classes), self.input_size)
+        log.info("Model %s (%s) san sang (%d lop, input %d)", self.meta.get("modelVersion"), self.arch,
+                 len(self.classes), self.input_size)
 
     @property
     def ready(self) -> bool:
@@ -160,10 +188,20 @@ class Verifier:
     def threshold_for(self, cls: str) -> float:
         return self.thresholds.get(cls, 0.5)
 
-    def preprocess(self, image_bytes: bytes) -> np.ndarray:
+    @staticmethod
+    def _open(image_bytes: bytes) -> Image.Image:
         img = Image.open(io.BytesIO(image_bytes))
         img = ImageOps.exif_transpose(img)  # anh dien thoai luu pixel ngang + co EXIF
-        img = img.convert("RGB")
+        return img.convert("RGB")
+
+    def preprocess(self, image_bytes: bytes) -> np.ndarray:
+        """Tien xu ly theo arch -> tensor NCHW float32 (dung cho ca test)."""
+        img = self._open(image_bytes)
+        if self.arch == "yolo":
+            return letterbox(img, self.input_size, int(self.meta.get("padValue", YOLO_PAD_VALUE)))[0]
+        return self._classifier_input(img)
+
+    def _classifier_input(self, img: Image.Image) -> np.ndarray:
         # Tuong duong Cloudinary c_fill: resize canh ngan ve input_size roi center-crop
         w, h = img.size
         scale = self.input_size / min(w, h)
@@ -176,12 +214,32 @@ class Verifier:
         arr = (arr - self.mean) / self.std
         return arr[None, ...].astype(np.float32)  # NCHW
 
-    def predict(self, image_bytes: bytes) -> dict[str, float]:
+    def predict(self, image_bytes: bytes, target: str | None = None) -> tuple[dict[str, float], list[float] | None]:
+        """-> (diem 12 lop, box [x1,y1,x2,y2] chuan hoa tren anh goc cua `target` — chi YOLO, else None)."""
         assert self.session is not None
-        x = self.preprocess(image_bytes)
-        logits = self.session.run(None, {self.input_name: x})[0][0]
+        img = self._open(image_bytes)
+        if self.arch == "yolo":
+            x, info = letterbox(img, self.input_size, int(self.meta.get("padValue", YOLO_PAD_VALUE)))
+            raw = self.session.run(None, {self.input_name: x})[0][0]  # (4+C, A)
+            n = len(self.classes)
+            if raw.shape[0] != 4 + n:
+                raise ValueError(f"YOLO output has {raw.shape[0]} channels, expected {4 + n}")
+            probs = raw[4:, :].max(axis=1)  # diem cap anh = max theo anchor (output da qua sigmoid)
+            box = self._best_box(raw, self.classes.index(target), info) if target in self.classes else None
+            return {cls: float(round(float(p), 4)) for cls, p in zip(self.classes, probs)}, box
+        logits = self.session.run(None, {self.input_name: self._classifier_input(img)})[0][0]
         probs = 1.0 / (1.0 + np.exp(-logits.astype(np.float64)))
-        return {cls: float(round(p, 4)) for cls, p in zip(self.classes, probs)}
+        return {cls: float(round(p, 4)) for cls, p in zip(self.classes, probs)}, None
+
+    @staticmethod
+    def _best_box(raw: np.ndarray, cls_idx: int, info: dict) -> list[float]:
+        """Box cua anchor co diem lop cao nhat -> [x1,y1,x2,y2] chuan hoa [0,1] tren anh goc."""
+        a = int(np.argmax(raw[4 + cls_idx]))
+        cx, cy, bw, bh = (float(v) for v in raw[:4, a])
+        (left, top), r, (w0, h0) = info["pad"], info["ratio"], info["orig"]
+        xs = ((cx - bw / 2 - left) / r / w0, (cx + bw / 2 - left) / r / w0)
+        ys = ((cy - bh / 2 - top) / r / h0, (cy + bh / 2 - top) / r / h0)
+        return [round(float(np.clip(v, 0, 1)), 4) for v in (xs[0], ys[0], xs[1], ys[1])]
 
 
 download_model(MODEL_DIR)
@@ -209,7 +267,7 @@ async def fetch_image(url: str) -> bytes:
 
 
 class VerifyRequest(BaseModel):
-    imageUrl: str = Field(..., description="URL anh (Cloudinary da resize 224 la tot nhat)")
+    imageUrl: str = Field(..., description="URL anh — server gui ban Cloudinary w_640,h_640,c_limit (giu ti le, khong cat)")
     targetClass: str = Field(..., description="1 trong 12 lop")
 
 
@@ -220,6 +278,9 @@ class VerifyResponse(BaseModel):
     scores: dict[str, float]
     modelVersion: str
     latencyMs: int
+    # Chi model YOLO: box [x1,y1,x2,y2] chuan hoa [0,1] (tren anh da xoay EXIF) noi target co diem cao nhat.
+    # Field MOI, tuy chon — server/app cu bo qua (Gson/TS khong doc) nen khong breaking.
+    box: list[float] | None = None
 
 
 @app.post("/verify", response_model=VerifyResponse, dependencies=[Depends(require_api_key)])
@@ -232,7 +293,7 @@ async def verify(req: VerifyRequest) -> VerifyResponse:
     image_bytes = await fetch_image(req.imageUrl)
     t0 = time.perf_counter()
     try:
-        scores = verifier.predict(image_bytes)
+        scores, box = verifier.predict(image_bytes, target)
     except Exception as e:  # anh hong / khong decode duoc
         raise HTTPException(status_code=422, detail=f"Failed to read image: {type(e).__name__}") from e
     latency_ms = int((time.perf_counter() - t0) * 1000)
@@ -245,6 +306,7 @@ async def verify(req: VerifyRequest) -> VerifyResponse:
         scores=scores,
         modelVersion=verifier.model_version,
         latencyMs=latency_ms,
+        box=box,
     )
 
 
@@ -355,6 +417,7 @@ def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "modelVersion": verifier.model_version,
+        "arch": verifier.arch,
         "verifierReady": verifier.ready,
         "llm": generator.ready,
         "llmLoading": generator.loading,

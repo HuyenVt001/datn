@@ -108,11 +108,6 @@ export function ShopHistoryPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Purchase history
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 760 }}>
-        Each row is one item purchase with Astrite. Name and price are a <b>snapshot at purchase
-        time</b> — editing or removing the item later does not change history. Admin gifts are not
-        listed here (see the Audit log page).
-      </Typography.Paragraph>
       {error && (
         <Alert
           type="error"

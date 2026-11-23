@@ -55,7 +55,7 @@ export class UsersController {
     description: 'Cron secret (env CRON_SECRET) — known only to cron-job.org',
   })
   @ApiOperation({
-    summary: '[Cron] Send streak reminder pushes to users who haven\'t posted today',
+    summary: "[Cron] Send streak reminder pushes to users who haven't posted today",
     description:
       'Selects users with streak > 0 whose last streak increase was YESTERDAY (no post today → streak lost at midnight).' +
       'DATA-ONLY push `type=STREAK_REMINDER` so the app shows the notification based on the "Streak reminders" toggle.' +
@@ -76,7 +76,7 @@ export class UsersController {
   }
 
   @Get(':uid')
-  @ApiOperation({ summary: 'View another user\'s public profile' })
+  @ApiOperation({ summary: "View another user's public profile" })
   getPublicProfile(@Param('uid') uid: string) {
     return this.usersService.getPublicProfile(uid);
   }

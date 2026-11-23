@@ -1,0 +1,131 @@
+# Map TEN LOP cua dataset ngoai (Kaggle / Open Images / Roboflow...) -> 1 trong 12 lop chuan
+# cua Snapget (ml/snapget12/classes.py). Dung boi scripts/11_merge_external.py.
+#
+# - Khoa: ten lop trong dataset ngoai. So khop KHONG phan biet hoa/thuong, coi "_", "-" va
+#   dau cach la nhu nhau ("Coffee_Cup" == "coffee cup").
+# - Gia tri: 1 trong 12 lop chuan, hoac null = BO box cua lop do.
+# - Lop KHONG co trong file nay (va khong trung ten 12 lop chuan) -> tu dong bo + script in canh bao
+#   de ban quyet dinh them vao day hay khong.
+# - 12 ten chuan (cup, bottle, ..., motorcycle) luon tu map ve chinh no — khong can ghi.
+#
+# ⚠️ Doc ky DINH NGHIA LOP o ml/DATASET_SPEC.md muc B truoc khi map: vd "wristwatch" KHONG phai
+#    clock, "electric bicycle" CO ban dap la bicycle, "scooter" (xe ga) la motorcycle.
+
+# --- cup ---
+mug: cup
+coffee cup: cup
+coffee mug: cup
+tea cup: cup
+teacup: cup
+paper cup: cup
+plastic cup: cup
+glass: cup
+drinking glass: cup
+wine glass: null          # COCO tach rieng wine glass — khong tinh la cup
+milk tea: cup
+bubble tea: cup
+boba: cup
+
+# --- bottle ---
+water bottle: bottle
+plastic bottle: bottle
+glass bottle: bottle
+beer bottle: bottle
+wine bottle: bottle
+soda bottle: bottle
+thermos: bottle
+tumbler: null             # mo ho (co the la coc) — kiem tra dataset roi tu quyet
+can: null                 # lon nuoc la HARD NEGATIVE
+tin can: null
+
+# --- book ---
+books: book
+notebook: book
+textbook: book
+novel: book
+magazine: null
+paper: null
+
+# --- chair ---
+chairs: chair
+plastic chair: chair
+stool: chair
+office chair: chair
+armchair: chair
+folding chair: chair
+sofa: null                # COCO "couch" — khong phai chair
+couch: null
+bench: null
+
+# --- potted plant ---
+pottedplant: potted plant
+houseplant: potted plant
+plant pot: potted plant
+flowerpot: potted plant
+flower pot: potted plant
+succulent: potted plant
+plant: null               # qua chung (co the la cay trong dat) — chi map neu dataset chac chan la cay trong chau
+tree: null
+flower: null
+vase: null
+
+# --- laptop ---
+laptops: laptop
+notebook computer: laptop
+macbook: laptop
+tablet: null
+monitor: null
+tv: null
+tvmonitor: null
+
+# --- keyboard ---
+computer keyboard: keyboard
+keyboards: keyboard
+mechanical keyboard: keyboard
+remote: null
+piano: null
+musical keyboard: null
+
+# --- backpack ---
+backpacks: backpack
+school bag: backpack
+schoolbag: backpack
+rucksack: backpack
+handbag: null
+bag: null                 # qua chung
+suitcase: null
+
+# --- clock ---
+wall clock: clock
+alarm clock: clock
+digital clock: clock
+analog clock: clock
+watch: null               # dong ho deo tay = HARD NEGATIVE
+wristwatch: null
+
+# --- umbrella ---
+umbrellas: umbrella
+parasol: umbrella
+beach umbrella: umbrella
+patio umbrella: umbrella
+
+# --- bicycle ---
+bike: bicycle
+bicycles: bicycle
+cycle: bicycle
+electric bicycle: bicycle  # co ban dap (xem DATASET_SPEC muc B)
+e bike: null               # mo ho: co the la xe may dien — kiem tra dataset roi tu quyet
+
+# --- motorcycle ---
+motorbike: motorcycle
+motorcycles: motorcycle
+scooter: motorcycle        # xe ga
+moped: motorcycle
+motor scooter: motorcycle
+electric scooter: null     # thuong la xe truot dung (kick scooter) — khong phai xe may
+
+# --- lop COCO/VOC pho bien khac: bo ---
+person: null
+car: null
+dog: null
+cat: null

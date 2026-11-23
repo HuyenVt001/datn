@@ -156,10 +156,6 @@ export function TopupHistoryPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Astrite top-up history
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 800 }}>
-        Revenue counts only <b>Paid</b> orders. Match the <b>Transaction ref</b> here against the PayOS
-        dashboard when you need to reconcile a payment.
-      </Typography.Paragraph>
       {error && (
         <Alert
           type="error"

@@ -5,6 +5,9 @@ artifacts/
 *.onnx
 *.pt
 *.npz
+*.zip
+runs/
+kaggle.json
 
 # Model cua ai-service: tai ve khi build/deploy, chi giu README huong dan
 ai-service/model/*

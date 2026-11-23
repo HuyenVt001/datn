@@ -23,7 +23,7 @@ export class QuestsController {
   @Get('today')
   @ApiOperation({
     summary:
-      'Today\'s quests + completion status: 2 fixed quests (LOGIN, POST_MOMENT) + AI quest (AI_CHALLENGE, only when the server has AI on). Calling this endpoint completes LOGIN.',
+      "Today's quests + completion status: 2 fixed quests (LOGIN, POST_MOMENT) + AI quest (AI_CHALLENGE, only when the server has AI on). Calling this endpoint completes LOGIN.",
     description:
       'The AI quest also has `targetClass` (1 of the 9 quest object classes — `AI_QUEST_CLASSES`) and `source` (LLM | FALLBACK).' +
       'Complete the AI quest by posting a photo moment containing the object — the server verifies it during POST /moments.' +
@@ -47,7 +47,8 @@ export class QuestsController {
     description: 'Cron secret (env CRON_SECRET) — known only to cron-job.org',
   })
   @ApiOperation({
-    summary: '[Cron] (optional) Pre-generate AI quests for today + tomorrow from the 72-sentence template set',
+    summary:
+      '[Cron] (optional) Pre-generate AI quests for today + tomorrow from the 72-sentence template set',
     description:
       'Idempotent: a day that already has an AI quest returns it (`created:false`), never overwrites.' +
       'Generates tomorrow ahead so the cron can run at any hour. AI off (missing env) → returns an empty array.' +

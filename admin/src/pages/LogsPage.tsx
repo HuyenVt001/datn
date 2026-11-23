@@ -92,10 +92,6 @@ export function LogsPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         Admin audit log
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 720 }}>
-        Every admin action (disabling accounts, granting/revoking rights, managing frames, deleting
-        posts) is logged automatically for auditing.
-      </Typography.Paragraph>
 
       {error && (
         <Alert

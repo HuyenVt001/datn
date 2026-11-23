@@ -234,11 +234,6 @@ export function AiVerificationsPage() {
       <Typography.Title level={4} style={{ marginTop: 0 }}>
         AI quest photo verification
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 780 }}>
-        Each row is one time the server asked the AI service &quot;does the photo just posted contain
-        today&apos;s quest object?&quot; — misses and skips are logged too. Use it to measure real-world
-        accuracy and spot weak classes; the image is the 224×224 downscaled version the model saw.
-      </Typography.Paragraph>
       {error && (
         <Alert
           type="error"

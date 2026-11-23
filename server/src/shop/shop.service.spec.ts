@@ -159,7 +159,7 @@ describe('ShopService', () => {
     repo.findItemById.mockResolvedValue(item({ price: 4800 }));
     repo.getWalletInTransaction.mockResolvedValue(wallet({ astrite: 4799 }));
 
-    await expect(service.buyItem('u1', 'i1')).rejects.toThrow('You don\'t have enough Astrite.');
+    await expect(service.buyItem('u1', 'i1')).rejects.toThrow("You don't have enough Astrite.");
     expect(astriteRepo.setBalanceInTransaction).not.toHaveBeenCalled();
     expect(astriteRepo.addEntryInTransaction).not.toHaveBeenCalled();
     expect(repo.unlockInTransaction).not.toHaveBeenCalled();
@@ -229,14 +229,11 @@ describe('ShopService', () => {
     expect(created.price).toBe(999);
   });
 
-  it.each(['0', '-1', '1.5', 'abc'])(
-    'createItem SKIN: invalid refId "%s" -> 400',
-    async (r) => {
-      await expect(
-        service.createItem({ itemName: 'x', itemType: 'SKIN', refId: r }),
-      ).rejects.toThrow(BadRequestException);
-    },
-  );
+  it.each(['0', '-1', '1.5', 'abc'])('createItem SKIN: invalid refId "%s" -> 400', async (r) => {
+    await expect(service.createItem({ itemName: 'x', itemType: 'SKIN', refId: r })).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
   it('createItem FRAME: SHOP frame -> uses the frame image when none is sent, default price 320', async () => {
     framesRepo.findById.mockResolvedValue({
