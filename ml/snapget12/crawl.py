@@ -375,13 +375,14 @@ class PixabaySource:
     lang = "en"
     API = "https://pixabay.com/api/"
 
-    KEY_FORMAT = re.compile(r"^\d+-[0-9a-f]{32}$")
+    # Key Pixabay dang '<so>-<chuoi hex>' (vd ~34 ky tu), dung 1 dau '-'. Dan 2 lan -> 2 dau '-' -> bat duoc
+    KEY_FORMAT = re.compile(r"^\d+-[0-9a-f]{16,64}$")
 
     def __init__(self) -> None:
         self.key = _key("PIXABAY_API_KEY")
-        if not self.KEY_FORMAT.match(self.key):  # hay gap: dan key 2 lan lien nhau vao Colab Secrets
-            raise ValueError(f"PIXABAY_API_KEY sai dinh dang (dai {len(self.key)} ky tu, dung la '<so>-<32 ky tu hex>' "
-                             "~41 ky tu) — co the da dan 2 lan; sua trong Colab Secrets")
+        if not self.KEY_FORMAT.match(self.key):  # hay gap: dan key 2 lan lien nhau / dinh dau cach, ngoac kep
+            raise ValueError(f"PIXABAY_API_KEY sai dinh dang ({len(self.key)} ky tu, {self.key.count('-')} dau '-'; dung la "
+                             "'<so>-<chuoi hex>', 1 dau '-') — co the da dan 2 lan; sua trong Colab Secrets")
         self.s = _session()
 
     @staticmethod

@@ -684,8 +684,9 @@ def main() -> None:
     except ImportError:
         gpu = False
     if not gpu and str(args.device) != "cpu":
-        print("!! KHONG CO GPU — YOLO11x + YOLO-World @1024 tren CPU cham ~20-50 lan (vai gio/lop). "
-              "Colab: Runtime > Change runtime type > T4 GPU, roi chay lai tu o 0.")
+        print("!! KHONG CO GPU — chuyen sang CPU (cham ~20-50 lan; on khi chi cao bu vai chuc anh / tu duyet it anh). "
+              "Colab: Runtime > Change runtime type > T4 GPU; neu khong cap duoc GPU = het quota GPU mien phi, doi ~12-24h.")
+        args.device = "cpu"  # khong thi Ultralytics bao loi "Invalid CUDA 'device=0'" va dung
     print(f"Nap model gan nhan ... (thiet bi: {'GPU ' + torch.cuda.get_device_name(0) if gpu else 'CPU'})")
     labeler = AutoLabeler(args.coco_model, args.world_model or None, args.imgsz, args.device, th)
 
