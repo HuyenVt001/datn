@@ -118,6 +118,15 @@ classes:
     - {en: "laptop backpack", vi: "ba lô laptop", scene: office}
     - {en: "high school student backpack", vi: "cặp học sinh cấp 3", scene: classroom}
     - {en: "kids school backpack", vi: "ba lô chống gù", scene: home}
+    # --- bo sung 2026-11-24 (2): backpack con thieu sau tu duyet (89/100) ---
+    - {en: "backpack in library", vi: "ba lô trong thư viện", scene: library}
+    - {en: "backpack on bench", vi: "ba lô đặt trên ghế đá", scene: street}
+    - {en: "backpack lecture hall", vi: "ba lô trong giảng đường", scene: classroom}
+    - {en: "hiker backpack trail", vi: "ba lô leo núi", scene: other}
+    - {en: "backpack on bed", vi: "ba lô trên giường phòng trọ", scene: home}
+    - {en: "backpack at night street", vi: "đeo ba lô đi đêm", scene: street}
+    - {en: "delivery rider with backpack Vietnam", vi: "shipper đeo ba lô", scene: street}
+    - {en: "student backpack bus stop", vi: "học sinh đeo cặp chờ xe buýt", scene: street}
   clock:
     - {en: "wall clock living room", vi: "đồng hồ treo tường phòng khách", scene: home}
     - {en: "classroom wall clock", vi: "đồng hồ treo tường lớp học", scene: classroom}
