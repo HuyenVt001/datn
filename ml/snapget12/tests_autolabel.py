@@ -237,6 +237,38 @@ def test_new_source_parsers_and_key_handling(monkeypatch):
     assert "pexels" in [s.name for s in crawl.make_sources(["auto"])]
 
 
+def test_bad_key_is_detected_and_never_printed(monkeypatch):
+    import pytest
+
+    from snapget12 import crawl
+
+    good = "12345678-" + "a1" * 16
+    monkeypatch.setenv("PIXABAY_API_KEY", good + good)  # dan 2 lan
+    assert "pixabay" not in [s.name for s in crawl.make_sources(["pixabay", "wikimedia"])]
+    monkeypatch.setenv("PIXABAY_API_KEY", good)
+    assert crawl.PixabaySource().key == good
+
+    msg = f"400 Client Error for url: https://pixabay.com/api/?key={good}&q=cup and api_key=abc123"
+    assert good not in crawl.redact(msg) and "abc123" not in crawl.redact(msg) and "q=cup" in crawl.redact(msg)
+
+    class Resp:
+        def __init__(self, code, text):
+            self.status_code, self.text, self.headers = code, text, {}
+
+    class Sess:
+        def __init__(self, resp):
+            self.resp = resp
+
+        def get(self, *a, **k):
+            return self.resp
+
+    with pytest.raises(crawl.KeyRejected):
+        crawl._get_json(Sess(Resp(400, "[ERROR 400] Invalid or missing API key")), "https://pixabay.com/api/", {"key": good})
+    with pytest.raises(RuntimeError) as e:
+        crawl._get_json(Sess(Resp(404, "not found")), "https://x.org/api/", {"key": good})
+    assert good not in str(e.value)
+
+
 def test_import_group_from_filename_or_folder(tmp_path):
     from pathlib import Path
 

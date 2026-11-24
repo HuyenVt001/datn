@@ -58,7 +58,7 @@ from snapget12.autolabel import (  # noqa: E402
     to_yolo_lines,
     world_vocabulary,
 )
-from snapget12.crawl import KeyRejected, blocked, download_many, make_sources, set_contact  # noqa: E402
+from snapget12.crawl import KeyRejected, blocked, download_many, make_sources, redact, set_contact  # noqa: E402
 from snapget12.yolo import (  # noqa: E402
     COCO80_INDEX,
     clean_stem,
@@ -246,9 +246,14 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
     accepted = 0
     stats = report.setdefault(group, {"accepted": 0, "review": 0, "reject": Counter(), "filtered": Counter()})
     hashes = ref_hashes
+    deadline = time.time() + args.group_minutes * 60 if args.group_minutes > 0 else float("inf")
     for q in queries:
         for src in sources:
             if accepted >= need:
+                return accepted
+            if time.time() > deadline:  # 1 lop kho (accept thap) khong duoc an het ca phien Colab
+                print(f"   !! [{group}] het {args.group_minutes:.0f} phut cho lop nay — sang lop tiep "
+                      "(chay lai o 3 sau de cao tiep, hoac duyet review/ roi --promote)")
                 return accepted
             # moi nguon tim bang ngon ngu cua no (Google/DDG: tieng Viet; kho anh CC: tieng Anh); thieu thi dung ban kia
             lang = getattr(src, "lang", "en")
@@ -267,12 +272,17 @@ def crawl_group(group: str, target: str | None, need: int, queries: list[dict], 
                 continue
             except Exception as e:
                 src.fails = getattr(src, "fails", 0) + 1
-                print(f"   [{src.name}] '{text}': loi tim kiem {type(e).__name__}: {str(e)[:120]}")
+                print(f"   [{src.name}] '{text}': loi tim kiem {type(e).__name__}: {redact(str(e))[:120]}")
                 if src.fails >= args.max_source_fails:
-                    src.paused_until = time.time() + args.source_pause * 60
                     src.fails = 0
-                    print(f"   !! [{src.name}] loi {args.max_source_fails} lan lien tiep — tam tat {args.source_pause} phut, "
-                          "chay tiep bang nguon khac")
+                    src.trips = getattr(src, "trips", 0) + 1
+                    if src.trips >= 2:  # bat lai van loi (Openverse 504 ca buoi) -> khong phi them thoi gian
+                        src.paused_until = float("inf")
+                        print(f"   !! [{src.name}] van loi sau khi tam tat — TAT nguon nay cho het lan chay")
+                    else:
+                        src.paused_until = time.time() + args.source_pause * 60
+                        print(f"   !! [{src.name}] loi {args.max_source_fails} lan lien tiep — tam tat {args.source_pause:.0f} phut, "
+                              "chay tiep bang nguon khac")
                 continue
             cands = [c for c in cands if c.url and c.url not in store.seen]
             if not args.no_domain_block:
@@ -561,7 +571,9 @@ def main() -> None:
     ap.add_argument("--strong", type=float, default=2.1)
     ap.add_argument("--no-domain-block", action="store_true", help="tat chan ten mien stock/TMDT (anh watermark)")
     ap.add_argument("--max-source-fails", type=int, default=3, help="nguon loi lien tiep bao nhieu lan thi tam tat")
-    ap.add_argument("--source-pause", type=float, default=15, help="so phut tam tat nguon bi loi")
+    ap.add_argument("--source-pause", type=float, default=15, help="so phut tam tat nguon bi loi (lan 2 van loi -> tat han)")
+    ap.add_argument("--group-minutes", type=float, default=40,
+                    help="thoi gian toi da cho 1 lop moi lan chay (0 = khong gioi han); het gio -> sang lop tiep")
     ap.add_argument("--contact", default=None, help="(tuy chon) thong tin lien he them vao User-Agent — Wikimedia it chan hon")
     ap.add_argument("--promote", help="thu muc export YOLO tu Roboflow chua anh REVIEW da sua")
     ap.add_argument("--import-dir", action="append", default=[],
@@ -586,7 +598,16 @@ def main() -> None:
 
     set_contact(args.contact)
     th = Thresholds(accept=args.accept, strong=args.strong)
-    print("Nap model gan nhan ...")
+    try:
+        import torch
+
+        gpu = torch.cuda.is_available()
+    except ImportError:
+        gpu = False
+    if not gpu and str(args.device) != "cpu":
+        print("!! KHONG CO GPU — YOLO11x + YOLO-World @1024 tren CPU cham ~20-50 lan (vai gio/lop). "
+              "Colab: Runtime > Change runtime type > T4 GPU, roi chay lai tu o 0.")
+    print(f"Nap model gan nhan ... (thiet bi: {'GPU ' + torch.cuda.get_device_name(0) if gpu else 'CPU'})")
     labeler = AutoLabeler(args.coco_model, args.world_model or None, args.imgsz, args.device, th)
 
     # hash anh da co (train + review) + anh test -> khu trung / chong ro ri
@@ -616,8 +637,10 @@ def main() -> None:
         if need <= 0 or not qs:
             print(f"[{group}] da du {acc.get(key, 0)}/{total} — bo qua")
             continue
-        print(f"\n[{group}] can them {need} anh (dang co {acc.get(key, 0)})")
+        print(f"\n[{group}] can them {need} anh (dang co {acc.get(key, 0)}) — da chay {(time.time() - t0) / 60:.0f} phut")
+        tg = time.time()
         got = crawl_group(group, target, need, qs, sources, store, labeler, ref_hashes, mx.get(key, 0), args, report)
+        print(f"   [{group}] +{got} accept trong {(time.time() - tg) / 60:.0f} phut")
         ref_hashes = np.array([h for h in store.hash_cache.values() if h], dtype=np.uint64)
         if got < need:
             print(f"   !! [{group}] chi duoc {got}/{need} — het tu khoa: them truy van trong crawl_queries.yaml, "

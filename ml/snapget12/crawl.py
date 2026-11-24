@@ -90,10 +90,18 @@ def _key(env: str) -> str:
     return v
 
 
-def _get_json(session, url: str, params: dict, headers: dict | None = None, retries: int = 4):
+SECRET_PARAMS = ("key", "api_key", "apikey", "access_key", "token")
+
+
+def redact(text: str) -> str:
+    """Che API key trong URL/thong bao loi (requests in ca query string -> lo key ra log Colab)."""
+    return re.sub(r"(?i)\b(" + "|".join(SECRET_PARAMS) + r")=[^&\s'\"]+", r"\1=***", text)
+
+
+def _get_json(session, url: str, params: dict, headers: dict | None = None, retries: int = 4, timeout: float = 30):
     for attempt in range(retries):
         try:
-            r = session.get(url, params=params, headers=headers or {}, timeout=30)
+            r = session.get(url, params=params, headers=headers or {}, timeout=timeout)
         except Exception as e:  # timeout / mat mang -> thu lai
             print(f"   ({url.split('/')[2]} loi {type(e).__name__} — thu lai)")
             time.sleep(5 * (attempt + 1))
@@ -109,7 +117,10 @@ def _get_json(session, url: str, params: dict, headers: dict | None = None, retr
             continue
         if r.status_code in (401, 403):  # key sai / het quota -> khong thu lai vo ich, script 17 tat nguon nay
             raise KeyRejected(f"{url.split('/')[2]}: HTTP {r.status_code} — API key sai hoac het quota")
-        r.raise_for_status()
+        if r.status_code == 400 and "key" in r.text[:300].lower():  # Pixabay: 400 "[ERROR 400] Invalid or missing API key"
+            raise KeyRejected(f"{url.split('/')[2]}: HTTP 400 — {redact(r.text[:120].strip())}")
+        if r.status_code >= 400:  # KHONG dung raise_for_status: thong bao cua no chua ca URL kem key
+            raise RuntimeError(f"HTTP {r.status_code} tu {url.split('/')[2]}: {redact(r.text[:120].strip())}")
         return r.json()
     raise RuntimeError(f"{url}: van loi (429/5xx/mang) sau {retries} lan")
 
@@ -143,7 +154,7 @@ class OpenverseSource:
             try:
                 data = _get_json(self.s, f"{self.API}/images/", {
                     "q": query, "page": page, "page_size": self.page_size, "mature": "false",
-                }, self.headers, retries=2)
+                }, self.headers, retries=2, timeout=15)
             except Exception:
                 if out:
                     break
@@ -361,8 +372,13 @@ class PixabaySource:
     lang = "en"
     API = "https://pixabay.com/api/"
 
+    KEY_FORMAT = re.compile(r"^\d+-[0-9a-f]{32}$")
+
     def __init__(self) -> None:
         self.key = _key("PIXABAY_API_KEY")
+        if not self.KEY_FORMAT.match(self.key):  # hay gap: dan key 2 lan lien nhau vao Colab Secrets
+            raise ValueError(f"PIXABAY_API_KEY sai dinh dang (dai {len(self.key)} ky tu, dung la '<so>-<32 ky tu hex>' "
+                             "~41 ky tu) — co the da dan 2 lan; sua trong Colab Secrets")
         self.s = _session()
 
     @staticmethod
@@ -401,6 +417,8 @@ def make_sources(names: list[str], ddg_license: str | None = None, flickr_vn_onl
             out.append(table[n]())
         except MissingKey as e:
             print(f"   (bo qua nguon '{n}': chua co bien moi truong {e} — xem o 2 notebook)")
+        except ValueError as e:
+            print(f"   !! bo qua nguon '{n}': {e}")
         except ImportError as e:
             print(f"   (bo qua nguon '{n}': thieu thu vien {e.name})")
     if not out:
