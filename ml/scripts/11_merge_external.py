@@ -304,6 +304,8 @@ def validate_vn_counts(res: dict, rep: Report, args) -> None:
         rep.warn("VN: chua co anh test nao (test/images) — real_calib/real_test se rong")
     for split, (hard_min, soft_min, neg_min) in {"train": (args.vn_min_train, 150, 300), "test": (args.vn_min_test, 50, 100)}.items():
         rows = res[split]
+        if split == "test" and not rows:  # chua chup test: van cho train (14 tam chon nguong tren val, 15 canh bao)
+            continue
         per = {c: sum(i in {b[0] for b in r["boxes"]} for r in rows) for i, c in enumerate(CLASSES)}
         negs = sum(r["neg"] for r in rows)
         hard = sum(r["hardneg"] for r in rows)
