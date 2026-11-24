@@ -24,11 +24,14 @@ import io
 import os
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeout
 from dataclasses import dataclass, field
 
 USER_AGENT = "SnapgetDatasetBuilder/1.0 (educational computer-vision project; python-requests)"
 MAX_BYTES = 15 * 1024 * 1024
+MAX_PIXELS = 50_000_000  # ~8000x6000
+DOWNLOAD_SECONDS = 60  # tran thoi gian 1 anh (ca thu lai)
 
 # Ten mien hay ra anh CO WATERMARK / LOGO / CHU CHEN (DATASET_SPEC muc E cam): kho anh stock + san TMDT
 # (anh san pham gan logo shop, chu quang cao — gap ngay lan chay thu dau tien 2026-11-23).
@@ -178,7 +181,7 @@ class WikimediaSource:
     lang = "en"
     API = "https://commons.wikimedia.org/w/api.php"
 
-    def __init__(self, thumb_width: int = 2048) -> None:
+    def __init__(self, thumb_width: int = 1920) -> None:  # 1920 = co thumbnail chuan; co la bi Wikimedia gioi han gat (429)
         self.s = _session()
         self.thumb_width = thumb_width
 
@@ -428,19 +431,24 @@ def make_sources(names: list[str], ddg_license: str | None = None, flickr_vn_onl
 
 
 # ---------------------------------------------------------------------------
-def download_one(session, cand: Candidate):
-    """-> (cand, PIL.Image da xoay EXIF + RGB) hoac (cand, 'ly do loi')."""
+def download_one(session, cand: Candidate, deadline_s: float = DOWNLOAD_SECONDS):
+    """-> (cand, PIL.Image da xoay EXIF + RGB) hoac (cand, 'ly do loi'). Moi anh toi da `deadline_s` giay."""
     from PIL import Image, ImageOps
 
     if not cand.url.startswith(("http://", "https://")):
         return cand, "url khong hop le"
+    t0 = time.monotonic()
     try:
         for attempt in range(3):  # 429/503 (Wikimedia upload, Flickr gioi han toc do) -> doi roi thu lai
-            r = session.get(cand.url, timeout=20, stream=True)
+            r = session.get(cand.url, timeout=(10, 20), stream=True)
             if r.status_code not in (429, 503):
                 break
             r.close()
-            time.sleep(float(r.headers.get("Retry-After", 0) or 0) or 4 * (attempt + 1))
+            # Retry-After co the rat lon (Wikimedia) -> CO TRAN, khong thi 1 luong ngu ca tieng va ca lo dung theo
+            wait = min(float(r.headers.get("Retry-After", 0) or 0) or 4 * (attempt + 1), 10)
+            if time.monotonic() - t0 + wait > deadline_s:
+                return cand, f"HTTP {r.status_code}"
+            time.sleep(wait)
         if r.status_code != 200:
             return cand, f"HTTP {r.status_code}"
         ctype = r.headers.get("Content-Type", "")
@@ -451,14 +459,30 @@ def download_one(session, cand: Candidate):
             buf.extend(chunk)
             if len(buf) > MAX_BYTES:
                 return cand, "file qua lon"
+            if time.monotonic() - t0 > deadline_s:  # timeout cua requests chi tinh tung lan doc, server nho giot thi treo mai
+                r.close()
+                return cand, "tai qua lau"
         img = Image.open(io.BytesIO(bytes(buf)))
+        if img.width * img.height > MAX_PIXELS:  # giai nen anh 100+ MP ton vai GB RAM -> Colab do
+            return cand, "anh qua lon (megapixel)"
         img = ImageOps.exif_transpose(img).convert("RGB")
         return cand, img
     except Exception as e:
         return cand, f"loi tai: {type(e).__name__}"
 
 
-def download_many(cands: list[Candidate], workers: int = 8):
+def download_many(cands: list[Candidate], workers: int = 8, batch_seconds: float = 180):
+    """Tai song song, GIU thu tu. Ca lo toi da `batch_seconds`: luong nao con ket thi bo, khong cho (truoc day ex.map
+    cho tat ca -> 1 anh ket la ca script dung)."""
     s = _session()
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        return list(ex.map(lambda c: download_one(s, c), cands))
+    ex = ThreadPoolExecutor(max_workers=workers)
+    futs = {ex.submit(download_one, s, c): i for i, c in enumerate(cands)}
+    res: dict[int, object] = {}
+    try:
+        for f in as_completed(futs, timeout=batch_seconds):
+            res[futs[f]] = f.result()[1]
+    except FuturesTimeout:
+        print(f"   ({len(cands) - len(res)} anh tai qua lau — bo qua)")
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)
+    return [(c, res.get(i, "tai qua lau")) for i, c in enumerate(cands)]

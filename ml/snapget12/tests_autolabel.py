@@ -277,3 +277,21 @@ def test_import_group_from_filename_or_folder(tmp_path):
     assert m.import_group(Path("x/self_hardneg_0003.jpg")) == "hardneg"
     assert m.import_group(Path("google/motorcycle/abc123.jpg")) == "motorcycle"
     assert m.import_group(Path("google/random/abc.jpg")) is None
+
+
+def test_download_many_never_waits_on_stuck_thread(monkeypatch):
+    import time
+
+    from snapget12 import crawl
+
+    def fake(session, cand):
+        if cand.url.endswith("slow"):
+            time.sleep(3)
+        return cand, "ok"
+
+    monkeypatch.setattr(crawl, "download_one", fake)
+    cands = [crawl.Candidate(url=f"https://x/{n}", provider="t") for n in ("a", "slow", "b")]
+    t0 = time.time()
+    res = crawl.download_many(cands, workers=3, batch_seconds=0.5)
+    assert time.time() - t0 < 2
+    assert [r for _, r in res] == ["ok", "tai qua lau", "ok"] and [c.url for c, _ in res] == [c.url for c in cands]
