@@ -11,7 +11,7 @@
 | Dữ liệu | COCO subset | COCO + Kaggle + ảnh Google + **tập VN tự chụp** |
 | Verify | sigmoid(logit) ≥ ngưỡng | **max điểm lớp theo anchor** ≥ ngưỡng |
 | Ngưỡng chọn trên | COCO val | **ảnh thật (real-calib)** |
-| Pipeline | scripts `01–08`, `snapget12_train.ipynb` | scripts **`10–16`**, **`snapget_yolo_train.ipynb`** |
+| Pipeline | scripts `01–08`, `notebooks/legacy_v0/snapget12_train.ipynb` | scripts **`10–16`**, **`snapget_yolo_train.ipynb`** |
 
 ## Cấu trúc
 
@@ -51,7 +51,7 @@ ml/
 ├─ notebooks/                    (sinh từ notebooks/build/*.py — sửa file build, đừng sửa tay .ipynb)
 │   ├─ snapget_crawl_autolabel.ipynb ← **chạy TRƯỚC**: cào + gán nhãn ảnh Internet (script 17) → Drive `data/vn_web/`
 │   ├─ snapget_yolo_train.ipynb   ← **y1 — Google Colab** (chạy 10→16, ô resume; tự dùng `vn_web` nếu có)
-│   └─ snapget12_train.ipynb      v0
+│   └─ legacy_v0/snapget12_train.ipynb  v0 (MobileNetV3) — KHÔNG chạy nữa, chỉ giữ làm baseline
 └─ ai-service/                    FastAPI trên Google Cloud Run — phục vụ CẢ v0 lẫn y1 (theo model_meta.json "arch")
     ├─ app.py                     /health · /verify · /generate (tắt mặc định)
     ├─ test_app.py                smoke test (model ONNX giả, cả classifier lẫn yolo)
