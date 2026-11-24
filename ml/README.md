@@ -44,6 +44,8 @@ ml/
 │   │                             --import-dir gán nhãn ảnh đã tải sẵn). Nguồn: serpapi(Google) flickr pexels pixabay ddg wikimedia openverse
 │   │                             --auto-review: TỰ DUYỆT ảnh review (cắt vùng box chưa chắc, 2 model nhìn lại) thay duyệt tay
 │   │                             Nguồn lỗi 2 lượt ngắt mạch → tắt hẳn; --group-minutes (mặc định 40) giới hạn thời gian mỗi lớp; key bị che trong log
+│   ├─ 19_package_dataset.py      ĐÓNG GÓI ảnh cào + gán nhãn dùng được → snapget_vn_supplement.zip (YOLO 12 lớp + README thẻ dataset
+│   │                             + metadata + trích nguồn) = "tập train bổ sung dữ liệu bản địa"; notebook train tự dùng
 │   ├─ 18_clean_dataset.py        LÀM SẠCH tập VN trước mọi bước: hỏng/nhỏ/mờ/studio, trùng, rò rỉ train↔test, test không EXIF → _quarantine
 │   └─ 01–08_*.py                 pipeline v0 (giữ làm baseline/ablation)
 ├─ notebooks/                    (sinh từ notebooks/build/*.py — sửa file build, đừng sửa tay .ipynb)
@@ -73,7 +75,7 @@ ml/
 
 Kiểm thử cục bộ (không cần GPU/dữ liệu thật):
 ```bash
-cd ml && pytest snapget12/tests_metrics.py snapget12/tests_yolo.py snapget12/tests_autolabel.py snapget12/tests_clean.py -q
+cd ml && pytest snapget12/tests_metrics.py snapget12/tests_yolo.py snapget12/tests_autolabel.py snapget12/tests_clean.py snapget12/tests_package.py -q
 cd ml/ai-service && pip install -r requirements.txt onnx pytest && pytest test_app.py -q
 python dev_fake_model.py --arch yolo && $env:API_KEY='dev-key'; python -m uvicorn app:app --port 8080
 ```
