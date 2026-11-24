@@ -51,11 +51,13 @@ from snapget12.autolabel import (  # noqa: E402
     HARDNEG_PROMPTS,
     Det,
     Thresholds,
+    auto_resolve,
     check_quality,
     decide,
     estimate_distance,
     estimate_lighting,
     to_yolo_lines,
+    uncrop,
     world_vocabulary,
 )
 from snapget12.crawl import KeyRejected, blocked, download_many, make_sources, redact, set_contact  # noqa: E402
@@ -500,6 +502,80 @@ def promote(store: Store, export_dir: Path) -> None:
           "(anh ban da XOA tren Roboflow van nam day — xoa tay neu muon bo).")
 
 
+def auto_review(store: Store, labeler: AutoLabeler, args) -> None:
+    """Thay cho duyet tay: anh REVIEW -> cat vung box chua chac, 2 model nhin lai (autolabel.auto_resolve).
+    Mac dinh chi xu ly lop con THIEU va dung khi du (it anh tu duyet nhat = it nhieu nhat). Anh duoc chuyen
+    review/ -> train/ voi metadata autolabel='auto-review' (loc/hoan tac duoc). Anh con lai giu nguyen trong review/."""
+    qpath = store.out / "review" / "review_queue.csv"
+    if not qpath.exists():
+        raise SystemExit(f"!! khong co {qpath}")
+    with open(qpath, newline="", encoding="utf-8") as f:
+        queue = list(csv.DictReader(f))
+    pend_path = store.out / "review" / "metadata_pending.csv"
+    pending = {}
+    if pend_path.exists():
+        with open(pend_path, newline="", encoding="utf-8") as f:
+            pending = {r["filename"]: r for r in csv.DictReader(f)}
+    acc, _, _ = store.counts()
+    targets = {"neg": args.negatives}
+    by_group: dict[str, list[dict]] = {}
+    for r in queue:
+        if (store.out / "review" / "images" / r["filename"]).exists():
+            by_group.setdefault(r["group"], []).append(r)
+    moved: set[str] = set()
+    for group, rows in sorted(by_group.items()):
+        key = group.replace(" ", "_")
+        if group not in CLASSES and group != "neg":
+            print(f"[{group}] bo qua (hard negative can concept cua truy van — de review)")
+            continue
+        need = (targets.get(group, args.per_class) - acc.get(key, 0)) if not args.auto_review_all else len(rows)
+        if need <= 0:
+            continue
+        target = group if group in CLASSES else None
+        print(f"\n[{group}] dang co {acc.get(key, 0)} accept, can {need} — tu duyet {len(rows)} anh review")
+        got, why = 0, Counter()
+        for r in rows:
+            if got >= need:
+                break
+            src = store.out / "review" / "images" / r["filename"]
+            img = Image.open(src).convert("RGB")
+            dets = labeler([img])[0]
+
+            def run_windows(wins, img=img):
+                W, H = img.size
+                crops = [img.crop((int(w[0] * W), int(w[1] * H), max(int(w[2] * W), int(w[0] * W) + 1),
+                                   max(int(w[3] * H), int(w[1] * H) + 1))) for w in wins]
+                return [uncrop(d, w) for d, w in zip(labeler(crops), wins)]
+
+            d, note = auto_resolve(dets, target, labeler.th, run_windows)
+            if d.status != "accept":
+                main = (d.reasons[-1] if d.status == "reject" else d.reasons[0]) if d.reasons else d.status
+                why[f"{d.status}: {main.split(':')[0][:60]}"] += 1
+                continue
+            dst = store.out / "train" / "images" / src.name
+            if dst.exists():
+                continue
+            shutil.move(str(src), dst)
+            (store.out / "review" / "labels" / (src.stem + ".txt")).unlink(missing_ok=True)
+            write_yolo_labels(store.out / "train" / "labels" / (src.stem + ".txt"), to_yolo_lines(d.clusters, store.index_of))
+            row = pending.pop(src.name, {"filename": src.name, "split": "train", "source": "gg", "phone": "web"})
+            row.update(autolabel="auto-review", distance=estimate_distance(d.clusters, target),
+                       target_conf=round(d.target_score * labeler.th.keep["coco"], 3))
+            Store.append_csv(store.out / "metadata.csv", META_FIELDS, [row])
+            moved.add(src.name)
+            got += 1
+        print(f"   [{group}] +{got} anh tu duyet | con lai trong review: {dict(why.most_common(4))}")
+    with open(pend_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=META_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(pending.values())
+    with open(qpath, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["filename", "group", "reasons", "url"], extrasaction="ignore")
+        w.writeheader()
+        w.writerows(r for r in queue if r["filename"] not in moved)
+    print(f"\nOK: {len(moved)} anh review -> train (metadata autolabel='auto-review'). Xem mau o 4b truoc khi train.")
+
+
 def write_report(store: Store, report: dict, queries: dict, wanted: list[str]) -> None:
     acc, rev, _ = store.counts()
     rows = []
@@ -579,6 +655,9 @@ def main() -> None:
     ap.add_argument("--import-dir", action="append", default=[],
                     help="thu muc anh Internet DA TAI SAN (vd bang code rieng): loc + khu trung + GAN NHAN nhu anh cao. "
                          "Lop lay tu ten file <nguon>_<lop>_NNNN hoac ten thu muc cha. Chi vao train/review, KHONG vao test")
+    ap.add_argument("--auto-review", action="store_true",
+                    help="TU DUYET anh review/ (cat vung box chua chac, 2 model nhin lai) thay cho duyet tay tren Roboflow")
+    ap.add_argument("--auto-review-all", action="store_true", help="tu duyet ca lop da du (mac dinh chi lop con thieu)")
     ap.add_argument("--import-meta", help="(tuy chon) metadata.csv di kem anh import — chi lay cot url de trich nguon")
     args = ap.parse_args()
 
@@ -618,6 +697,10 @@ def main() -> None:
     store.save_state()
     print(f"{len(ref_hashes)} anh tham chieu (da co + test) de khu trung")
 
+    if args.auto_review:
+        auto_review(store, labeler, args)
+        write_report(store, {}, queries, wanted)
+        return
     report: dict = {}
     if args.import_dir:
         for d in args.import_dir:

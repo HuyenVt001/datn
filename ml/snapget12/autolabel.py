@@ -165,7 +165,8 @@ class Decision:
     target_score: float = 0.0
 
 
-def decide(dets: list[Det], target: str | None, th: Thresholds | None = None, concept: str | None = None) -> Decision:
+def decide(dets: list[Det], target: str | None, th: Thresholds | None = None, concept: str | None = None,
+           require_laptop_keyboard: bool = True) -> Decision:
     """
     target = ten lop anh duoc cao cho (vd "cup"); None = anh negative / hard negative.
     concept = (chi anh HARD NEGATIVE) khai niem cua truy van, vd "wristwatch": box cua cac lop hay nham voi no
@@ -238,7 +239,7 @@ def decide(dets: list[Det], target: str | None, th: Thresholds | None = None, co
     weak = [k for k in kept if k.cls != t and k.score < th.accept and len(k.models) < 2]
     if weak:
         reasons.append("box lop khac chua chac: " + ", ".join(sorted({CLASSES[k.cls] for k in weak})))
-    if CLASSES[t] == "laptop" or any(CLASSES[k.cls] == "laptop" for k in kept):
+    if require_laptop_keyboard and (CLASSES[t] == "laptop" or any(CLASSES[k.cls] == "laptop" for k in kept)):
         lap = [k for k in kept if CLASSES[k.cls] == "laptop"]
         kb = [k for k in kept if CLASSES[k.cls] == "keyboard"]
         if lap and not any(contained(k.box, la.box) > 0.5 for la in lap for k in kb):
@@ -250,6 +251,77 @@ def decide(dets: list[Det], target: str | None, th: Thresholds | None = None, co
     if not ok and len(best.models) < 2 and best.score < th.strong:
         reasons.append("chi 1 model thay muc tieu")
     return Decision("accept" if ok else "review", kept, reasons, best.score)
+
+
+# ---------------------------------------------------------------------------
+# TU DUYET anh REVIEW (thay cho duyet tay): cat vung quanh box chua chac -> phong to -> 2 model nhin lai.
+# Box duoc xac nhan tren vung cat -> giu (diem moi cao hon); khong xac nhan -> xoa. Laptop: tim ban phim trong vung laptop.
+# KHONG tu xu ly: box bi loai vi hard negative / nam trong man hinh (can nguoi nhin) -> giu review.
+MAX_RECHECK = 6
+
+
+def crop_window(box: np.ndarray, margin: float = 0.3, min_side: float = 0.2) -> np.ndarray:
+    """Cua so cat (xyxy chuan hoa) quanh box: noi rong `margin` moi phia, toi thieu `min_side` canh anh."""
+    x0, y0, x1, y1 = (float(v) for v in box)
+    w, h = x1 - x0, y1 - y0
+    w2, h2 = max(w * (1 + 2 * margin), min_side) / 2, max(h * (1 + 2 * margin), min_side) / 2
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    return np.clip(np.array([cx - w2, cy - h2, cx + w2, cy + h2]), 0, 1)
+
+
+def uncrop(dets: list[Det], win: np.ndarray) -> list[Det]:
+    """Doi toa do box tu vung cat ve anh goc."""
+    wx, wy = win[2] - win[0], win[3] - win[1]
+    out = []
+    for d in dets:
+        b = np.array([win[0] + d.box[0] * wx, win[1] + d.box[1] * wy, win[0] + d.box[2] * wx, win[1] + d.box[3] * wy])
+        out.append(Det(b, d.conf, d.model, cls=d.cls, hardneg=d.hardneg))
+    return out
+
+
+def auto_resolve(dets: list[Det], target: str | None, th: Thresholds, run_windows) -> tuple[Decision, str]:
+    """
+    run_windows(list[cua so]) -> list[list[Det]] da doi ve toa do anh goc (script cat anh + chay 2 model).
+    Tra (quyet dinh moi, ghi chu). Chi anh ACCEPT o day moi duoc dua vao train.
+    """
+    d0 = decide(dets, target, th)
+    if d0.status != "review":
+        return d0, "khong doi"
+    if any(" trung '" in r or " nam trong '" in r or "khong thay '" in r for r in d0.reasons):
+        return d0, "hard negative / man hinh — can nguoi xem"
+    dets = with_scores(dets, th)
+    clusters = merge([d for d in dets if d.cls is not None], th)
+    check = [c for c in clusters if th.low <= c.score < th.strong]
+    laptops = [c for c in clusters if CLASSES[c.cls] == "laptop" and c.score >= 1]
+    check = sorted(check, key=lambda c: -float((c.box[2] - c.box[0]) * (c.box[3] - c.box[1])))[:MAX_RECHECK]
+    todo = check + [la for la in laptops if all(la is not c for c in check)]
+    if not todo:
+        return d0, "khong co box nao de kiem lai"
+    found = run_windows([crop_window(c.box) for c in todo])
+    new = list(dets)
+    notes = []
+    for c, fd in zip(todo, found):
+        fd = with_scores(fd, th)
+        if any(c is k for k in check):  # so sanh dataclass co np.array bang == se loi -> dung `is`
+            members = [d for d in new if d.cls == c.cls and iou(d.box, c.box) >= 0.4]
+            same = [x for x in fd if x.cls == c.cls and iou(x.box, c.box) >= 0.3 and x.score >= 1]
+            new = [d for d in new if all(d is not m for m in members)]
+            if same:  # xac nhan -> thay box cu bang box tren vung cat (chi 1 vat the, khong tao box trung)
+                best = max(same, key=lambda x: x.score)
+                new += [best] + [x for x in same if x is not best and iou(x.box, best.box) >= th.merge_iou]
+                new += [m for m in members if iou(m.box, best.box) >= th.merge_iou]
+                notes.append(f"+{CLASSES[c.cls]}")
+            else:
+                notes.append(f"-{CLASSES[c.cls]}")
+        if CLASSES[c.cls] == "laptop":  # ban phim nam trong laptop (laptop mo) -> them box keyboard
+            kb = [x for x in fd if x.cls is not None and CLASSES[x.cls] == "keyboard" and x.score >= 1
+                  and contained(x.box, c.box) > 0.5]
+            if kb:
+                new.append(max(kb, key=lambda x: x.score))
+                notes.append("+keyboard trong laptop")
+    # Laptop khong tim thay ban phim ca khi phong to -> coi la laptop gap/goc nghieng (sai so chap nhan, ghi trong bao cao)
+    d1 = decide(new, target, th, require_laptop_keyboard=False)
+    return d1, " ".join(notes)
 
 
 def to_yolo_lines(clusters: list[Cluster], index_of: list[int] | None = None) -> list[tuple]:

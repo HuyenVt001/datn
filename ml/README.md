@@ -42,6 +42,7 @@ ml/
 │   ├─ 16_export_yolo_onnx.py     ONNX fp32 + model_meta.json (arch "yolo") + so khớp PyTorch + upload HF
 │   ├─ 17_crawl_autolabel.py      TỰ ĐỘNG cào ảnh Internet + gán nhãn → thư mục VN-train (resume, không ghi đè, --promote ảnh đã duyệt,
 │   │                             --import-dir gán nhãn ảnh đã tải sẵn). Nguồn: serpapi(Google) flickr pexels pixabay ddg wikimedia openverse
+│   │                             --auto-review: TỰ DUYỆT ảnh review (cắt vùng box chưa chắc, 2 model nhìn lại) thay duyệt tay
 │   │                             Nguồn lỗi 2 lượt ngắt mạch → tắt hẳn; --group-minutes (mặc định 40) giới hạn thời gian mỗi lớp; key bị che trong log
 │   ├─ 18_clean_dataset.py        LÀM SẠCH tập VN trước mọi bước: hỏng/nhỏ/mờ/studio, trùng, rò rỉ train↔test, test không EXIF → _quarantine
 │   └─ 01–08_*.py                 pipeline v0 (giữ làm baseline/ablation)

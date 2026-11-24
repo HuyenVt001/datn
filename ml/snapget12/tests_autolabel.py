@@ -295,3 +295,58 @@ def test_download_many_never_waits_on_stuck_thread(monkeypatch):
     res = crawl.download_many(cands, workers=3, batch_seconds=0.5)
     assert time.time() - t0 < 2
     assert [r for _, r in res] == ["ok", "tai qua lau", "ok"] and [c.url for c, _ in res] == [c.url for c in cands]
+
+
+def test_crop_window_and_uncrop_roundtrip():
+    from snapget12.autolabel import crop_window, uncrop
+
+    w = crop_window(box(.4, .4, .5, .5))  # box nho -> cua so toi thieu 0.2 canh anh
+    assert np.allclose(w, [.35, .35, .55, .55])
+    back = uncrop([Det(box(.25, .25, .75, .75), .9, "coco", cls=C("cup"))], w)[0]
+    assert np.allclose(back.box, [.4, .4, .5, .5])
+    assert np.all(crop_window(box(0, 0, .1, 1)) >= 0) and np.all(crop_window(box(0, 0, .1, 1)) <= 1)
+
+
+def test_auto_resolve_confirms_or_removes_uncertain_boxes():
+    from snapget12.autolabel import auto_resolve
+
+    th = Thresholds()
+    chair = [Det(box(.1, .3, .4, .9), .8, "coco", cls=C("chair")), Det(box(.1, .3, .4, .9), .5, "world", cls=C("chair"))]
+    umb = Det(box(.5, .4, .7, .9), .4, "coco", cls=C("umbrella"))  # box lop khac chua chac -> review
+    assert decide(chair + [umb], "chair", th).status == "review"
+
+    # phong to khong thay umbrella -> xoa box do -> accept, nhan chi con ghe
+    d, note = auto_resolve(chair + [umb], "chair", th, lambda wins: [[] for _ in wins])
+    assert d.status == "accept" and [c.cls for c in d.clusters] == [C("chair")] and "-umbrella" in note
+
+    # phong to thay umbrella ro (2 model) -> giu, 1 box duy nhat (khong trung)
+    def confirm(wins):
+        return [[Det(box(.5, .4, .7, .9), .9, "coco", cls=C("umbrella")), Det(box(.51, .4, .7, .9), .6, "world", cls=C("umbrella"))]
+                for _ in wins]
+    d, _ = auto_resolve(chair + [umb], "chair", th, confirm)
+    assert d.status == "accept" and sorted(c.cls for c in d.clusters) == sorted([C("chair"), C("umbrella")])
+
+    # muc tieu chi 1 model, diem vua -> phong to khong xac nhan -> bi xoa -> reject (khong dua vao train)
+    d, _ = auto_resolve([Det(box(.2, .2, .7, .8), .6, "coco", cls=C("cup"))], "cup", th, lambda wins: [[] for _ in wins])
+    assert d.status == "reject"
+
+
+def test_auto_resolve_laptop_keyboard_and_hardneg_untouched():
+    from snapget12.autolabel import auto_resolve
+
+    th = Thresholds()
+    lap = [Det(box(.2, .2, .8, .8), .9, "coco", cls=C("laptop")), Det(box(.2, .2, .8, .8), .6, "world", cls=C("laptop"))]
+    assert decide(lap, "laptop", th).status == "review"  # thieu keyboard
+    kb = lambda wins: [[Det(box(.3, .5, .7, .75), .7, "coco", cls=C("keyboard"))] for _ in wins]  # noqa: E731
+    d, note = auto_resolve(lap, "laptop", th, kb)
+    assert d.status == "accept" and C("keyboard") in [c.cls for c in d.clusters] and "keyboard" in note
+    d, _ = auto_resolve(lap, "laptop", th, lambda wins: [[] for _ in wins])  # khong thay phim -> laptop gap, van accept
+    assert d.status == "accept" and [c.cls for c in d.clusters] == [C("laptop")]
+
+    # o that (2 model) + 1 "umbrella" thuc ra la non la -> review vi hard negative: KHONG tu xu ly, de nguoi xem
+    calls = []
+    imgdets = [Det(box(.05, .05, .45, .6), .9, "coco", cls=C("umbrella")), Det(box(.05, .05, .45, .6), .6, "world", cls=C("umbrella")),
+               Det(box(.55, .1, .95, .5), .6, "coco", cls=C("umbrella")), Det(box(.55, .1, .95, .5), .5, "world", hardneg="conical hat")]
+    assert decide(imgdets, "umbrella", th).status == "review"
+    d, note = auto_resolve(imgdets, "umbrella", th, lambda wins: calls.append(wins) or [[] for _ in wins])
+    assert d.status == "review" and not calls and "hard negative" in note
