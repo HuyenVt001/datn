@@ -29,7 +29,7 @@ ml/
 │   └─ tests_metrics.py, tests_yolo.py   pytest (không cần torch)
 ├─ scripts/
 │   ├─ 10_export_coco_yolo.py     COCO 2017 → dataset YOLO 12 lớp (+ background, + bản cắt dọc 3:4)
-│   ├─ 11_merge_external.py       gộp Kaggle/Google/VN, KIỂM TRA tập VN theo DATASET_SPEC, dHash chống rò rỉ → data.yaml + lists
+│   ├─ 11_merge_external.py       gộp COCO + dữ liệu bổ sung, KIỂM TRA tập VN theo DATASET_SPEC, dHash chống rò rỉ → data.yaml + lists
 │   ├─ 13_train_yolo.py           fine-tune YOLO11 (khởi tạo head COCO đã cắt, KeepHeadTrainer, resume Colab)
 │   ├─ 14_eval_yolo.py            ablation: mAP50/50-95, confusion 13×13, verify cấp ảnh, chọn ngưỡng trên real-calib
 │   ├─ 15_select_classes.py       áp tiêu chí → class_selection.json/.md + AI_QUEST_CLASSES cho server
@@ -50,7 +50,7 @@ ml/
 | Bước | Script | Ra | Ghi chú |
 |---|---|---|---|
 | 1 | `10_export_coco_yolo.py` | `/content/yolo/coco` + `stats.json` | lần đầu tải 20–40', notebook tự zip lên Drive, phiên sau chỉ giải nén |
-| 2 | (notebook) | giải nén `snapget_vn_supplement.zip`, `vn.zip` (tự chụp), tuỳ chọn Kaggle/`google_labeled.zip` | đặt trong `WORK/data/` trên Drive |
+| 2 | (notebook) | giải nén `snapget_vn_supplement.zip`, `vn.zip` (tự chụp) | đặt trong `WORK/data/` trên Drive |
 | 3 | `11_merge_external.py` | `data.yaml`, `real_calib.yaml`, `real_test.yaml`, `lists/*.txt`, `merge_report.json` | **dừng** nếu tập VN sai đặc tả |
 | 4 | `13_train_yolo.py` | `artifacts/yolo/y1-s/weights/best.pt` (Drive) | ~40 epoch × 8–12'; `--resume` khi Colab ngắt |
 | 5 | `14_eval_yolo.py` | `artifacts/eval/<model>/…`, `ablation.json` | so v0 / YOLO COCO không FT / y1-n / y1-s |

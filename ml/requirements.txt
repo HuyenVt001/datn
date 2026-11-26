@@ -15,4 +15,3 @@ transformers>=4.40 # ablation OWL-ViT (07)
 ultralytics>=8.3,<9  # y1: YOLO11 train/val/export (10-16). AGPL-3.0 — chap nhan cho DATN
 onnxslim            # ultralytics export simplify=True (16)
 pyyaml              # yolo_class_map.yaml, data.yaml (11)
-kaggle              # tai dataset Kaggle trong notebook (token kaggle.json tren Drive, KHONG commit)

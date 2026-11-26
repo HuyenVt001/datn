@@ -1,6 +1,8 @@
 import json
 import sys
 
+# Notebook snapget_yolo_train.ipynb la NGUON CHINH (chu duoc sua tay trong IDE); file nay la ban sao de sinh lai.
+# Da sua notebook truc tiep -> cap nhat file nay cho khop TRUOC khi sinh lai, neu khong se ghi de chu da sua.
 cells = []
 BS = "\\"  # dau gach nguoc noi dong lenh shell trong notebook
 
@@ -18,12 +20,10 @@ def code(s):
 md("""
 # Snapget y1 — fine-tune YOLO11 cho xác minh ảnh Daily Quest
 
-Model nhận diện 12 lớp vật thể (cup, bottle, book, chair, potted plant, laptop, keyboard, backpack, clock, umbrella, bicycle, motorcycle). Ảnh người dùng đăng được coi là "có vật thể X" khi điểm cao nhất của lớp X trên toàn ảnh vượt ngưỡng riêng của lớp đó.
+Model nhận diện 12 lớp vật thể (cup, bottle, book, chair, potted plant, laptop, keyboard, backpack, clock, umbrella, bicycle, motorcycle).
 
-Code xử lý nằm trong `ml/snapget12/` và `ml/scripts/10–16`; notebook chỉ gọi lần lượt các script. Chạy trên Colab, GPU T4.
-
-| Ô | Nội dung | Script |
-|---|---|---|
+| Ô | Nội dung |
+|---|---|
 | 0 | Mount Drive, lấy code, cài thư viện | |
 | 1 | COCO 2017 → dataset YOLO 12 lớp | `10` |
 | 2 | Giải nén dữ liệu bổ sung | |
@@ -34,7 +34,6 @@ Code xử lý nằm trong `ml/snapget12/` và `ml/scripts/10–16`; notebook ch�
 | 7 | Export ONNX, đưa model lên Hugging Face | `16` |
 | 8 | Bảng tổng hợp kết quả | |
 
-Dữ liệu gốc và checkpoint để trên Drive (`WORK`). Dataset làm việc giải nén ra `/content` vì đọc ảnh trực tiếp từ Drive rất chậm; Colab ngắt thì phần này mất, chạy lại ô 0–3 là có lại.
 """)
 code("""
 # 0a. Drive
@@ -57,9 +56,9 @@ code("""
 """)
 md("""
 ## 1. COCO 2017 → YOLO 12 lớp
-Lấy ảnh COCO có chứa 12 lớp (tối đa 2.000 ảnh/lớp) cùng 1.500 ảnh nền không có lớp nào, giữ nguyên box gốc. Thêm khoảng 20% bản cắt dọc 3:4 để giống ảnh chụp điện thoại. Tập test lấy từ COCO val2017.
-
-Lần đầu tải mất 20–40 phút, xong thì nén lại thành `coco_yolo.zip` trên Drive; các lần sau chỉ giải nén.
+- Lấy ảnh COCO có chứa 12 lớp (tối đa 2.000 ảnh/lớp) cùng 1.500 ảnh nền không có lớp nào, giữ nguyên box gốc. 
+- Bổ sung khoảng 20% bản cắt dọc 3:4 mô phỏng ảnh chụp điện thoại. Tập test lấy từ COCO val2017.
+- Tải và nén  thành `coco_yolo.zip`
 """)
 code("""
 import os
@@ -69,30 +68,17 @@ if os.path.exists(ZIP):
 else:
     !python scripts/10_export_coco_yolo.py --out {YOLO}/coco --max-per-class 2000 --negatives 1500 <BS>
         --test-max 3000 --test-negatives 500 --portrait-frac 0.2
-    !cd {YOLO} && zip -q -r {ZIP} coco      # ảnh là symlink tới cache FiftyOne, zip -r chép ảnh thật
+    !cd {YOLO} && zip -q -r {ZIP} coco      
 !head -40 {YOLO}/coco/stats.json
 """)
 md("""
 ## 2. Dữ liệu bổ sung
-COCO chủ yếu là ảnh nước ngoài, thiếu nhiều vật thể quen thuộc ở Việt Nam (ghế nhựa vỉa hè, ly trà sữa, xe số, dù che quán...). Phần này bù vào:
-
-- `snapget_vn_supplement.zip` — tập train bổ sung dữ liệu bản địa: ảnh bối cảnh Việt Nam, nhãn YOLO 12 lớp, chỉ dùng để train. Số lượng, nguồn và giấy phép ghi trong `README.md` của gói.
+COCO chủ yếu là ảnh nước ngoài, thiếu nhiều vật thể quen thuộc ở Việt Nam nên nhóm đã xây dựng một bộ dữ liệu bổ sung : 
+- `snapget_vn_supplement.zip` — tập train bổ sung dữ liệu bản địa: ảnh bối cảnh Việt Nam, nhãn YOLO 12 lớp, chỉ dùng để train.
 - `vn.zip` — ảnh tự chụp bằng điện thoại, gồm `train/` và `test/` (cấu trúc theo `ml/DATASET_SPEC.md`). Tập test chỉ gồm ảnh tự chụp; đây là tập dùng để chọn ngưỡng và chọn lớp quest. Khi chưa có, ngưỡng tạm chọn trên tập val.
-- Tuỳ chọn: dataset Kaggle có box (cần `kaggle.json` trên Drive) hoặc ảnh tự gán nhãn trên Roboflow (`google_labeled.zip`).
 """)
 code("""
-KAGGLE_DATASETS = [
-    # 'owner/dataset-name',
-]
-import os, shutil
-if KAGGLE_DATASETS:
-    os.makedirs('/root/.kaggle', exist_ok=True)
-    shutil.copy(f'{WORK}/kaggle.json', '/root/.kaggle/kaggle.json'); os.chmod('/root/.kaggle/kaggle.json', 0o600)
-    for i, ds in enumerate(KAGGLE_DATASETS):
-        !kaggle datasets download -d {ds} -p {EXT}/kaggle{i} --unzip -q
-z = f'{WORK}/data/google_labeled.zip'
-if os.path.exists(z):
-    !unzip -q -o {z} -d {EXT}/google_labeled
+import os
 # ảnh tự chụp (train + test)
 !rm -rf {EXT}/vn
 if os.path.exists(f'{WORK}/data/vn.zip'):
@@ -111,12 +97,10 @@ else:
 """)
 md("""
 ## 3. Gộp dữ liệu, kiểm tra, chia tập
-Script `11` gộp COCO với dữ liệu bổ sung thành `data.yaml` và danh sách ảnh cho từng tập:
-- ảnh Việt Nam được lặp ×3 trong tập train để không bị COCO lấn át;
+Gộp COCO với dữ liệu bổ sung thành `data.yaml` và danh sách ảnh cho từng tập:
+- ảnh bổ sung được lặp ×3 trong tập train để không bị COCO lấn át;
 - ảnh test tự chụp chia 40% `real_calib` (chọn ngưỡng) / 60% `real_test` (báo cáo, chọn lớp);
 - ảnh train gần trùng ảnh test (dHash) bị loại để tránh rò rỉ.
-
-Nếu dữ liệu sai đặc tả (thiếu ảnh, sai class id, box lỗi) thì script dừng; các thiếu hụt nhẹ hơn chỉ ghi cảnh báo vào `merge_report.json`.
 """)
 code("""
 import glob, os
@@ -127,24 +111,20 @@ def find_vn(base):
              if os.path.isdir(os.path.join(p, 'train', 'images')) or os.path.isdir(os.path.join(p, 'test', 'images'))]
     return sorted(cands, key=len)[0] if cands else None
 
-sources = ''
-for d in sorted(glob.glob(f'{EXT}/kaggle*')) + [f'{EXT}/google_labeled']:
-    if os.path.isdir(d):
-        sources += f' --yolo {d}'     # dataset dạng COCO-JSON / VOC thì đổi thành --coco-json / --voc
 VN_DIR = find_vn(f'{EXT}/vn')
 vn = f'--vn {VN_DIR}' if VN_DIR else ''
 if os.path.isdir(f'{EXT}/snapget_vn_supplement/train'):
     vn += f' --vn {EXT}/snapget_vn_supplement'
 VN_MIN_TRAIN = 100   # số ảnh Việt Nam tối thiểu mỗi lớp trong train
-!python scripts/11_merge_external.py --root {YOLO} --coco {YOLO}/coco {sources} {vn} --class-map yolo_class_map.yaml <BS>
+!python scripts/11_merge_external.py --root {YOLO} --coco {YOLO}/coco {vn} --class-map yolo_class_map.yaml <BS>
     --vn-min-train {VN_MIN_TRAIN}
 !cp {YOLO}/merge_report.json {WORK}/artifacts/merge_report.json
 """)
 md("""
 ## 4. Fine-tune
-- Khởi tạo từ YOLO11s pretrained COCO; head 80 lớp được cắt còn đúng 12 lớp, giữ nguyên trọng số đã học.
-- `imgsz 640`, 40 epoch, batch tự chọn theo VRAM; dừng sớm nếu 12 epoch liền không cải thiện; 8 epoch cuối tắt mosaic.
-- Trên T4 mỗi epoch mất 8–12 phút, nên thường phải chạy qua 2–3 phiên Colab. Checkpoint lưu lên Drive sau mỗi epoch; bị ngắt thì chạy lại ô 0 → 1 → 2 → 3 rồi chạy 4b.
+- Khởi tạo từ YOLO11s pretrained COCO; head 80 lớp được cắt còn 12 lớp.
+- `imgsz 640`, 40 epoch; dừng sớm nếu 12 epoch liền không cải thiện; 8 epoch cuối tắt mosaic.
+- Khi bị Colab ngắt thì chạy lại ô 0 → 1 → 2 → 3 rồi chạy 4b.
 - 4c train thêm YOLO11n (nhẹ hơn khoảng 3 lần) để so sánh độ chính xác với tốc độ.
 """)
 code("""
@@ -212,8 +192,6 @@ Một lớp chỉ được dùng làm quest khi đạt đủ các tiêu chí tr�
 | Tỉ lệ từ chối sai | ≤ 15% |
 | Bị lớp khác nhận nhầm | ≤ 5% |
 | Số ảnh test | ≥ 20 |
-
-Nếu ít hơn 6 lớp đạt thì lấy 6 lớp có F1 cao nhất. Kết quả lưu ở `class_selection.json` / `.md`, kèm danh sách `AI_QUEST_CLASSES` để cập nhật cho server.
 """)
 code("""
 import os
