@@ -12,3 +12,6 @@ kaggle.json
 # Model cua ai-service: tai ve khi build/deploy, chi giu README huong dan
 ai-service/model/*
 !ai-service/model/README.md
+
+# File sinh notebook (goc repo chan moi thu muc build/ cua Android) -> van commit
+!notebooks/build/

@@ -72,7 +72,7 @@ Các phát hiện kỹ thuật khác của v0 (giữ cho báo cáo):
 | COCO train/val | COCO 2017 train2017 (box 12 lớp, ≤ 2000 ảnh/lớp + ~1500 background), chia 90/10; +20% bản **cắt dọc 3:4** của ảnh ngang (mô phỏng ảnh điện thoại) | train / chọn best.pt |
 | COCO test | val2017 (≤ 3000 ảnh có lớp + 500 negative) | đo iid, ablation |
 | Kaggle | dataset public **có box** (YOLO / COCO JSON / VOC); tên lớp map qua `ml/yolo_class_map.yaml` | train |
-| Ảnh Internet (tự động) | **`17_crawl_autolabel.py`** (notebook `snapget_crawl_autolabel.ipynb`): cào Openverse + Wikimedia (CC, có license) + DuckDuckGo (tiếng Việt) theo `ml/crawl_queries.yaml` → lọc chất lượng + chặn tên miền watermark → **gán box bằng YOLO11x + YOLO-World** (prompt bối cảnh VN + hard negative) → accept vào train / review sửa tay → `--promote`. Mặc định 100 ảnh/lớp + 300 negative | train |
+| Tập train bổ sung dữ liệu bản địa | `snapget_vn_supplement.zip` trên Drive — dataset YOLO 12 lớp, ảnh bối cảnh VN gán nhãn bán tự động (số lượng/nguồn/giấy phép: `README.md` trong zip). Code thu thập đã gỡ khỏi repo sau khi đóng gói (2026-11-26) | train |
 | Ảnh Google (tay) | ảnh đời thường bối cảnh VN; **pre-label bằng YOLO11x (`12`) → nhóm sửa tay** trên Roboflow | train |
 | **VN-train** | ≥ 150 ảnh/lớp (≥ 50 tự chụp) + 300 negative — **lặp ×3** khi train | train |
 | **VN-test** | 50 ảnh/lớp + 100 negative, **100% tự chụp**; script chia **real-calib 40%** / **real-test 60%** | chọn ngưỡng / chọn lớp + báo cáo |
@@ -167,7 +167,7 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 | Chụp lại màn hình/ảnh in có vật thể | Tập VN có **hard negative màn hình/ảnh in** (nhãn rỗng) → model học từ chối; vẫn là limitation (không cam kết chặn hết) |
 | Chi phí gian lận | 30 Astrite/ngày < 1/10 giá khung rẻ nhất → động cơ thấp bằng thiết kế kinh tế |
 | Colab ngắt giữa lúc train | checkpoint lưu Drive mỗi epoch + `--resume` (dùng `KeepHeadTrainer`); dataset zip trên Drive, giải nén lại 3–5' |
-| Nhãn ảnh Google/pre-label sai | duyệt 100% ảnh, `needs_review.txt` chỉ ra ảnh nghi vấn; test do người thứ 2 kiểm |
+| Nhãn sai | ảnh tự chụp soát 100% box trên Roboflow; test do người thứ 2 kiểm |
 | Rò rỉ train ↔ test làm số liệu đẹp giả | quy tắc chia người/địa điểm + dHash tự loại |
 | Dataset Kaggle chỉ gán một số lớp (thiếu nhãn) | ưu tiên dataset tập trung đúng vật thể; ảnh mà mọi box ngoài 12 lớp bị loại |
 | Latency YOLO trên Cloud Run 1 vCPU vượt timeout 3s | YOLO11s ước ~150–300ms; nếu p95 cao → dùng YOLO11n (script 16 cảnh báo khi p95 > 1.5s) |
@@ -195,7 +195,7 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 | Phase | Việc | Ai | Trạng thái |
 |---|---|---|---|
 | Y0 | Pipeline y1 (`ml/snapget12/yolo.py`, scripts 10–16, notebook, class map), ai-service `arch:"yolo"`, server URL 640, đặc tả dữ liệu | Claude | ✅ 2026-11-23 |
-| Y0b | Tự động cào + gán nhãn ảnh Internet (script 17, notebook `snapget_crawl_autolabel.ipynb`) | Claude | ✅ 2026-11-23 |
+| Y0b | Tập train bổ sung dữ liệu bản địa `snapget_vn_supplement.zip` (đã đóng gói; code thu thập đã gỡ) | Claude | ✅ 2026-11-26 |
 | Y1 | Thu thập + gán nhãn **VN-test** và **VN-train**; chọn dataset Kaggle; tải ảnh Google | user | ⬜ |
 | Y2 | Train y1 trên Colab (+ y1-n tuỳ chọn), đánh giá, chọn lớp | user chạy, Claude review | ⬜ |
 | Y3 | Cập nhật `AI_QUEST_CLASSES` (+ câu mẫu lớp mới), deploy model, test end-to-end | Claude + user | ⬜ |
@@ -207,12 +207,12 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 **A. Dữ liệu** (`ml/DATASET_SPEC.md`)
 1. Chia người/địa điểm cho VN-test và VN-train (chống rò rỉ — DATASET_SPEC mục A).
 2. Chụp **VN-test**: 50 ảnh/lớp + 100 negative (≥ 50 hard negative), 100% tự chụp, ưu tiên bằng app Snapget, đủ đa dạng mục C.
-3. Chụp phần tự chụp của **VN-train** (≥ 50 ảnh/lớp). Phần ảnh Internet (~100/lớp + 300 negative): chạy notebook **`snapget_crawl_autolabel.ipynb`** (cào + gán nhãn tự động, chạy lại được khi Colab ngắt) → **xem mẫu ~10%** ảnh accept (ô 4) → zip `review/` sửa trên Roboflow → `--promote` (ô 5–6). Thiếu ảnh lớp nào → thêm từ khoá `ml/crawl_queries.yaml`.
+3. Chụp phần tự chụp của **VN-train** (≥ 50 ảnh/lớp). Phần ảnh Internet đã có sẵn trong `snapget_vn_supplement.zip` (notebook train tự dùng).
 4. Chọn **dataset Kaggle có box**; ghi link + license vào `data_sources.md`; tên lớp lạ thêm vào `ml/yolo_class_map.yaml`. Tạo Kaggle API token → `kaggle.json` để trong `snapget-ml/` trên Drive (**không commit, không dán vào chat**).
 5. Ghi `metadata.csv` (scene/lighting/distance/phone) cho mọi ảnh tự chụp.
 
 **B. Gán nhãn**
-6. Notebook ô 3 (`12_prelabel.py`) cho ảnh Google + ảnh tự chụp → upload Roboflow → sửa 100% ảnh (xem `needs_review.txt`) → export YOLOv8 **không resize, không augment, 100% train** → xếp vào `vn/train`, `vn/test` → zip `vn.zip` lên Drive (`snapget-ml/data/`).
+6. Ảnh tự chụp → upload Roboflow → vẽ/soát box 100% ảnh (DATASET_SPEC mục D) → export YOLOv8 **không resize, không augment, 100% train** → xếp vào `vn/train`, `vn/test` → zip `vn.zip` lên Drive (`snapget-ml/data/`).
 7. Ảnh Google đã gán (nếu tách riêng) → `google_labeled.zip` lên Drive.
 
 **C. Train & đánh giá** (Colab T4, `ml/notebooks/snapget_yolo_train.ipynb`)
@@ -234,6 +234,8 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-11-26 (2) | Notebook train bỏ ô pre-label (dữ liệu train đã có nhãn), đánh số lại 0–8; xoá `scripts/12_prelabel.py` — ảnh tự chụp gán nhãn thẳng trên Roboflow (DATASET_SPEC mục D). Viết lại toàn bộ chữ trong notebook train theo giọng ghi chép để dùng khi báo cáo. |
+| 2026-11-26 | **Gỡ toàn bộ code thu thập dữ liệu** sau khi đã đóng gói `snapget_vn_supplement.zip` (user chốt — không giữ phần cào trong repo): xoá scripts 17/18/19, `snapget12/{crawl,autolabel}.py` + test, `crawl_queries.yaml`, notebook `snapget_crawl_autolabel.ipynb` + file build; notebook train chỉ còn đọc `snapget_vn_supplement.zip` + `vn.zip` (tự chụp); bỏ `ddgs/requests/pandas` khỏi requirements. Các dòng changelog 2026-11-23 (2) → 2026-11-24 (5) bên dưới là lịch sử của phần đã gỡ. |
 | 2026-11-24 (5) | Tự duyệt chạy xong: 13/14 nhóm đủ (backpack 89 → thêm 8 từ khoá). **User chốt: phần cào/gán nhãn KHÔNG trình bày trong báo cáo** — chỉ nhắc tới như "tập train bổ sung dữ liệu bản địa". → `19_package_dataset.py` + ô 8 notebook cào đóng gói `snapget_vn_supplement.zip` (YOLO 12 lớp chuẩn hoá thứ tự, README thẻ dataset ghi rõ gán nhãn bán tự động, metadata, trích nguồn, stats); notebook train ưu tiên zip này. |
 | 2026-11-24 (4) | **Tự duyệt ảnh review thay cho duyệt tay** (user không đủ thời gian duyệt ~3.600 ảnh): `autolabel.auto_resolve` + `17 --auto-review` (ô 4b) — cắt vùng box chưa chắc (điểm [0.75, 2.1)), phóng to, YOLO11x + YOLO-World nhìn lại: xác nhận → thay box, không → xoá; laptop tìm keyboard trong vùng laptop, không thấy → chấp nhận không có keyboard (lệch DATASET_SPEC B/D có chủ đích); hard negative/màn hình → giữ review. Chỉ lớp còn thiếu, dừng khi đủ; metadata `autolabel=auto-review`. Ô xem mẫu ảnh tự duyệt. Roboflow thành tuỳ chọn. |
 | 2026-11-24 (3) | **Chạy xong notebook cào** (108'): accept đủ 100 ở 7/12 lớp; thiếu laptop 20, backpack 58, book 65, potted plant 86; ~3.600 ảnh review. Ô 1b chỉ chạy dry-run ⇒ chưa có `vn_clean.zip`. Sửa: ô 5 chỉ zip ảnh review của lớp còn thiếu (×1.5) → `vn_web_review_pick.zip`; notebook train **bỏ `vn.rar` thô** (test là ảnh Internet), `11_merge` cho phép chưa có test (14 tạm chọn ngưỡng trên val), thêm biến `VN_MIN_TRAIN`. |

@@ -15,7 +15,7 @@ Nguon ngoai (lap lai duoc nhieu lan):
   --coco-json JSON IMGDIR  annotation COCO (bbox pixel) + thu muc anh
   --voc DIR              Pascal VOC (Annotations/*.xml + anh)
   --vn DIR               tap VN theo DATASET_SPEC (train/ + test/ + metadata.csv) — DUY NHAT nguon vao TEST that.
-                         Lap lai duoc: --vn <anh tu chup> --vn <anh cao tu dong cua 17_crawl_autolabel.py (chi train/)>
+                         Lap lai duoc: --vn <anh tu chup> --vn <tap train bo sung snapget_vn_supplement (chi train/)>
 Ten lop -> 12 lop chuan qua --class-map (yolo_class_map.yaml). Box lop la bi BO + in canh bao.
 Anh ngoai ma MOI box deu bi bo -> LOAI anh (co the chua vat the 12 lop ma khong duoc gan = nhan sai).
 
@@ -220,7 +220,7 @@ def vn_primary(stem: str) -> tuple[str | None, str | None]:
 
 
 def load_vn(vn_dirs: list[Path], class_map, rep: Report, args) -> dict:
-    """Nhieu thu muc VN (vd anh tu chup + anh cao tu dong 17_crawl_autolabel.py) -> gop roi kiem tra SO LUONG
+    """Nhieu thu muc VN (vd anh tu chup + tap train bo sung snapget_vn_supplement) -> gop roi kiem tra SO LUONG
     tren tong. Metadata kiem tra rieng tung thu muc (moi thu muc co metadata.csv cua no)."""
     res: dict = {"train": [], "test": []}
     for vn in vn_dirs:
@@ -446,7 +446,7 @@ def main() -> None:
             ext.append({"img": img, "boxes": boxes, "tag": tag, "primary": CLASSES[boxes[0][0]] if boxes else "neg"})
             kept += 1
         rep.data["sources"][tag] = {"kind": kind, "spec": spec, "kept": kept, "unlabeled": unlabeled, "droppedAllBoxes": all_dropped}
-        print(f"   giu {kept} anh | chua gan nhan {unlabeled} (bo qua — chay 12_prelabel.py) | bo {all_dropped} anh vi moi box ngoai 12 lop")
+        print(f"   giu {kept} anh | chua gan nhan {unlabeled} (bo qua — can gan nhan truoc) | bo {all_dropped} anh vi moi box ngoai 12 lop")
     if unknown:
         rep.warn("Ten lop KHONG co trong yolo_class_map.yaml (da bo): " + ", ".join(f"{n}×{c}" for n, c in unknown.most_common(30))
                  + " — them vao file map neu la 1 trong 12 lop")

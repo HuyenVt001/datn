@@ -82,13 +82,13 @@ Một **vật thể vật lý** hoặc một **địa điểm** chỉ được n
 3. Bãi xe / dãy ghế đông: vẽ từng cái phân biệt được, tối đa ~20 box/ảnh; phần quá xa, chồng chéo thì bỏ.
 4. Vật thể **trong màn hình, ảnh in, gương, poster** → **KHÔNG** vẽ.
 5. Theo đúng bảng định nghĩa lớp ở mục B (đặc biệt: xe đạp điện có bàn đạp = bicycle; đồng hồ đeo tay = không vẽ; laptop mở = vẽ cả laptop lẫn keyboard).
-6. **Duyệt 100% ảnh** sau khi pre-label (bước 2 bên dưới). Mỗi ảnh **VN-test** phải được **người thứ 2** kiểm lại.
+6. **Duyệt 100% ảnh** (kể cả box do công cụ tự gợi ý). Mỗi ảnh **VN-test** phải được **người thứ 2** kiểm lại.
 
 ### Quy trình gán nhãn (Roboflow — miễn phí, khuyến nghị)
-1. Gom ảnh chưa nhãn vào 1 thư mục (vd `raw/google/cup/…`, `raw/self_test/…`), đẩy lên Drive.
-2. Trên Colab chạy ô **pre-label** của notebook (`scripts/12_prelabel.py`, model YOLO11x) → ra thư mục `images/` + `labels/` + `classes.txt` + **`needs_review.txt`** (danh sách ảnh nghi vấn: model không thấy vật thể được gợi ý, box điểm thấp, cặp dễ nhầm).
-3. Roboflow → *Create Project* (Object Detection) → *Upload* cả thư mục (images + labels + classes.txt) → Roboflow tự nhận box sẵn.
-4. Sửa từng ảnh: chỉnh box lệch, **xoá box sai lớp** (model COCO hay gán xe đạp điện thành motorcycle, nón lá thành umbrella, đồng hồ đeo tay thành clock), **thêm box bị sót** (ly trà sữa, ghế nhựa thấp hay bị sót). Xem kỹ các ảnh trong `needs_review.txt`.
+1. Gom ảnh chưa nhãn vào 1 thư mục (vd `self_test/…`).
+2. Roboflow → *Create Project* (Object Detection) → tạo sẵn đủ 12 lớp đúng tên → *Upload* ảnh.
+3. Vẽ box từng ảnh (có thể bật gợi ý box tự động của Roboflow cho nhanh, nhưng vẫn phải soát từng box).
+4. Lỗi hay gặp khi soát: box lệch, **box sai lớp** (xe đạp điện thành motorcycle, nón lá thành umbrella, đồng hồ đeo tay thành clock), **box bị sót** (ly trà sữa, ghế nhựa thấp hay bị sót).
 5. *Generate version* → **bỏ hết Preprocessing** (đặc biệt *Resize* — Roboflow mặc định thu về 640px, làm mất chi tiết) và **không bật Augmentation** (script train tự augment) · *Train/Test split*: dồn **100% vào train** (việc chia train/test do nhóm quyết theo mục A, script chia calib/test). *Export* → định dạng **YOLOv8** (hoặc YOLOv5 PyTorch) → tải zip → chép `images/` + `labels/` vào `vn/train/` hoặc `vn/test/` (mục E), giữ `data.yaml`.
    - Label Studio / CVAT cũng được, miễn export ra YOLO **kèm file tên lớp** (`classes.txt` hoặc `data.yaml`) đúng thứ tự 12 lớp.
 
@@ -101,7 +101,7 @@ Một **vật thể vật lý** hoặc một **địa điểm** chỉ được n
 **Ảnh**: JPEG/PNG, cạnh dài **1024–4032 px**. Không dùng: ảnh chụp màn hình (trừ hard negative chống gian lận), ảnh ghép (collage), ảnh có watermark lớn / chữ chèn, ảnh đã qua filter mạnh. Ảnh Google ưu tiên bật bộ lọc *Công cụ → Quyền sử dụng → Giấy phép Creative Commons*.
 
 **Tên file**: `<nguồn>_<lớp>_<4 số>.jpg`
-- `nguồn` ∈ `self` (tự chụp) · `gg` (ảnh Internet: Google / Openverse / Wikimedia / DuckDuckGo — cả ảnh cào tự động) · `kg` (Kaggle)
+- `nguồn` ∈ `self` (tự chụp) · `gg` (ảnh Internet) · `kg` (Kaggle)
 - `lớp` = tên lớp, dấu cách → `_` (`potted_plant`); negative thường = `neg`; hard negative = `hardneg`
 - Ví dụ: `self_cup_0001.jpg`, `gg_potted_plant_0042.jpg`, `self_hardneg_0007.jpg`
 - Ảnh có nhiều lớp: đặt theo lớp **chính** (lớp bạn định chụp) — các lớp khác thể hiện qua box.
@@ -146,23 +146,9 @@ vn/
 
 ---
 
-## G0. Tự động cào + tự động gán nhãn (khuyến nghị cho phần ảnh Internet của VN-train)
+## G0. Tập train bổ sung dữ liệu bản địa (đã có sẵn)
 
-Notebook [`notebooks/snapget_crawl_autolabel.ipynb`](notebooks/snapget_crawl_autolabel.ipynb) (Colab T4) chạy `scripts/17_crawl_autolabel.py` — làm thay phần lớn mục G bên dưới:
-
-| Bước | Làm gì |
-|---|---|
-| Tìm ảnh | từ khoá bối cảnh VN trong [`crawl_queries.yaml`](crawl_queries.yaml). Nguồn: **Google Images qua SerpApi** (key free, tìm tiếng Việt, `gl=vn`) · **Flickr** · **Pexels** · **Pixabay** (key free) · **DuckDuckGo** (tiếng Việt) · **Wikimedia Commons** · **Openverse** (CC, hay quá tải nên để cuối). Không cào thẳng trang Google (chặn IP Colab, điều khoản cấm; Custom Search API đã đóng với tài khoản mới, ngừng 01/01/2027) |
-| Lọc | cạnh dài ≥ 1024px · bỏ nền trắng studio · bỏ ảnh ghép/banner · **chặn tên miền kho ảnh stock & sàn TMĐT** (hay có watermark/logo/chữ chèn) · khử trùng dHash với ảnh đã có **và ảnh TEST** |
-| Gán box | **2 model**: YOLO11x (COCO) + YOLO-World (prompt "plastic stool", "bubble tea cup", "scooter"… và hard negative "wristwatch", "conical hat", "bowl", "sofa", màn hình/poster…) → gộp box → loại box trùng hard negative (đồng hồ đeo tay ≠ clock, nón lá ≠ umbrella) và vật thể trên màn hình (mục D.4) |
-| Quyết định | **accept** → `train/` (2 model cùng thấy hoặc điểm rất cao, không box nghi vấn, box lớp khác cũng chắc, laptop có box keyboard) · **review** → `review/` + lý do trong `review_queue.csv` · **reject** → bỏ |
-| Metadata | tự điền `metadata.csv`: `scene` theo từ khoá, `lighting`/`distance` ước lượng từ ảnh + box, `phone = web`, kèm `provider/license/creator/url`; trích nguồn đầy đủ ở `web_attributions.csv` + `data_sources.md` |
-
-**Chính sách nhãn tự động (ngoại lệ có chủ đích của mục D.6):** ảnh **accept** vào thẳng VN-train **không** qua người duyệt từng ảnh — đổi lại phải **xem mẫu ~10%** (ô 4 của notebook) và báo lớp nào sai nhiều. Ảnh **review**: ưu tiên **tự duyệt tầng 2** (`17 --auto-review`, ô 4b): cắt vùng quanh box chưa chắc, phóng to, 2 model nhìn lại — xác nhận thì giữ, không thì xoá box; laptop tìm bàn phím trong vùng laptop, không thấy thì coi là laptop gập/góc nghiêng (**lệch mục B/D có chủ đích**: có thể sót box keyboard trên laptop mở — ghi trong báo cáo). Ảnh dính hard negative / màn hình không tự xử lý. Chỉ chạy cho lớp còn thiếu và dừng khi đủ; metadata `autolabel=auto-review` để thống kê/hoàn tác. Còn thiếu nữa thì sửa tay trên Roboflow rồi `--promote`. **VN-test không đổi: 100% tự chụp, 100% người gán + người thứ 2 kiểm.**
-
-**Ảnh đã tải sẵn bằng code khác** (vd `vn.rar`): chạy **`18_clean_dataset.py`** trước (ảnh hỏng/nhỏ/mờ/studio, trùng y hệt + gần trùng, rò rỉ train↔test, ảnh test không có EXIF máy ảnh = nghi ảnh Internet → `_quarantine/`, không xoá; tính lại `lighting/distance` thay giá trị ngẫu nhiên), rồi gán nhãn bằng `17 --import-dir` (notebook ô 1–1d). **Metadata phải đo từ ảnh thật, không được điền ngẫu nhiên; ảnh tải từ Internet không được đặt tên `self_` hay đưa vào test.**
-
-Ảnh cào nằm ở thư mục riêng (`snapget-ml/data/vn_web/`, chỉ có `train/`, tên `gg_<lớp>_NNNN.jpg`, `gg_neg_*`, `gg_hardneg_*`) — script 11 dùng song song với ảnh tự chụp: `--vn <ảnh tự chụp> --vn <vn_web>`. Số ảnh cào mặc định 100/lớp + 150 negative + 150 hard negative → cộng ≥ 50 ảnh tự chụp/lớp là đủ mục A.
+`snapget-ml/data/snapget_vn_supplement.zip` trên Drive — dataset YOLO 12 lớp **chỉ dùng cho train** (ảnh bối cảnh Việt Nam, gán nhãn bán tự động; số lượng, nguồn, giấy phép: `README.md` + `stats.json` trong zip). Notebook train tự giải nén và đưa vào script 11 bằng `--vn`. Nhóm chỉ cần bổ sung phần **tự chụp** (≥ 50 ảnh/lớp cho VN-train) và **toàn bộ VN-test** theo các mục A–F.
 
 ## G. Ảnh Google & dataset Kaggle — lưu ý riêng
 
