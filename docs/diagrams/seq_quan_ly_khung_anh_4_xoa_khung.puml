@@ -1,0 +1,40 @@
+@startuml seq_quan_ly_khung_anh_4_xoa_khung
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":FramesPage" as UI
+control ":frames.api" as API
+control ":FramesController" as C
+control ":FramesService" as S
+entity ":FramesRepository" as R
+
+U -> UI : nhấn icon thùng rác
+activate UI
+UI --> U : hiển thị hộp xác nhận Delete this frame?
+alt Nhấn Delete
+U -> UI : nhấn Delete
+UI -> API : deleteFrame(frameId)
+activate API
+API -> C : delete(frameId)
+activate C
+C -> S : delete(frameId)
+activate S
+S -> R : delete(frameId)
+activate R
+R --> S : Success
+deactivate R
+S --> C : Success
+deactivate S
+C --> API : Success
+deactivate C
+API --> UI : Success
+deactivate API
+UI --> U : xóa khung khỏi danh sách
+else Nhấn Cancel
+U -> UI : nhấn Cancel
+UI --> U : đóng hộp xác nhận, giữ nguyên danh sách
+end
+deactivate UI
+@enduml

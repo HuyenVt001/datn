@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" xmi:id="quan_ly_cua_hang_model_17" name="Snapget - Quản lý cửa hàng">
+    <packagedElement xmi:type="uml:Actor" xmi:id="quan_ly_cua_hang_type_1" name="Quản trị viên"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_3" name="ShopItemsPage">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_18" body="«boundary»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_5" name="shop.api">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_19" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_7" name="ShopController">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_20" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_9" name="ShopService">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_21" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_11" name="ShopRepository">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_22" body="«entity»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_13" name="UsersRepository">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_23" body="«entity»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_cua_hang_type_15" name="ShopHistoryPage">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_cua_hang_cmt_24" body="«boundary»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Collaboration" xmi:id="quan_ly_cua_hang_col_25" name="Quản lý cửa hàng">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_2" name="Quản trị viên" type="quan_ly_cua_hang_type_1"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_4" name="ShopItemsPage" type="quan_ly_cua_hang_type_3"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_6" name="shop.api" type="quan_ly_cua_hang_type_5"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_8" name="ShopController" type="quan_ly_cua_hang_type_7"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_10" name="ShopService" type="quan_ly_cua_hang_type_9"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_12" name="ShopRepository" type="quan_ly_cua_hang_type_11"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_14" name="UsersRepository" type="quan_ly_cua_hang_type_13"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_cua_hang_prop_16" name="ShopHistoryPage" type="quan_ly_cua_hang_type_15"/>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_67" name="1. Xem danh sách vật phẩm">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_26" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_27" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_28" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_29" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_30" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_31" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_33" covered="quan_ly_cua_hang_ll_26" message="quan_ly_cua_hang_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_34" covered="quan_ly_cua_hang_ll_27" message="quan_ly_cua_hang_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_36" covered="quan_ly_cua_hang_ll_27" message="quan_ly_cua_hang_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_37" covered="quan_ly_cua_hang_ll_28" message="quan_ly_cua_hang_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_39" covered="quan_ly_cua_hang_ll_28" message="quan_ly_cua_hang_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_40" covered="quan_ly_cua_hang_ll_29" message="quan_ly_cua_hang_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_42" covered="quan_ly_cua_hang_ll_29" message="quan_ly_cua_hang_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_43" covered="quan_ly_cua_hang_ll_30" message="quan_ly_cua_hang_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_45" covered="quan_ly_cua_hang_ll_30" message="quan_ly_cua_hang_msg_44"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_46" covered="quan_ly_cua_hang_ll_31" message="quan_ly_cua_hang_msg_44"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_48" covered="quan_ly_cua_hang_ll_31" message="quan_ly_cua_hang_msg_47"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_49" covered="quan_ly_cua_hang_ll_30" message="quan_ly_cua_hang_msg_47"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_50" covered="quan_ly_cua_hang_ll_31" start="quan_ly_cua_hang_recv_46" finish="quan_ly_cua_hang_send_48"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_52" covered="quan_ly_cua_hang_ll_30" message="quan_ly_cua_hang_msg_51"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_53" covered="quan_ly_cua_hang_ll_29" message="quan_ly_cua_hang_msg_51"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_54" covered="quan_ly_cua_hang_ll_30" start="quan_ly_cua_hang_recv_43" finish="quan_ly_cua_hang_send_52"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_56" covered="quan_ly_cua_hang_ll_29" message="quan_ly_cua_hang_msg_55"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_57" covered="quan_ly_cua_hang_ll_28" message="quan_ly_cua_hang_msg_55"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_58" covered="quan_ly_cua_hang_ll_29" start="quan_ly_cua_hang_recv_40" finish="quan_ly_cua_hang_send_56"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_60" covered="quan_ly_cua_hang_ll_28" message="quan_ly_cua_hang_msg_59"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_61" covered="quan_ly_cua_hang_ll_27" message="quan_ly_cua_hang_msg_59"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_62" covered="quan_ly_cua_hang_ll_28" start="quan_ly_cua_hang_recv_37" finish="quan_ly_cua_hang_send_60"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_64" covered="quan_ly_cua_hang_ll_27" message="quan_ly_cua_hang_msg_63"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_65" covered="quan_ly_cua_hang_ll_26" message="quan_ly_cua_hang_msg_63"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_66" covered="quan_ly_cua_hang_ll_27" start="quan_ly_cua_hang_recv_34" finish="quan_ly_cua_hang_send_64"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_32" name="mở menu Shop, chọn Items" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_33" receiveEvent="quan_ly_cua_hang_recv_34"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_35" name="listShopItems()" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_36" receiveEvent="quan_ly_cua_hang_recv_37"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_38" name="listItemsAsAdmin()" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_39" receiveEvent="quan_ly_cua_hang_recv_40"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_41" name="listAllItems()" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_42" receiveEvent="quan_ly_cua_hang_recv_43"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_44" name="listAllItems()" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_45" receiveEvent="quan_ly_cua_hang_recv_46"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_47" name="ShopItem[]" messageSort="reply" sendEvent="quan_ly_cua_hang_send_48" receiveEvent="quan_ly_cua_hang_recv_49"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_51" name="ShopItem[]" messageSort="reply" sendEvent="quan_ly_cua_hang_send_52" receiveEvent="quan_ly_cua_hang_recv_53"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_55" name="ShopItem[]" messageSort="reply" sendEvent="quan_ly_cua_hang_send_56" receiveEvent="quan_ly_cua_hang_recv_57"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_59" name="ShopItem[]" messageSort="reply" sendEvent="quan_ly_cua_hang_send_60" receiveEvent="quan_ly_cua_hang_recv_61"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_63" name="hiển thị danh sách vật phẩm" messageSort="reply" sendEvent="quan_ly_cua_hang_send_64" receiveEvent="quan_ly_cua_hang_recv_65"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_141" name="2. Thêm vật phẩm vào cửa hàng">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_68" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_69" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_70" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_71" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_72" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_73" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_75" covered="quan_ly_cua_hang_ll_68" message="quan_ly_cua_hang_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_76" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_78" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_77"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_79" covered="quan_ly_cua_hang_ll_68" message="quan_ly_cua_hang_msg_77"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_81" covered="quan_ly_cua_hang_ll_68" message="quan_ly_cua_hang_msg_80"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_82" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_80"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_84" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_83"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_85" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_83"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_87" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_86"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_88" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_86"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_90" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_89"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_91" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_89"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_93" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_92"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_94" covered="quan_ly_cua_hang_ll_73" message="quan_ly_cua_hang_msg_92"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_96" covered="quan_ly_cua_hang_ll_73" message="quan_ly_cua_hang_msg_95"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_97" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_95"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_98" covered="quan_ly_cua_hang_ll_73" start="quan_ly_cua_hang_recv_94" finish="quan_ly_cua_hang_send_96"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_cua_hang_cf_99" interactionOperator="alt" covered="quan_ly_cua_hang_ll_68 quan_ly_cua_hang_ll_69 quan_ly_cua_hang_ll_70 quan_ly_cua_hang_ll_71 quan_ly_cua_hang_ll_72 quan_ly_cua_hang_ll_73">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_cua_hang_op_100" covered="quan_ly_cua_hang_ll_68 quan_ly_cua_hang_ll_69 quan_ly_cua_hang_ll_70 quan_ly_cua_hang_ll_71 quan_ly_cua_hang_ll_72 quan_ly_cua_hang_ll_73">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_cua_hang_guard_101">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_cua_hang_spec_102" value="Vật phẩm chưa niêm yết"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_104" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_103"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_105" covered="quan_ly_cua_hang_ll_73" message="quan_ly_cua_hang_msg_103"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_107" covered="quan_ly_cua_hang_ll_73" message="quan_ly_cua_hang_msg_106"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_108" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_106"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_109" covered="quan_ly_cua_hang_ll_73" start="quan_ly_cua_hang_recv_105" finish="quan_ly_cua_hang_send_107"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_111" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_110"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_112" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_110"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_114" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_113"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_115" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_113"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_117" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_116"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_118" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_116"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_120" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_119"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_121" covered="quan_ly_cua_hang_ll_68" message="quan_ly_cua_hang_msg_119"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_cua_hang_op_122" covered="quan_ly_cua_hang_ll_68 quan_ly_cua_hang_ll_69 quan_ly_cua_hang_ll_70 quan_ly_cua_hang_ll_71 quan_ly_cua_hang_ll_72 quan_ly_cua_hang_ll_73">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_cua_hang_guard_123">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_cua_hang_spec_124" value="Vật phẩm đã niêm yết"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_126" covered="quan_ly_cua_hang_ll_72" message="quan_ly_cua_hang_msg_125"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_127" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_125"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_129" covered="quan_ly_cua_hang_ll_71" message="quan_ly_cua_hang_msg_128"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_130" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_128"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_132" covered="quan_ly_cua_hang_ll_70" message="quan_ly_cua_hang_msg_131"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_133" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_131"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_135" covered="quan_ly_cua_hang_ll_69" message="quan_ly_cua_hang_msg_134"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_136" covered="quan_ly_cua_hang_ll_68" message="quan_ly_cua_hang_msg_134"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_137" covered="quan_ly_cua_hang_ll_72" start="quan_ly_cua_hang_recv_91" finish="quan_ly_cua_hang_send_126"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_138" covered="quan_ly_cua_hang_ll_71" start="quan_ly_cua_hang_recv_88" finish="quan_ly_cua_hang_send_129"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_139" covered="quan_ly_cua_hang_ll_70" start="quan_ly_cua_hang_recv_85" finish="quan_ly_cua_hang_send_132"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_140" covered="quan_ly_cua_hang_ll_69" start="quan_ly_cua_hang_recv_76" finish="quan_ly_cua_hang_send_135"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_74" name="nhấn List item" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_75" receiveEvent="quan_ly_cua_hang_recv_76"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_77" name="hiển thị popup List a new item" messageSort="reply" sendEvent="quan_ly_cua_hang_send_78" receiveEvent="quan_ly_cua_hang_recv_79"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_80" name="chọn loại và id, nhập tên, giá, ảnh, nhấn List" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_81" receiveEvent="quan_ly_cua_hang_recv_82"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_83" name="createShopItem(body)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_84" receiveEvent="quan_ly_cua_hang_recv_85"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_86" name="createItem(dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_87" receiveEvent="quan_ly_cua_hang_recv_88"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_89" name="createItem(dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_90" receiveEvent="quan_ly_cua_hang_recv_91"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_92" name="findItemByRef(itemType, refId)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_93" receiveEvent="quan_ly_cua_hang_recv_94"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_95" name="ShopItem | null" messageSort="reply" sendEvent="quan_ly_cua_hang_send_96" receiveEvent="quan_ly_cua_hang_recv_97"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_103" name="createItem(item)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_104" receiveEvent="quan_ly_cua_hang_recv_105"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_106" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_107" receiveEvent="quan_ly_cua_hang_recv_108"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_110" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_111" receiveEvent="quan_ly_cua_hang_recv_112"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_113" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_114" receiveEvent="quan_ly_cua_hang_recv_115"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_116" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_117" receiveEvent="quan_ly_cua_hang_recv_118"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_119" name="hiển thị vật phẩm trong danh sách" messageSort="reply" sendEvent="quan_ly_cua_hang_send_120" receiveEvent="quan_ly_cua_hang_recv_121"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_125" name="ConflictException" messageSort="reply" sendEvent="quan_ly_cua_hang_send_126" receiveEvent="quan_ly_cua_hang_recv_127"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_128" name="409 Conflict" messageSort="reply" sendEvent="quan_ly_cua_hang_send_129" receiveEvent="quan_ly_cua_hang_recv_130"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_131" name="lỗi" messageSort="reply" sendEvent="quan_ly_cua_hang_send_132" receiveEvent="quan_ly_cua_hang_recv_133"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_134" name="báo vật phẩm đã được niêm yết" messageSort="reply" sendEvent="quan_ly_cua_hang_send_135" receiveEvent="quan_ly_cua_hang_recv_136"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_189" name="3. Sửa vật phẩm">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_142" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_143" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_144" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_145" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_146" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_147" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_149" covered="quan_ly_cua_hang_ll_142" message="quan_ly_cua_hang_msg_148"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_150" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_148"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_152" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_151"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_153" covered="quan_ly_cua_hang_ll_142" message="quan_ly_cua_hang_msg_151"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_155" covered="quan_ly_cua_hang_ll_142" message="quan_ly_cua_hang_msg_154"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_156" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_154"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_158" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_157"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_159" covered="quan_ly_cua_hang_ll_144" message="quan_ly_cua_hang_msg_157"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_161" covered="quan_ly_cua_hang_ll_144" message="quan_ly_cua_hang_msg_160"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_162" covered="quan_ly_cua_hang_ll_145" message="quan_ly_cua_hang_msg_160"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_164" covered="quan_ly_cua_hang_ll_145" message="quan_ly_cua_hang_msg_163"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_165" covered="quan_ly_cua_hang_ll_146" message="quan_ly_cua_hang_msg_163"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_167" covered="quan_ly_cua_hang_ll_146" message="quan_ly_cua_hang_msg_166"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_168" covered="quan_ly_cua_hang_ll_147" message="quan_ly_cua_hang_msg_166"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_170" covered="quan_ly_cua_hang_ll_147" message="quan_ly_cua_hang_msg_169"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_171" covered="quan_ly_cua_hang_ll_146" message="quan_ly_cua_hang_msg_169"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_172" covered="quan_ly_cua_hang_ll_147" start="quan_ly_cua_hang_recv_168" finish="quan_ly_cua_hang_send_170"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_174" covered="quan_ly_cua_hang_ll_146" message="quan_ly_cua_hang_msg_173"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_175" covered="quan_ly_cua_hang_ll_145" message="quan_ly_cua_hang_msg_173"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_176" covered="quan_ly_cua_hang_ll_146" start="quan_ly_cua_hang_recv_165" finish="quan_ly_cua_hang_send_174"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_178" covered="quan_ly_cua_hang_ll_145" message="quan_ly_cua_hang_msg_177"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_179" covered="quan_ly_cua_hang_ll_144" message="quan_ly_cua_hang_msg_177"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_180" covered="quan_ly_cua_hang_ll_145" start="quan_ly_cua_hang_recv_162" finish="quan_ly_cua_hang_send_178"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_182" covered="quan_ly_cua_hang_ll_144" message="quan_ly_cua_hang_msg_181"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_183" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_181"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_184" covered="quan_ly_cua_hang_ll_144" start="quan_ly_cua_hang_recv_159" finish="quan_ly_cua_hang_send_182"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_186" covered="quan_ly_cua_hang_ll_143" message="quan_ly_cua_hang_msg_185"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_187" covered="quan_ly_cua_hang_ll_142" message="quan_ly_cua_hang_msg_185"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_188" covered="quan_ly_cua_hang_ll_143" start="quan_ly_cua_hang_recv_150" finish="quan_ly_cua_hang_send_186"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_148" name="nhấn Edit" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_149" receiveEvent="quan_ly_cua_hang_recv_150"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_151" name="hiển thị popup Edit (khóa loại và id)" messageSort="reply" sendEvent="quan_ly_cua_hang_send_152" receiveEvent="quan_ly_cua_hang_recv_153"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_154" name="đổi tên, giá, ảnh hoặc thứ tự, nhấn Save" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_155" receiveEvent="quan_ly_cua_hang_recv_156"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_157" name="updateShopItem(itemId, body)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_158" receiveEvent="quan_ly_cua_hang_recv_159"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_160" name="updateItem(itemId, dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_161" receiveEvent="quan_ly_cua_hang_recv_162"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_163" name="updateItem(itemId, dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_164" receiveEvent="quan_ly_cua_hang_recv_165"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_166" name="updateItem(itemId, patch)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_167" receiveEvent="quan_ly_cua_hang_recv_168"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_169" name="Success" messageSort="reply" sendEvent="quan_ly_cua_hang_send_170" receiveEvent="quan_ly_cua_hang_recv_171"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_173" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_174" receiveEvent="quan_ly_cua_hang_recv_175"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_177" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_178" receiveEvent="quan_ly_cua_hang_recv_179"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_181" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_182" receiveEvent="quan_ly_cua_hang_recv_183"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_185" name="cập nhật vật phẩm trong danh sách" messageSort="reply" sendEvent="quan_ly_cua_hang_send_186" receiveEvent="quan_ly_cua_hang_recv_187"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_231" name="4. Ẩn/hiện vật phẩm">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_190" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_191" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_192" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_193" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_194" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_195" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_197" covered="quan_ly_cua_hang_ll_190" message="quan_ly_cua_hang_msg_196"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_198" covered="quan_ly_cua_hang_ll_191" message="quan_ly_cua_hang_msg_196"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_200" covered="quan_ly_cua_hang_ll_191" message="quan_ly_cua_hang_msg_199"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_201" covered="quan_ly_cua_hang_ll_192" message="quan_ly_cua_hang_msg_199"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_203" covered="quan_ly_cua_hang_ll_192" message="quan_ly_cua_hang_msg_202"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_204" covered="quan_ly_cua_hang_ll_193" message="quan_ly_cua_hang_msg_202"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_206" covered="quan_ly_cua_hang_ll_193" message="quan_ly_cua_hang_msg_205"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_207" covered="quan_ly_cua_hang_ll_194" message="quan_ly_cua_hang_msg_205"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_209" covered="quan_ly_cua_hang_ll_194" message="quan_ly_cua_hang_msg_208"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_210" covered="quan_ly_cua_hang_ll_195" message="quan_ly_cua_hang_msg_208"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_212" covered="quan_ly_cua_hang_ll_195" message="quan_ly_cua_hang_msg_211"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_213" covered="quan_ly_cua_hang_ll_194" message="quan_ly_cua_hang_msg_211"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_214" covered="quan_ly_cua_hang_ll_195" start="quan_ly_cua_hang_recv_210" finish="quan_ly_cua_hang_send_212"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_216" covered="quan_ly_cua_hang_ll_194" message="quan_ly_cua_hang_msg_215"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_217" covered="quan_ly_cua_hang_ll_193" message="quan_ly_cua_hang_msg_215"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_218" covered="quan_ly_cua_hang_ll_194" start="quan_ly_cua_hang_recv_207" finish="quan_ly_cua_hang_send_216"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_220" covered="quan_ly_cua_hang_ll_193" message="quan_ly_cua_hang_msg_219"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_221" covered="quan_ly_cua_hang_ll_192" message="quan_ly_cua_hang_msg_219"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_222" covered="quan_ly_cua_hang_ll_193" start="quan_ly_cua_hang_recv_204" finish="quan_ly_cua_hang_send_220"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_224" covered="quan_ly_cua_hang_ll_192" message="quan_ly_cua_hang_msg_223"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_225" covered="quan_ly_cua_hang_ll_191" message="quan_ly_cua_hang_msg_223"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_226" covered="quan_ly_cua_hang_ll_192" start="quan_ly_cua_hang_recv_201" finish="quan_ly_cua_hang_send_224"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_228" covered="quan_ly_cua_hang_ll_191" message="quan_ly_cua_hang_msg_227"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_229" covered="quan_ly_cua_hang_ll_190" message="quan_ly_cua_hang_msg_227"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_230" covered="quan_ly_cua_hang_ll_191" start="quan_ly_cua_hang_recv_198" finish="quan_ly_cua_hang_send_228"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_196" name="gạt công tắc mở bán" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_197" receiveEvent="quan_ly_cua_hang_recv_198"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_199" name="updateShopItem(itemId, {isActive})" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_200" receiveEvent="quan_ly_cua_hang_recv_201"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_202" name="updateItem(itemId, dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_203" receiveEvent="quan_ly_cua_hang_recv_204"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_205" name="updateItem(itemId, dto)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_206" receiveEvent="quan_ly_cua_hang_recv_207"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_208" name="updateItem(itemId, patch)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_209" receiveEvent="quan_ly_cua_hang_recv_210"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_211" name="Success" messageSort="reply" sendEvent="quan_ly_cua_hang_send_212" receiveEvent="quan_ly_cua_hang_recv_213"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_215" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_216" receiveEvent="quan_ly_cua_hang_recv_217"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_219" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_220" receiveEvent="quan_ly_cua_hang_recv_221"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_223" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_224" receiveEvent="quan_ly_cua_hang_recv_225"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_227" name="cập nhật trạng thái hiển thị trong Shop" messageSort="reply" sendEvent="quan_ly_cua_hang_send_228" receiveEvent="quan_ly_cua_hang_recv_229"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_292" name="5. Gỡ vật phẩm">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_232" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_233" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_234" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_235" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_236" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_237" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_239" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_238"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_240" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_238"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_242" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_241"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_243" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_241"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_cua_hang_cf_244" interactionOperator="alt" covered="quan_ly_cua_hang_ll_232 quan_ly_cua_hang_ll_233 quan_ly_cua_hang_ll_234 quan_ly_cua_hang_ll_235 quan_ly_cua_hang_ll_236 quan_ly_cua_hang_ll_237">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_cua_hang_op_245" covered="quan_ly_cua_hang_ll_232 quan_ly_cua_hang_ll_233 quan_ly_cua_hang_ll_234 quan_ly_cua_hang_ll_235 quan_ly_cua_hang_ll_236 quan_ly_cua_hang_ll_237">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_cua_hang_guard_246">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_cua_hang_spec_247" value="Nhấn Remove"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_249" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_248"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_250" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_248"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_252" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_251"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_253" covered="quan_ly_cua_hang_ll_234" message="quan_ly_cua_hang_msg_251"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_255" covered="quan_ly_cua_hang_ll_234" message="quan_ly_cua_hang_msg_254"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_256" covered="quan_ly_cua_hang_ll_235" message="quan_ly_cua_hang_msg_254"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_258" covered="quan_ly_cua_hang_ll_235" message="quan_ly_cua_hang_msg_257"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_259" covered="quan_ly_cua_hang_ll_236" message="quan_ly_cua_hang_msg_257"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_261" covered="quan_ly_cua_hang_ll_236" message="quan_ly_cua_hang_msg_260"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_262" covered="quan_ly_cua_hang_ll_237" message="quan_ly_cua_hang_msg_260"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_264" covered="quan_ly_cua_hang_ll_237" message="quan_ly_cua_hang_msg_263"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_265" covered="quan_ly_cua_hang_ll_236" message="quan_ly_cua_hang_msg_263"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_266" covered="quan_ly_cua_hang_ll_237" start="quan_ly_cua_hang_recv_262" finish="quan_ly_cua_hang_send_264"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_268" covered="quan_ly_cua_hang_ll_236" message="quan_ly_cua_hang_msg_267"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_269" covered="quan_ly_cua_hang_ll_235" message="quan_ly_cua_hang_msg_267"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_270" covered="quan_ly_cua_hang_ll_236" start="quan_ly_cua_hang_recv_259" finish="quan_ly_cua_hang_send_268"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_272" covered="quan_ly_cua_hang_ll_235" message="quan_ly_cua_hang_msg_271"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_273" covered="quan_ly_cua_hang_ll_234" message="quan_ly_cua_hang_msg_271"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_274" covered="quan_ly_cua_hang_ll_235" start="quan_ly_cua_hang_recv_256" finish="quan_ly_cua_hang_send_272"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_276" covered="quan_ly_cua_hang_ll_234" message="quan_ly_cua_hang_msg_275"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_277" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_275"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_278" covered="quan_ly_cua_hang_ll_234" start="quan_ly_cua_hang_recv_253" finish="quan_ly_cua_hang_send_276"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_280" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_279"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_281" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_279"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_cua_hang_op_282" covered="quan_ly_cua_hang_ll_232 quan_ly_cua_hang_ll_233 quan_ly_cua_hang_ll_234 quan_ly_cua_hang_ll_235 quan_ly_cua_hang_ll_236 quan_ly_cua_hang_ll_237">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_cua_hang_guard_283">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_cua_hang_spec_284" value="Nhấn Cancel"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_286" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_285"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_287" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_285"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_289" covered="quan_ly_cua_hang_ll_233" message="quan_ly_cua_hang_msg_288"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_290" covered="quan_ly_cua_hang_ll_232" message="quan_ly_cua_hang_msg_288"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_291" covered="quan_ly_cua_hang_ll_233" start="quan_ly_cua_hang_recv_240" finish="quan_ly_cua_hang_send_289"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_238" name="nhấn icon thùng rác" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_239" receiveEvent="quan_ly_cua_hang_recv_240"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_241" name="hiển thị hộp xác nhận Remove item from the Shop?" messageSort="reply" sendEvent="quan_ly_cua_hang_send_242" receiveEvent="quan_ly_cua_hang_recv_243"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_248" name="nhấn Remove" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_249" receiveEvent="quan_ly_cua_hang_recv_250"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_251" name="deleteShopItem(itemId)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_252" receiveEvent="quan_ly_cua_hang_recv_253"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_254" name="deleteItem(itemId)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_255" receiveEvent="quan_ly_cua_hang_recv_256"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_257" name="deleteItem(itemId)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_258" receiveEvent="quan_ly_cua_hang_recv_259"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_260" name="deleteItem(itemId)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_261" receiveEvent="quan_ly_cua_hang_recv_262"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_263" name="Success" messageSort="reply" sendEvent="quan_ly_cua_hang_send_264" receiveEvent="quan_ly_cua_hang_recv_265"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_267" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_268" receiveEvent="quan_ly_cua_hang_recv_269"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_271" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_272" receiveEvent="quan_ly_cua_hang_recv_273"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_275" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_276" receiveEvent="quan_ly_cua_hang_recv_277"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_279" name="xóa vật phẩm khỏi danh sách" messageSort="reply" sendEvent="quan_ly_cua_hang_send_280" receiveEvent="quan_ly_cua_hang_recv_281"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_285" name="nhấn Cancel" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_286" receiveEvent="quan_ly_cua_hang_recv_287"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_288" name="đóng hộp xác nhận, giữ nguyên danh sách" messageSort="reply" sendEvent="quan_ly_cua_hang_send_289" receiveEvent="quan_ly_cua_hang_recv_290"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_347" name="6. Tặng vật phẩm">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_293" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_294" name="ShopItemsPage" represents="quan_ly_cua_hang_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_295" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_296" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_297" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_298" name="UsersRepository" represents="quan_ly_cua_hang_prop_14"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_300" covered="quan_ly_cua_hang_ll_293" message="quan_ly_cua_hang_msg_299"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_301" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_299"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_303" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_302"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_304" covered="quan_ly_cua_hang_ll_293" message="quan_ly_cua_hang_msg_302"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_306" covered="quan_ly_cua_hang_ll_293" message="quan_ly_cua_hang_msg_305"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_307" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_305"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_309" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_308"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_310" covered="quan_ly_cua_hang_ll_295" message="quan_ly_cua_hang_msg_308"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_312" covered="quan_ly_cua_hang_ll_295" message="quan_ly_cua_hang_msg_311"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_313" covered="quan_ly_cua_hang_ll_296" message="quan_ly_cua_hang_msg_311"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_315" covered="quan_ly_cua_hang_ll_296" message="quan_ly_cua_hang_msg_314"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_316" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_314"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_318" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_317"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_319" covered="quan_ly_cua_hang_ll_298" message="quan_ly_cua_hang_msg_317"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_321" covered="quan_ly_cua_hang_ll_298" message="quan_ly_cua_hang_msg_320"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_322" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_320"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_323" covered="quan_ly_cua_hang_ll_298" start="quan_ly_cua_hang_recv_319" finish="quan_ly_cua_hang_send_321"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_325" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_324"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_326" covered="quan_ly_cua_hang_ll_298" message="quan_ly_cua_hang_msg_324"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_328" covered="quan_ly_cua_hang_ll_298" message="quan_ly_cua_hang_msg_327"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_329" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_327"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_330" covered="quan_ly_cua_hang_ll_298" start="quan_ly_cua_hang_recv_326" finish="quan_ly_cua_hang_send_328"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_332" covered="quan_ly_cua_hang_ll_297" message="quan_ly_cua_hang_msg_331"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_333" covered="quan_ly_cua_hang_ll_296" message="quan_ly_cua_hang_msg_331"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_334" covered="quan_ly_cua_hang_ll_297" start="quan_ly_cua_hang_recv_316" finish="quan_ly_cua_hang_send_332"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_336" covered="quan_ly_cua_hang_ll_296" message="quan_ly_cua_hang_msg_335"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_337" covered="quan_ly_cua_hang_ll_295" message="quan_ly_cua_hang_msg_335"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_338" covered="quan_ly_cua_hang_ll_296" start="quan_ly_cua_hang_recv_313" finish="quan_ly_cua_hang_send_336"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_340" covered="quan_ly_cua_hang_ll_295" message="quan_ly_cua_hang_msg_339"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_341" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_339"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_342" covered="quan_ly_cua_hang_ll_295" start="quan_ly_cua_hang_recv_310" finish="quan_ly_cua_hang_send_340"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_344" covered="quan_ly_cua_hang_ll_294" message="quan_ly_cua_hang_msg_343"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_345" covered="quan_ly_cua_hang_ll_293" message="quan_ly_cua_hang_msg_343"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_346" covered="quan_ly_cua_hang_ll_294" start="quan_ly_cua_hang_recv_301" finish="quan_ly_cua_hang_send_344"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_299" name="nhấn icon quà tặng" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_300" receiveEvent="quan_ly_cua_hang_recv_301"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_302" name="hiển thị popup Gift" messageSort="reply" sendEvent="quan_ly_cua_hang_send_303" receiveEvent="quan_ly_cua_hang_recv_304"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_305" name="tìm và chọn người dùng, nhấn Gift" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_306" receiveEvent="quan_ly_cua_hang_recv_307"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_308" name="grantShopItem(itemId, uid)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_309" receiveEvent="quan_ly_cua_hang_recv_310"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_311" name="grantItem(itemId, uid)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_312" receiveEvent="quan_ly_cua_hang_recv_313"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_314" name="grantItem(itemId, uid)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_315" receiveEvent="quan_ly_cua_hang_recv_316"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_317" name="findByUid(uid)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_318" receiveEvent="quan_ly_cua_hang_recv_319"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_320" name="User" messageSort="reply" sendEvent="quan_ly_cua_hang_send_321" receiveEvent="quan_ly_cua_hang_recv_322"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_324" name="unlockCollectible(uid, field, value)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_325" receiveEvent="quan_ly_cua_hang_recv_326"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_327" name="Success" messageSort="reply" sendEvent="quan_ly_cua_hang_send_328" receiveEvent="quan_ly_cua_hang_recv_329"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_331" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_332" receiveEvent="quan_ly_cua_hang_recv_333"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_335" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_336" receiveEvent="quan_ly_cua_hang_recv_337"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_339" name="ShopItem" messageSort="reply" sendEvent="quan_ly_cua_hang_send_340" receiveEvent="quan_ly_cua_hang_recv_341"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_343" name="thông báo đã tặng vật phẩm" messageSort="reply" sendEvent="quan_ly_cua_hang_send_344" receiveEvent="quan_ly_cua_hang_recv_345"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_cua_hang_int_392" name="7. Xem lịch sử mua hàng">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_348" name="Quản trị viên" represents="quan_ly_cua_hang_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_349" name="ShopHistoryPage" represents="quan_ly_cua_hang_prop_16"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_350" name="shop.api" represents="quan_ly_cua_hang_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_351" name="ShopController" represents="quan_ly_cua_hang_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_352" name="ShopService" represents="quan_ly_cua_hang_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_cua_hang_ll_353" name="ShopRepository" represents="quan_ly_cua_hang_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_355" covered="quan_ly_cua_hang_ll_348" message="quan_ly_cua_hang_msg_354"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_356" covered="quan_ly_cua_hang_ll_349" message="quan_ly_cua_hang_msg_354"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_358" covered="quan_ly_cua_hang_ll_349" message="quan_ly_cua_hang_msg_357"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_359" covered="quan_ly_cua_hang_ll_350" message="quan_ly_cua_hang_msg_357"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_361" covered="quan_ly_cua_hang_ll_350" message="quan_ly_cua_hang_msg_360"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_362" covered="quan_ly_cua_hang_ll_351" message="quan_ly_cua_hang_msg_360"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_364" covered="quan_ly_cua_hang_ll_351" message="quan_ly_cua_hang_msg_363"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_365" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_363"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_367" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_366"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_368" covered="quan_ly_cua_hang_ll_353" message="quan_ly_cua_hang_msg_366"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_370" covered="quan_ly_cua_hang_ll_353" message="quan_ly_cua_hang_msg_369"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_371" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_369"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_372" covered="quan_ly_cua_hang_ll_353" start="quan_ly_cua_hang_recv_368" finish="quan_ly_cua_hang_send_370"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_374" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_373"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_375" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_373"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_377" covered="quan_ly_cua_hang_ll_352" message="quan_ly_cua_hang_msg_376"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_378" covered="quan_ly_cua_hang_ll_351" message="quan_ly_cua_hang_msg_376"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_379" covered="quan_ly_cua_hang_ll_352" start="quan_ly_cua_hang_recv_365" finish="quan_ly_cua_hang_send_377"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_381" covered="quan_ly_cua_hang_ll_351" message="quan_ly_cua_hang_msg_380"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_382" covered="quan_ly_cua_hang_ll_350" message="quan_ly_cua_hang_msg_380"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_383" covered="quan_ly_cua_hang_ll_351" start="quan_ly_cua_hang_recv_362" finish="quan_ly_cua_hang_send_381"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_385" covered="quan_ly_cua_hang_ll_350" message="quan_ly_cua_hang_msg_384"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_386" covered="quan_ly_cua_hang_ll_349" message="quan_ly_cua_hang_msg_384"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_387" covered="quan_ly_cua_hang_ll_350" start="quan_ly_cua_hang_recv_359" finish="quan_ly_cua_hang_send_385"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_send_389" covered="quan_ly_cua_hang_ll_349" message="quan_ly_cua_hang_msg_388"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_cua_hang_recv_390" covered="quan_ly_cua_hang_ll_348" message="quan_ly_cua_hang_msg_388"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_cua_hang_exec_391" covered="quan_ly_cua_hang_ll_349" start="quan_ly_cua_hang_recv_356" finish="quan_ly_cua_hang_send_389"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_354" name="chọn menu Purchase history, chọn bộ lọc" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_355" receiveEvent="quan_ly_cua_hang_recv_356"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_357" name="listShopPurchases(filter)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_358" receiveEvent="quan_ly_cua_hang_recv_359"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_360" name="listPurchasesAsAdmin(query)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_361" receiveEvent="quan_ly_cua_hang_recv_362"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_363" name="listAllPurchases(filter)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_364" receiveEvent="quan_ly_cua_hang_recv_365"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_366" name="listAllPurchases(1000)" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_367" receiveEvent="quan_ly_cua_hang_recv_368"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_369" name="ShopPurchase[]" messageSort="reply" sendEvent="quan_ly_cua_hang_send_370" receiveEvent="quan_ly_cua_hang_recv_371"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_373" name="lọc theo người mua, loại, ngày; tính thống kê" messageSort="synchCall" sendEvent="quan_ly_cua_hang_send_374" receiveEvent="quan_ly_cua_hang_recv_375"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_376" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_cua_hang_send_377" receiveEvent="quan_ly_cua_hang_recv_378"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_380" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_cua_hang_send_381" receiveEvent="quan_ly_cua_hang_recv_382"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_384" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_cua_hang_send_385" receiveEvent="quan_ly_cua_hang_recv_386"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_cua_hang_msg_388" name="hiển thị lịch sử mua và thống kê" messageSort="reply" sendEvent="quan_ly_cua_hang_send_389" receiveEvent="quan_ly_cua_hang_recv_390"/>
+      </ownedBehavior>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

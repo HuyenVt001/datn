@@ -1,0 +1,39 @@
+@startuml seq_quan_ly_cua_hang_6_tang_vat_pham
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopItemsPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":UsersRepository" as R
+
+U -> UI : nhấn icon quà tặng
+activate UI
+UI --> U : hiển thị popup Gift
+U -> UI : tìm và chọn người dùng, nhấn Gift
+UI -> API : grantShopItem(itemId, uid)
+activate API
+API -> C : grantItem(itemId, uid)
+activate C
+C -> S : grantItem(itemId, uid)
+activate S
+S -> R : findByUid(uid)
+activate R
+R --> S : User
+deactivate R
+S -> R : unlockCollectible(uid, field, value)
+activate R
+R --> S : Success
+deactivate R
+S --> C : ShopItem
+deactivate S
+C --> API : ShopItem
+deactivate C
+API --> UI : ShopItem
+deactivate API
+UI --> U : thông báo đã tặng vật phẩm
+deactivate UI
+@enduml

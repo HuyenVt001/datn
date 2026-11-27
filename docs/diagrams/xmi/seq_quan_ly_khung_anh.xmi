@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" xmi:id="quan_ly_khung_anh_model_15" name="Snapget - Quản lý khung ảnh">
+    <packagedElement xmi:type="uml:Actor" xmi:id="quan_ly_khung_anh_type_1" name="Quản trị viên"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_3" name="FramesPage">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_16" body="«boundary»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_5" name="frames.api">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_17" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_7" name="FramesController">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_18" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_9" name="FramesService">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_19" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_11" name="FramesRepository">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_20" body="«entity»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_khung_anh_type_13" name="UsersRepository">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_khung_anh_cmt_21" body="«entity»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Collaboration" xmi:id="quan_ly_khung_anh_col_22" name="Quản lý khung ảnh">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_2" name="Quản trị viên" type="quan_ly_khung_anh_type_1"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_4" name="FramesPage" type="quan_ly_khung_anh_type_3"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_6" name="frames.api" type="quan_ly_khung_anh_type_5"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_8" name="FramesController" type="quan_ly_khung_anh_type_7"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_10" name="FramesService" type="quan_ly_khung_anh_type_9"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_12" name="FramesRepository" type="quan_ly_khung_anh_type_11"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_khung_anh_prop_14" name="UsersRepository" type="quan_ly_khung_anh_type_13"/>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_64" name="1. Xem danh sách khung ảnh">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_23" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_24" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_25" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_26" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_27" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_28" name="FramesRepository" represents="quan_ly_khung_anh_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_30" covered="quan_ly_khung_anh_ll_23" message="quan_ly_khung_anh_msg_29"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_31" covered="quan_ly_khung_anh_ll_24" message="quan_ly_khung_anh_msg_29"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_33" covered="quan_ly_khung_anh_ll_24" message="quan_ly_khung_anh_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_34" covered="quan_ly_khung_anh_ll_25" message="quan_ly_khung_anh_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_36" covered="quan_ly_khung_anh_ll_25" message="quan_ly_khung_anh_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_37" covered="quan_ly_khung_anh_ll_26" message="quan_ly_khung_anh_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_39" covered="quan_ly_khung_anh_ll_26" message="quan_ly_khung_anh_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_40" covered="quan_ly_khung_anh_ll_27" message="quan_ly_khung_anh_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_42" covered="quan_ly_khung_anh_ll_27" message="quan_ly_khung_anh_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_43" covered="quan_ly_khung_anh_ll_28" message="quan_ly_khung_anh_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_45" covered="quan_ly_khung_anh_ll_28" message="quan_ly_khung_anh_msg_44"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_46" covered="quan_ly_khung_anh_ll_27" message="quan_ly_khung_anh_msg_44"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_47" covered="quan_ly_khung_anh_ll_28" start="quan_ly_khung_anh_recv_43" finish="quan_ly_khung_anh_send_45"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_49" covered="quan_ly_khung_anh_ll_27" message="quan_ly_khung_anh_msg_48"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_50" covered="quan_ly_khung_anh_ll_26" message="quan_ly_khung_anh_msg_48"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_51" covered="quan_ly_khung_anh_ll_27" start="quan_ly_khung_anh_recv_40" finish="quan_ly_khung_anh_send_49"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_53" covered="quan_ly_khung_anh_ll_26" message="quan_ly_khung_anh_msg_52"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_54" covered="quan_ly_khung_anh_ll_25" message="quan_ly_khung_anh_msg_52"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_55" covered="quan_ly_khung_anh_ll_26" start="quan_ly_khung_anh_recv_37" finish="quan_ly_khung_anh_send_53"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_57" covered="quan_ly_khung_anh_ll_25" message="quan_ly_khung_anh_msg_56"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_58" covered="quan_ly_khung_anh_ll_24" message="quan_ly_khung_anh_msg_56"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_59" covered="quan_ly_khung_anh_ll_25" start="quan_ly_khung_anh_recv_34" finish="quan_ly_khung_anh_send_57"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_61" covered="quan_ly_khung_anh_ll_24" message="quan_ly_khung_anh_msg_60"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_62" covered="quan_ly_khung_anh_ll_23" message="quan_ly_khung_anh_msg_60"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_63" covered="quan_ly_khung_anh_ll_24" start="quan_ly_khung_anh_recv_31" finish="quan_ly_khung_anh_send_61"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_29" name="mở trang Frames" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_30" receiveEvent="quan_ly_khung_anh_recv_31"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_32" name="listFrames()" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_33" receiveEvent="quan_ly_khung_anh_recv_34"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_35" name="listAsAdmin()" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_36" receiveEvent="quan_ly_khung_anh_recv_37"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_38" name="listAll()" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_39" receiveEvent="quan_ly_khung_anh_recv_40"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_41" name="list()" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_42" receiveEvent="quan_ly_khung_anh_recv_43"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_44" name="Frame[]" messageSort="reply" sendEvent="quan_ly_khung_anh_send_45" receiveEvent="quan_ly_khung_anh_recv_46"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_48" name="Frame[]" messageSort="reply" sendEvent="quan_ly_khung_anh_send_49" receiveEvent="quan_ly_khung_anh_recv_50"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_52" name="Frame[]" messageSort="reply" sendEvent="quan_ly_khung_anh_send_53" receiveEvent="quan_ly_khung_anh_recv_54"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_56" name="Frame[]" messageSort="reply" sendEvent="quan_ly_khung_anh_send_57" receiveEvent="quan_ly_khung_anh_recv_58"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_60" name="hiển thị danh sách khung ảnh" messageSort="reply" sendEvent="quan_ly_khung_anh_send_61" receiveEvent="quan_ly_khung_anh_recv_62"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_122" name="2. Thêm khung ảnh">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_65" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_66" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_67" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_68" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_69" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_70" name="FramesRepository" represents="quan_ly_khung_anh_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_72" covered="quan_ly_khung_anh_ll_65" message="quan_ly_khung_anh_msg_71"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_73" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_71"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_75" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_76" covered="quan_ly_khung_anh_ll_65" message="quan_ly_khung_anh_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_78" covered="quan_ly_khung_anh_ll_65" message="quan_ly_khung_anh_msg_77"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_79" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_77"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_khung_anh_cf_80" interactionOperator="alt" covered="quan_ly_khung_anh_ll_65 quan_ly_khung_anh_ll_66 quan_ly_khung_anh_ll_67 quan_ly_khung_anh_ll_68 quan_ly_khung_anh_ll_69 quan_ly_khung_anh_ll_70">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_khung_anh_op_81" covered="quan_ly_khung_anh_ll_65 quan_ly_khung_anh_ll_66 quan_ly_khung_anh_ll_67 quan_ly_khung_anh_ll_68 quan_ly_khung_anh_ll_69 quan_ly_khung_anh_ll_70">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_khung_anh_guard_82">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_khung_anh_spec_83" value="Dữ liệu hợp lệ"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_85" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_84"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_86" covered="quan_ly_khung_anh_ll_67" message="quan_ly_khung_anh_msg_84"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_88" covered="quan_ly_khung_anh_ll_67" message="quan_ly_khung_anh_msg_87"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_89" covered="quan_ly_khung_anh_ll_68" message="quan_ly_khung_anh_msg_87"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_91" covered="quan_ly_khung_anh_ll_68" message="quan_ly_khung_anh_msg_90"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_92" covered="quan_ly_khung_anh_ll_69" message="quan_ly_khung_anh_msg_90"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_94" covered="quan_ly_khung_anh_ll_69" message="quan_ly_khung_anh_msg_93"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_95" covered="quan_ly_khung_anh_ll_70" message="quan_ly_khung_anh_msg_93"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_97" covered="quan_ly_khung_anh_ll_70" message="quan_ly_khung_anh_msg_96"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_98" covered="quan_ly_khung_anh_ll_69" message="quan_ly_khung_anh_msg_96"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_99" covered="quan_ly_khung_anh_ll_70" start="quan_ly_khung_anh_recv_95" finish="quan_ly_khung_anh_send_97"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_101" covered="quan_ly_khung_anh_ll_69" message="quan_ly_khung_anh_msg_100"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_102" covered="quan_ly_khung_anh_ll_68" message="quan_ly_khung_anh_msg_100"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_103" covered="quan_ly_khung_anh_ll_69" start="quan_ly_khung_anh_recv_92" finish="quan_ly_khung_anh_send_101"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_105" covered="quan_ly_khung_anh_ll_68" message="quan_ly_khung_anh_msg_104"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_106" covered="quan_ly_khung_anh_ll_67" message="quan_ly_khung_anh_msg_104"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_107" covered="quan_ly_khung_anh_ll_68" start="quan_ly_khung_anh_recv_89" finish="quan_ly_khung_anh_send_105"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_109" covered="quan_ly_khung_anh_ll_67" message="quan_ly_khung_anh_msg_108"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_110" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_108"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_111" covered="quan_ly_khung_anh_ll_67" start="quan_ly_khung_anh_recv_86" finish="quan_ly_khung_anh_send_109"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_113" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_112"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_114" covered="quan_ly_khung_anh_ll_65" message="quan_ly_khung_anh_msg_112"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_khung_anh_op_115" covered="quan_ly_khung_anh_ll_65 quan_ly_khung_anh_ll_66 quan_ly_khung_anh_ll_67 quan_ly_khung_anh_ll_68 quan_ly_khung_anh_ll_69 quan_ly_khung_anh_ll_70">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_khung_anh_guard_116">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_khung_anh_spec_117" value="Thiếu tên hoặc ảnh"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_119" covered="quan_ly_khung_anh_ll_66" message="quan_ly_khung_anh_msg_118"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_120" covered="quan_ly_khung_anh_ll_65" message="quan_ly_khung_anh_msg_118"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_121" covered="quan_ly_khung_anh_ll_66" start="quan_ly_khung_anh_recv_73" finish="quan_ly_khung_anh_send_119"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_71" name="nhấn Add frame" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_72" receiveEvent="quan_ly_khung_anh_recv_73"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_74" name="hiển thị popup Add frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_75" receiveEvent="quan_ly_khung_anh_recv_76"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_77" name="nhập tên, chọn điều kiện mở khóa, tải ảnh PNG, nhấn Add" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_78" receiveEvent="quan_ly_khung_anh_recv_79"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_84" name="createFrame(body)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_85" receiveEvent="quan_ly_khung_anh_recv_86"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_87" name="create(dto)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_88" receiveEvent="quan_ly_khung_anh_recv_89"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_90" name="create(dto)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_91" receiveEvent="quan_ly_khung_anh_recv_92"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_93" name="create(frame)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_94" receiveEvent="quan_ly_khung_anh_recv_95"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_96" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_97" receiveEvent="quan_ly_khung_anh_recv_98"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_100" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_101" receiveEvent="quan_ly_khung_anh_recv_102"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_104" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_105" receiveEvent="quan_ly_khung_anh_recv_106"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_108" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_109" receiveEvent="quan_ly_khung_anh_recv_110"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_112" name="hiển thị khung mới trong danh sách" messageSort="reply" sendEvent="quan_ly_khung_anh_send_113" receiveEvent="quan_ly_khung_anh_recv_114"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_118" name="báo lỗi trên form" messageSort="reply" sendEvent="quan_ly_khung_anh_send_119" receiveEvent="quan_ly_khung_anh_recv_120"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_170" name="3. Sửa khung ảnh">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_123" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_124" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_125" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_126" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_127" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_128" name="FramesRepository" represents="quan_ly_khung_anh_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_130" covered="quan_ly_khung_anh_ll_123" message="quan_ly_khung_anh_msg_129"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_131" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_129"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_133" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_132"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_134" covered="quan_ly_khung_anh_ll_123" message="quan_ly_khung_anh_msg_132"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_136" covered="quan_ly_khung_anh_ll_123" message="quan_ly_khung_anh_msg_135"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_137" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_135"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_139" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_138"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_140" covered="quan_ly_khung_anh_ll_125" message="quan_ly_khung_anh_msg_138"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_142" covered="quan_ly_khung_anh_ll_125" message="quan_ly_khung_anh_msg_141"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_143" covered="quan_ly_khung_anh_ll_126" message="quan_ly_khung_anh_msg_141"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_145" covered="quan_ly_khung_anh_ll_126" message="quan_ly_khung_anh_msg_144"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_146" covered="quan_ly_khung_anh_ll_127" message="quan_ly_khung_anh_msg_144"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_148" covered="quan_ly_khung_anh_ll_127" message="quan_ly_khung_anh_msg_147"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_149" covered="quan_ly_khung_anh_ll_128" message="quan_ly_khung_anh_msg_147"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_151" covered="quan_ly_khung_anh_ll_128" message="quan_ly_khung_anh_msg_150"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_152" covered="quan_ly_khung_anh_ll_127" message="quan_ly_khung_anh_msg_150"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_153" covered="quan_ly_khung_anh_ll_128" start="quan_ly_khung_anh_recv_149" finish="quan_ly_khung_anh_send_151"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_155" covered="quan_ly_khung_anh_ll_127" message="quan_ly_khung_anh_msg_154"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_156" covered="quan_ly_khung_anh_ll_126" message="quan_ly_khung_anh_msg_154"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_157" covered="quan_ly_khung_anh_ll_127" start="quan_ly_khung_anh_recv_146" finish="quan_ly_khung_anh_send_155"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_159" covered="quan_ly_khung_anh_ll_126" message="quan_ly_khung_anh_msg_158"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_160" covered="quan_ly_khung_anh_ll_125" message="quan_ly_khung_anh_msg_158"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_161" covered="quan_ly_khung_anh_ll_126" start="quan_ly_khung_anh_recv_143" finish="quan_ly_khung_anh_send_159"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_163" covered="quan_ly_khung_anh_ll_125" message="quan_ly_khung_anh_msg_162"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_164" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_162"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_165" covered="quan_ly_khung_anh_ll_125" start="quan_ly_khung_anh_recv_140" finish="quan_ly_khung_anh_send_163"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_167" covered="quan_ly_khung_anh_ll_124" message="quan_ly_khung_anh_msg_166"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_168" covered="quan_ly_khung_anh_ll_123" message="quan_ly_khung_anh_msg_166"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_169" covered="quan_ly_khung_anh_ll_124" start="quan_ly_khung_anh_recv_131" finish="quan_ly_khung_anh_send_167"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_129" name="nhấn icon chỉnh sửa" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_130" receiveEvent="quan_ly_khung_anh_recv_131"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_132" name="hiển thị popup Edit frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_133" receiveEvent="quan_ly_khung_anh_recv_134"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_135" name="đổi tên, điều kiện hoặc ảnh, nhấn Save" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_136" receiveEvent="quan_ly_khung_anh_recv_137"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_138" name="updateFrame(frameId, body)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_139" receiveEvent="quan_ly_khung_anh_recv_140"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_141" name="update(frameId, dto)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_142" receiveEvent="quan_ly_khung_anh_recv_143"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_144" name="update(frameId, dto)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_145" receiveEvent="quan_ly_khung_anh_recv_146"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_147" name="update(frameId, patch)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_148" receiveEvent="quan_ly_khung_anh_recv_149"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_150" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_151" receiveEvent="quan_ly_khung_anh_recv_152"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_154" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_155" receiveEvent="quan_ly_khung_anh_recv_156"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_158" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_159" receiveEvent="quan_ly_khung_anh_recv_160"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_162" name="Frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_163" receiveEvent="quan_ly_khung_anh_recv_164"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_166" name="cập nhật khung trong danh sách" messageSort="reply" sendEvent="quan_ly_khung_anh_send_167" receiveEvent="quan_ly_khung_anh_recv_168"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_231" name="4. Xóa khung ảnh">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_171" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_172" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_173" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_174" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_175" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_176" name="FramesRepository" represents="quan_ly_khung_anh_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_178" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_177"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_179" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_177"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_181" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_180"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_182" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_180"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_khung_anh_cf_183" interactionOperator="alt" covered="quan_ly_khung_anh_ll_171 quan_ly_khung_anh_ll_172 quan_ly_khung_anh_ll_173 quan_ly_khung_anh_ll_174 quan_ly_khung_anh_ll_175 quan_ly_khung_anh_ll_176">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_khung_anh_op_184" covered="quan_ly_khung_anh_ll_171 quan_ly_khung_anh_ll_172 quan_ly_khung_anh_ll_173 quan_ly_khung_anh_ll_174 quan_ly_khung_anh_ll_175 quan_ly_khung_anh_ll_176">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_khung_anh_guard_185">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_khung_anh_spec_186" value="Nhấn Delete"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_188" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_187"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_189" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_187"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_191" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_190"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_192" covered="quan_ly_khung_anh_ll_173" message="quan_ly_khung_anh_msg_190"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_194" covered="quan_ly_khung_anh_ll_173" message="quan_ly_khung_anh_msg_193"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_195" covered="quan_ly_khung_anh_ll_174" message="quan_ly_khung_anh_msg_193"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_197" covered="quan_ly_khung_anh_ll_174" message="quan_ly_khung_anh_msg_196"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_198" covered="quan_ly_khung_anh_ll_175" message="quan_ly_khung_anh_msg_196"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_200" covered="quan_ly_khung_anh_ll_175" message="quan_ly_khung_anh_msg_199"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_201" covered="quan_ly_khung_anh_ll_176" message="quan_ly_khung_anh_msg_199"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_203" covered="quan_ly_khung_anh_ll_176" message="quan_ly_khung_anh_msg_202"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_204" covered="quan_ly_khung_anh_ll_175" message="quan_ly_khung_anh_msg_202"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_205" covered="quan_ly_khung_anh_ll_176" start="quan_ly_khung_anh_recv_201" finish="quan_ly_khung_anh_send_203"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_207" covered="quan_ly_khung_anh_ll_175" message="quan_ly_khung_anh_msg_206"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_208" covered="quan_ly_khung_anh_ll_174" message="quan_ly_khung_anh_msg_206"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_209" covered="quan_ly_khung_anh_ll_175" start="quan_ly_khung_anh_recv_198" finish="quan_ly_khung_anh_send_207"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_211" covered="quan_ly_khung_anh_ll_174" message="quan_ly_khung_anh_msg_210"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_212" covered="quan_ly_khung_anh_ll_173" message="quan_ly_khung_anh_msg_210"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_213" covered="quan_ly_khung_anh_ll_174" start="quan_ly_khung_anh_recv_195" finish="quan_ly_khung_anh_send_211"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_215" covered="quan_ly_khung_anh_ll_173" message="quan_ly_khung_anh_msg_214"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_216" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_214"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_217" covered="quan_ly_khung_anh_ll_173" start="quan_ly_khung_anh_recv_192" finish="quan_ly_khung_anh_send_215"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_219" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_218"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_220" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_218"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_khung_anh_op_221" covered="quan_ly_khung_anh_ll_171 quan_ly_khung_anh_ll_172 quan_ly_khung_anh_ll_173 quan_ly_khung_anh_ll_174 quan_ly_khung_anh_ll_175 quan_ly_khung_anh_ll_176">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_khung_anh_guard_222">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_khung_anh_spec_223" value="Nhấn Cancel"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_225" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_224"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_226" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_224"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_228" covered="quan_ly_khung_anh_ll_172" message="quan_ly_khung_anh_msg_227"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_229" covered="quan_ly_khung_anh_ll_171" message="quan_ly_khung_anh_msg_227"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_230" covered="quan_ly_khung_anh_ll_172" start="quan_ly_khung_anh_recv_179" finish="quan_ly_khung_anh_send_228"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_177" name="nhấn icon thùng rác" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_178" receiveEvent="quan_ly_khung_anh_recv_179"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_180" name="hiển thị hộp xác nhận Delete this frame?" messageSort="reply" sendEvent="quan_ly_khung_anh_send_181" receiveEvent="quan_ly_khung_anh_recv_182"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_187" name="nhấn Delete" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_188" receiveEvent="quan_ly_khung_anh_recv_189"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_190" name="deleteFrame(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_191" receiveEvent="quan_ly_khung_anh_recv_192"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_193" name="delete(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_194" receiveEvent="quan_ly_khung_anh_recv_195"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_196" name="delete(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_197" receiveEvent="quan_ly_khung_anh_recv_198"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_199" name="delete(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_200" receiveEvent="quan_ly_khung_anh_recv_201"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_202" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_203" receiveEvent="quan_ly_khung_anh_recv_204"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_206" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_207" receiveEvent="quan_ly_khung_anh_recv_208"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_210" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_211" receiveEvent="quan_ly_khung_anh_recv_212"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_214" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_215" receiveEvent="quan_ly_khung_anh_recv_216"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_218" name="xóa khung khỏi danh sách" messageSort="reply" sendEvent="quan_ly_khung_anh_send_219" receiveEvent="quan_ly_khung_anh_recv_220"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_224" name="nhấn Cancel" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_225" receiveEvent="quan_ly_khung_anh_recv_226"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_227" name="đóng hộp xác nhận, giữ nguyên danh sách" messageSort="reply" sendEvent="quan_ly_khung_anh_send_228" receiveEvent="quan_ly_khung_anh_recv_229"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_273" name="5. Xem người sở hữu khung">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_232" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_233" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_234" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_235" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_236" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_237" name="UsersRepository" represents="quan_ly_khung_anh_prop_14"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_239" covered="quan_ly_khung_anh_ll_232" message="quan_ly_khung_anh_msg_238"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_240" covered="quan_ly_khung_anh_ll_233" message="quan_ly_khung_anh_msg_238"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_242" covered="quan_ly_khung_anh_ll_233" message="quan_ly_khung_anh_msg_241"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_243" covered="quan_ly_khung_anh_ll_234" message="quan_ly_khung_anh_msg_241"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_245" covered="quan_ly_khung_anh_ll_234" message="quan_ly_khung_anh_msg_244"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_246" covered="quan_ly_khung_anh_ll_235" message="quan_ly_khung_anh_msg_244"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_248" covered="quan_ly_khung_anh_ll_235" message="quan_ly_khung_anh_msg_247"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_249" covered="quan_ly_khung_anh_ll_236" message="quan_ly_khung_anh_msg_247"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_251" covered="quan_ly_khung_anh_ll_236" message="quan_ly_khung_anh_msg_250"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_252" covered="quan_ly_khung_anh_ll_237" message="quan_ly_khung_anh_msg_250"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_254" covered="quan_ly_khung_anh_ll_237" message="quan_ly_khung_anh_msg_253"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_255" covered="quan_ly_khung_anh_ll_236" message="quan_ly_khung_anh_msg_253"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_256" covered="quan_ly_khung_anh_ll_237" start="quan_ly_khung_anh_recv_252" finish="quan_ly_khung_anh_send_254"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_258" covered="quan_ly_khung_anh_ll_236" message="quan_ly_khung_anh_msg_257"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_259" covered="quan_ly_khung_anh_ll_235" message="quan_ly_khung_anh_msg_257"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_260" covered="quan_ly_khung_anh_ll_236" start="quan_ly_khung_anh_recv_249" finish="quan_ly_khung_anh_send_258"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_262" covered="quan_ly_khung_anh_ll_235" message="quan_ly_khung_anh_msg_261"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_263" covered="quan_ly_khung_anh_ll_234" message="quan_ly_khung_anh_msg_261"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_264" covered="quan_ly_khung_anh_ll_235" start="quan_ly_khung_anh_recv_246" finish="quan_ly_khung_anh_send_262"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_266" covered="quan_ly_khung_anh_ll_234" message="quan_ly_khung_anh_msg_265"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_267" covered="quan_ly_khung_anh_ll_233" message="quan_ly_khung_anh_msg_265"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_268" covered="quan_ly_khung_anh_ll_234" start="quan_ly_khung_anh_recv_243" finish="quan_ly_khung_anh_send_266"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_270" covered="quan_ly_khung_anh_ll_233" message="quan_ly_khung_anh_msg_269"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_271" covered="quan_ly_khung_anh_ll_232" message="quan_ly_khung_anh_msg_269"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_272" covered="quan_ly_khung_anh_ll_233" start="quan_ly_khung_anh_recv_240" finish="quan_ly_khung_anh_send_270"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_238" name="nhấn icon Who owns this?" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_239" receiveEvent="quan_ly_khung_anh_recv_240"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_241" name="listFrameOwners(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_242" receiveEvent="quan_ly_khung_anh_recv_243"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_244" name="listOwners(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_245" receiveEvent="quan_ly_khung_anh_recv_246"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_247" name="listOwners(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_248" receiveEvent="quan_ly_khung_anh_recv_249"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_250" name="listByUnlockedFrame(frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_251" receiveEvent="quan_ly_khung_anh_recv_252"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_253" name="User[]" messageSort="reply" sendEvent="quan_ly_khung_anh_send_254" receiveEvent="quan_ly_khung_anh_recv_255"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_257" name="{frame, owners}" messageSort="reply" sendEvent="quan_ly_khung_anh_send_258" receiveEvent="quan_ly_khung_anh_recv_259"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_261" name="{frame, owners}" messageSort="reply" sendEvent="quan_ly_khung_anh_send_262" receiveEvent="quan_ly_khung_anh_recv_263"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_265" name="{frame, owners}" messageSort="reply" sendEvent="quan_ly_khung_anh_send_266" receiveEvent="quan_ly_khung_anh_recv_267"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_269" name="hiển thị danh sách người sở hữu" messageSort="reply" sendEvent="quan_ly_khung_anh_send_270" receiveEvent="quan_ly_khung_anh_recv_271"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_khung_anh_int_321" name="6. Tặng khung">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_274" name="Quản trị viên" represents="quan_ly_khung_anh_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_275" name="FramesPage" represents="quan_ly_khung_anh_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_276" name="frames.api" represents="quan_ly_khung_anh_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_277" name="FramesController" represents="quan_ly_khung_anh_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_278" name="FramesService" represents="quan_ly_khung_anh_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_khung_anh_ll_279" name="UsersRepository" represents="quan_ly_khung_anh_prop_14"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_281" covered="quan_ly_khung_anh_ll_274" message="quan_ly_khung_anh_msg_280"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_282" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_280"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_284" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_283"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_285" covered="quan_ly_khung_anh_ll_274" message="quan_ly_khung_anh_msg_283"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_287" covered="quan_ly_khung_anh_ll_274" message="quan_ly_khung_anh_msg_286"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_288" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_286"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_290" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_289"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_291" covered="quan_ly_khung_anh_ll_276" message="quan_ly_khung_anh_msg_289"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_293" covered="quan_ly_khung_anh_ll_276" message="quan_ly_khung_anh_msg_292"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_294" covered="quan_ly_khung_anh_ll_277" message="quan_ly_khung_anh_msg_292"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_296" covered="quan_ly_khung_anh_ll_277" message="quan_ly_khung_anh_msg_295"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_297" covered="quan_ly_khung_anh_ll_278" message="quan_ly_khung_anh_msg_295"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_299" covered="quan_ly_khung_anh_ll_278" message="quan_ly_khung_anh_msg_298"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_300" covered="quan_ly_khung_anh_ll_279" message="quan_ly_khung_anh_msg_298"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_302" covered="quan_ly_khung_anh_ll_279" message="quan_ly_khung_anh_msg_301"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_303" covered="quan_ly_khung_anh_ll_278" message="quan_ly_khung_anh_msg_301"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_304" covered="quan_ly_khung_anh_ll_279" start="quan_ly_khung_anh_recv_300" finish="quan_ly_khung_anh_send_302"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_306" covered="quan_ly_khung_anh_ll_278" message="quan_ly_khung_anh_msg_305"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_307" covered="quan_ly_khung_anh_ll_277" message="quan_ly_khung_anh_msg_305"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_308" covered="quan_ly_khung_anh_ll_278" start="quan_ly_khung_anh_recv_297" finish="quan_ly_khung_anh_send_306"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_310" covered="quan_ly_khung_anh_ll_277" message="quan_ly_khung_anh_msg_309"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_311" covered="quan_ly_khung_anh_ll_276" message="quan_ly_khung_anh_msg_309"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_312" covered="quan_ly_khung_anh_ll_277" start="quan_ly_khung_anh_recv_294" finish="quan_ly_khung_anh_send_310"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_314" covered="quan_ly_khung_anh_ll_276" message="quan_ly_khung_anh_msg_313"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_315" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_313"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_316" covered="quan_ly_khung_anh_ll_276" start="quan_ly_khung_anh_recv_291" finish="quan_ly_khung_anh_send_314"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_send_318" covered="quan_ly_khung_anh_ll_275" message="quan_ly_khung_anh_msg_317"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_khung_anh_recv_319" covered="quan_ly_khung_anh_ll_274" message="quan_ly_khung_anh_msg_317"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_khung_anh_exec_320" covered="quan_ly_khung_anh_ll_275" start="quan_ly_khung_anh_recv_282" finish="quan_ly_khung_anh_send_318"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_280" name="nhấn icon quà tặng" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_281" receiveEvent="quan_ly_khung_anh_recv_282"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_283" name="hiển thị popup Grant frame" messageSort="reply" sendEvent="quan_ly_khung_anh_send_284" receiveEvent="quan_ly_khung_anh_recv_285"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_286" name="tìm và chọn người dùng, nhấn Grant frame" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_287" receiveEvent="quan_ly_khung_anh_recv_288"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_289" name="grantFrame(frameId, uid)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_290" receiveEvent="quan_ly_khung_anh_recv_291"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_292" name="grant(frameId, uid)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_293" receiveEvent="quan_ly_khung_anh_recv_294"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_295" name="unlockForUser(uid, frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_296" receiveEvent="quan_ly_khung_anh_recv_297"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_298" name="unlockFrame(uid, frameId)" messageSort="synchCall" sendEvent="quan_ly_khung_anh_send_299" receiveEvent="quan_ly_khung_anh_recv_300"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_301" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_302" receiveEvent="quan_ly_khung_anh_recv_303"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_305" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_306" receiveEvent="quan_ly_khung_anh_recv_307"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_309" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_310" receiveEvent="quan_ly_khung_anh_recv_311"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_313" name="Success" messageSort="reply" sendEvent="quan_ly_khung_anh_send_314" receiveEvent="quan_ly_khung_anh_recv_315"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_khung_anh_msg_317" name="thông báo đã tặng khung" messageSort="reply" sendEvent="quan_ly_khung_anh_send_318" receiveEvent="quan_ly_khung_anh_recv_319"/>
+      </ownedBehavior>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

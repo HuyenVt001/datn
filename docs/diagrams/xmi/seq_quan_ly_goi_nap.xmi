@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" xmi:id="quan_ly_goi_nap_model_15" name="Snapget - Quản lý gói nạp">
+    <packagedElement xmi:type="uml:Actor" xmi:id="quan_ly_goi_nap_type_1" name="Quản trị viên"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_3" name="TopupPackagesPage">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_16" body="«boundary»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_5" name="topup.api">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_17" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_7" name="TopupController">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_18" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_9" name="TopupService">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_19" body="«control»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_11" name="TopupRepository">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_20" body="«entity»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="quan_ly_goi_nap_type_13" name="TopupHistoryPage">
+      <ownedComment xmi:type="uml:Comment" xmi:id="quan_ly_goi_nap_cmt_21" body="«boundary»"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Collaboration" xmi:id="quan_ly_goi_nap_col_22" name="Quản lý gói nạp">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_2" name="Quản trị viên" type="quan_ly_goi_nap_type_1"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_4" name="TopupPackagesPage" type="quan_ly_goi_nap_type_3"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_6" name="topup.api" type="quan_ly_goi_nap_type_5"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_8" name="TopupController" type="quan_ly_goi_nap_type_7"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_10" name="TopupService" type="quan_ly_goi_nap_type_9"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_12" name="TopupRepository" type="quan_ly_goi_nap_type_11"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="quan_ly_goi_nap_prop_14" name="TopupHistoryPage" type="quan_ly_goi_nap_type_13"/>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_64" name="1. Xem danh sách gói nạp">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_23" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_24" name="TopupPackagesPage" represents="quan_ly_goi_nap_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_25" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_26" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_27" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_28" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_30" covered="quan_ly_goi_nap_ll_23" message="quan_ly_goi_nap_msg_29"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_31" covered="quan_ly_goi_nap_ll_24" message="quan_ly_goi_nap_msg_29"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_33" covered="quan_ly_goi_nap_ll_24" message="quan_ly_goi_nap_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_34" covered="quan_ly_goi_nap_ll_25" message="quan_ly_goi_nap_msg_32"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_36" covered="quan_ly_goi_nap_ll_25" message="quan_ly_goi_nap_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_37" covered="quan_ly_goi_nap_ll_26" message="quan_ly_goi_nap_msg_35"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_39" covered="quan_ly_goi_nap_ll_26" message="quan_ly_goi_nap_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_40" covered="quan_ly_goi_nap_ll_27" message="quan_ly_goi_nap_msg_38"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_42" covered="quan_ly_goi_nap_ll_27" message="quan_ly_goi_nap_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_43" covered="quan_ly_goi_nap_ll_28" message="quan_ly_goi_nap_msg_41"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_45" covered="quan_ly_goi_nap_ll_28" message="quan_ly_goi_nap_msg_44"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_46" covered="quan_ly_goi_nap_ll_27" message="quan_ly_goi_nap_msg_44"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_47" covered="quan_ly_goi_nap_ll_28" start="quan_ly_goi_nap_recv_43" finish="quan_ly_goi_nap_send_45"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_49" covered="quan_ly_goi_nap_ll_27" message="quan_ly_goi_nap_msg_48"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_50" covered="quan_ly_goi_nap_ll_26" message="quan_ly_goi_nap_msg_48"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_51" covered="quan_ly_goi_nap_ll_27" start="quan_ly_goi_nap_recv_40" finish="quan_ly_goi_nap_send_49"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_53" covered="quan_ly_goi_nap_ll_26" message="quan_ly_goi_nap_msg_52"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_54" covered="quan_ly_goi_nap_ll_25" message="quan_ly_goi_nap_msg_52"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_55" covered="quan_ly_goi_nap_ll_26" start="quan_ly_goi_nap_recv_37" finish="quan_ly_goi_nap_send_53"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_57" covered="quan_ly_goi_nap_ll_25" message="quan_ly_goi_nap_msg_56"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_58" covered="quan_ly_goi_nap_ll_24" message="quan_ly_goi_nap_msg_56"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_59" covered="quan_ly_goi_nap_ll_25" start="quan_ly_goi_nap_recv_34" finish="quan_ly_goi_nap_send_57"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_61" covered="quan_ly_goi_nap_ll_24" message="quan_ly_goi_nap_msg_60"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_62" covered="quan_ly_goi_nap_ll_23" message="quan_ly_goi_nap_msg_60"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_63" covered="quan_ly_goi_nap_ll_24" start="quan_ly_goi_nap_recv_31" finish="quan_ly_goi_nap_send_61"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_29" name="mở menu Shop, chọn Top-up packages" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_30" receiveEvent="quan_ly_goi_nap_recv_31"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_32" name="listTopupPackages()" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_33" receiveEvent="quan_ly_goi_nap_recv_34"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_35" name="listPackagesAsAdmin()" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_36" receiveEvent="quan_ly_goi_nap_recv_37"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_38" name="listAllPackages()" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_39" receiveEvent="quan_ly_goi_nap_recv_40"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_41" name="listAllPackages()" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_42" receiveEvent="quan_ly_goi_nap_recv_43"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_44" name="TopupPackage[]" messageSort="reply" sendEvent="quan_ly_goi_nap_send_45" receiveEvent="quan_ly_goi_nap_recv_46"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_48" name="TopupPackage[]" messageSort="reply" sendEvent="quan_ly_goi_nap_send_49" receiveEvent="quan_ly_goi_nap_recv_50"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_52" name="TopupPackage[]" messageSort="reply" sendEvent="quan_ly_goi_nap_send_53" receiveEvent="quan_ly_goi_nap_recv_54"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_56" name="TopupPackage[]" messageSort="reply" sendEvent="quan_ly_goi_nap_send_57" receiveEvent="quan_ly_goi_nap_recv_58"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_60" name="hiển thị danh sách gói nạp" messageSort="reply" sendEvent="quan_ly_goi_nap_send_61" receiveEvent="quan_ly_goi_nap_recv_62"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_122" name="2. Thêm gói nạp">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_65" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_66" name="TopupPackagesPage" represents="quan_ly_goi_nap_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_67" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_68" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_69" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_70" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_72" covered="quan_ly_goi_nap_ll_65" message="quan_ly_goi_nap_msg_71"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_73" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_71"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_75" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_76" covered="quan_ly_goi_nap_ll_65" message="quan_ly_goi_nap_msg_74"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_78" covered="quan_ly_goi_nap_ll_65" message="quan_ly_goi_nap_msg_77"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_79" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_77"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_goi_nap_cf_80" interactionOperator="alt" covered="quan_ly_goi_nap_ll_65 quan_ly_goi_nap_ll_66 quan_ly_goi_nap_ll_67 quan_ly_goi_nap_ll_68 quan_ly_goi_nap_ll_69 quan_ly_goi_nap_ll_70">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_goi_nap_op_81" covered="quan_ly_goi_nap_ll_65 quan_ly_goi_nap_ll_66 quan_ly_goi_nap_ll_67 quan_ly_goi_nap_ll_68 quan_ly_goi_nap_ll_69 quan_ly_goi_nap_ll_70">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_goi_nap_guard_82">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_goi_nap_spec_83" value="Dữ liệu hợp lệ"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_85" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_84"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_86" covered="quan_ly_goi_nap_ll_67" message="quan_ly_goi_nap_msg_84"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_88" covered="quan_ly_goi_nap_ll_67" message="quan_ly_goi_nap_msg_87"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_89" covered="quan_ly_goi_nap_ll_68" message="quan_ly_goi_nap_msg_87"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_91" covered="quan_ly_goi_nap_ll_68" message="quan_ly_goi_nap_msg_90"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_92" covered="quan_ly_goi_nap_ll_69" message="quan_ly_goi_nap_msg_90"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_94" covered="quan_ly_goi_nap_ll_69" message="quan_ly_goi_nap_msg_93"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_95" covered="quan_ly_goi_nap_ll_70" message="quan_ly_goi_nap_msg_93"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_97" covered="quan_ly_goi_nap_ll_70" message="quan_ly_goi_nap_msg_96"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_98" covered="quan_ly_goi_nap_ll_69" message="quan_ly_goi_nap_msg_96"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_99" covered="quan_ly_goi_nap_ll_70" start="quan_ly_goi_nap_recv_95" finish="quan_ly_goi_nap_send_97"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_101" covered="quan_ly_goi_nap_ll_69" message="quan_ly_goi_nap_msg_100"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_102" covered="quan_ly_goi_nap_ll_68" message="quan_ly_goi_nap_msg_100"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_103" covered="quan_ly_goi_nap_ll_69" start="quan_ly_goi_nap_recv_92" finish="quan_ly_goi_nap_send_101"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_105" covered="quan_ly_goi_nap_ll_68" message="quan_ly_goi_nap_msg_104"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_106" covered="quan_ly_goi_nap_ll_67" message="quan_ly_goi_nap_msg_104"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_107" covered="quan_ly_goi_nap_ll_68" start="quan_ly_goi_nap_recv_89" finish="quan_ly_goi_nap_send_105"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_109" covered="quan_ly_goi_nap_ll_67" message="quan_ly_goi_nap_msg_108"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_110" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_108"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_111" covered="quan_ly_goi_nap_ll_67" start="quan_ly_goi_nap_recv_86" finish="quan_ly_goi_nap_send_109"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_113" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_112"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_114" covered="quan_ly_goi_nap_ll_65" message="quan_ly_goi_nap_msg_112"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_goi_nap_op_115" covered="quan_ly_goi_nap_ll_65 quan_ly_goi_nap_ll_66 quan_ly_goi_nap_ll_67 quan_ly_goi_nap_ll_68 quan_ly_goi_nap_ll_69 quan_ly_goi_nap_ll_70">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_goi_nap_guard_116">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_goi_nap_spec_117" value="Dữ liệu không hợp lệ"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_119" covered="quan_ly_goi_nap_ll_66" message="quan_ly_goi_nap_msg_118"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_120" covered="quan_ly_goi_nap_ll_65" message="quan_ly_goi_nap_msg_118"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_121" covered="quan_ly_goi_nap_ll_66" start="quan_ly_goi_nap_recv_73" finish="quan_ly_goi_nap_send_119"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_71" name="nhấn Add package" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_72" receiveEvent="quan_ly_goi_nap_recv_73"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_74" name="hiển thị popup Add package" messageSort="reply" sendEvent="quan_ly_goi_nap_send_75" receiveEvent="quan_ly_goi_nap_recv_76"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_77" name="nhập tên gói, số Astrite, giá VND, nhấn Add" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_78" receiveEvent="quan_ly_goi_nap_recv_79"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_84" name="createTopupPackage(body)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_85" receiveEvent="quan_ly_goi_nap_recv_86"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_87" name="createPackage(dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_88" receiveEvent="quan_ly_goi_nap_recv_89"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_90" name="createPackage(dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_91" receiveEvent="quan_ly_goi_nap_recv_92"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_93" name="createPackage(pkg)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_94" receiveEvent="quan_ly_goi_nap_recv_95"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_96" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_97" receiveEvent="quan_ly_goi_nap_recv_98"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_100" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_101" receiveEvent="quan_ly_goi_nap_recv_102"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_104" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_105" receiveEvent="quan_ly_goi_nap_recv_106"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_108" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_109" receiveEvent="quan_ly_goi_nap_recv_110"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_112" name="hiển thị gói mới trong danh sách" messageSort="reply" sendEvent="quan_ly_goi_nap_send_113" receiveEvent="quan_ly_goi_nap_recv_114"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_118" name="báo lỗi trên form" messageSort="reply" sendEvent="quan_ly_goi_nap_send_119" receiveEvent="quan_ly_goi_nap_recv_120"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_170" name="3. Sửa gói nạp">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_123" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_124" name="TopupPackagesPage" represents="quan_ly_goi_nap_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_125" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_126" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_127" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_128" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_130" covered="quan_ly_goi_nap_ll_123" message="quan_ly_goi_nap_msg_129"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_131" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_129"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_133" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_132"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_134" covered="quan_ly_goi_nap_ll_123" message="quan_ly_goi_nap_msg_132"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_136" covered="quan_ly_goi_nap_ll_123" message="quan_ly_goi_nap_msg_135"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_137" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_135"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_139" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_138"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_140" covered="quan_ly_goi_nap_ll_125" message="quan_ly_goi_nap_msg_138"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_142" covered="quan_ly_goi_nap_ll_125" message="quan_ly_goi_nap_msg_141"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_143" covered="quan_ly_goi_nap_ll_126" message="quan_ly_goi_nap_msg_141"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_145" covered="quan_ly_goi_nap_ll_126" message="quan_ly_goi_nap_msg_144"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_146" covered="quan_ly_goi_nap_ll_127" message="quan_ly_goi_nap_msg_144"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_148" covered="quan_ly_goi_nap_ll_127" message="quan_ly_goi_nap_msg_147"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_149" covered="quan_ly_goi_nap_ll_128" message="quan_ly_goi_nap_msg_147"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_151" covered="quan_ly_goi_nap_ll_128" message="quan_ly_goi_nap_msg_150"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_152" covered="quan_ly_goi_nap_ll_127" message="quan_ly_goi_nap_msg_150"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_153" covered="quan_ly_goi_nap_ll_128" start="quan_ly_goi_nap_recv_149" finish="quan_ly_goi_nap_send_151"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_155" covered="quan_ly_goi_nap_ll_127" message="quan_ly_goi_nap_msg_154"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_156" covered="quan_ly_goi_nap_ll_126" message="quan_ly_goi_nap_msg_154"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_157" covered="quan_ly_goi_nap_ll_127" start="quan_ly_goi_nap_recv_146" finish="quan_ly_goi_nap_send_155"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_159" covered="quan_ly_goi_nap_ll_126" message="quan_ly_goi_nap_msg_158"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_160" covered="quan_ly_goi_nap_ll_125" message="quan_ly_goi_nap_msg_158"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_161" covered="quan_ly_goi_nap_ll_126" start="quan_ly_goi_nap_recv_143" finish="quan_ly_goi_nap_send_159"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_163" covered="quan_ly_goi_nap_ll_125" message="quan_ly_goi_nap_msg_162"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_164" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_162"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_165" covered="quan_ly_goi_nap_ll_125" start="quan_ly_goi_nap_recv_140" finish="quan_ly_goi_nap_send_163"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_167" covered="quan_ly_goi_nap_ll_124" message="quan_ly_goi_nap_msg_166"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_168" covered="quan_ly_goi_nap_ll_123" message="quan_ly_goi_nap_msg_166"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_169" covered="quan_ly_goi_nap_ll_124" start="quan_ly_goi_nap_recv_131" finish="quan_ly_goi_nap_send_167"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_129" name="nhấn Edit" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_130" receiveEvent="quan_ly_goi_nap_recv_131"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_132" name="hiển thị popup Edit" messageSort="reply" sendEvent="quan_ly_goi_nap_send_133" receiveEvent="quan_ly_goi_nap_recv_134"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_135" name="đổi tên, số Astrite, giá hoặc thứ tự, nhấn Save" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_136" receiveEvent="quan_ly_goi_nap_recv_137"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_138" name="updateTopupPackage(packageId, body)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_139" receiveEvent="quan_ly_goi_nap_recv_140"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_141" name="updatePackage(packageId, dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_142" receiveEvent="quan_ly_goi_nap_recv_143"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_144" name="updatePackage(packageId, dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_145" receiveEvent="quan_ly_goi_nap_recv_146"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_147" name="updatePackage(packageId, patch)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_148" receiveEvent="quan_ly_goi_nap_recv_149"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_150" name="Success" messageSort="reply" sendEvent="quan_ly_goi_nap_send_151" receiveEvent="quan_ly_goi_nap_recv_152"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_154" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_155" receiveEvent="quan_ly_goi_nap_recv_156"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_158" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_159" receiveEvent="quan_ly_goi_nap_recv_160"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_162" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_163" receiveEvent="quan_ly_goi_nap_recv_164"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_166" name="cập nhật gói trong danh sách" messageSort="reply" sendEvent="quan_ly_goi_nap_send_167" receiveEvent="quan_ly_goi_nap_recv_168"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_212" name="4. Ẩn/hiện gói nạp">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_171" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_172" name="TopupPackagesPage" represents="quan_ly_goi_nap_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_173" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_174" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_175" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_176" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_178" covered="quan_ly_goi_nap_ll_171" message="quan_ly_goi_nap_msg_177"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_179" covered="quan_ly_goi_nap_ll_172" message="quan_ly_goi_nap_msg_177"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_181" covered="quan_ly_goi_nap_ll_172" message="quan_ly_goi_nap_msg_180"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_182" covered="quan_ly_goi_nap_ll_173" message="quan_ly_goi_nap_msg_180"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_184" covered="quan_ly_goi_nap_ll_173" message="quan_ly_goi_nap_msg_183"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_185" covered="quan_ly_goi_nap_ll_174" message="quan_ly_goi_nap_msg_183"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_187" covered="quan_ly_goi_nap_ll_174" message="quan_ly_goi_nap_msg_186"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_188" covered="quan_ly_goi_nap_ll_175" message="quan_ly_goi_nap_msg_186"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_190" covered="quan_ly_goi_nap_ll_175" message="quan_ly_goi_nap_msg_189"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_191" covered="quan_ly_goi_nap_ll_176" message="quan_ly_goi_nap_msg_189"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_193" covered="quan_ly_goi_nap_ll_176" message="quan_ly_goi_nap_msg_192"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_194" covered="quan_ly_goi_nap_ll_175" message="quan_ly_goi_nap_msg_192"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_195" covered="quan_ly_goi_nap_ll_176" start="quan_ly_goi_nap_recv_191" finish="quan_ly_goi_nap_send_193"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_197" covered="quan_ly_goi_nap_ll_175" message="quan_ly_goi_nap_msg_196"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_198" covered="quan_ly_goi_nap_ll_174" message="quan_ly_goi_nap_msg_196"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_199" covered="quan_ly_goi_nap_ll_175" start="quan_ly_goi_nap_recv_188" finish="quan_ly_goi_nap_send_197"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_201" covered="quan_ly_goi_nap_ll_174" message="quan_ly_goi_nap_msg_200"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_202" covered="quan_ly_goi_nap_ll_173" message="quan_ly_goi_nap_msg_200"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_203" covered="quan_ly_goi_nap_ll_174" start="quan_ly_goi_nap_recv_185" finish="quan_ly_goi_nap_send_201"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_205" covered="quan_ly_goi_nap_ll_173" message="quan_ly_goi_nap_msg_204"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_206" covered="quan_ly_goi_nap_ll_172" message="quan_ly_goi_nap_msg_204"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_207" covered="quan_ly_goi_nap_ll_173" start="quan_ly_goi_nap_recv_182" finish="quan_ly_goi_nap_send_205"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_209" covered="quan_ly_goi_nap_ll_172" message="quan_ly_goi_nap_msg_208"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_210" covered="quan_ly_goi_nap_ll_171" message="quan_ly_goi_nap_msg_208"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_211" covered="quan_ly_goi_nap_ll_172" start="quan_ly_goi_nap_recv_179" finish="quan_ly_goi_nap_send_209"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_177" name="gạt công tắc hiển thị" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_178" receiveEvent="quan_ly_goi_nap_recv_179"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_180" name="updateTopupPackage(packageId, {isActive})" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_181" receiveEvent="quan_ly_goi_nap_recv_182"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_183" name="updatePackage(packageId, dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_184" receiveEvent="quan_ly_goi_nap_recv_185"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_186" name="updatePackage(packageId, dto)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_187" receiveEvent="quan_ly_goi_nap_recv_188"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_189" name="updatePackage(packageId, patch)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_190" receiveEvent="quan_ly_goi_nap_recv_191"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_192" name="Success" messageSort="reply" sendEvent="quan_ly_goi_nap_send_193" receiveEvent="quan_ly_goi_nap_recv_194"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_196" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_197" receiveEvent="quan_ly_goi_nap_recv_198"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_200" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_201" receiveEvent="quan_ly_goi_nap_recv_202"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_204" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_205" receiveEvent="quan_ly_goi_nap_recv_206"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_208" name="cập nhật trạng thái hiển thị gói trong app" messageSort="reply" sendEvent="quan_ly_goi_nap_send_209" receiveEvent="quan_ly_goi_nap_recv_210"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_273" name="5. Xóa gói nạp">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_213" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_214" name="TopupPackagesPage" represents="quan_ly_goi_nap_prop_4"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_215" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_216" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_217" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_218" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_220" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_219"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_221" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_219"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_223" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_222"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_224" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_222"/>
+        <fragment xmi:type="uml:CombinedFragment" xmi:id="quan_ly_goi_nap_cf_225" interactionOperator="alt" covered="quan_ly_goi_nap_ll_213 quan_ly_goi_nap_ll_214 quan_ly_goi_nap_ll_215 quan_ly_goi_nap_ll_216 quan_ly_goi_nap_ll_217 quan_ly_goi_nap_ll_218">
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_goi_nap_op_226" covered="quan_ly_goi_nap_ll_213 quan_ly_goi_nap_ll_214 quan_ly_goi_nap_ll_215 quan_ly_goi_nap_ll_216 quan_ly_goi_nap_ll_217 quan_ly_goi_nap_ll_218">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_goi_nap_guard_227">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_goi_nap_spec_228" value="Nhấn Delete"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_230" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_229"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_231" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_229"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_233" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_232"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_234" covered="quan_ly_goi_nap_ll_215" message="quan_ly_goi_nap_msg_232"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_236" covered="quan_ly_goi_nap_ll_215" message="quan_ly_goi_nap_msg_235"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_237" covered="quan_ly_goi_nap_ll_216" message="quan_ly_goi_nap_msg_235"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_239" covered="quan_ly_goi_nap_ll_216" message="quan_ly_goi_nap_msg_238"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_240" covered="quan_ly_goi_nap_ll_217" message="quan_ly_goi_nap_msg_238"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_242" covered="quan_ly_goi_nap_ll_217" message="quan_ly_goi_nap_msg_241"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_243" covered="quan_ly_goi_nap_ll_218" message="quan_ly_goi_nap_msg_241"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_245" covered="quan_ly_goi_nap_ll_218" message="quan_ly_goi_nap_msg_244"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_246" covered="quan_ly_goi_nap_ll_217" message="quan_ly_goi_nap_msg_244"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_247" covered="quan_ly_goi_nap_ll_218" start="quan_ly_goi_nap_recv_243" finish="quan_ly_goi_nap_send_245"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_249" covered="quan_ly_goi_nap_ll_217" message="quan_ly_goi_nap_msg_248"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_250" covered="quan_ly_goi_nap_ll_216" message="quan_ly_goi_nap_msg_248"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_251" covered="quan_ly_goi_nap_ll_217" start="quan_ly_goi_nap_recv_240" finish="quan_ly_goi_nap_send_249"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_253" covered="quan_ly_goi_nap_ll_216" message="quan_ly_goi_nap_msg_252"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_254" covered="quan_ly_goi_nap_ll_215" message="quan_ly_goi_nap_msg_252"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_255" covered="quan_ly_goi_nap_ll_216" start="quan_ly_goi_nap_recv_237" finish="quan_ly_goi_nap_send_253"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_257" covered="quan_ly_goi_nap_ll_215" message="quan_ly_goi_nap_msg_256"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_258" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_256"/>
+            <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_259" covered="quan_ly_goi_nap_ll_215" start="quan_ly_goi_nap_recv_234" finish="quan_ly_goi_nap_send_257"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_261" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_260"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_262" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_260"/>
+          </operand>
+          <operand xmi:type="uml:InteractionOperand" xmi:id="quan_ly_goi_nap_op_263" covered="quan_ly_goi_nap_ll_213 quan_ly_goi_nap_ll_214 quan_ly_goi_nap_ll_215 quan_ly_goi_nap_ll_216 quan_ly_goi_nap_ll_217 quan_ly_goi_nap_ll_218">
+            <guard xmi:type="uml:InteractionConstraint" xmi:id="quan_ly_goi_nap_guard_264">
+              <specification xmi:type="uml:LiteralString" xmi:id="quan_ly_goi_nap_spec_265" value="Nhấn Cancel"/>
+            </guard>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_267" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_266"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_268" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_266"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_270" covered="quan_ly_goi_nap_ll_214" message="quan_ly_goi_nap_msg_269"/>
+            <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_271" covered="quan_ly_goi_nap_ll_213" message="quan_ly_goi_nap_msg_269"/>
+          </operand>
+        </fragment>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_272" covered="quan_ly_goi_nap_ll_214" start="quan_ly_goi_nap_recv_221" finish="quan_ly_goi_nap_send_270"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_219" name="nhấn icon thùng rác" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_220" receiveEvent="quan_ly_goi_nap_recv_221"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_222" name="hiển thị hộp xác nhận Delete package?" messageSort="reply" sendEvent="quan_ly_goi_nap_send_223" receiveEvent="quan_ly_goi_nap_recv_224"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_229" name="nhấn Delete" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_230" receiveEvent="quan_ly_goi_nap_recv_231"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_232" name="deleteTopupPackage(packageId)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_233" receiveEvent="quan_ly_goi_nap_recv_234"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_235" name="deletePackage(packageId)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_236" receiveEvent="quan_ly_goi_nap_recv_237"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_238" name="deletePackage(packageId)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_239" receiveEvent="quan_ly_goi_nap_recv_240"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_241" name="deletePackage(packageId)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_242" receiveEvent="quan_ly_goi_nap_recv_243"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_244" name="Success" messageSort="reply" sendEvent="quan_ly_goi_nap_send_245" receiveEvent="quan_ly_goi_nap_recv_246"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_248" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_249" receiveEvent="quan_ly_goi_nap_recv_250"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_252" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_253" receiveEvent="quan_ly_goi_nap_recv_254"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_256" name="TopupPackage" messageSort="reply" sendEvent="quan_ly_goi_nap_send_257" receiveEvent="quan_ly_goi_nap_recv_258"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_260" name="xóa gói khỏi danh sách" messageSort="reply" sendEvent="quan_ly_goi_nap_send_261" receiveEvent="quan_ly_goi_nap_recv_262"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_266" name="nhấn Cancel" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_267" receiveEvent="quan_ly_goi_nap_recv_268"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_269" name="đóng hộp xác nhận, giữ nguyên danh sách" messageSort="reply" sendEvent="quan_ly_goi_nap_send_270" receiveEvent="quan_ly_goi_nap_recv_271"/>
+      </ownedBehavior>
+      <ownedBehavior xmi:type="uml:Interaction" xmi:id="quan_ly_goi_nap_int_318" name="6. Xem lịch sử nạp và doanh thu">
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_274" name="Quản trị viên" represents="quan_ly_goi_nap_prop_2"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_275" name="TopupHistoryPage" represents="quan_ly_goi_nap_prop_14"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_276" name="topup.api" represents="quan_ly_goi_nap_prop_6"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_277" name="TopupController" represents="quan_ly_goi_nap_prop_8"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_278" name="TopupService" represents="quan_ly_goi_nap_prop_10"/>
+        <lifeline xmi:type="uml:Lifeline" xmi:id="quan_ly_goi_nap_ll_279" name="TopupRepository" represents="quan_ly_goi_nap_prop_12"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_281" covered="quan_ly_goi_nap_ll_274" message="quan_ly_goi_nap_msg_280"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_282" covered="quan_ly_goi_nap_ll_275" message="quan_ly_goi_nap_msg_280"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_284" covered="quan_ly_goi_nap_ll_275" message="quan_ly_goi_nap_msg_283"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_285" covered="quan_ly_goi_nap_ll_276" message="quan_ly_goi_nap_msg_283"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_287" covered="quan_ly_goi_nap_ll_276" message="quan_ly_goi_nap_msg_286"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_288" covered="quan_ly_goi_nap_ll_277" message="quan_ly_goi_nap_msg_286"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_290" covered="quan_ly_goi_nap_ll_277" message="quan_ly_goi_nap_msg_289"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_291" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_289"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_293" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_292"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_294" covered="quan_ly_goi_nap_ll_279" message="quan_ly_goi_nap_msg_292"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_296" covered="quan_ly_goi_nap_ll_279" message="quan_ly_goi_nap_msg_295"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_297" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_295"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_298" covered="quan_ly_goi_nap_ll_279" start="quan_ly_goi_nap_recv_294" finish="quan_ly_goi_nap_send_296"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_300" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_299"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_301" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_299"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_303" covered="quan_ly_goi_nap_ll_278" message="quan_ly_goi_nap_msg_302"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_304" covered="quan_ly_goi_nap_ll_277" message="quan_ly_goi_nap_msg_302"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_305" covered="quan_ly_goi_nap_ll_278" start="quan_ly_goi_nap_recv_291" finish="quan_ly_goi_nap_send_303"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_307" covered="quan_ly_goi_nap_ll_277" message="quan_ly_goi_nap_msg_306"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_308" covered="quan_ly_goi_nap_ll_276" message="quan_ly_goi_nap_msg_306"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_309" covered="quan_ly_goi_nap_ll_277" start="quan_ly_goi_nap_recv_288" finish="quan_ly_goi_nap_send_307"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_311" covered="quan_ly_goi_nap_ll_276" message="quan_ly_goi_nap_msg_310"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_312" covered="quan_ly_goi_nap_ll_275" message="quan_ly_goi_nap_msg_310"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_313" covered="quan_ly_goi_nap_ll_276" start="quan_ly_goi_nap_recv_285" finish="quan_ly_goi_nap_send_311"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_send_315" covered="quan_ly_goi_nap_ll_275" message="quan_ly_goi_nap_msg_314"/>
+        <fragment xmi:type="uml:MessageOccurrenceSpecification" xmi:id="quan_ly_goi_nap_recv_316" covered="quan_ly_goi_nap_ll_274" message="quan_ly_goi_nap_msg_314"/>
+        <fragment xmi:type="uml:BehaviorExecutionSpecification" xmi:id="quan_ly_goi_nap_exec_317" covered="quan_ly_goi_nap_ll_275" start="quan_ly_goi_nap_recv_282" finish="quan_ly_goi_nap_send_315"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_280" name="chọn menu Top-up history, chọn bộ lọc" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_281" receiveEvent="quan_ly_goi_nap_recv_282"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_283" name="listTopupOrders(filter)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_284" receiveEvent="quan_ly_goi_nap_recv_285"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_286" name="listOrdersAsAdmin(query)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_287" receiveEvent="quan_ly_goi_nap_recv_288"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_289" name="listAllOrders(filter)" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_290" receiveEvent="quan_ly_goi_nap_recv_291"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_292" name="listAllOrders()" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_293" receiveEvent="quan_ly_goi_nap_recv_294"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_295" name="TopupOrder[]" messageSort="reply" sendEvent="quan_ly_goi_nap_send_296" receiveEvent="quan_ly_goi_nap_recv_297"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_299" name="lọc theo người dùng, trạng thái, ngày; tính doanh thu đơn PAID" messageSort="synchCall" sendEvent="quan_ly_goi_nap_send_300" receiveEvent="quan_ly_goi_nap_recv_301"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_302" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_goi_nap_send_303" receiveEvent="quan_ly_goi_nap_recv_304"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_306" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_goi_nap_send_307" receiveEvent="quan_ly_goi_nap_recv_308"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_310" name="{rows, summary}" messageSort="reply" sendEvent="quan_ly_goi_nap_send_311" receiveEvent="quan_ly_goi_nap_recv_312"/>
+        <message xmi:type="uml:Message" xmi:id="quan_ly_goi_nap_msg_314" name="hiển thị lịch sử nạp và doanh thu" messageSort="reply" sendEvent="quan_ly_goi_nap_send_315" receiveEvent="quan_ly_goi_nap_recv_316"/>
+      </ownedBehavior>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

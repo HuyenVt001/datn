@@ -1,0 +1,33 @@
+@startuml seq_quan_ly_cua_hang_1_xem_danh_sach
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopItemsPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":ShopRepository" as R
+
+U -> UI : mở menu Shop, chọn Items
+activate UI
+UI -> API : listShopItems()
+activate API
+API -> C : listItemsAsAdmin()
+activate C
+C -> S : listAllItems()
+activate S
+S -> R : listAllItems()
+activate R
+R --> S : ShopItem[]
+deactivate R
+S --> C : ShopItem[]
+deactivate S
+C --> API : ShopItem[]
+deactivate C
+API --> UI : ShopItem[]
+deactivate API
+UI --> U : hiển thị danh sách vật phẩm
+deactivate UI
+@enduml

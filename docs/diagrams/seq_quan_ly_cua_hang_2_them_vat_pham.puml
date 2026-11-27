@@ -1,0 +1,46 @@
+@startuml seq_quan_ly_cua_hang_2_them_vat_pham
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopItemsPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":ShopRepository" as R
+
+U -> UI : nhấn List item
+activate UI
+UI --> U : hiển thị popup List a new item
+U -> UI : chọn loại và id, nhập tên, giá, ảnh, nhấn List
+UI -> API : createShopItem(body)
+activate API
+API -> C : createItem(dto)
+activate C
+C -> S : createItem(dto)
+activate S
+S -> R : findItemByRef(itemType, refId)
+activate R
+R --> S : ShopItem | null
+deactivate R
+alt Vật phẩm chưa niêm yết
+S -> R : createItem(item)
+activate R
+R --> S : ShopItem
+deactivate R
+S --> C : ShopItem
+C --> API : ShopItem
+API --> UI : ShopItem
+UI --> U : hiển thị vật phẩm trong danh sách
+else Vật phẩm đã niêm yết
+S --> C : ConflictException
+C --> API : 409 Conflict
+API --> UI : lỗi
+UI --> U : báo vật phẩm đã được niêm yết
+end
+deactivate S
+deactivate C
+deactivate API
+deactivate UI
+@enduml

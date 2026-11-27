@@ -1,0 +1,35 @@
+@startuml seq_quan_ly_cua_hang_3_sua_vat_pham
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopItemsPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":ShopRepository" as R
+
+U -> UI : nhấn Edit
+activate UI
+UI --> U : hiển thị popup Edit (khóa loại và id)
+U -> UI : đổi tên, giá, ảnh hoặc thứ tự, nhấn Save
+UI -> API : updateShopItem(itemId, body)
+activate API
+API -> C : updateItem(itemId, dto)
+activate C
+C -> S : updateItem(itemId, dto)
+activate S
+S -> R : updateItem(itemId, patch)
+activate R
+R --> S : Success
+deactivate R
+S --> C : ShopItem
+deactivate S
+C --> API : ShopItem
+deactivate C
+API --> UI : ShopItem
+deactivate API
+UI --> U : cập nhật vật phẩm trong danh sách
+deactivate UI
+@enduml

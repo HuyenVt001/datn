@@ -1,0 +1,35 @@
+@startuml seq_quan_ly_khung_anh_6_tang_khung
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":FramesPage" as UI
+control ":frames.api" as API
+control ":FramesController" as C
+control ":FramesService" as S
+entity ":UsersRepository" as R
+
+U -> UI : nhấn icon quà tặng
+activate UI
+UI --> U : hiển thị popup Grant frame
+U -> UI : tìm và chọn người dùng, nhấn Grant frame
+UI -> API : grantFrame(frameId, uid)
+activate API
+API -> C : grant(frameId, uid)
+activate C
+C -> S : unlockForUser(uid, frameId)
+activate S
+S -> R : unlockFrame(uid, frameId)
+activate R
+R --> S : Success
+deactivate R
+S --> C : Success
+deactivate S
+C --> API : Success
+deactivate C
+API --> UI : Success
+deactivate API
+UI --> U : thông báo đã tặng khung
+deactivate UI
+@enduml

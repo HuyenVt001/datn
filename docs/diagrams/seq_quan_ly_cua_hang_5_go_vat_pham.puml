@@ -1,0 +1,40 @@
+@startuml seq_quan_ly_cua_hang_5_go_vat_pham
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopItemsPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":ShopRepository" as R
+
+U -> UI : nhấn icon thùng rác
+activate UI
+UI --> U : hiển thị hộp xác nhận Remove item from the Shop?
+alt Nhấn Remove
+U -> UI : nhấn Remove
+UI -> API : deleteShopItem(itemId)
+activate API
+API -> C : deleteItem(itemId)
+activate C
+C -> S : deleteItem(itemId)
+activate S
+S -> R : deleteItem(itemId)
+activate R
+R --> S : Success
+deactivate R
+S --> C : ShopItem
+deactivate S
+C --> API : ShopItem
+deactivate C
+API --> UI : ShopItem
+deactivate API
+UI --> U : xóa vật phẩm khỏi danh sách
+else Nhấn Cancel
+U -> UI : nhấn Cancel
+UI --> U : đóng hộp xác nhận, giữ nguyên danh sách
+end
+deactivate UI
+@enduml

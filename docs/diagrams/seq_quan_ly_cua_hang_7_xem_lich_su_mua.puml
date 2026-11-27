@@ -1,0 +1,34 @@
+@startuml seq_quan_ly_cua_hang_7_xem_lich_su_mua
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":ShopHistoryPage" as UI
+control ":shop.api" as API
+control ":ShopController" as C
+control ":ShopService" as S
+entity ":ShopRepository" as R
+
+U -> UI : chọn menu Purchase history, chọn bộ lọc
+activate UI
+UI -> API : listShopPurchases(filter)
+activate API
+API -> C : listPurchasesAsAdmin(query)
+activate C
+C -> S : listAllPurchases(filter)
+activate S
+S -> R : listAllPurchases(1000)
+activate R
+R --> S : ShopPurchase[]
+deactivate R
+S -> S : lọc theo người mua, loại, ngày; tính thống kê
+S --> C : {rows, summary}
+deactivate S
+C --> API : {rows, summary}
+deactivate C
+API --> UI : {rows, summary}
+deactivate API
+UI --> U : hiển thị lịch sử mua và thống kê
+deactivate UI
+@enduml

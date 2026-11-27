@@ -1,0 +1,40 @@
+@startuml seq_quan_ly_goi_nap_5_xoa_goi
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":TopupPackagesPage" as UI
+control ":topup.api" as API
+control ":TopupController" as C
+control ":TopupService" as S
+entity ":TopupRepository" as R
+
+U -> UI : nhấn icon thùng rác
+activate UI
+UI --> U : hiển thị hộp xác nhận Delete package?
+alt Nhấn Delete
+U -> UI : nhấn Delete
+UI -> API : deleteTopupPackage(packageId)
+activate API
+API -> C : deletePackage(packageId)
+activate C
+C -> S : deletePackage(packageId)
+activate S
+S -> R : deletePackage(packageId)
+activate R
+R --> S : Success
+deactivate R
+S --> C : TopupPackage
+deactivate S
+C --> API : TopupPackage
+deactivate C
+API --> UI : TopupPackage
+deactivate API
+UI --> U : xóa gói khỏi danh sách
+else Nhấn Cancel
+U -> UI : nhấn Cancel
+UI --> U : đóng hộp xác nhận, giữ nguyên danh sách
+end
+deactivate UI
+@enduml

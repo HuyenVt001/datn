@@ -1,0 +1,35 @@
+@startuml seq_quan_ly_khung_anh_3_sua_khung
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":FramesPage" as UI
+control ":frames.api" as API
+control ":FramesController" as C
+control ":FramesService" as S
+entity ":FramesRepository" as R
+
+U -> UI : nhấn icon chỉnh sửa
+activate UI
+UI --> U : hiển thị popup Edit frame
+U -> UI : đổi tên, điều kiện hoặc ảnh, nhấn Save
+UI -> API : updateFrame(frameId, body)
+activate API
+API -> C : update(frameId, dto)
+activate C
+C -> S : update(frameId, dto)
+activate S
+S -> R : update(frameId, patch)
+activate R
+R --> S : Success
+deactivate R
+S --> C : Frame
+deactivate S
+C --> API : Frame
+deactivate C
+API --> UI : Frame
+deactivate API
+UI --> U : cập nhật khung trong danh sách
+deactivate UI
+@enduml

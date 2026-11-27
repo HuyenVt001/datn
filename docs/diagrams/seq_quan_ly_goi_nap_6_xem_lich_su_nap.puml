@@ -1,0 +1,34 @@
+@startuml seq_quan_ly_goi_nap_6_xem_lich_su_nap
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Quản trị viên" as U
+boundary ":TopupHistoryPage" as UI
+control ":topup.api" as API
+control ":TopupController" as C
+control ":TopupService" as S
+entity ":TopupRepository" as R
+
+U -> UI : chọn menu Top-up history, chọn bộ lọc
+activate UI
+UI -> API : listTopupOrders(filter)
+activate API
+API -> C : listOrdersAsAdmin(query)
+activate C
+C -> S : listAllOrders(filter)
+activate S
+S -> R : listAllOrders()
+activate R
+R --> S : TopupOrder[]
+deactivate R
+S -> S : lọc theo người dùng, trạng thái, ngày; tính doanh thu đơn PAID
+S --> C : {rows, summary}
+deactivate S
+C --> API : {rows, summary}
+deactivate C
+API --> UI : {rows, summary}
+deactivate API
+UI --> U : hiển thị lịch sử nạp và doanh thu
+deactivate UI
+@enduml
