@@ -98,6 +98,14 @@ export const SIGNUP_BONUS_ASTRITE = 1600; // Tang 1 lan khi tao tai khoan (du mu
 /** Key ngay (YYYY-MM-DD, UTC) — dung CHUNG cho personal streak va daily quest de 2 he thong khop ngay. */
 export const dateKey = (date: Date = new Date()): string => date.toISOString().slice(0, 10);
 
+/**
+ * Ngay lich Viet Nam (YYYY-MM-DD, Asia/Ho_Chi_Minh = UTC+7, khong DST) cua 1 moc ISO.
+ * Dung cho bo loc / thong ke theo ngay o trang admin — admin chon ngay theo gio VN,
+ * so voi `slice(0, 10)` cua ISO UTC se lech 7 tieng.
+ */
+export const vnDateKey = (iso: string): string =>
+  new Date(Date.parse(iso) + 7 * 3600_000).toISOString().slice(0, 10);
+
 /** Ten cac collection Firestore (canonical). */
 export const Collections = {
   USERS: 'users',

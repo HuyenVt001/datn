@@ -177,6 +177,17 @@ export interface AdminPurchase {
   createdAt: string;
 }
 
+/** GET /shop/history/admin — `rows` bi cat theo limit, `summary` tinh tren TOAN BO tap da loc. */
+export interface AdminPurchasesResult {
+  rows: AdminPurchase[];
+  summary: {
+    count: number;
+    spent: number;
+    buyers: number;
+    byType: Partial<Record<ShopItemType, number>>;
+  };
+}
+
 // ==================== Nap Astrite qua PayOS (2026-08-05) ====================
 
 /** 1 goi nap (GET /topup/packages/admin). */
@@ -219,6 +230,8 @@ export interface AdminTopupOrder {
 
 /** Thong ke doanh thu di kem danh sach don. */
 export interface TopupRevenueSummary {
+  /** Tong so don khop bo loc (truoc khi cat theo limit). */
+  totalCount: number;
   paidRevenueVnd: number;
   paidCount: number;
   pendingCount: number;

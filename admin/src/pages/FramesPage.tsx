@@ -40,6 +40,7 @@ import {
   updateFrame,
 } from '../api/frames.api';
 import { ImageUploadField } from '../components/ImageUploadField';
+import { withSelectedUser } from '../utils/selectedOption';
 import type { Frame, UnlockType } from '../types';
 
 interface FrameForm {
@@ -135,12 +136,15 @@ export function FramesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Frame | null>(null); // null = đang thêm mới
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  // Server de imageUrl optional -> phai chan o day, khong thi khung SHOP khong anh len ban ngay
+  const [imageMissing, setImageMissing] = useState(false);
   const [form] = Form.useForm<FrameForm>();
   const unlockType = Form.useWatch('unlockType', form) ?? 'SHOP';
 
   const openCreate = () => {
     setEditing(null);
     setImageUrl(undefined);
+    setImageMissing(false);
     form.resetFields();
     form.setFieldsValue({ unlockType: 'SHOP' });
     setModalOpen(true);
@@ -149,6 +153,7 @@ export function FramesPage() {
   const openEdit = (frame: Frame) => {
     setEditing(frame);
     setImageUrl(frame.imageUrl);
+    setImageMissing(false);
     form.setFieldsValue({
       frameName: frame.frameName,
       unlockType: frame.unlockType,
@@ -190,6 +195,8 @@ export function FramesPage() {
   // ==== Modal cấp khung cho user ====
   const [grantTarget, setGrantTarget] = useState<Frame | null>(null);
   const [grantUid, setGrantUid] = useState<string | undefined>(undefined);
+  // Nhan cua user da chon — giu lai khi ket qua search moi khong con chua user do
+  const [grantLabel, setGrantLabel] = useState<string | undefined>(undefined);
   const [userSearch, setUserSearch] = useState('');
   // Debounce go phim o search user — moi keystroke la 1 request /admin/users neu khong debounce
   const searchTimer = useRef<number | undefined>(undefined);
@@ -355,7 +362,13 @@ export function FramesPage() {
         <Form<FrameForm>
           form={form}
           layout="vertical"
-          onFinish={(values) => saveMutation.mutate(values)}
+          onFinish={(values) => {
+            if (!imageUrl) {
+              setImageMissing(true);
+              return;
+            }
+            saveMutation.mutate(values);
+          }}
           // Doi loai dieu kien -> XOA nguong cu (fix 2026-07-26: khong reset thi
           // nguong cua loai cu dinh sang loai moi — vd streak 7 thanh "7 bai dang"
           // luu lang le, hoac 50 bai thanh FRIEND_COUNT 50 bi server 400)
@@ -413,8 +426,22 @@ export function FramesPage() {
               <InputNumber min={1} max={20} style={{ width: '100%' }} placeholder="e.g. 5" />
             </Form.Item>
           )}
-          <Form.Item label="Frame image (transparent PNG)">
-            <ImageUploadField value={imageUrl} onChange={setImageUrl} buttonText="Upload frame image" />
+          <Form.Item
+            label="Frame image (transparent PNG)"
+            required
+            validateStatus={imageMissing ? 'error' : undefined}
+            help={imageMissing ? 'Please upload a frame image.' : undefined}
+          >
+            <ImageUploadField
+              value={imageUrl}
+              onChange={(url) => {
+                setImageUrl(url);
+                if (url) {
+                  setImageMissing(false);
+                }
+              }}
+              buttonText="Upload frame image"
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -442,14 +469,21 @@ export function FramesPage() {
           style={{ width: '100%' }}
           placeholder="Search users by email/name..."
           value={grantUid}
-          onChange={setGrantUid}
+          onChange={(value: string, option) => {
+            setGrantUid(value);
+            setGrantLabel((option as { label?: string } | undefined)?.label);
+          }}
           onSearch={onUserSearch}
           filterOption={false}
           loading={searchingUsers}
-          options={(userOptions?.items ?? []).map((u) => ({
-            value: u.uid,
-            label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
-          }))}
+          options={withSelectedUser(
+            (userOptions?.items ?? []).map((u) => ({
+              value: u.uid,
+              label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
+            })),
+            grantUid,
+            grantLabel,
+          )}
           notFoundContent={searchingUsers ? <Spin size="small" /> : 'No users found'}
         />
       </Modal>

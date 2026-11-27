@@ -16,7 +16,7 @@ export class AdminTopupsDto {
   status?: TopupOrderStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by UTC date, format YYYY-MM-DD',
+    description: 'Filter by Vietnam date (UTC+7), format YYYY-MM-DD',
     example: '2026-08-05',
   })
   @IsOptional()

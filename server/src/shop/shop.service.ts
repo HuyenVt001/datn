@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AstriteRepository } from '../astrite/astrite.repository';
+import { vnDateKey } from '../common/constants';
 import { Frame } from '../frames/entities/frame.entity';
 import { FramesRepository } from '../frames/frames.repository';
 import { UsersRepository } from '../users/users.repository';
@@ -26,11 +27,19 @@ export interface AdminPurchaseRow extends ShopPurchase {
   fullName: string;
 }
 
+/** Thong ke trang lich su mua — tinh tren TOAN BO tap da loc, khong phai `rows` da cat. */
+export interface AdminPurchaseSummary {
+  count: number;
+  spent: number;
+  buyers: number;
+  byType: Partial<Record<ItemType, number>>;
+}
+
 /** Bo loc trang lich su mua (admin). */
 export interface AdminPurchaseFilter {
   uid?: string;
   itemType?: ItemType;
-  /** YYYY-MM-DD (UTC). */
+  /** YYYY-MM-DD theo gio Viet Nam (UTC+7). */
   date?: string;
   limit?: number;
 }
@@ -235,22 +244,37 @@ export class ShopService {
   }
 
   /** Lich su mua toan he thong + loc (trong bo nho — quy mo DATN); enrich ten nguoi mua. */
-  async listAllPurchases(filter: AdminPurchaseFilter = {}): Promise<AdminPurchaseRow[]> {
+  async listAllPurchases(
+    filter: AdminPurchaseFilter = {},
+  ): Promise<{ rows: AdminPurchaseRow[]; summary: AdminPurchaseSummary }> {
     const { uid, itemType, date, limit = 200 } = filter;
-    let rows = await this.repo.listAllPurchases(1000);
+    let matched = await this.repo.listAllPurchases(1000);
     if (uid) {
-      rows = rows.filter((r) => r.uid === uid);
+      matched = matched.filter((r) => r.uid === uid);
     }
     if (itemType) {
-      rows = rows.filter((r) => r.itemType === itemType);
+      matched = matched.filter((r) => r.itemType === itemType);
     }
     if (date) {
-      rows = rows.filter((r) => r.createdAt.startsWith(date));
+      matched = matched.filter((r) => vnDateKey(r.createdAt) === date);
     }
-    rows = rows.slice(0, limit);
+    const rows = matched.slice(0, limit);
 
     const names = await this.usersRepo.getFullNamesByUids(rows.map((r) => r.uid));
-    return rows.map((r) => ({ ...r, fullName: names.get(r.uid) || r.uid }));
+    // Thong ke tren toan bo tap da loc — nguoc lai so lieu tut khi cham limit
+    const byType: Partial<Record<ItemType, number>> = {};
+    for (const r of matched) {
+      byType[r.itemType] = (byType[r.itemType] ?? 0) + 1;
+    }
+    return {
+      rows: rows.map((r) => ({ ...r, fullName: names.get(r.uid) || r.uid })),
+      summary: {
+        count: matched.length,
+        spent: matched.reduce((sum, r) => sum + r.price, 0),
+        buyers: new Set(matched.map((r) => r.uid)).size,
+        byType,
+      },
+    };
   }
 
   /** So luot mua: hom nay + tong (dashboard admin). */

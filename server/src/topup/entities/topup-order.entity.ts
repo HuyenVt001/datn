@@ -43,6 +43,8 @@ export interface AdminTopupRow extends TopupOrder {
 
 /** Thong ke doanh thu kem theo danh sach don cua admin. */
 export interface TopupRevenueSummary {
+  /** Tong so don khop bo loc (truoc khi cat theo limit). */
+  totalCount: number;
   /** Tong VND cua cac don PAID trong tap dang xem. */
   paidRevenueVnd: number;
   paidCount: number;

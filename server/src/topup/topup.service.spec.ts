@@ -385,12 +385,25 @@ describe('TopupService', () => {
       const { rows, summary } = await service.listAllOrders({ limit: 1 });
 
       expect(rows).toHaveLength(1);
+      expect(summary.totalCount).toBe(3);
       expect(summary.paidCount).toBe(2);
       expect(summary.paidRevenueVnd).toBe(PKG.priceVnd * 2);
       expect(summary.pendingCount).toBe(1);
       expect(summary.byDate).toEqual([
         { date: '2026-08-05', revenueVnd: PKG.priceVnd * 2, count: 2 },
       ]);
+    });
+
+    it('date filter and revenue-by-day use the Vietnam calendar day (UTC+7)', async () => {
+      // 22:30Z ngay 4 = 05:30 ngay 5 gio VN
+      putOrder({ orderCode: 1, status: 'PAID', createdAt: '2026-08-04T22:30:00.000Z', paidAt: '2026-08-04T22:30:00.000Z' });
+      // 20:00Z ngay 5 = 03:00 ngay 6 gio VN
+      putOrder({ orderCode: 2, status: 'PAID', createdAt: '2026-08-05T20:00:00.000Z', paidAt: '2026-08-05T20:00:00.000Z' });
+
+      const { rows, summary } = await service.listAllOrders({ date: '2026-08-05' });
+
+      expect(rows.map((o) => o.orderCode)).toEqual([1]);
+      expect(summary.byDate).toEqual([{ date: '2026-08-05', revenueVnd: PKG.priceVnd, count: 1 }]);
     });
   });
 });

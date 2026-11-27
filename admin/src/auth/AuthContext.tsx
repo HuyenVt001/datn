@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { adminLogin } from '../api/auth.api';
@@ -35,6 +36,7 @@ function uidFromToken(token: string | null): string | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
   const [email, setEmail] = useState<string | null>(localStorage.getItem(EMAIL_KEY));
   const [uid, setUid] = useState<string | null>(
@@ -72,9 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setEmail(null);
     setUid(null);
+    // Xoa cache react-query: admin dang nhap sau tren cung tab khong duoc thay du lieu cu
+    queryClient.clear();
     // signOut Firebase chi de don phien; loi cung khong sao
     await signOut(firebaseAuth).catch(() => undefined);
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({ token, email, uid, login, logout }),

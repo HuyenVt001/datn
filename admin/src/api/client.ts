@@ -7,7 +7,7 @@ export const EMAIL_KEY = 'snapget_admin_email';
 export const UID_KEY = 'snapget_admin_uid';
 
 /**
- * Axios instance dung chung: tu gan Bearer JWT, boc envelope, xu ly 401.
+ * Axios instance dung chung: tu gan Bearer JWT, boc envelope, xu ly 401/403.
  * Page/component KHONG dung axios truc tiep — di qua cac ham get/post/patch/del ben duoi.
  */
 export const client = axios.create({
@@ -25,8 +25,10 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (error: AxiosError<ApiEnvelope<unknown>>) => {
-    // Phien het han / token sai -> xoa token va quay ve trang login
-    if (error.response?.status === 401) {
+    // Phien het han / token sai (401) hoac token khong con quyen admin (403, RolesGuard)
+    // -> xoa token va quay ve trang login (CLAUDE.md muc 5)
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(EMAIL_KEY);
       localStorage.removeItem(UID_KEY);

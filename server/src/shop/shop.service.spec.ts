@@ -304,20 +304,27 @@ describe('ShopService', () => {
 
   it('listAllPurchases: filters uid / type / date + enriches names', async () => {
     repo.listAllPurchases.mockResolvedValue([
-      { purchaseId: 'p1', uid: 'u1', itemType: 'SKIN', createdAt: '2026-11-15T01:00:00Z' },
-      { purchaseId: 'p2', uid: 'u1', itemType: 'FRAME', createdAt: '2026-11-15T02:00:00Z' },
-      { purchaseId: 'p3', uid: 'u2', itemType: 'SKIN', createdAt: '2026-11-14T02:00:00Z' },
+      { purchaseId: 'p1', uid: 'u1', itemType: 'SKIN', price: 10, createdAt: '2026-11-15T01:00:00Z' },
+      { purchaseId: 'p2', uid: 'u1', itemType: 'FRAME', price: 20, createdAt: '2026-11-15T02:00:00Z' },
+      // 20:00Z ngay 14 = 03:00 ngay 15 gio VN -> thuoc ngay 15
+      { purchaseId: 'p3', uid: 'u1', itemType: 'SKIN', price: 30, createdAt: '2026-11-14T20:00:00Z' },
+      // 18:00Z ngay 15 = 01:00 ngay 16 gio VN -> KHONG thuoc ngay 15
+      { purchaseId: 'p4', uid: 'u1', itemType: 'SKIN', price: 40, createdAt: '2026-11-15T18:00:00Z' },
+      { purchaseId: 'p5', uid: 'u2', itemType: 'SKIN', price: 50, createdAt: '2026-11-15T02:00:00Z' },
     ] as never);
     usersRepo.getFullNamesByUids.mockResolvedValue(new Map([['u1', 'An']]));
 
-    const rows = await service.listAllPurchases({
+    const { rows, summary } = await service.listAllPurchases({
       uid: 'u1',
       itemType: 'SKIN',
       date: '2026-11-15',
+      limit: 1,
     });
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual(expect.objectContaining({ purchaseId: 'p1', fullName: 'An' }));
+    // Thong ke tren toan bo tap da loc (p1 + p3), khong bi limit cat
+    expect(summary).toEqual({ count: 2, spent: 40, buyers: 1, byType: { SKIN: 2 } });
   });
 
   // ==================== Dong bo khung ====================

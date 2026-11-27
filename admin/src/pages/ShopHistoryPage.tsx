@@ -44,21 +44,9 @@ export function ShopHistoryPage() {
     placeholderData: keepPreviousData,
   });
 
-  const rows = useMemo(() => data ?? [], [data]);
-
-  /** Tổng hợp trên đúng tập đang lọc — khớp bảng bên dưới. */
-  const summary = useMemo(
-    () => ({
-      count: rows.length,
-      spent: rows.reduce((sum, r) => sum + r.price, 0),
-      buyers: new Set(rows.map((r) => r.uid)).size,
-      byType: rows.reduce<Record<string, number>>((acc, r) => {
-        acc[r.itemType] = (acc[r.itemType] ?? 0) + 1;
-        return acc;
-      }, {}),
-    }),
-    [rows],
-  );
+  const rows = data?.rows ?? [];
+  /** Server tính trên TOÀN BỘ tập đã lọc — bảng bên dưới có thể chỉ là phần đầu (tối đa 200). */
+  const summary = data?.summary ?? { count: 0, spent: 0, buyers: 0, byType: {} };
 
   const columns: ColumnsType<AdminPurchase> = [
     {
@@ -182,7 +170,13 @@ export function ShopHistoryPage() {
         columns={columns}
         dataSource={rows}
         loading={isFetching}
-        pagination={{ pageSize: 20, showTotal: (total) => `${total} purchases total` }}
+        pagination={{
+          pageSize: 20,
+          showTotal: (shown) =>
+            shown < summary.count
+              ? `Showing newest ${shown} of ${summary.count} purchases`
+              : `${shown} purchases total`,
+        }}
       />
     </div>
   );

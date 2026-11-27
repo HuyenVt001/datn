@@ -9,7 +9,7 @@
 > Cách cập nhật: sửa đúng mục trong SECURITY.md (đổi trạng thái ✅/⚠️/🔴 + đường dẫn:dòng), gạch việc đã làm khỏi lộ trình mục 14, đổi dòng "Cập nhật lần cuối". Sửa code bảo mật mà không cập nhật SECURITY.md = **chưa xong việc**.
 
 > Đọc `admin/.claude/CLAUDE.md` (luật) trước. File này là bản đồ: kiến trúc + cây thư mục + task + tiến độ.
-> Cập nhật lần cuối: **2026-11-23**.
+> Cập nhật lần cuối: **2026-11-27**.
 
 ---
 
@@ -141,10 +141,12 @@ admin/
 │   │   │                      #   hiện orderCode + mã giao dịch ngân hàng để đối soát với dashboard PayOS
 │   │   └── LogsPage.tsx       # NHẬT KÝ admin: bảng audit log từ GET /admin/logs
 │   ├── types/index.ts     # AdminUser, AdminStats, DailyStat, Frame, FrameOwner, AdminMoment, AdminLog, Paginated<T>,
-│   │                      #   ShopItem, ShopItemType, ShopItemOwnersResult, AdminPurchase,
+│   │                      #   ShopItem, ShopItemType, ShopItemOwnersResult, AdminPurchase, AdminPurchasesResult,
 │   │                      #   TopupPackage, AdminTopupOrder, TopupOrderStatus, TopupRevenueSummary… khớp DTO server
 │   └── components/        # chỉ chứa component dùng lại ≥2 trang
 │       └── ImageUploadField.tsx # (2026-11-15) ô tải ảnh lên /upload/admin + xem trước nền ca-rô — FramesPage + ShopItemsPage
+│   └── utils/
+│       └── selectedOption.ts # (2026-11-27) withSelectedUser — giữ nhãn user đã chọn trong Select tìm user (FramesPage + ShopItemsPage)
 ├── .env.example / .env.production.example
 ├── firebase.json / .firebaserc    # deploy Hosting site admin (xem ../DEPLOY.md)
 └── vite.config.ts
@@ -179,6 +181,8 @@ admin/
 ---
 
 ## 6. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-27 — Vá lỗi sau code review admin**. (1) Lọc theo ngày ở Lịch sử nạp / Lịch sử mua giờ là **ngày giờ VN (UTC+7)** — server đổi sang `vnDateKey` (trước so với ngày UTC nên lệch 7 tiếng); "Revenue by day" cũng theo ngày VN. (2) `GET /shop/history/admin` đổi contract → **`{rows, summary}`** (như topup): Purchases/Astrite spent/Buyers/đếm theo loại tính trên TOÀN BỘ tập đã lọc, không còn tụt khi chạm limit 200; topup `summary` thêm `totalCount`; footer bảng hiện "Showing newest N of M" khi bị cắt. (3) `MomentsPage` xóa bài cuối của trang cuối → tự lùi về trang còn dữ liệu (không kẹt "No posts yet"). (4) `FramesPage` bắt buộc có ảnh khi thêm/sửa khung. (5) `client.ts` xử lý **401 và 403** như nhau (khớp CLAUDE.md mục 5). (6) Đăng xuất → `queryClient.clear()`. (7) `ShopItemsPage` đổi loại vật phẩm reset tên; chọn id ghi đè tên nếu tên đang là tên tự điền. (8) `UsersPage` bỏ sort cột Astrite (chỉ sort được trong 1 trang). (9) Select tìm user ở modal cấp/tặng giữ nhãn user đã chọn (`utils/selectedOption.ts`).
 
 - **2026-11-23 — Trang AI quest: mô tả ảnh thumbnail theo model y1**. `AiVerificationsPage` đổi dòng giải thích ảnh (nay là bản thu nhỏ **giữ nguyên khung, cạnh dài 640px** mà model YOLO y1 thấy; log trước 11/2026 là ảnh 224×224 cắt vuông) + comment `AiVerification.mediaUrl` ở `types/index.ts`. Không đổi API/logic. Server đổi transform Cloudinary sang `w_640,h_640,c_limit` (`server/GUIDE.md` changelog 2026-11-23). **Chưa deploy hosting** — build + deploy khi tiện.
 - **2026-11-15 — Bỏ gacha → nhóm "Cửa hàng" (phần ADMIN của `Snapget/.claude/SHOP_PLAN.md`)**. Xoá `gacha.api.ts` + `GachaItemsPage` + `GachaHistoryPage` (route `/gacha`, `/gacha-history`). Mới: `shop.api.ts`, **`ShopItemsPage`** (`/shop` — cột giá, niêm yết SKIN/EFFECT theo id có trong APK hoặc FRAME SHOP chưa lên kệ, sửa tên/giá/ảnh, gỡ, tặng, owners), **`ShopHistoryPage`** (`/shop-history`), component dùng chung **`components/ImageUploadField.tsx`** (tách từ FramesPage). Menu: submenu **Cửa hàng** = Vật phẩm · Gói nạp · Lịch sử mua · Lịch sử nạp (tự mở khi vào thẳng trang trong nhóm). `FramesPage`: điều kiện `GACHA` → **`SHOP`** ("Bán tại Cửa hàng", tag 🛍️, mặc định khi thêm khung). Dashboard: 2 ô lượt quay → **Lượt mua hôm nay / Tổng lượt mua** (`shopPurchasesToday/Total`). Types: `UnlockType` `SHOP`, `ShopItem`/`ShopItemType`/`ShopItemOwnersResult`/`AdminPurchase`, `AdminAction` thêm `SHOP_ITEM_*` (giữ `GACHA_ITEM_*` để log cũ hiện đúng nhãn); `LogsPage` thêm 4 nhãn. Khớp server cùng ngày (`server/GUIDE.md` mục 9).

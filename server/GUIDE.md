@@ -279,7 +279,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/shop/buy` | **(2026-11-15)** Mua `{itemId}` → `{ purchase, astriteAfter }`. Trừ Astrite + mở khóa + `shopPurchases` + sổ cái `SHOP_PURCHASE` trong 1 transaction. 400 thiếu Astrite / không mở bán · 409 đã sở hữu | Firebase |
 | GET | `/api/shop/history` | **(2026-11-15)** Lịch sử mua của mình (`?limit`, mặc định 50, tối đa 200) | Firebase |
 | GET | `/api/shop/items/admin` | **(2026-11-15)** [Admin] Toàn bộ mặt hàng, kể cả đang tắt | Admin JWT |
-| GET | `/api/shop/history/admin` | **(2026-11-15)** [Admin] Lịch sử mua toàn hệ thống (`?uid&itemType&date&limit`, lọc trong bộ nhớ; kèm `fullName`) | Admin JWT |
+| GET | `/api/shop/history/admin` | **(2026-11-15, contract đổi 2026-11-27)** [Admin] `{rows, summary}` — lịch sử mua toàn hệ thống (`?uid&itemType&date&limit`, `date` = ngày giờ VN, lọc trong bộ nhớ trên ≤1000 lượt mới nhất; `rows` kèm `fullName`); `summary` {count, spent, buyers, byType} tính trên TOÀN BỘ tập đã lọc | Admin JWT |
 | POST | `/api/shop/items` | **(2026-11-15)** [Admin] Niêm yết mặt hàng: FRAME → frameId khung SHOP; SKIN/EFFECT → id số ≥1 có trong APK; bỏ trống `price` = giá mặc định (320/4800/1600); trùng → 409. Audit `SHOP_ITEM_CREATE` | Admin JWT |
 | PATCH | `/api/shop/items/:id` | **(2026-11-15)** [Admin] Sửa tên/giá/ảnh/bật-tắt/thứ tự (KHÔNG đổi `itemType`/`refId`). Audit `SHOP_ITEM_UPDATE` | Admin JWT |
 | DELETE | `/api/shop/items/:id` | **(2026-11-15)** [Admin] Gỡ khỏi Shop (người đã mua vẫn giữ). Audit `SHOP_ITEM_DELETE` | Admin JWT |
@@ -294,7 +294,7 @@ Hạ tầng (config/firebase/common/auth/Swagger/health): ✅ **XONG toàn bộ*
 | POST | `/api/topup/webhook` | **(2026-08-05)** PayOS gọi. Verify chữ ký (sai → 401) · idempotent theo `orderCode` · mã đơn lạ vẫn trả 200 (payload thử lúc đăng ký webhook) | **Public** |
 | GET | `/api/topup/return` · `/api/topup/cancel` | **(2026-08-05)** Trang HTML PayOS chuyển trình duyệt về. App KHÔNG đọc trang này để biết kết quả | **Public** |
 | GET | `/api/topup/packages/admin` | **(2026-08-05)** [Admin] Toàn bộ gói nạp, kể cả đang tắt | Admin JWT |
-| GET | `/api/topup/history/admin` | **(2026-08-05)** [Admin] `{rows, summary}` — lọc `?uid&status&date&limit`; doanh thu tính trên TOÀN BỘ tập đã lọc, không phải trên `rows` đã cắt | Admin JWT |
+| GET | `/api/topup/history/admin` | **(2026-08-05)** [Admin] `{rows, summary}` — lọc `?uid&status&date&limit`; doanh thu tính trên TOÀN BỘ tập đã lọc, không phải trên `rows` đã cắt; `date` + `byDate` theo ngày giờ VN; `summary.totalCount` (2026-11-27) | Admin JWT |
 | POST/PATCH/DELETE | `/api/topup/packages[/:id]` | **(2026-08-05)** [Admin] CRUD gói nạp — mọi thao tác ghi audit log (`TOPUP_PACKAGE_*`) | Admin JWT |
 | GET | `/api/frames` | Catalog khung + `isUnlocked` của mình (kèm `unlockType`/`unlockValue`) | Firebase |
 | GET | `/api/frames/admin` | [Admin] Toàn bộ catalog khung | Admin JWT |
@@ -359,6 +359,8 @@ npm run dev:streak -- --email <email> [--streak N | --unlock-all | --lock-all]  
 ---
 
 ## 9. Changelog thiết kế (mới → cũ, mỗi đợt 1-3 dòng)
+
+- **2026-11-27 — Bộ lọc ngày admin theo giờ VN + summary lịch sử mua**: thêm `vnDateKey(iso)` (`common/constants.ts`, UTC+7 không DST). `TopupService.listAllOrders` lọc `date` + gom `byDate` theo ngày VN, `summary` thêm `totalCount`. `ShopService.listAllPurchases` lọc `date` theo ngày VN và **đổi contract** → `{rows, summary: {count, spent, buyers, byType}}` (thống kê trên toàn bộ tập đã lọc, không bị limit cắt). Spec cập nhật cho cả 2. Streak/quest vẫn giữ `dateKey` UTC — không đổi.
 
 - **2026-11-27 — AI quest: 7 quest gộp nhóm + quest ≥ 2 người** (user chốt sau khi đánh giá model y1-s, `Snapget/.claude/QUEST_AI_PLAN.md` mục 0/5.4): `common/constants.ts` thay 9 lớp đơn bằng `AI_QUEST_GROUPS` (key → lớp chấp nhận: bicycle/motorcycle · laptop/keyboard · umbrella · chair · cup/bottle · book · person), `AI_QUEST_CLASSES` = 7 key, `aiQuestTargetClasses()` (doc quest cũ như `clock` vẫn verify 1 lớp), `AI_EXTRA_CLASSES=['person']`; `AiService.verify(imageUrl, targetClasses[])`; `QuestsService.verifyAiQuest` gửi cả nhóm + log `targetClasses`/`matchedClass`; bộ mẫu 7 × 8 = **56 câu** (câu nêu đủ lớp, quest person có "Snap a photo with your friend"). ⚠️ **Contract với AI service chỉ thêm field** (`targetClasses` request, `matchedClass` response) — **deploy AI service trước, server sau** (ngược lại: quest person → 400 → SKIPPED, không phá đăng bài). App không đổi; admin hiện nhóm + lớp khớp. Test 269 pass.
 - **2026-11-23 — AI quest: ảnh verify giữ nguyên khung cho model YOLO y1**: `AiService.toVerifyImageUrl` đổi `w_224,h_224,c_fill` → **`w_640,h_640,c_limit,f_jpg,q_auto`** — ảnh dọc không còn bị cắt vuông mất ~25% trên/dưới (1 trong 3 nguyên nhân model v0 nhận diện kém, `QUEST_AI_PLAN.md` mục 2). Contract AI service không đổi (thêm `box?` trong `/verify`, `arch` trong `/health` — server bỏ qua). `AI_QUEST_CLASSES` **giữ 9 lớp** tới khi có số liệu y1 trên ảnh thật (`ml/scripts/15_select_classes.py`). Spec cập nhật URL kỳ vọng (`ai.service.spec.ts`, `quests.service.spec.ts`). Cùng đợt `npm run lint` (có `--fix`) tự format lại ~35 file (chỉ xuống dòng/nháy — không đổi logic). **265 test / 13 suite** pass.

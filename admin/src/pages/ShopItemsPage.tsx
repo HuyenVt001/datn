@@ -35,6 +35,7 @@ import {
   updateShopItem,
 } from '../api/shop.api';
 import { ImageUploadField } from '../components/ImageUploadField';
+import { withSelectedUser } from '../utils/selectedOption';
 import type { ShopItem, ShopItemType } from '../types';
 
 /** Giá mặc định theo loại — khớp `SHOP_DEFAULT_PRICE_*` của server. */
@@ -199,6 +200,8 @@ export function ShopItemsPage() {
   // ==== Tặng vật phẩm cho user ====
   const [grantTarget, setGrantTarget] = useState<ShopItem | null>(null);
   const [grantUid, setGrantUid] = useState<string | undefined>(undefined);
+  // Nhan cua user da chon — giu lai khi ket qua search moi khong con chua user do
+  const [grantLabel, setGrantLabel] = useState<string | undefined>(undefined);
   const [userSearch, setUserSearch] = useState('');
   // Debounce gõ phím ở ô tìm user — mỗi phím là 1 request /admin/users nếu không debounce
   const searchTimer = useRef<number | undefined>(undefined);
@@ -408,7 +411,12 @@ export function ShopItemsPage() {
                   ]}
                   onChange={(v) => {
                     const type = v as ShopItemType;
-                    form.setFieldsValue({ refId: undefined, price: DEFAULT_PRICE[type] });
+                    // Reset ca ten — ten tu dien cua loai cu (vd skin "Snow") khong duoc dinh sang loai moi
+                    form.setFieldsValue({
+                      refId: undefined,
+                      itemName: undefined,
+                      price: DEFAULT_PRICE[type],
+                    });
                   }}
                 />
               </Form.Item>
@@ -448,7 +456,11 @@ export function ShopItemsPage() {
                     options={apkOptions}
                     onChange={(id: string) => {
                       const o = apkOptions.find((x) => x.value === id);
-                      if (o && !form.getFieldValue('itemName')) {
+                      const current: string | undefined = form.getFieldValue('itemName');
+                      // Chi ghi de khi ten dang trong hoac la ten tu dien (khong de mat ten admin tu go)
+                      const autoFilled =
+                        !current || apkOptions.some((x) => x.name === current);
+                      if (o && autoFilled) {
                         form.setFieldsValue({ itemName: o.name });
                       }
                     }}
@@ -524,14 +536,21 @@ export function ShopItemsPage() {
           style={{ width: '100%' }}
           placeholder="Search by email or name..."
           value={grantUid}
-          onChange={setGrantUid}
+          onChange={(value: string, option) => {
+            setGrantUid(value);
+            setGrantLabel((option as { label?: string } | undefined)?.label);
+          }}
           onSearch={onUserSearch}
           filterOption={false}
           loading={searchingUsers}
-          options={(userOptions?.items ?? []).map((u) => ({
-            value: u.uid,
-            label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
-          }))}
+          options={withSelectedUser(
+            (userOptions?.items ?? []).map((u) => ({
+              value: u.uid,
+              label: `${u.fullName || '(no name)'} — ${u.email ?? u.uid}`,
+            })),
+            grantUid,
+            grantLabel,
+          )}
         />
       </Modal>
 

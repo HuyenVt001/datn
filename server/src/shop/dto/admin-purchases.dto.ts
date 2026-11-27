@@ -16,7 +16,7 @@ export class AdminPurchasesDto {
   itemType?: ItemType;
 
   @ApiPropertyOptional({
-    description: 'Filter by UTC date, format YYYY-MM-DD',
+    description: 'Filter by Vietnam date (UTC+7), format YYYY-MM-DD',
     example: '2026-11-15',
   })
   @IsOptional()

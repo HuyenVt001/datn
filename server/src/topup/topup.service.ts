@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Webhook, WebhookData } from '@payos/node';
 import { AstriteRepository } from '../astrite/astrite.repository';
-import { PAYOS_DESCRIPTION_MAX, TOPUP_ORDER_TTL_MINUTES } from '../common/constants';
+import { PAYOS_DESCRIPTION_MAX, TOPUP_ORDER_TTL_MINUTES, vnDateKey } from '../common/constants';
 import { UsersRepository } from '../users/users.repository';
 import { AdminTopupsDto } from './dto/admin-topups.dto';
 import { CreateTopupPackageDto } from './dto/create-package.dto';
@@ -344,7 +344,7 @@ export class TopupService {
       (o) =>
         (!filter.uid || o.uid === filter.uid) &&
         (!filter.status || o.status === filter.status) &&
-        (!filter.date || o.createdAt.slice(0, 10) === filter.date),
+        (!filter.date || vnDateKey(o.createdAt) === filter.date),
     );
 
     const rows = matched.slice(0, filter.limit ?? 200);
@@ -447,11 +447,12 @@ function summarize(orders: TopupOrder[]): TopupRevenueSummary {
   const paid = orders.filter((o) => o.status === 'PAID');
   const byDate = new Map<string, { revenueVnd: number; count: number }>();
   for (const o of paid) {
-    const date = (o.paidAt ?? o.createdAt).slice(0, 10);
+    const date = vnDateKey(o.paidAt ?? o.createdAt);
     const cur = byDate.get(date) ?? { revenueVnd: 0, count: 0 };
     byDate.set(date, { revenueVnd: cur.revenueVnd + o.amountVnd, count: cur.count + 1 });
   }
   return {
+    totalCount: orders.length,
     paidRevenueVnd: paid.reduce((sum, o) => sum + o.amountVnd, 0),
     paidCount: paid.length,
     pendingCount: orders.filter((o) => o.status === 'PENDING').length,

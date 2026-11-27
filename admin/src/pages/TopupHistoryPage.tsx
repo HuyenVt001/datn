@@ -238,7 +238,15 @@ export function TopupHistoryPage() {
         columns={columns}
         dataSource={rows}
         loading={isFetching}
-        pagination={{ pageSize: 20, showTotal: (total) => `${total} orders total` }}
+        pagination={{
+          pageSize: 20,
+          showTotal: (shown) => {
+            const total = summary?.totalCount ?? shown;
+            return shown < total
+              ? `Showing newest ${shown} of ${total} orders`
+              : `${shown} orders total`;
+          },
+        }}
       />
     </div>
   );

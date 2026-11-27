@@ -14,7 +14,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteMoment, listMoments } from '../api/admin.api';
 
 const PAGE_SIZE = 12;
@@ -35,6 +35,14 @@ export function MomentsPage() {
     queryFn: () => listMoments({ page, limit: PAGE_SIZE }),
     placeholderData: keepPreviousData,
   });
+
+  // Xoa bai cuoi cung cua trang cuoi -> trang hien tai rong nhung van con bai:
+  // lui ve trang cuoi con du lieu, tranh ket o "No posts yet" khong co pager.
+  useEffect(() => {
+    if (data && data.items.length === 0 && page > 1) {
+      setPage(Math.max(1, Math.ceil(data.total / PAGE_SIZE)));
+    }
+  }, [data, page]);
 
   const deleteMutation = useMutation({
     mutationFn: (momentId: string) => deleteMoment(momentId),

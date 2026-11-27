@@ -95,7 +95,7 @@ export function UsersPage() {
       dataIndex: 'astrite',
       width: 110,
       align: 'right',
-      sorter: (a, b) => a.astrite - b.astrite,
+      // Khong dat sorter: bang phan trang o server, sort client chi xep lai 1 trang -> gay hieu nham
       render: (astrite: number) => (
         <Typography.Text strong={astrite > 0}>⭐ {astrite.toLocaleString('en-US')}</Typography.Text>
       ),
