@@ -90,6 +90,13 @@ def main() -> None:
     ap.add_argument("--patience", type=int, default=12)
     ap.add_argument("--fraction", type=float, default=1.0, help="dung 1 phan train set (thu nhanh)")
     ap.add_argument("--close-mosaic", type=int, default=8)
+    # Fine-tune tu trong so COCO -> learning rate NHO. optimizer=auto cua Ultralytics chon MuSGD lr 0.01 (muc cho train
+    # tu dau) khi so iteration > 10k: do 2026-11-27 (y1-n) mAP50 0.44 -> 0.06 dung luc warmup dat dinh (epoch 3),
+    # trong so COCO bi pha, best = epoch 1 -> EarlyStopping o epoch 13.
+    ap.add_argument("--optimizer", default="AdamW", help="AdamW | SGD | auto (khong nen: lr qua lon khi fine-tune)")
+    ap.add_argument("--lr0", type=float, default=0.0005, help="AdamW ~0.0005; SGD ~0.002")
+    ap.add_argument("--warmup-epochs", type=float, default=1.0)
+    ap.add_argument("--fresh", action="store_true", help="XOA lan train cu cung --name roi train lai tu dau")
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--export-best", default=None, help="copy best.pt toi day sau khi train (vd artifacts/y1-s/best.pt)")
     ap.add_argument("--seed", type=int, default=42)
@@ -99,26 +106,37 @@ def main() -> None:
 
     run_dir = Path(args.project) / args.name
     last = run_dir / "weights" / "last.pt"
+    if args.fresh and not args.resume and run_dir.exists():
+        print(f"--fresh: xoa lan train cu {run_dir}")
+        shutil.rmtree(run_dir)
     if args.resume:
         if not last.exists():
             raise SystemExit(f"!! khong co {last} de resume — bo --resume de train moi")
         print(f"Resume tu {last}")
-        YOLO(str(last)).train(resume=True, trainer=keep_head_trainer())
+        m = YOLO(str(last))
+        m.train(resume=True, trainer=keep_head_trainer())
     else:
         if last.exists():
             raise SystemExit(f"!! {run_dir} da co lan train truoc. Dung --resume de chay tiep, hoac doi --name.")
         weights = build_init(args.model, args.init, Path(args.project) / "_init")
-        YOLO(weights).train(
+        m = YOLO(weights)
+        m.train(
             trainer=keep_head_trainer() if args.init == "coco12" else None,
             data=args.data, epochs=args.epochs, imgsz=args.imgsz, batch=args.batch, workers=args.workers,
-            patience=args.patience, project=args.project, name=args.name, exist_ok=False, seed=args.seed,
+            patience=args.patience, project=args.project, name=args.name, seed=args.seed,
+            # thu muc cung ten con sot tu lan chay hong (chua co last.pt) -> ghi de vao do; neu khong Ultralytics
+            # tu doi ten thanh y1-s-2, y1-s-3... (gap 2026-11-27: train ra y1-s-4, script lai tim y1-s)
+            exist_ok=True,
             fraction=args.fraction, close_mosaic=args.close_mosaic,
+            optimizer=args.optimizer, lr0=args.lr0, warmup_epochs=args.warmup_epochs,
             # Augment: mac dinh Ultralytics (mosaic, HSV, scale 0.5, flip ngang) + nhe tay hon ve mau
             # vi anh that la anh dien thoai (den vang/toi) — da co ban cat doc 3:4 tu buoc 10.
             hsv_h=0.015, hsv_s=0.6, hsv_v=0.45, fliplr=0.5, degrees=0.0, mixup=0.0,
             cos_lr=True, plots=True, save_period=-1, cache=False, amp=True,
         )
 
+    # thu muc THAT ma Ultralytics da luu (phong khi no van doi ten)
+    run_dir = Path(getattr(getattr(m, "trainer", None), "save_dir", None) or run_dir)
     best = run_dir / "weights" / "best.pt"
     if not best.exists():
         raise SystemExit(f"!! khong thay {best}")

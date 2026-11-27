@@ -28,7 +28,7 @@ Model nhận diện 12 lớp vật thể (cup, bottle, book, chair, potted plant
 | 1 | COCO 2017 → dataset YOLO 12 lớp | `10` |
 | 2 | Giải nén dữ liệu bổ sung | |
 | 3 | Gộp dữ liệu, kiểm tra, chia tập | `11` |
-| 4 | Fine-tune YOLO11s (và YOLO11n để so sánh) | `13` |
+| 4 | Fine-tune YOLO11s | `13` |
 | 5 | Đánh giá, so sánh các model | `14` |
 | 6 | Chọn lớp ra đề quest | `15` |
 | 7 | Export ONNX, đưa model lên Hugging Face | `16` |
@@ -125,7 +125,6 @@ md("""
 - Khởi tạo từ YOLO11s pretrained COCO; head 80 lớp được cắt còn 12 lớp.
 - `imgsz 640`, 40 epoch; dừng sớm nếu 12 epoch liền không cải thiện; 8 epoch cuối tắt mosaic.
 - Khi bị Colab ngắt thì chạy lại ô 0 → 1 → 2 → 3 rồi chạy 4b.
-- 4c train thêm YOLO11n (nhẹ hơn khoảng 3 lần) để so sánh độ chính xác với tốc độ.
 """)
 code("""
 # 4a. Train YOLO11s
@@ -137,16 +136,11 @@ code("""
 !python scripts/13_train_yolo.py --data {YOLO}/data.yaml --project {WORK}/artifacts/yolo --name y1-s --resume <BS>
     --export-best {WORK}/artifacts/y1-s/best.pt
 """)
-code("""
-# 4c. YOLO11n (so sánh)
-!python scripts/13_train_yolo.py --data {YOLO}/data.yaml --model yolo11n.pt <BS>
-    --project {WORK}/artifacts/yolo --name y1-n --epochs 40 --export-best {WORK}/artifacts/y1-n/best.pt
-""")
 md("""
 ## 5. Đánh giá
 Các model được đánh giá trên cùng tập ảnh và cùng cách chọn ngưỡng:
 - `yolo11s-coco` — YOLO11s gốc chưa fine-tune (mốc so sánh);
-- `y1-s`, `y1-n` — hai model vừa fine-tune;
+- `y1-s` — model vừa fine-tune;
 - `v0` — model MobileNetV3 cũ (nếu còn file `artifacts/v0/model.onnx`).
 
 Hai cấp chỉ số:
@@ -157,9 +151,19 @@ Ngưỡng từng lớp được chọn trên `real_calib` theo nguyên tắc rec
 """)
 code("""
 import os
-models = f'--model yolo11s-coco=yolo11s.pt --model y1-s={WORK}/artifacts/y1-s/best.pt'
-if os.path.exists(f'{WORK}/artifacts/y1-n/best.pt'):
-    models += f' --model y1-n={WORK}/artifacts/y1-n/best.pt'
+
+def find_weights(name):
+    # best.pt sau khi train xong; chưa xong thì lấy best.pt của lượt train đang dở
+    for p in (f'{WORK}/artifacts/{name}/best.pt', f'{WORK}/artifacts/yolo/{name}/weights/best.pt'):
+        if os.path.exists(p):
+            print(f'{name}: {p}' + ('' if p.endswith(f'{name}/best.pt') else '  (chưa train xong)'))
+            return p
+    print(f'{name}: chưa có -> bỏ qua')
+
+models = '--model yolo11s-coco=yolo11s.pt'
+w = find_weights('y1-s')
+if w:
+    models += f' --model y1-s={w}'
 if os.path.exists(f'{WORK}/artifacts/v0/model.onnx'):
     models += f' --classifier v0={WORK}/artifacts/v0/model.onnx'
 meta = f'--vn-meta {VN_DIR}/metadata.csv' if VN_DIR and os.path.exists(f'{VN_DIR}/metadata.csv') else ''
@@ -205,8 +209,6 @@ if SPLIT != 'real_test':
 md("""
 ## 7. Export ONNX và triển khai
 Export ONNX fp32 (không lượng tử hoá int8 vì làm giảm độ chính xác), so khớp đầu ra với PyTorch, rồi tải `model.onnx`, `thresholds.json`, `model_meta.json` lên Hugging Face. AI service trên Cloud Run tải model từ đó khi khởi động; sau khi restart, `/health` trả về `modelVersion: "y1"`, `arch: "yolo"`.
-
-Chỉ thực hiện khi y1 tốt hơn model v0 trên ảnh thật. Cần token Hugging Face có quyền write.
 """)
 code("""
 from huggingface_hub import login

@@ -53,7 +53,7 @@ ml/
 | 2 | (notebook) | giải nén `snapget_vn_supplement.zip`, `vn.zip` (tự chụp) | đặt trong `WORK/data/` trên Drive |
 | 3 | `11_merge_external.py` | `data.yaml`, `real_calib.yaml`, `real_test.yaml`, `lists/*.txt`, `merge_report.json` | **dừng** nếu tập VN sai đặc tả |
 | 4 | `13_train_yolo.py` | `artifacts/yolo/y1-s/weights/best.pt` (Drive) | ~40 epoch × 8–12'; `--resume` khi Colab ngắt |
-| 5 | `14_eval_yolo.py` | `artifacts/eval/<model>/…`, `ablation.json` | so v0 / YOLO COCO không FT / y1-n / y1-s |
+| 5 | `14_eval_yolo.py` | `artifacts/eval/<model>/…`, `ablation.json` | so v0 / YOLO11s COCO chưa fine-tune / y1-s |
 | 6 | `15_select_classes.py` | `class_selection.json/.md` | tiêu chí: AP ảnh ≥ .85 · F1 ≥ .85 · AP50 ≥ .75 · từ chối sai ≤ 15% · bị nhầm ≤ 5% |
 | 7 | `16_export_yolo_onnx.py --upload <user>/snapget-ai-model` | `model.onnx` (fp32) + `thresholds.json` + `model_meta.json` → HF | restart Cloud Run → `/health` `modelVersion:"y1"`, `arch:"yolo"` |
 
