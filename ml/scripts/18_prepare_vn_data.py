@@ -294,13 +294,12 @@ def exif_info(im: Image.Image) -> tuple[str, str]:
 
 def auto_lighting(im: Image.Image) -> str:
     """Uoc luong tho (ghi cot note = auto): toi / den vang / ban ngay."""
-    s = im.convert("RGB").resize((64, 64))
-    px = list(s.getdata())
-    lum = sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b in px) / len(px)
-    if lum < 70:
+    import numpy as np
+
+    a = np.asarray(im.convert("RGB").resize((64, 64)), dtype=np.float64)
+    r, g, b = a[..., 0].mean(), a[..., 1].mean(), a[..., 2].mean()
+    if 0.299 * r + 0.587 * g + 0.114 * b < 70:
         return "dark"
-    r = sum(p[0] for p in px) / len(px)
-    b = sum(p[2] for p in px) / len(px)
     return "warm" if r > 1.3 * max(b, 1) else "day"
 
 
@@ -395,20 +394,34 @@ def draw_preview(img_path: Path, boxes: list[dict], title: str, out: Path) -> No
     im.save(out, quality=85)
 
 
-def run_detectors(paths: list[Path], models: list[tuple[str, str]], imgsz: int, conf: float, device) -> list[list[dict]]:
+def run_detectors(paths: list[Path], models: list[tuple[str, str]], imgsz: int, conf: float, device,
+                  batch: int = 8) -> list[list[dict]]:
+    import gc
+
     from ultralytics import YOLO
 
     dets: list[list[dict]] = [[] for _ in paths]
     for tag, weights in models:
         m = YOLO(weights)
         print(f"  detector {tag}: {weights}")
-        for i, r in enumerate(m.predict([str(p) for p in paths], imgsz=imgsz, conf=conf, device=device,
-                                        stream=True, verbose=False)):
-            names = r.names
-            for xyxy, cf, c in zip(r.boxes.xyxyn.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist()):
-                n = names[int(c)]
-                if n in KEEP:
-                    dets[i].append({"cls": n, "box": xyxy, "score": float(cf), "model": tag})
+        # Ultralytics coi CA list nguon la 1 batch (224 anh x 960px -> OOM tren T4, 2026-11-27) -> chia nho
+        for start in range(0, len(paths), batch):
+            chunk = [str(p) for p in paths[start : start + batch]]
+            for k, r in enumerate(m.predict(chunk, imgsz=imgsz, conf=conf, device=device, batch=len(chunk),
+                                            verbose=False)):
+                names = r.names
+                for xyxy, cf, c in zip(r.boxes.xyxyn.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist()):
+                    n = names[int(c)]
+                    if n in KEEP:
+                        dets[start + k].append({"cls": n, "box": xyxy, "score": float(cf), "model": tag})
+        del m  # giai phong VRAM truoc khi nap detector tiep theo
+        gc.collect()
+        try:
+            import torch
+
+            torch.cuda.empty_cache()
+        except Exception:  # noqa: BLE001 — khong co GPU/torch thi bo qua
+            pass
     return dets
 
 
