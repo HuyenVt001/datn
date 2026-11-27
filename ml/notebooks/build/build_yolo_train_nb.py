@@ -20,17 +20,17 @@ def code(s):
 md("""
 # Snapget y1 — fine-tune YOLO11 cho xác minh ảnh Daily Quest
 
-Model nhận diện 12 lớp vật thể (cup, bottle, book, chair, potted plant, laptop, keyboard, backpack, clock, umbrella, bicycle, motorcycle).
+Model nhận diện 9 lớp vật thể của 6 quest: (bicycle, motorcycle), (keyboard, laptop), umbrella, chair, (cup, bottle), book. Mỗi lớp được gán nhãn riêng; các lớp trong ngoặc chỉ gộp lại khi chấm quest (ảnh qua nếu có bất kỳ lớp nào trong nhóm).
 
 | Ô | Nội dung |
 |---|---|
 | 0 | Mount Drive, lấy code, cài thư viện | |
-| 1 | COCO 2017 → dataset YOLO 12 lớp | `10` |
+| 1 | COCO 2017 → dataset YOLO 9 lớp | `10` |
 | 2 | Giải nén dữ liệu bổ sung | |
 | 3 | Gộp dữ liệu, kiểm tra, chia tập | `11` |
 | 4 | Fine-tune YOLO11s | `13` |
 | 5 | Đánh giá, so sánh các model | `14` |
-| 6 | Chọn lớp ra đề quest | `15` |
+| 6 | Đánh giá từng lớp | `15` |
 | 7 | Export ONNX, đưa model lên Hugging Face | `16` |
 | 8 | Bảng tổng hợp kết quả | |
 
@@ -55,14 +55,14 @@ code("""
 !nvidia-smi --query-gpu=name,memory.total --format=csv
 """)
 md("""
-## 1. COCO 2017 → YOLO 12 lớp
-- Lấy ảnh COCO có chứa 12 lớp (tối đa 2.000 ảnh/lớp) cùng 1.500 ảnh nền không có lớp nào, giữ nguyên box gốc. 
+## 1. COCO 2017 → YOLO 9 lớp
+- Lấy ảnh COCO có chứa 9 lớp (tối đa 2.000 ảnh/lớp) cùng 1.500 ảnh nền không có lớp nào, giữ nguyên box gốc. 
 - Bổ sung khoảng 20% bản cắt dọc 3:4 mô phỏng ảnh chụp điện thoại. Tập test lấy từ COCO val2017.
-- Tải và nén  thành `coco_yolo.zip`
+- Tải và nén  thành `coco_yolo9.zip`
 """)
 code("""
 import os
-ZIP = f'{WORK}/data/coco_yolo.zip'
+ZIP = f'{WORK}/data/coco_yolo9.zip'   # bản 12 lớp cũ là coco_yolo.zip — không dùng lại
 if os.path.exists(ZIP):
     !unzip -q -o {ZIP} -d {YOLO}
 else:
@@ -74,8 +74,10 @@ else:
 md("""
 ## 2. Dữ liệu bổ sung
 COCO chủ yếu là ảnh nước ngoài, thiếu nhiều vật thể quen thuộc ở Việt Nam nên nhóm đã xây dựng một bộ dữ liệu bổ sung : 
-- `snapget_vn_supplement.zip` — tập train bổ sung dữ liệu bản địa: ảnh bối cảnh Việt Nam, nhãn YOLO 12 lớp, chỉ dùng để train.
-- `vn.zip` — ảnh tự chụp bằng điện thoại, gồm `train/` và `test/` (cấu trúc theo `ml/DATASET_SPEC.md`). Tập test chỉ gồm ảnh tự chụp; đây là tập dùng để chọn ngưỡng và chọn lớp quest. Khi chưa có, ngưỡng tạm chọn trên tập val.
+- `snapget_vn_supplement.zip` — tập train bổ sung dữ liệu bản địa: ảnh bối cảnh Việt Nam, nhãn YOLO 9 lớp, chỉ dùng để train.
+- `vn.zip` — ảnh tự chụp bằng điện thoại, gồm `train/` và `test/` (cấu trúc theo `ml/DATASET_SPEC.md`). Tập test chỉ gồm ảnh tự chụp; đây là tập dùng để chọn ngưỡng và đánh giá. Khi chưa có, ngưỡng tạm chọn trên tập val.
+
+Hai file đã được lọc còn 9 lớp và bổ sung ảnh bằng notebook `snapget_vn_data.ipynb`.
 """)
 code("""
 import os
@@ -99,7 +101,7 @@ md("""
 ## 3. Gộp dữ liệu, kiểm tra, chia tập
 Gộp COCO với dữ liệu bổ sung thành `data.yaml` và danh sách ảnh cho từng tập:
 - ảnh bổ sung được lặp ×3 trong tập train để không bị COCO lấn át;
-- ảnh test tự chụp chia 40% `real_calib` (chọn ngưỡng) / 60% `real_test` (báo cáo, chọn lớp);
+- ảnh test tự chụp chia 40% `real_calib` (chọn ngưỡng) / 60% `real_test` (báo cáo);
 - ảnh train gần trùng ảnh test (dHash) bị loại để tránh rò rỉ.
 """)
 code("""
@@ -122,29 +124,29 @@ VN_MIN_TRAIN = 100   # số ảnh Việt Nam tối thiểu mỗi lớp trong tra
 """)
 md("""
 ## 4. Fine-tune
-- Khởi tạo từ YOLO11s pretrained COCO; head 80 lớp được cắt còn 12 lớp.
+- Khởi tạo từ YOLO11s pretrained COCO; head 80 lớp được cắt còn 9 lớp.
 - `imgsz 640`, 40 epoch; dừng sớm nếu 12 epoch liền không cải thiện; 8 epoch cuối tắt mosaic.
 - Khi bị Colab ngắt thì chạy lại ô 0 → 1 → 2 → 3 rồi chạy 4b.
 """)
 code("""
 # 4a. Train YOLO11s
 !python scripts/13_train_yolo.py --data {YOLO}/data.yaml --model yolo11s.pt <BS>
-    --project {WORK}/artifacts/yolo --name y1-s --epochs 40 --export-best {WORK}/artifacts/y1-s/best.pt
+    --project {WORK}/artifacts/yolo --name y2-s --epochs 40 --export-best {WORK}/artifacts/y2-s/best.pt
 """)
 code("""
 # 4b. Train tiếp từ checkpoint sau khi Colab ngắt
-!python scripts/13_train_yolo.py --data {YOLO}/data.yaml --project {WORK}/artifacts/yolo --name y1-s --resume <BS>
-    --export-best {WORK}/artifacts/y1-s/best.pt
+!python scripts/13_train_yolo.py --data {YOLO}/data.yaml --project {WORK}/artifacts/yolo --name y2-s --resume <BS>
+    --export-best {WORK}/artifacts/y2-s/best.pt
 """)
 md("""
 ## 5. Đánh giá
 Các model được đánh giá trên cùng tập ảnh và cùng cách chọn ngưỡng:
 - `yolo11s-coco` — YOLO11s gốc chưa fine-tune (mốc so sánh);
-- `y1-s` — model vừa fine-tune;
-- `v0` — model MobileNetV3 cũ (nếu còn file `artifacts/v0/model.onnx`).
+- `y1-s` — model 12 lớp cũ, chỉ so điểm cấp ảnh trên 9 lớp (không chạy detection);
+- `y2-s` — model 9 lớp vừa fine-tune.
 
 Hai cấp chỉ số:
-- **Detection:** mAP50, mAP50-95 từng lớp, confusion matrix 13×13 (12 lớp + nền).
+- **Detection:** mAP50, mAP50-95 từng lớp, confusion matrix 10×10 (9 lớp + nền).
 - **Xác minh ảnh** (đúng với quyết định của app): AP, precision, recall, F1, tỉ lệ từ chối sai, confusion cấp ảnh.
 
 Ngưỡng từng lớp được chọn trên `real_calib` theo nguyên tắc recall cao nhất với precision ≥ 0.80. Đo thêm độ trễ suy luận trên CPU.
@@ -161,20 +163,19 @@ def find_weights(name):
     print(f'{name}: chưa có -> bỏ qua')
 
 models = '--model yolo11s-coco=yolo11s.pt'
-w = find_weights('y1-s')
-if w:
-    models += f' --model y1-s={w}'
-if os.path.exists(f'{WORK}/artifacts/v0/model.onnx'):
-    models += f' --classifier v0={WORK}/artifacts/v0/model.onnx'
+for name in ('y1-s', 'y2-s'):
+    w = find_weights(name)
+    if w:
+        models += f' --model {name}={w}'
 meta = f'--vn-meta {VN_DIR}/metadata.csv' if VN_DIR and os.path.exists(f'{VN_DIR}/metadata.csv') else ''
 !python scripts/14_eval_yolo.py --root {YOLO} --out {WORK}/artifacts/eval {models} {meta} --max-coco 2000
 """)
 code("""
-# Biểu đồ của y1-s: confusion matrix (detection), confusion cấp ảnh, PR curve, F1 curve
+# Biểu đồ của y2-s: confusion matrix (detection), confusion cấp ảnh, PR curve, F1 curve
 # (real_test nếu đã có ảnh tự chụp, không thì coco_test)
 from IPython.display import Image, display
 import os
-EVAL = f'{WORK}/artifacts/eval/y1-s'
+EVAL = f'{WORK}/artifacts/eval/y2-s'
 SPLIT = 'real_test' if os.path.exists(f'{EVAL}/metrics_real_test.json') else 'coco_test'
 print('Tập:', SPLIT)
 for p in [f'{EVAL}/det_{SPLIT}/confusion_matrix_normalized.png',
@@ -185,37 +186,29 @@ for p in [f'{EVAL}/det_{SPLIT}/confusion_matrix_normalized.png',
         print(p); display(Image(p, width=900))
 """)
 md("""
-## 6. Chọn lớp ra đề quest
-Một lớp chỉ được dùng làm quest khi đạt đủ các tiêu chí trên `real_test`:
+## 6. Đánh giá từng lớp
+Bảng chỉ số của `y2-s` trên `real_test` cho từng lớp: AP cấp ảnh, F1 / precision / recall tại ngưỡng, tỉ lệ từ chối sai, AP50 và AP50-95 detection, lớp hay bị nhận nhầm.
 
-| Tiêu chí | Ngưỡng |
-|---|---|
-| AP cấp ảnh | ≥ 0.85 |
-| F1 tại ngưỡng | ≥ 0.85 |
-| AP50 detection | ≥ 0.75 |
-| Tỉ lệ từ chối sai | ≤ 15% |
-| Bị lớp khác nhận nhầm | ≤ 5% |
-| Số ảnh test | ≥ 20 |
+Đánh giá theo quest (gộp nhóm) nằm ở notebook `snapget_quest_eval.ipynb`.
 """)
 code("""
 import os
-EVAL = f'{WORK}/artifacts/eval/y1-s'
+EVAL = f'{WORK}/artifacts/eval/y2-s'
 SPLIT = 'real_test' if os.path.exists(f'{EVAL}/metrics_real_test.json') else 'coco_test'
 if SPLIT != 'real_test':
-    print('Chưa có real_test -> kết quả chọn lớp dưới đây là tạm thời (trên coco_test)')
-!python scripts/15_select_classes.py --eval {EVAL} --split {SPLIT}
-!cat {EVAL}/class_selection.md
+    print('Chưa có real_test -> kết quả dưới đây là tạm thời (trên coco_test)')
+!python scripts/15_eval_report.py --eval {EVAL} --split {SPLIT}
 """)
 md("""
 ## 7. Export ONNX và triển khai
-Export ONNX fp32 (không lượng tử hoá int8 vì làm giảm độ chính xác), so khớp đầu ra với PyTorch, rồi tải `model.onnx`, `thresholds.json`, `model_meta.json` lên Hugging Face. AI service trên Cloud Run tải model từ đó khi khởi động; sau khi restart, `/health` trả về `modelVersion: "y1"`, `arch: "yolo"`.
+Export ONNX fp32 (không lượng tử hoá int8 vì làm giảm độ chính xác), so khớp đầu ra với PyTorch, rồi tải `model.onnx`, `thresholds.json`, `model_meta.json` lên Hugging Face. AI service trên Cloud Run tải model từ đó khi khởi động; sau khi restart, `/health` trả về `modelVersion: "y2"`, `arch: "yolo"`.
 """)
 code("""
 from huggingface_hub import login
 login()
 MODEL_REPO = 'Flowerng/snapget-ai-model'
-!python scripts/16_export_yolo_onnx.py --weights {WORK}/artifacts/y1-s/best.pt <BS>
-    --thresholds {WORK}/artifacts/eval/y1-s/thresholds.json --version y1 --out {WORK}/artifacts/y1-s/export <BS>
+!python scripts/16_export_yolo_onnx.py --weights {WORK}/artifacts/y2-s/best.pt <BS>
+    --thresholds {WORK}/artifacts/eval/y2-s/thresholds.json --version y2 --out {WORK}/artifacts/y2-s/export <BS>
     --upload {MODEL_REPO}
 """)
 md("""

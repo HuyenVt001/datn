@@ -1,17 +1,14 @@
 """
-15 — CHON LOP RA DE QUEST tu so lieu anh that (QUEST_AI_PLAN.md muc 5.3):
+15 — BANG DANH GIA TUNG LOP cua 1 model tu ket qua 14_eval_yolo.py (dua vao bao cao):
 
-    python scripts/15_select_classes.py --eval artifacts/eval/y1-s --split real_test
+    python scripts/15_eval_report.py --eval artifacts/eval/y2-s --split real_test
 
-Doc metrics_<split>.json (+ det_<split>.json neu co) cua 1 model do 14_eval_yolo.py sinh, ap tieu chi
-(snapget12/metrics.py DEFAULT_SELECTION_CRITERIA, sua bang --criteria '{"minF1":0.8}'):
-    AP cap anh >= 0.85 · F1 tai nguong >= 0.85 · detection AP50 >= 0.75 · false-reject <= 15%
-    · khong lop nao khac / anh negative bi nhan nham la lop nay > 5% · >= 20 anh test
-< 6 lop dat -> lay top 6 theo F1 (danh dau fallbackUsed — PHAI ghi ro trong bao cao).
+Doc metrics_<split>.json (+ det_<split>.json neu co). Moi lop: so anh test, nguong (chon tren real_calib),
+AP cap anh, F1 / precision / recall tai nguong, ti le tu choi sai, AP50 va AP50-95 detection,
+lop bi nhan nham nhieu nhat (confusion cap anh, 2 chieu). Cuoi bang: chi so tong cua model.
+Danh gia THEO QUEST (gop nhom) la viec cua 17_eval_quests.py.
 
-Ra: <eval>/class_selection.json + class_selection.md (bang cho bao cao) + doan code TS cho server
-(`AI_QUEST_CLASSES` trong server/src/common/constants.ts). Lop moi vao vong quay ma chua co cau mau
-(book/backpack/keyboard) -> phai viet them 8 cau trong server/src/quests/entities/ai-quest-templates.ts.
+Ra: <eval>/eval_report.json + eval_report.md
 """
 from __future__ import annotations
 
@@ -22,12 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from snapget12 import CLASSES  # noqa: E402
-from snapget12.metrics import save_json, select_quest_classes  # noqa: E402
-
-CURRENT_QUEST_CLASSES = ["cup", "bottle", "chair", "potted plant", "laptop", "clock", "umbrella", "bicycle", "motorcycle"]
-CHECK_LABELS = {"imageAP": "AP ảnh", "f1": "F1", "detAP50": "AP50 box", "falseReject": "Từ chối sai",
-                "confusedBy": "Bị nhầm", "support": "Đủ ảnh"}
+from snapget12.metrics import class_report, save_json  # noqa: E402
 
 
 def fmt(v, pct=False):
@@ -36,11 +28,14 @@ def fmt(v, pct=False):
     return f"{v:.0%}" if pct else f"{v:.3f}"
 
 
+def who(name, rate):
+    return f"{name} ({fmt(rate, True)})" if rate else "–"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval", required=True, help="thu muc ket qua 1 model cua 14_eval_yolo.py")
     ap.add_argument("--split", default="real_test")
-    ap.add_argument("--criteria", default="{}", help='JSON ghi de tieu chi, vd \'{"minF1": 0.8}\'')
     args = ap.parse_args()
 
     d = Path(args.eval)
@@ -48,48 +43,38 @@ def main() -> None:
     if not mp.exists():
         raise SystemExit(f"!! thieu {mp} — chay 14_eval_yolo.py truoc")
     rep = json.loads(mp.read_text(encoding="utf-8"))
-    if args.split != "real_test":
-        print(f"!! Dang chon lop tren '{args.split}' — tieu chi duoc thiet ke cho ANH THAT (real_test).")
     if rep.get("calibratedOn") != "real_calib":
-        print(f"!! Nguong duoc chon tren '{rep.get('calibratedOn')}', khong phai real_calib — ket qua chi mang tinh tam thoi.")
+        print(f"!! Nguong duoc chon tren '{rep.get('calibratedOn')}', khong phai real_calib — so lieu chi mang tinh tam thoi.")
     det_path = d / f"det_{args.split}.json"
-    det = json.loads(det_path.read_text(encoding="utf-8"))["perClass"] if det_path.exists() else None
-    sel = select_quest_classes(rep, rep["imageConfusion"], det, json.loads(args.criteria))
-    sel.update({"model": d.name, "split": args.split, "calibratedOn": rep.get("calibratedOn"),
-                "added": [c for c in sel["selected"] if c not in CURRENT_QUEST_CLASSES],
-                "removed": [c for c in CURRENT_QUEST_CLASSES if c not in sel["selected"]]})
-    save_json(sel, d / "class_selection.json")
+    det = json.loads(det_path.read_text(encoding="utf-8")) if det_path.exists() else {}
+    rows = class_report(rep, rep["imageConfusion"], det.get("perClass"))
+    summary = {"model": d.name, "split": args.split, "calibratedOn": rep.get("calibratedOn"), "n": rep.get("n"),
+               "imageMAP": rep.get("mAP"), "macroF1": rep.get("macroF1"),
+               "detMAP50": det.get("mAP50"), "detMAP50_95": det.get("mAP50_95")}
+    save_json({**summary, "perClass": rows}, d / "eval_report.json")
 
-    crit = sel["criteria"]
     lines = [
-        f"# Chọn lớp ra đề quest — model `{d.name}`, tập `{args.split}` (ngưỡng chọn trên `{rep.get('calibratedOn')}`)",
+        f"# Đánh giá từng lớp — model `{d.name}`, tập `{args.split}` (ngưỡng chọn trên `{rep.get('calibratedOn')}`)",
         "",
-        f"Tiêu chí: AP ảnh ≥ {crit['minImageAP']} · F1 ≥ {crit['minF1']} · AP50 box ≥ {crit['minDetAP50']} · "
-        f"từ chối sai ≤ {crit['maxFalseReject']:.0%} · bị nhầm ≤ {crit['maxConfusedBy']:.0%} · ≥ {crit['minSupport']} ảnh test.",
-        "",
-        "| Lớp | Ảnh test | Ngưỡng | AP ảnh | F1 | P | R | Từ chối sai | AP50 box | Bị nhầm nhiều nhất bởi | Kết quả |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| Lớp | Ảnh test | Ngưỡng | AP ảnh | F1 | P | R | Từ chối sai | AP50 box | AP50-95 box | Bị nhận nhầm từ | Hay bị nhận thành |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for c in CLASSES:
-        r = sel["perClass"][c]
-        failed = [CHECK_LABELS[k] for k, v in r["checks"].items() if v is False]
-        worst = f"{r['worstConfusedBy']} ({fmt(r['worstConfusedRate'], True)})" if r["worstConfusedRate"] else "–"
-        verdict = "✅ RA ĐỀ" if c in sel["selected"] else ("❌ " + ", ".join(failed) if failed else "❌ (ngoài top fallback)")
-        lines.append(f"| {c} | {r['support']} | {fmt(r['threshold'])} | {fmt(r['imageAP'])} | {fmt(r['f1'])} | {fmt(r['precision'])} | "
-                     f"{fmt(r['recall'])} | {fmt(r['falseRejectRate'], True)} | {fmt(r['detAP50'])} | {worst} | {verdict} |")
-    lines += ["", f"**Ra đề ({len(sel['selected'])} lớp):** {', '.join(sel['selected'])}"]
-    if sel["fallbackUsed"]:
-        lines.append(f"\n> ⚠️ Chỉ {sum(r['pass'] for r in sel['perClass'].values())} lớp đạt đủ tiêu chí → lấy top {crit['minClasses']} theo F1 (ghi rõ trong báo cáo).")
-    if sel["added"] or sel["removed"]:
-        lines.append(f"\nSo với vòng quay hiện tại: thêm {sel['added'] or '–'} · bỏ {sel['removed'] or '–'}")
-    (d / "class_selection.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    for c, r in rows.items():
+        lines.append(
+            f"| {c} | {r['support']} | {fmt(r['threshold'])} | {fmt(r['imageAP'])} | {fmt(r['f1'])} | {fmt(r['precision'])} | "
+            f"{fmt(r['recall'])} | {fmt(r['falseRejectRate'], True)} | {fmt(r['detAP50'])} | {fmt(r['detAP50_95'])} | "
+            f"{who(r['confusedBy'], r['confusedByRate'])} | {who(r['mistakenFor'], r['mistakenForRate'])} |")
+    lines += [
+        "",
+        f"**Tổng ({summary['n']} ảnh):** mAP ảnh {fmt(summary['imageMAP'])} · macro-F1 {fmt(summary['macroF1'])} · "
+        f"mAP50 box {fmt(summary['detMAP50'])} · mAP50-95 box {fmt(summary['detMAP50_95'])}",
+        "",
+        "- *Bị nhận nhầm từ*: lớp khác (hoặc ảnh không có vật nào — `negative`) bị nhận là lớp này nhiều nhất → nguồn nhận nhầm khi quest là lớp này.",
+        "- *Hay bị nhận thành*: ảnh có lớp này hay bị nhận thành lớp nào nhất.",
+    ]
+    (d / "eval_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
-
-    ts = ",\n".join(f"  '{c}'" for c in sel["selected"])
-    print(f"\n// server/src/common/constants.ts\nexport const AI_QUEST_CLASSES = [\n{ts},\n] as const;")
-    if sel["added"]:
-        print(f"\n!! Lop moi vao vong quay {sel['added']}: viet them 8 cau/lop trong server/src/quests/entities/ai-quest-templates.ts")
-    print(f"\nOK -> {d}/class_selection.json, class_selection.md")
+    print(f"\nOK -> {d}/eval_report.json, eval_report.md")
 
 
 if __name__ == "__main__":

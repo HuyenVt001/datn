@@ -71,22 +71,23 @@ export const AI_QUEST_CLASSES = Object.keys(AI_QUEST_GROUPS) as AiQuestClass[];
 export function aiQuestTargetClasses(key: string): readonly string[] {
   return (AI_QUEST_GROUPS as Record<string, readonly string[]>)[key] ?? [key];
 }
-/** Toan bo lop model y1 biet (thu tu = output model, khop ml/snapget12/classes.py) — lop trong AI_QUEST_GROUPS ⊂ list nay ∪ AI_EXTRA_CLASSES. */
+/**
+ * Lop model chinh y2 hoc (thu tu = output model, khop ml/snapget12/classes.py) — lop trong AI_QUEST_GROUPS ⊂ list nay ∪ AI_EXTRA_CLASSES.
+ * 2026-11-27: y2 train lai chi 9 lop cua 6 quest (y1 co them potted plant, backpack, clock). Moi lop van gan nhan rieng.
+ * Chi dung de doi chieu — AI service doc ten lop tu model_meta.json nen server khong phu thuoc model dang chay la y1 hay y2.
+ */
 export const AI_MODEL_CLASSES = [
   'cup',
   'bottle',
   'book',
   'chair',
-  'potted plant',
   'laptop',
   'keyboard',
-  'backpack',
-  'clock',
   'umbrella',
   'bicycle',
   'motorcycle',
 ] as const;
-/** Lop cua MODEL PHU tren AI service (ngoai 12 lop y1) — `person`: diem = nguoi thu 2 sau NMS (>= 2 nguoi). */
+/** Lop cua MODEL PHU tren AI service (ngoai cac lop cua model chinh) — `person`: diem = nguoi thu 2 sau NMS (>= 2 nguoi). */
 export const AI_EXTRA_CLASSES = ['person'] as const;
 export const AI_QUEST_AVOID_RECENT = 3; // Khong lap quest cua 3 ngay gan nhat (7 quest -> moi quest ~4 lan/thang)
 export const AI_QUEST_CONTENT_MAX = 80; // content quest AI toi da (ky tu) — LLM tra dai hon thi dung fallback

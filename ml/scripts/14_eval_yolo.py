@@ -3,18 +3,18 @@
 
     python scripts/14_eval_yolo.py --root /content/yolo --out artifacts/eval \
         --model yolo11s-coco=yolo11s.pt \
-        --model y1-n=artifacts/yolo/y1-n/weights/best.pt \
-        --model y1-s=artifacts/yolo/y1-s/weights/best.pt \
-        --classifier v0=artifacts/v0/model.onnx \
+        --model y1-s=artifacts/y1-s/best.pt \
+        --model y2-s=artifacts/y2-s/best.pt \
         --vn-meta /content/ext/vn/metadata.csv --max-coco 2000
 
   --model NAME=PATH       YOLO .pt (GPU neu co) hoac .onnx (CPU). Model 80 lop COCO (yolo11s.pt) tu dong
-                          cat head con 12 lop = baseline "KHONG fine-tune".
+                          cat head con cac lop CLASSES = baseline "KHONG fine-tune". Model co NHIEU lop hon
+                          CLASSES (vd y1 12 lop) chi lay diem cac lop CLASSES -> so sanh cap anh (khong chay detection).
   --classifier NAME=ONNX  model v0 (MobileNetV3) — chi co so lieu cap anh (khong co box).
 
 2 cap so lieu:
   1. DETECTION (Ultralytics val, chi YOLO .pt): mAP50, mAP50-95, P/R/F1 tung lop, CONFUSION MATRIX
-     13x13 (12 lop + background), PR/F1 curve  -> det_<split>.json + thu muc plots
+     (so lop + background), PR/F1 curve  -> det_<split>.json + thu muc plots
   2. VERIFY CAP ANH (dung quyet dinh san pham): diem lop = max theo anchor (snapget12/yolo.py),
      AP/P/R/F1/false-reject tung lop + confusion cap anh  -> metrics_<split>.json, *.png
 Nguong tung lop chon tren REAL-CALIB (anh that) voi precision >= --min-precision; chua co anh that
@@ -60,7 +60,7 @@ from snapget12.yolo import (  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Scorer: anh -> (N,12) diem cap anh
+# Scorer: anh -> (N, len(CLASSES)) diem cap anh
 # ---------------------------------------------------------------------------
 class YoloTorchScorer:
     def __init__(self, path: str, tmp_dir: Path):
@@ -68,14 +68,21 @@ class YoloTorchScorer:
         from ultralytics import YOLO
 
         y = YOLO(path)
-        if len(y.model.names) == 80:  # model COCO goc -> cat head 12 lop (baseline khong fine-tune)
+        if len(y.model.names) == 80:  # model COCO goc -> cat head con CLASSES (baseline khong fine-tune)
             slice_coco_head(y)
             tmp_dir.mkdir(parents=True, exist_ok=True)
-            path = str(tmp_dir / f"{Path(path).stem}-coco12.pt")
+            path = str(tmp_dir / f"{Path(path).stem}-coco{len(CLASSES)}.pt")
             y.save(path)
         names = [y.model.names[i] for i in range(len(y.model.names))]
+        self.nc = len(names)
+        self.cols = None  # None = output dung thu tu CLASSES
+        self.det_ok = names == CLASSES
         if names != CLASSES:
-            raise SystemExit(f"!! {path}: thu tu lop {names} khac CLASSES")
+            if not set(CLASSES) <= set(names):
+                raise SystemExit(f"!! {path}: lop {names} khong chua du CLASSES {CLASSES}")
+            # vd y1 (12 lop): lay diem cac lop CLASSES de so sanh cap anh; detection bo qua vi chi so lop khac data.yaml
+            self.cols = [names.index(c) for c in CLASSES]
+            print(f"   {path}: {len(names)} lop -> chi lay {len(CLASSES)} lop CLASSES (khong chay detection)")
         self.weights = path
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = y.model.to(self.device).eval()
@@ -88,7 +95,8 @@ class YoloTorchScorer:
             with self.torch.no_grad():
                 raw = self.model(self.torch.from_numpy(x).to(self.device))
             raw = raw[0] if isinstance(raw, (list, tuple)) else raw
-            out.append(image_scores_from_raw(raw.float().cpu().numpy()))
+            sc = image_scores_from_raw(raw.float().cpu().numpy(), num_classes=self.nc)
+            out.append(sc if self.cols is None else sc[:, self.cols])
         return np.concatenate(out) if out else np.zeros((0, len(CLASSES)))
 
 
@@ -287,7 +295,7 @@ def main() -> None:
                            f"{name} — {split}: mAP {rep['mAP']}  macro-F1 {rep['macroF1']}", min_precision=args.min_precision)
             plot_confusion(conf, d / f"image_confusion_{split}.png", f"{name} — {split}: confusion cap anh tai nguong")
             det = None
-            if kind == "yolo" and path.endswith(".pt") and not args.no_det:
+            if kind == "yolo" and path.endswith(".pt") and not args.no_det and scorer.det_ok:
                 det = detection_eval(scorer.weights, root / f"{split}.yaml", d, split)
                 if det:
                     save_json(det, d / f"det_{split}.json")
@@ -309,7 +317,7 @@ def main() -> None:
         f = lambda v: "-" if v is None else f"{v:.3f}" if isinstance(v, float) else str(v)  # noqa: E731
         print(f"{r['model']:16s} {r['split']:10s} {r['n']:5d} {f(r['imageMAP']):>9s} {f(r['macroF1']):>8s} "
               f"{f(r['detMAP50']):>8s} {f(r['detMAP50_95']):>9s} {f(r['latencyP50ms']):>6s}")
-    print(f"\nOK -> {out}. Tiep: 15_select_classes.py --eval {out}/<model chon> ")
+    print(f"\nOK -> {out}. Tiep: 15_eval_report.py --eval {out}/<model>")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ Tien ich dung chung cho pipeline YOLO y1 (QUEST_AI_PLAN.md muc 4–5) — KHONG 
 Quyet dinh verify voi YOLO:
     output ONNX/PyTorch eval = (N, 4 + C, A)   [cx, cy, w, h (pixel tren anh letterbox) + C diem lop DA sigmoid]
     diem cap anh cua lop c  = max theo truc anchor A cua output[:, 4 + c, :]
-    -> 12 diem/anh y het classifier v0 => tai su dung nguyen metrics.py + contract /verify.
+    -> 1 diem/lop/anh y het classifier v0 => tai su dung nguyen metrics.py + contract /verify.
 Khong can NMS: anchor co diem lop c cao nhat luon song sot qua NMS, nen max truoc NMS = max sau NMS
 (va tinh tren MOI lop, khong bi "argmax 1 lop/anchor" nhu NMS mac dinh cua Ultralytics).
 
@@ -21,13 +21,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
-from .classes import CLASSES
+from .classes import CLASSES, CLASSES_Y1, DROPPED_CLASSES
 
 YOLO_INPUT_SIZE = 640
 PAD_VALUE = 114
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
-# Chi so cua 12 lop trong 80 lop COCO cua Ultralytics (yolo11*.pt) — THU TU = CLASSES.
+# Chi so lop trong 80 lop COCO cua Ultralytics (yolo11*.pt) — gom ca lop y1 cu; COCO80_IDS theo THU TU CLASSES.
 COCO80_INDEX = {
     "cup": 41, "bottle": 39, "book": 73, "chair": 56, "potted plant": 58, "laptop": 63,
     "keyboard": 66, "backpack": 24, "clock": 74, "umbrella": 25, "bicycle": 1, "motorcycle": 3,
@@ -217,7 +217,7 @@ def portrait_crop_boxes(boxes, img_w: int, img_h: int, left_px: int, min_keep: f
 
 
 # ---------------------------------------------------------------------------
-# Map ten lop dataset ngoai -> 12 lop chuan (ml/yolo_class_map.yaml)
+# Map ten lop dataset ngoai -> lop chuan (ml/yolo_class_map.yaml)
 # ---------------------------------------------------------------------------
 def norm_name(name: str) -> str:
     return re.sub(r"[\s_\-]+", " ", str(name).strip().lower())
@@ -227,19 +227,26 @@ def load_class_map(path: str | Path) -> dict[str, str | None]:
     import yaml
 
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-    out: dict[str, str | None] = {c: c for c in CLASSES}  # ten chuan luon map ve chinh no
+    # Map ve ten chuan cua CA lop y1 cu (vd "wall clock" -> clock) de con nhan ra box lop DA BO;
+    # map_class tra None cho lop khong con trong CLASSES.
+    out: dict[str, str | None] = {c: c for c in CLASSES_Y1}  # ten chuan luon map ve chinh no
     for k, v in raw.items():
         v = None if v in (None, "", "null") else norm_name(v)
-        if v is not None and v not in CLASSES:
-            raise ValueError(f"yolo_class_map: '{k}' -> '{v}' khong phai 1 trong 12 lop {CLASSES}")
+        if v is not None and v not in CLASSES_Y1:
+            raise ValueError(f"yolo_class_map: '{k}' -> '{v}' khong phai ten lop chuan {CLASSES_Y1}")
         out[norm_name(k)] = v
     return out
 
 
 def map_class(name: str, class_map: dict[str, str | None]) -> int | None:
-    """Ten lop ngoai -> chi so trong CLASSES; None = bo (lop ngoai 12 hoac khong co trong map)."""
+    """Ten lop ngoai -> chi so trong CLASSES; None = bo (lop da bo, lop la, hoac khong co trong map)."""
     target = class_map.get(norm_name(name))
-    return CLASSES.index(target) if target else None
+    return CLASSES.index(target) if target in CLASSES else None
+
+
+def is_dropped(name: str, class_map: dict[str, str | None]) -> bool:
+    """Ten lop thuoc lop y1 da bo (potted plant/backpack/clock...) — box bi bo co chu dich, khong phai loi."""
+    return class_map.get(norm_name(name)) in DROPPED_CLASSES
 
 
 # ---------------------------------------------------------------------------
@@ -307,12 +314,12 @@ def list_images(root: str | Path) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Cat head Detect 80 lop COCO -> 12 lop (giu nguyen trong so) — baseline "khong fine-tune" + khoi tao FT
+# Cat head Detect 80 lop COCO -> cac lop CLASSES (giu nguyen trong so) — baseline "khong fine-tune" + khoi tao FT
 # ---------------------------------------------------------------------------
 def slice_coco_head(yolo, ids: list[int] | None = None, names: list[str] | None = None):
     """
     `yolo` = ultralytics.YOLO da nap yolo11*.pt (80 lop COCO). Cat kenh lop cua Conv2d cuoi trong
-    cv3 (va one2one_cv3 neu co) chi con 12 lop theo THU TU CLASSES. Diem 12 lop sau khi cat
+    cv3 (va one2one_cv3 neu co) chi con cac lop theo THU TU CLASSES. Diem cac lop sau khi cat
     TRUNG KHOP tuyet doi voi model goc (sigmoid doc lap tung lop). Tra lai chinh `yolo`.
 
     ⚠️ Cac Conv AN cua cv3 giu nguyen do rong cu: c3 = max(ch0, min(80, 100)). Ultralytics khi train

@@ -1,11 +1,11 @@
 """
-16 — Export YOLO y1 -> ONNX fp32 + model_meta.json (+ upload HF Model repo) cho ai-service.
+16 — Export YOLO (y1/y2) -> ONNX fp32 + model_meta.json (+ upload HF Model repo) cho ai-service.
 
-    python scripts/16_export_yolo_onnx.py --weights artifacts/yolo/y1-s/weights/best.pt \
-        --thresholds artifacts/eval/y1-s/thresholds.json --version y1 --out artifacts/y1-s \
+    python scripts/16_export_yolo_onnx.py --weights artifacts/y2-s/best.pt \
+        --thresholds artifacts/eval/y2-s/thresholds.json --version y2 --out artifacts/y2-s/export \
         --upload <hf-user>/snapget-ai-model
 
-- ONNX opset 12, input (1,3,640,640) float32 RGB/255 letterbox, output (1, 4+12, 8400) — KHONG NMS
+- ONNX opset 12, input (1,3,640,640) float32 RGB/255 letterbox, output (1, 4+so lop, 8400) — KHONG NMS
   (ai-service lay max theo anchor, snapget12/yolo.py). fp32: KHONG quantize (bai hoc v0: int8 dong
   pha MobileNetV3 — QUEST_AI_PLAN muc 2; YOLO11s fp32 ~36MB van vua Cloud Run 512Mi).
 - Tu kiem tra: diem cap anh PyTorch vs ONNX tren anh that (--sample) phai lech < 0.01; do latency CPU.
@@ -52,10 +52,10 @@ PERSON_DEFAULT_THRESHOLD = 0.4  # chi dung khi chua co thresholds.json tu 17_eva
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["main", "person"], default="main",
-                    help="main = y1 12 lop | person = model phu dem nguoi (YOLO11n COCO goc, khong train)")
-    ap.add_argument("--weights", help="main: best.pt (12 lop, THU TU CLASSES) | person: mac dinh yolo11n.pt")
+                    help="main = model chinh (lop CLASSES) | person = model phu dem nguoi (YOLO11n COCO goc, khong train)")
+    ap.add_argument("--weights", help="main: best.pt (THU TU CLASSES) | person: mac dinh yolo11n.pt")
     ap.add_argument("--thresholds", help="main: thresholds.json tu 14 (BAT BUOC) | person: tu 17_eval_quests.py")
-    ap.add_argument("--version", help="mac dinh y1 (main) / person-y11n (person)")
+    ap.add_argument("--version", help="mac dinh y2 (main, 9 lop) / person-y11n (person)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--sample", help="1 anh that de so khop PyTorch vs ONNX (mac dinh: anh mau Ultralytics)")
     ap.add_argument("--upload", help="HF Model repo, vd user/snapget-ai-model (can token write)")
@@ -65,7 +65,7 @@ def main() -> None:
     from ultralytics import YOLO
 
     person = args.task == "person"
-    version = args.version or ("person-y11n" if person else "y1")
+    version = args.version or ("person-y11n" if person else "y2")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     if person:

@@ -1,10 +1,10 @@
 """
 17 — Danh gia THEO QUEST (7 quest gop nhom, user chot 2026-11-27) + chon nguong cho model phu person.
 
-    python scripts/17_eval_quests.py --eval artifacts/eval/y1-s --quest-test /content/quest_test \
+    python scripts/17_eval_quests.py --eval artifacts/eval/y2-s --quest-test /content/quest_test \
         --person-weights yolo11n.pt --out artifacts/quest_eval
 
-1. 6 quest cua y1 (bicycle|motorcycle, laptop|keyboard, umbrella, chair, cup|bottle, book):
+1. 6 quest cua model chinh y2 (bicycle|motorcycle, laptop|keyboard, umbrella, chair, cup|bottle, book):
    dung LAI scores_<split>.npz + thresholds.json ma 14_eval_yolo.py da luu — KHONG chay lai model.
    Diem quest = max_c(score_c / thr_c) tren cac lop trong nhom -> pass khi >= 1 (snapget12.metrics.group_scores)
    = dung quyet dinh cua ai-service. Anh duong = anh co BAT KY lop nao trong nhom.
@@ -177,7 +177,7 @@ def to_markdown(y1: dict | None, person: dict | None) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval", required=True, help="thu muc 14_eval_yolo.py cua model y1 (vd artifacts/eval/y1-s)")
+    ap.add_argument("--eval", required=True, help="thu muc 14_eval_yolo.py cua model chinh (vd artifacts/eval/y2-s)")
     ap.add_argument("--split", default="", help="real_test (mac dinh neu co) | coco_test")
     ap.add_argument("--quest-test", help="thu muc anh tu chup co person/ va other/")
     ap.add_argument("--person-weights", default="yolo11n.pt", help=".pt (COCO 80 lop) hoac .onnx tu 16 --task person")

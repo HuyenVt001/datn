@@ -8,10 +8,10 @@ Import chinh:
     from snapget12 import CLASSES, build_model, Head
 (model/data can torch — import LAZY de metrics/classes dung duoc khong can torch.)
 """
-from .classes import CLASSES, CLASS_TO_IDX, NUM_CLASSES, IMAGENET_MEAN, IMAGENET_STD, INPUT_SIZE
+from .classes import CLASSES, CLASSES_Y1, DROPPED_CLASSES, CLASS_TO_IDX, NUM_CLASSES, IMAGENET_MEAN, IMAGENET_STD, INPUT_SIZE
 
 __all__ = [
-    "CLASSES", "CLASS_TO_IDX", "NUM_CLASSES", "IMAGENET_MEAN", "IMAGENET_STD", "INPUT_SIZE",
+    "CLASSES", "CLASSES_Y1", "DROPPED_CLASSES", "CLASS_TO_IDX", "NUM_CLASSES", "IMAGENET_MEAN", "IMAGENET_STD", "INPUT_SIZE",
     "Head", "SnapgetClassifier", "build_backbone", "build_model", "EMBED_DIM",
 ]
 

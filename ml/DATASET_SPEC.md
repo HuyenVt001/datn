@@ -2,13 +2,14 @@
 
 > **Dành cho:** thành viên nhóm đi chụp ảnh, tải ảnh và gán nhãn.
 > **Vì sao cần:** COCO/Kaggle gần như toàn ảnh phương Tây → model không biết **ghế nhựa vỉa hè, ly trà sữa, xe số Wave, dù che quán, vở học sinh**… Tập VN dạy model đúng những thứ đó (VN-train) và là **thước đo duy nhất** để chọn lớp nào được ra đề quest (VN-test).
+> **2026-11-27 (model y2): chỉ còn 9 lớp** — cup, bottle, book, chair, laptop, keyboard, umbrella, bicycle, motorcycle. **Không vẽ box** potted plant, backpack, clock nữa (các dòng của 3 lớp này trong bảng mục B chỉ còn để tham khảo). Dữ liệu cũ được lọc tự động bằng `scripts/18_prepare_vn_data.py` (notebook `snapget_vn_data.ipynb`).
 > Kế hoạch tổng: [`Snapget/.claude/QUEST_AI_PLAN.md`](../Snapget/.claude/QUEST_AI_PLAN.md). Script kiểm tra tự động: `scripts/11_merge_external.py` (mọi quy tắc bên dưới đều được script soát — sai là báo lỗi/cảnh báo).
 
 ---
 
 ## A. Số lượng
 
-| Tập | Mỗi lớp (× 12 lớp) | Negative | Tổng ≈ | Nguồn |
+| Tập | Mỗi lớp (× 9 lớp) | Negative | Tổng ≈ | Nguồn |
 |---|---|---|---|---|
 | **VN-train** | **≥ 150 ảnh** (tối thiểu cứng 100) — trong đó **≥ 50 tự chụp**, phần còn lại ảnh Google/Kaggle bối cảnh VN | **300** (trong đó ≥ 150 hard negative) | 2.100 | tự chụp + Google + Kaggle |
 | **VN-test** | **50 ảnh** (tối thiểu cứng 20) | **100** (trong đó ≥ 50 hard negative) | 700 | **100% tự chụp bằng điện thoại** — tuyệt đối không dùng ảnh Google/Kaggle |
@@ -44,7 +45,7 @@ Một **vật thể vật lý** hoặc một **địa điểm** chỉ được n
 | **bicycle** | xe đạp mini, xe đạp thể thao, **xe đạp điện có bàn đạp**, xe đạp công cộng | xe máy điện không bàn đạp |
 | **motorcycle** | **xe số (Wave, Dream, Sirius), xe ga (Vision, Lead, SH), xe máy điện**, xe đang chở người, bãi gửi xe | xe đạp điện có bàn đạp, xe ba gác |
 
-**Hard negative** = ảnh **chỉ** chứa vật ở cột ❌ (bát, lon, đồng hồ đeo tay, nón lá, sofa, tablet, túi xách…) **cộng** ảnh **chụp màn hình / ảnh in / poster** có vật thể của 12 lớp (để model học "ảnh của cái cốc ≠ cái cốc" — chống gian lận). File nhãn **rỗng**.
+**Hard negative** = ảnh **chỉ** chứa vật ở cột ❌ (bát, lon, đồng hồ đeo tay, nón lá, sofa, tablet, túi xách…) **cộng** ảnh **chụp màn hình / ảnh in / poster** có vật thể của các lớp (để model học "ảnh của cái cốc ≠ cái cốc" — chống gian lận). File nhãn **rỗng**.
 
 **Negative thường** = ảnh đời thường không có lớp nào (bầu trời, tường, món ăn, sân trường vắng…). File nhãn rỗng.
 
@@ -77,7 +78,7 @@ Một **vật thể vật lý** hoặc một **địa điểm** chỉ được n
 
 ## D. Quy tắc gán nhãn (box, định dạng YOLO)
 
-1. Vẽ box cho **MỌI** vật thể thuộc 12 lớp có trong ảnh — **không chỉ** lớp của ảnh đó. Ảnh "cup" có chai bên cạnh → vẽ cả bottle. **Thiếu box = dạy model sai** (nó học rằng cái chai đó "không phải chai").
+1. Vẽ box cho **MỌI** vật thể thuộc 9 lớp có trong ảnh — **không chỉ** lớp của ảnh đó. Ảnh "cup" có chai bên cạnh → vẽ cả bottle. **Thiếu box = dạy model sai** (nó học rằng cái chai đó "không phải chai").
 2. Box **ôm sát phần nhìn thấy được**. Vật bị che / cắt mép vẫn vẽ nếu thấy ≥ ~20% và người nhìn nhận ra.
 3. Bãi xe / dãy ghế đông: vẽ từng cái phân biệt được, tối đa ~20 box/ảnh; phần quá xa, chồng chéo thì bỏ.
 4. Vật thể **trong màn hình, ảnh in, gương, poster** → **KHÔNG** vẽ.
@@ -86,13 +87,13 @@ Một **vật thể vật lý** hoặc một **địa điểm** chỉ được n
 
 ### Quy trình gán nhãn (Roboflow — miễn phí, khuyến nghị)
 1. Gom ảnh chưa nhãn vào 1 thư mục (vd `self_test/…`).
-2. Roboflow → *Create Project* (Object Detection) → tạo sẵn đủ 12 lớp đúng tên → *Upload* ảnh.
+2. Roboflow → *Create Project* (Object Detection) → tạo sẵn đủ 9 lớp đúng tên → *Upload* ảnh.
 3. Vẽ box từng ảnh (có thể bật gợi ý box tự động của Roboflow cho nhanh, nhưng vẫn phải soát từng box).
 4. Lỗi hay gặp khi soát: box lệch, **box sai lớp** (xe đạp điện thành motorcycle, nón lá thành umbrella, đồng hồ đeo tay thành clock), **box bị sót** (ly trà sữa, ghế nhựa thấp hay bị sót).
 5. *Generate version* → **bỏ hết Preprocessing** (đặc biệt *Resize* — Roboflow mặc định thu về 640px, làm mất chi tiết) và **không bật Augmentation** (script train tự augment) · *Train/Test split*: dồn **100% vào train** (việc chia train/test do nhóm quyết theo mục A, script chia calib/test). *Export* → định dạng **YOLOv8** (hoặc YOLOv5 PyTorch) → tải zip → chép `images/` + `labels/` vào `vn/train/` hoặc `vn/test/` (mục E), giữ `data.yaml`.
-   - Label Studio / CVAT cũng được, miễn export ra YOLO **kèm file tên lớp** (`classes.txt` hoặc `data.yaml`) đúng thứ tự 12 lớp.
+   - Label Studio / CVAT cũng được, miễn export ra YOLO **kèm file tên lớp** (`classes.txt` hoặc `data.yaml`) đúng thứ tự 9 lớp.
 
-> Thứ tự 12 lớp (class id 0 → 11): `cup, bottle, book, chair, potted plant, laptop, keyboard, backpack, clock, umbrella, bicycle, motorcycle`. Nếu Roboflow đổi thứ tự thì không sao — script đọc `data.yaml` và tự map theo **tên**.
+> Thứ tự 9 lớp (class id 0 → 8): `cup, bottle, book, chair, laptop, keyboard, umbrella, bicycle, motorcycle`. Nếu Roboflow đổi thứ tự thì không sao — script đọc `data.yaml` và tự map theo **tên**.
 
 ---
 
@@ -138,7 +139,7 @@ vn/
 | Lỗi → **DỪNG** (phải sửa) | Cảnh báo → in ra + ghi `merge_report.json` |
 |---|---|
 | lớp nào dưới mức tối thiểu cứng (train 100 / test 20) | lớp dưới mức khuyến nghị (train 150 / test 50), thiếu negative / hard negative |
-| class id ngoài 12 lớp, box toạ độ ngoài [0,1] / w,h ≤ 0 | tên file sai quy ước |
+| class id ngoài danh sách lớp, box toạ độ ngoài [0,1] / w,h ≤ 0 | tên file sai quy ước |
 | ảnh không phải neg mà thiếu file nhãn | ảnh tên lớp X nhưng không có box X; ảnh neg mà có box; ảnh không box mà tên không phải neg |
 | ảnh `gg_`/`kg_` nằm trong **test** | ảnh dọc < 70%, cạnh dài < 1024px |
 | ảnh không mở được | thiếu cặp dễ nhầm cùng khung; tỉ lệ tối/khoảng cách/bối cảnh/máy dưới mục C (từ `metadata.csv`) |
@@ -148,7 +149,7 @@ vn/
 
 ## G0. Tập train bổ sung dữ liệu bản địa (đã có sẵn)
 
-`snapget-ml/data/snapget_vn_supplement.zip` trên Drive — dataset YOLO 12 lớp **chỉ dùng cho train** (ảnh bối cảnh Việt Nam, gán nhãn bán tự động; số lượng, nguồn, giấy phép: `README.md` + `stats.json` trong zip). Notebook train tự giải nén và đưa vào script 11 bằng `--vn`. Nhóm chỉ cần bổ sung phần **tự chụp** (≥ 50 ảnh/lớp cho VN-train) và **toàn bộ VN-test** theo các mục A–F.
+`snapget-ml/data/snapget_vn_supplement.zip` trên Drive — dataset YOLO 9 lớp (đã lọc 2026-11-27) **chỉ dùng cho train** (ảnh bối cảnh Việt Nam, gán nhãn bán tự động; số lượng, nguồn, giấy phép: `README.md` + `stats.json` trong zip). Notebook train tự giải nén và đưa vào script 11 bằng `--vn`. Nhóm chỉ cần bổ sung phần **tự chụp** (≥ 50 ảnh/lớp cho VN-train) và **toàn bộ VN-test** theo các mục A–F.
 
 ## G. Ảnh Google & dataset Kaggle — lưu ý riêng
 

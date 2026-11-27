@@ -43,11 +43,13 @@ describe('AI_QUEST_TEMPLATES', () => {
         used.add(c);
       }
     }
-    // 2026-11-27: 3 lop khong con ra de — van co trong output model (so lieu bao cao)
+    // 2026-11-27: 3 lop da bo khoi ca quest lan model y2
     for (const dropped of ['backpack', 'clock', 'potted plant']) {
-      expect(AI_MODEL_CLASSES).toContain(dropped);
+      expect(known).not.toContain(dropped);
       expect(used.has(dropped)).toBe(false);
     }
+    // y2 chi hoc dung cac lop cua quest -> moi lop model deu thuoc 1 quest
+    for (const c of AI_MODEL_CLASSES) expect(used.has(c)).toBe(true);
   });
 
   it('grouped quests accept every member; legacy quest keys fall back to a single class', () => {

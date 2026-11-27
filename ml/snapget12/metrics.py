@@ -14,9 +14,9 @@ Danh gia + chon nguong (QUEST_AI_PLAN.md muc 5).
 
   y1 (YOLO, 2026-11-23): nguong chon tren tap ANH THAT real-calib voi MIN_PRECISION_REAL = 0.80
   (model manh hon nen giu duoc precision cao ma recall van tot). Moi ham nhan `classes` (mac dinh
-  12 lop CLASSES) — y_true/y_score la (N, len(classes)), dung chung cho classifier v0 lan YOLO y1.
+  lop CLASSES) — y_true/y_score la (N, len(classes)), dung chung cho classifier v0 lan YOLO y1.
 
-- Confusion cap anh + tieu chi CHON LOP RA DE (muc 5 plan y1): `image_confusion`, `select_quest_classes`.
+- Confusion cap anh + bang danh gia tung lop: `image_confusion`, `class_report`.
 """
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ def plot_pr_curves(curves: dict[str, dict], thresholds: dict[str, float], per_cl
 
 
 # ---------------------------------------------------------------------------
-# y1 — Confusion cap anh + chon lop ra de quest (QUEST_AI_PLAN muc 5)
+# Confusion cap anh + bang danh gia tung lop
 # ---------------------------------------------------------------------------
 def image_confusion(y_true: np.ndarray, y_score: np.ndarray, thresholds: dict[str, float],
                     classes: list[str] | None = None) -> dict:
@@ -176,57 +176,32 @@ def image_confusion(y_true: np.ndarray, y_score: np.ndarray, thresholds: dict[st
     return {"rows": rows, "cols": list(classes), "matrix": matrix, "counts": counts}
 
 
-DEFAULT_SELECTION_CRITERIA = {
-    "minImageAP": 0.85,       # AP cap anh (verify score) tren real-test
-    "minF1": 0.85,            # F1 tai nguong
-    "minDetAP50": 0.75,       # AP50 detection (bo qua neu khong co so lieu detection)
-    "maxFalseReject": 0.15,   # ti le anh dung bi tu choi
-    "maxConfusedBy": 0.05,    # khong lop nao khac (hay anh negative) bi nhan nham la lop nay qua muc nay
-    "minSupport": 20,         # du anh test that de tin so lieu
-    "minClasses": 6,          # it hon -> lay top theo F1 (ghi ro trong bao cao)
-}
-
-
-def select_quest_classes(image_report: dict, confusion: dict, det_per_class: dict | None = None,
-                         criteria: dict | None = None, classes: list[str] | None = None) -> dict:
+def class_report(image_report: dict, confusion: dict, det_per_class: dict | None = None,
+                 classes: list[str] | None = None) -> dict[str, dict]:
     """
-    Ap tieu chi chon lop ra de. Tra:
-      {"perClass": {c: {...so lieu, "checks": {ten: bool|None}, "pass": bool}},
-       "selected": [...], "fallbackUsed": bool, "criteria": {...}}
-    check = None nghia la thieu so lieu cho tieu chi do (vd chua co detection) -> khong tinh la truot.
+    Bang danh gia tung lop (15_eval_report.py): so lieu cap anh tai nguong + detection + confusion.
+      confusedBy  = lop/anh negative bi nhan NHAM la lop nay nhieu nhat (nguon false-accept)
+      mistakenFor = lop ma anh CO lop nay hay bi nhan nham thanh nhieu nhat
+    Mac dinh lay lop theo thu tu trong image_report (doc duoc ca ket qua model y1 12 lop).
     """
-    crit = {**DEFAULT_SELECTION_CRITERIA, **(criteria or {})}
-    classes = classes or CLASSES
     pcs = image_report["perClass"]
+    classes = classes or list(pcs)
     mat = confusion["matrix"]
     out: dict[str, dict] = {}
     for c in classes:
         pc = pcs.get(c, {})
         det = (det_per_class or {}).get(c) or {}
-        confused = [(r, mat[r].get(c)) for r in confusion["rows"] if r != c and mat.get(r, {}).get(c) is not None]
-        worst = max(confused, key=lambda t: t[1]) if confused else (None, None)
-        checks = {
-            "imageAP": None if pc.get("ap") is None else pc["ap"] >= crit["minImageAP"],
-            "f1": None if pc.get("support", 0) == 0 else pc["f1"] >= crit["minF1"],
-            "detAP50": None if det.get("ap50") is None else det["ap50"] >= crit["minDetAP50"],
-            "falseReject": None if pc.get("falseRejectRate") is None else pc["falseRejectRate"] <= crit["maxFalseReject"],
-            "confusedBy": None if worst[1] is None else worst[1] <= crit["maxConfusedBy"],
-            "support": pc.get("support", 0) >= crit["minSupport"],
-        }
+        by = [(r, mat[r].get(c)) for r in confusion["rows"] if r != c and mat.get(r, {}).get(c) is not None]
+        to = [(k, v) for k, v in mat.get(c, {}).items() if k != c and v is not None]
+        by_w = max(by, key=lambda t: t[1]) if by else (None, None)
+        to_w = max(to, key=lambda t: t[1]) if to else (None, None)
         out[c] = {
-            "imageAP": pc.get("ap"), "f1": pc.get("f1"), "precision": pc.get("precision"), "recall": pc.get("recall"),
-            "falseRejectRate": pc.get("falseRejectRate"), "support": pc.get("support", 0),
-            "threshold": pc.get("threshold"), "detAP50": det.get("ap50"), "detAP50_95": det.get("ap50_95"),
-            "worstConfusedBy": worst[0], "worstConfusedRate": worst[1],
-            "checks": checks, "pass": all(v is not False for v in checks.values()),
+            "support": pc.get("support", 0), "threshold": pc.get("threshold"), "imageAP": pc.get("ap"),
+            "f1": pc.get("f1"), "precision": pc.get("precision"), "recall": pc.get("recall"),
+            "falseRejectRate": pc.get("falseRejectRate"), "detAP50": det.get("ap50"), "detAP50_95": det.get("ap50_95"),
+            "confusedBy": by_w[0], "confusedByRate": by_w[1], "mistakenFor": to_w[0], "mistakenForRate": to_w[1],
         }
-    selected = [c for c in classes if out[c]["pass"]]
-    fallback = False
-    if len(selected) < crit["minClasses"]:
-        fallback = True
-        ranked = sorted((c for c in classes if out[c]["support"] > 0), key=lambda c: out[c]["f1"] or 0, reverse=True)
-        selected = [c for c in classes if c in set(ranked[: crit["minClasses"]])]
-    return {"perClass": out, "selected": selected, "fallbackUsed": fallback, "criteria": crit}
+    return out
 
 
 # ---------------------------------------------------------------------------

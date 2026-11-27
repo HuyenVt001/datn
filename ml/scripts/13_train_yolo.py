@@ -1,15 +1,15 @@
 """
-13 — Fine-tune YOLO11 (y1) tren dataset 12 lop (data.yaml tu 11_merge_external.py) — Google Colab T4.
+13 — Fine-tune YOLO11 tren dataset CLASSES (9 lop tu y2; data.yaml tu 11_merge_external.py) — Google Colab.
 
     # phien dau
     python scripts/13_train_yolo.py --data /content/yolo/data.yaml --model yolo11s.pt \
-        --project /content/drive/MyDrive/snapget-ml/artifacts/yolo --name y1-s --epochs 40
+        --project /content/drive/MyDrive/snapget-ml/artifacts/yolo --name y2-s --epochs 40
     # Colab ngat giua chung -> mo lai notebook, giai nen dataset, chay LAI DUNG lenh tren + --resume
-    python scripts/13_train_yolo.py ... --name y1-s --resume
+    python scripts/13_train_yolo.py ... --name y2-s --resume
 
-KHOI TAO (--init, mac dinh coco12): cat head 80 lop COCO -> 12 lop (snapget12/yolo.py
-`slice_coco_head`) THAY VI de Ultralytics khoi tao ngau nhien lop phan loai khi nc doi 80 -> 12.
-Model bat dau tu dung diem cua YOLO11 COCO tren 12 lop (da kha tot) -> hoi tu nhanh hon nhieu,
+KHOI TAO (--init, mac dinh coco): cat head 80 lop COCO -> cac lop CLASSES (snapget12/yolo.py
+`slice_coco_head`) THAY VI de Ultralytics khoi tao ngau nhien lop phan loai khi nc doi 80 -> 9.
+Model bat dau tu dung diem cua YOLO11 COCO tren cac lop do (da kha tot) -> hoi tu nhanh hon nhieu,
 quan trong khi Colab free chi ~3–5 tieng/phien. `--init scratch-head` de lam ablation.
 
 Colab:
@@ -62,7 +62,8 @@ def build_init(model: str, init: str, cache_dir: Path) -> str:
         return model
     from ultralytics import YOLO
 
-    out = cache_dir / f"{Path(model).stem}-coco12.pt"
+    # ten file theo so lop: cache cu cua y1 (12 lop, "-coco12.pt") khong bi dung nham
+    out = cache_dir / f"{Path(model).stem}-coco{len(CLASSES)}.pt"
     if out.exists():
         return str(out)
     y = YOLO(model)
@@ -72,7 +73,7 @@ def build_init(model: str, init: str, cache_dir: Path) -> str:
     slice_coco_head(y)
     out.parent.mkdir(parents=True, exist_ok=True)
     y.save(str(out))
-    print(f"Khoi tao tu head COCO da cat 12 lop -> {out}")
+    print(f"Khoi tao tu head COCO da cat {len(CLASSES)} lop -> {out}")
     return str(out)
 
 
@@ -80,9 +81,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="/content/yolo/data.yaml")
     ap.add_argument("--model", default="yolo11s.pt", help="yolo11n.pt | yolo11s.pt (chinh) | yolo11m.pt (nang)")
-    ap.add_argument("--init", choices=["coco12", "scratch-head"], default="coco12")
+    ap.add_argument("--init", choices=["coco", "coco12", "scratch-head"], default="coco", help="coco12 = ten cu cua coco")
     ap.add_argument("--project", required=True, help="thu muc tren DRIVE")
-    ap.add_argument("--name", default="y1-s")
+    ap.add_argument("--name", default="y2-s")
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--batch", type=int, default=-1)
@@ -98,7 +99,7 @@ def main() -> None:
     ap.add_argument("--warmup-epochs", type=float, default=1.0)
     ap.add_argument("--fresh", action="store_true", help="XOA lan train cu cung --name roi train lai tu dau")
     ap.add_argument("--resume", action="store_true")
-    ap.add_argument("--export-best", default=None, help="copy best.pt toi day sau khi train (vd artifacts/y1-s/best.pt)")
+    ap.add_argument("--export-best", default=None, help="copy best.pt toi day sau khi train (vd artifacts/y2-s/best.pt)")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -121,7 +122,7 @@ def main() -> None:
         weights = build_init(args.model, args.init, Path(args.project) / "_init")
         m = YOLO(weights)
         m.train(
-            trainer=keep_head_trainer() if args.init == "coco12" else None,
+            trainer=keep_head_trainer() if args.init in ("coco", "coco12") else None,
             data=args.data, epochs=args.epochs, imgsz=args.imgsz, batch=args.batch, workers=args.workers,
             patience=args.patience, project=args.project, name=args.name, seed=args.seed,
             # thu muc cung ten con sot tu lan chay hong (chua co last.pt) -> ghi de vao do; neu khong Ultralytics

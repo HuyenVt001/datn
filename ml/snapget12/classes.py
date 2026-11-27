@@ -1,15 +1,26 @@
 """
-12 lop vat the MODEL HOC — ten COCO chuan. THU TU o day = thu tu output cua model =
+Lop vat the MODEL HOC — ten COCO chuan. THU TU o day = thu tu output cua model =
 thu tu trong model_meta.json = `AI_MODEL_CLASSES` o server (server/src/common/constants.ts).
-Ly do chon 12 lop: QUEST_AI_PLAN.md muc 2.
 
-2026-08-16: app chi RA DE 9 lop (`AI_QUEST_CLASSES` la tap con cua 12) — bo book/backpack/
-keyboard (nhan COCO nhieu / lan voi laptop) de do chinh xac xac minh cao nhat. Model VAN
-train du 12 de co so lieu per-class chung minh "do roi moi loai" trong bao cao; moi output
-doc lap nen khong anh huong 9 lop con lai. Doi lop ra de: sua AI_QUEST_CLASSES, KHONG retrain.
+2026-11-27 (y2): train lai CHI 9 lop cua 6 quest y1 (QUEST_GROUPS ben duoi) — bo potted plant,
+backpack, clock. Moi lop van GAN NHAN RIENG (cup va bottle la 2 lop); viec gop nhom chi xay ra
+luc cham quest (pass neu bat ky lop nao trong nhom vuot nguong rieng).
+y1 (12 lop, CLASSES_Y1) giu lai de doc du lieu/model cu.
 """
 
 CLASSES = [
+    "cup",
+    "bottle",
+    "book",
+    "chair",
+    "laptop",
+    "keyboard",
+    "umbrella",
+    "bicycle",
+    "motorcycle",
+]
+# y1 (2026-11-23 -> 11-27): 12 lop — thu tu output cua y1 va chi so lop trong cac tap du lieu cu
+CLASSES_Y1 = [
     "cup",
     "bottle",
     "book",
@@ -23,6 +34,7 @@ CLASSES = [
     "bicycle",
     "motorcycle",
 ]
+DROPPED_CLASSES = [c for c in CLASSES_Y1 if c not in CLASSES]  # potted plant, backpack, clock
 CLASS_TO_IDX = {c: i for i, c in enumerate(CLASSES)}
 NUM_CLASSES = len(CLASSES)
 
@@ -43,4 +55,4 @@ QUEST_GROUPS = {
     "book": ["book"],
     "person": ["person"],
 }
-EXTRA_CLASSES = ["person"]  # lop cua model phu (ngoai 12 lop y1)
+EXTRA_CLASSES = ["person"]  # lop cua model phu (ngoai cac lop cua model chinh)

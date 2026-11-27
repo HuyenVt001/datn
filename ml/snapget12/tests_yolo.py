@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 
 from snapget12.classes import CLASSES
-from snapget12.metrics import evaluate, image_confusion, select_quest_classes
+from snapget12.metrics import class_report, evaluate, image_confusion
 from snapget12.yolo import (
     best_box,
     dhash,
@@ -47,10 +47,11 @@ def test_image_scores_and_best_box_back_to_original():
 
 def test_label_path_and_multi_hot_and_validate():
     assert str(label_path_for("/a/images/train/x.jpg")).replace("\\", "/") == "/a/labels/train/x.txt"
-    y = multi_hot([(0, .5, .5, .1, .1), (11, .5, .5, .1, .1), (0, .2, .2, .1, .1)])
-    assert y.tolist() == [1] + [0] * 10 + [1]
+    n = len(CLASSES)
+    y = multi_hot([(0, .5, .5, .1, .1), (n - 1, .5, .5, .1, .1), (0, .2, .2, .1, .1)])
+    assert y.tolist() == [1] + [0] * (n - 2) + [1]
     assert validate_boxes([(0, .5, .5, .2, .2)]) == []
-    assert len(validate_boxes([(12, .5, .5, .2, .2), (0, 1.2, .5, .2, 0)])) == 2
+    assert len(validate_boxes([(n, .5, .5, .2, .2), (0, 1.2, .5, .2, 0)])) == 2
 
 
 def test_portrait_crop_keeps_and_drops_boxes():
@@ -71,6 +72,19 @@ def test_class_map_normalization():
     assert map_class("person", cmap) is None and map_class("unknown", cmap) is None
 
 
+def test_class_map_drops_removed_y1_classes():
+    from pathlib import Path
+
+    from snapget12.classes import DROPPED_CLASSES
+    from snapget12.yolo import is_dropped, load_class_map
+
+    cmap = load_class_map(Path(__file__).resolve().parents[1] / "yolo_class_map.yaml")
+    for c in DROPPED_CLASSES:  # lop y1 da bo: khong map vao CLASSES nhung van nhan ra (bo co chu dich)
+        assert map_class(c, cmap) is None and is_dropped(c, cmap)
+    assert map_class("mug", cmap) == CLASSES.index("cup") and not is_dropped("mug", cmap)
+    assert not is_dropped("person", cmap)
+
+
 def test_dhash_near_duplicates():
     rng = np.random.default_rng(0)
     base = Image.fromarray((rng.random((64, 64, 3)) * 255).astype(np.uint8))
@@ -88,7 +102,7 @@ def _toy(n=400, seed=1):
     return y, s
 
 
-def test_image_confusion_and_selection():
+def test_image_confusion_and_class_report():
     y, s = _toy()
     thr = {c: 0.5 for c in CLASSES}
     rep = evaluate(y, s, thr)
@@ -96,20 +110,13 @@ def test_image_confusion_and_selection():
     conf = image_confusion(y, s, thr)
     assert conf["rows"][-1] == "negative" and set(conf["cols"]) == set(CLASSES)
     assert conf["matrix"]["cup"]["cup"] == rep["perClass"]["cup"]["recall"]
-    sel = select_quest_classes(rep, conf, det_per_class={"cup": {"ap50": 0.9, "ap50_95": 0.6}},
-                               criteria={"minSupport": 5})
-    assert "chair" not in sel["selected"] and "cup" in sel["selected"]
-    assert sel["perClass"]["cup"]["checks"]["detAP50"] is True
-    assert sel["perClass"]["bottle"]["checks"]["detAP50"] is None  # thieu so lieu detection -> khong tinh truot
-    assert sel["fallbackUsed"] is False
-
-
-def test_selection_fallback_to_top_f1():
-    y, s = _toy()
-    thr = {c: 0.5 for c in CLASSES}
-    rep = evaluate(y, s, thr)
-    sel = select_quest_classes(rep, image_confusion(y, s, thr), criteria={"minF1": 1.01, "minClasses": 4})
-    assert sel["fallbackUsed"] is True and len(sel["selected"]) == 4 and "chair" not in sel["selected"]
+    r = class_report(rep, conf, det_per_class={"cup": {"ap50": 0.9, "ap50_95": 0.6}})
+    assert list(r) == list(CLASSES)
+    assert r["cup"]["detAP50"] == 0.9 and r["bottle"]["detAP50"] is None  # thieu so lieu detection
+    assert r["cup"]["f1"] == rep["perClass"]["cup"]["f1"]
+    # nguon nhan nham = gia tri lon nhat cua cot "cup" (tru chinh no)
+    col = {k: conf["matrix"][k]["cup"] for k in conf["rows"] if k != "cup" and conf["matrix"][k]["cup"] is not None}
+    assert r["cup"]["confusedByRate"] == max(col.values())
 
 
 def test_clean_stem_strips_roboflow_suffix():

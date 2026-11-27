@@ -20,20 +20,20 @@ def code(s):
 md("""
 # Snapget — đánh giá 7 quest AI và model đếm người
 
-Sau khi đánh giá y1 (notebook `snapget_yolo_train.ipynb`), các lớp dễ lẫn hoặc còn yếu được gộp lại thành quest: ảnh qua nếu có **bất kỳ** lớp nào trong nhóm vượt ngưỡng riêng của lớp đó. Cách này tăng tỉ lệ pass và giảm từ chối sai.
+Model chính y2 (notebook `snapget_yolo_train.ipynb`) học 9 lớp, mỗi lớp gán nhãn riêng. Các lớp dễ lẫn được gộp lại khi chấm quest: ảnh qua nếu có **bất kỳ** lớp nào trong nhóm vượt ngưỡng riêng của lớp đó. Cách này tăng tỉ lệ pass và giảm từ chối sai.
 
 | Quest | Lớp chấp nhận | Model |
 |---|---|---|
-| bicycle | bicycle / motorcycle | y1 |
-| laptop | laptop / keyboard | y1 |
-| umbrella | umbrella | y1 |
-| chair | chair | y1 |
-| cup | cup / bottle | y1 |
-| book | book | y1 |
+| bicycle | bicycle / motorcycle | y2 |
+| laptop | laptop / keyboard | y2 |
+| umbrella | umbrella | y2 |
+| chair | chair | y2 |
+| cup | cup / bottle | y2 |
+| book | book | y2 |
 | person | ≥ 2 người trong khung | YOLO11n COCO gốc (không fine-tune) |
 
 - **Quest person** dùng model phụ YOLO11n pretrained COCO, chỉ giữ lớp `person`. Điểm của ảnh là độ tin cậy của **người thứ 2** sau NMS, nên "có ≥ 2 người" thành một điểm cấp ảnh và đánh giá được bằng AP/F1 như các lớp khác. Lớp person của COCO đã rất tốt nên không cần train lại.
-- **6 quest còn lại** dùng lại điểm số của y1 từ bước đánh giá (mục 5 notebook train), không chạy lại model.
+- **6 quest còn lại** dùng lại điểm số của y2 từ bước đánh giá (mục 5 notebook train), không chạy lại model.
 
 Chạy được trên CPU.
 """)
@@ -76,19 +76,19 @@ for sub in ('person', 'other'):
     n = len(glob.glob(f'{QT}/{sub}/*')) if QT else 0
     print(f'{sub}: {n} ảnh')
 if not QT:
-    print('Chưa có quest_test.zip -> chỉ đánh giá 6 quest của y1')
+    print('Chưa có quest_test.zip -> chỉ đánh giá 6 quest của y2')
 """)
 
 md("""
 ## 2. Đánh giá 7 quest
-- 6 quest của y1 đánh giá trên `real_test` (ngưỡng từng lớp đã chọn trên `real_calib`).
+- 6 quest của y2 đánh giá trên `real_test` (ngưỡng từng lớp đã chọn trên `real_calib`).
 - Quest person: chọn ngưỡng trên phần calib (precision ≥ 0.80), đánh giá trên phần test của `quest_test`.
 - Cột "Từ chối sai trước gộp" là tỉ lệ từ chối sai của từng lớp khi chưa gộp, để so sánh.
 """)
 
 code("""
 QT_ARGS = f'--quest-test {QT}' if QT else ''
-!python scripts/17_eval_quests.py --eval {WORK}/artifacts/eval/y1-s {QT_ARGS} <BS>
+!python scripts/17_eval_quests.py --eval {WORK}/artifacts/eval/y2-s {QT_ARGS} <BS>
     --person-weights yolo11n.pt --out {WORK}/artifacts/quest_eval
 """)
 
@@ -96,7 +96,7 @@ md("""
 ## 3. Export model person và triển khai
 Export YOLO11n (chỉ lớp person) sang ONNX fp32 kèm ngưỡng vừa chọn, rồi tải lên thư mục `person/` của Hugging Face repo. AI service tự nạp model phụ khi khởi động; sau khi restart, `/health` trả về `extraModels.person`.
 
-Model chính y1 vẫn export bằng mục 7 của notebook train.
+Model chính y2 export bằng mục 7 của notebook train.
 """)
 
 code("""

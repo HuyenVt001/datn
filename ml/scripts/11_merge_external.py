@@ -16,8 +16,10 @@ Nguon ngoai (lap lai duoc nhieu lan):
   --voc DIR              Pascal VOC (Annotations/*.xml + anh)
   --vn DIR               tap VN theo DATASET_SPEC (train/ + test/ + metadata.csv) — DUY NHAT nguon vao TEST that.
                          Lap lai duoc: --vn <anh tu chup> --vn <tap train bo sung snapget_vn_supplement (chi train/)>
-Ten lop -> 12 lop chuan qua --class-map (yolo_class_map.yaml). Box lop la bi BO + in canh bao.
-Anh ngoai ma MOI box deu bi bo -> LOAI anh (co the chua vat the 12 lop ma khong duoc gan = nhan sai).
+Ten lop -> lop chuan (CLASSES) qua --class-map (yolo_class_map.yaml). Box lop la bi BO + in canh bao.
+Anh ngoai ma MOI box deu bi bo -> LOAI anh (co the chua vat the cua CLASSES ma khong duoc gan = nhan sai).
+Tap VN con nhan lop y1 da bo (potted plant/backpack/clock): box do bi bo + canh bao (nen loc truoc bang
+18_prepare_vn_data.py — notebook snapget_vn_data.ipynb).
 
 Ra trong --root:
   external/{images,labels}/{train,val}/   anh ngoai (symlink) + nhan da doi chi so
@@ -54,6 +56,7 @@ from snapget12.yolo import (  # noqa: E402
     label_path_for,
     list_images,
     load_class_map,
+    is_dropped,
     map_class,
     near_duplicates,
     read_yolo_labels,
@@ -185,7 +188,7 @@ def read_voc_dir(root: Path) -> list[tuple[Path, list]]:
 
 
 def remap(items, class_map, unknown: Counter):
-    """(anh, boxes ten goc) -> (anh, boxes chi so 12 lop, so box bi bo)."""
+    """(anh, boxes ten goc) -> (anh, boxes chi so CLASSES, so box bi bo)."""
     out = []
     for img, boxes in items:
         if boxes is None:
@@ -238,13 +241,16 @@ def load_vn_dir(vn: Path, class_map, rep: Report) -> dict:
         return {"train": [], "test": []}
     names = find_names(vn)
     if names is None:
-        rep.warn(f"{vn}: khong co classes.txt/data.yaml — gia dinh chi so lop THEO DUNG THU TU 12 lop chuan {CLASSES}")
+        rep.warn(f"{vn}: khong co classes.txt/data.yaml — gia dinh chi so lop THEO DUNG THU TU {len(CLASSES)} lop chuan {CLASSES}")
         names = list(CLASSES)
-    idx_of = []
-    for n in names:
+    idx_of, dropped_ids = [], set()
+    for k, n in enumerate(names):
         i = map_class(n, class_map)
-        if i is None:
-            rep.error(f"VN: ten lop '{n}' trong file ten lop khong map duoc ve 12 lop chuan")
+        if i is None and is_dropped(n, class_map):
+            dropped_ids.add(k)
+            rep.warn(f"VN {vn.name}: lop '{n}' da bo khoi model -> bo box lop nay (nen loc truoc bang 18_prepare_vn_data.py)")
+        elif i is None:
+            rep.error(f"VN: ten lop '{n}' trong file ten lop khong map duoc ve lop chuan {CLASSES}")
         idx_of.append(i)
 
     res: dict = {"train": [], "test": []}
@@ -259,7 +265,7 @@ def load_vn_dir(vn: Path, class_map, rep: Report) -> dict:
             if src is None:
                 rep.warn(f"VN {split}: ten file '{img.name}' sai quy uoc <self|gg|kg>_<lop|neg|hardneg>_<4 so>")
             elif prim is None:
-                rep.warn(f"VN {split}: ten file '{img.name}' co ten lop khong thuoc 12 lop (lop co dau cach dung '_', vd potted_plant)")
+                rep.warn(f"VN {split}: ten file '{img.name}' co ten lop khong thuoc {len(CLASSES)} lop (lop co dau cach dung '_', vd ten lop da bo)")
             lab = label_path_for(img)
             is_neg = prim in ("neg", "hardneg")
             if not lab.exists():
@@ -269,7 +275,7 @@ def load_vn_dir(vn: Path, class_map, rep: Report) -> dict:
                     rep.error(f"VN {split}: thieu file nhan {lab.name} (anh khong phai neg)")
                     continue
             else:
-                raw = read_yolo_labels(lab)
+                raw = [b for b in read_yolo_labels(lab) if b[0] not in dropped_ids]
                 bad = [c for c, *_ in raw if not 0 <= c < len(idx_of) or idx_of[c] is None]
                 if bad:
                     rep.error(f"VN {split}: {lab.name} co class id khong hop le {sorted(set(bad))}")
@@ -393,7 +399,7 @@ def write_list(path: Path, paths: list) -> None:
 
 def write_yaml(path: Path, root: Path, train: str, val: str, test: str) -> None:
     names = "\n".join(f"  {i}: {c}" for i, c in enumerate(CLASSES))
-    path.write_text(f"# sinh boi 11_merge_external.py — 12 lop THEO DUNG THU TU ml/snapget12/classes.py\n"
+    path.write_text(f"# sinh boi 11_merge_external.py — {len(CLASSES)} lop THEO DUNG THU TU ml/snapget12/classes.py\n"
                     f"path: {root.as_posix()}\ntrain: {train}\nval: {val}\ntest: {test}\nnames:\n{names}\n", encoding="utf-8")
 
 
@@ -446,10 +452,10 @@ def main() -> None:
             ext.append({"img": img, "boxes": boxes, "tag": tag, "primary": CLASSES[boxes[0][0]] if boxes else "neg"})
             kept += 1
         rep.data["sources"][tag] = {"kind": kind, "spec": spec, "kept": kept, "unlabeled": unlabeled, "droppedAllBoxes": all_dropped}
-        print(f"   giu {kept} anh | chua gan nhan {unlabeled} (bo qua — can gan nhan truoc) | bo {all_dropped} anh vi moi box ngoai 12 lop")
+        print(f"   giu {kept} anh | chua gan nhan {unlabeled} (bo qua — can gan nhan truoc) | bo {all_dropped} anh vi moi box ngoai {len(CLASSES)} lop")
     if unknown:
         rep.warn("Ten lop KHONG co trong yolo_class_map.yaml (da bo): " + ", ".join(f"{n}×{c}" for n, c in unknown.most_common(30))
-                 + " — them vao file map neu la 1 trong 12 lop")
+                 + f" — them vao file map neu la 1 trong {len(CLASSES)} lop")
 
     # 2) Tap VN
     vn = load_vn([Path(v) for v in args.vn], class_map, rep, args) if args.vn else {"train": [], "test": []}

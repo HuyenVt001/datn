@@ -1,5 +1,5 @@
 """
-10 — COCO 2017 -> dataset YOLO 12 lop (box) cho model y1 (QUEST_AI_PLAN.md muc 3–4).
+10 — COCO 2017 -> dataset YOLO cac lop CLASSES (box; 9 lop tu y2) (QUEST_AI_PLAN.md muc 3–4).
 
 Chay tren Colab (KHONG tai ve may ca nhan):
     python scripts/10_export_coco_yolo.py --out /content/yolo/coco --max-per-class 2000 \
