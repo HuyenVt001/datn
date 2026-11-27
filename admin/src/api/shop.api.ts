@@ -1,4 +1,4 @@
-import type { AdminPurchase, AdminPurchasesResult, ShopItem, ShopItemOwnersResult, ShopItemType } from '../types';
+import type { AdminPurchasesResult, ShopItem, ShopItemOwnersResult, ShopItemType } from '../types';
 import { del, get, patch, post } from './client';
 
 /**
@@ -57,28 +57,6 @@ export function listShopItemOwners(itemId: string): Promise<ShopItemOwnersResult
 }
 
 /** Lich su mua toan he thong (loc theo user / loai / ngay). */
-export async function listShopPurchases(
-  filter: PurchaseFilter = {},
-): Promise<AdminPurchasesResult> {
-  const data = await get<AdminPurchasesResult | AdminPurchase[]>(
-    '/shop/history/admin',
-    filter as Record<string, unknown>,
-  );
-  if (!Array.isArray(data)) {
-    return data;
-  }
-  // Tuong thich server cu (truoc 2026-11-27, tra mang tran): tu tinh summary tren rows
-  const byType: Partial<Record<ShopItemType, number>> = {};
-  for (const r of data) {
-    byType[r.itemType] = (byType[r.itemType] ?? 0) + 1;
-  }
-  return {
-    rows: data,
-    summary: {
-      count: data.length,
-      spent: data.reduce((sum, r) => sum + r.price, 0),
-      buyers: new Set(data.map((r) => r.uid)).size,
-      byType,
-    },
-  };
+export function listShopPurchases(filter: PurchaseFilter = {}): Promise<AdminPurchasesResult> {
+  return get<AdminPurchasesResult>('/shop/history/admin', filter as Record<string, unknown>);
 }

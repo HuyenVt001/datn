@@ -15,6 +15,8 @@ Ra (cau truc Ultralytics: .../images/<split>/x.jpg <-> .../labels/<split>/x.txt)
 - Moi lop tai toi da --max-per-class anh (FiftyOne, ten dataset RIENG tung lop — bai hoc bug
   2026-08-18 o 01_prepare_coco.py) + --negatives anh khong chua lop nao (background).
 - Box `iscrowd` bi bo (giong converter COCO cua Ultralytics).
+- Truoc khi ghi dataset: kiem tra MOI anh se dung (file rong / khong mo duoc / bi cat cut) va tai lai tu
+  images.cocodataset.org (FiftyOne doi khi tai hong — gap 2026-11-27). Van hong sau --repair-rounds lan -> bo anh.
 - Giu so anh vua phai de 1 epoch YOLO11s tren T4 Colab ~10 phut (2 vCPU nap anh la nut that).
 """
 from __future__ import annotations
@@ -59,6 +61,59 @@ def sample_boxes(sample) -> list[tuple[int, float, float, float, float]]:
     return out
 
 
+def is_valid_image(path: Path) -> bool:
+    from PIL import Image
+
+    try:
+        if not path.exists() or path.stat().st_size == 0:
+            return False
+        with Image.open(path) as im:
+            im.verify()
+        with Image.open(path) as im:  # mo lai + nap pixel de bat ca anh bi cat cut (truncated)
+            im.load()
+        return True
+    except Exception:  # noqa: BLE001 — UnidentifiedImageError, OSError, SyntaxError...
+        return False
+
+
+def coco_url(path: Path) -> str:
+    """FiftyOne luu anh o .../coco-2017/<train|validation>/data/<ten>.jpg."""
+    folder = "val2017" if path.parent.parent.name == "validation" else "train2017"
+    return f"http://images.cocodataset.org/{folder}/{path.name}"
+
+
+def download(path: Path, timeout: int = 30) -> bool:
+    import urllib.request
+
+    tmp = path.with_name(path.name + ".part")
+    try:
+        with urllib.request.urlopen(coco_url(path), timeout=timeout) as r:
+            tmp.write_bytes(r.read())
+        os.replace(tmp, path)  # chi thay file cu khi da tai xong
+    except Exception as e:  # noqa: BLE001
+        tmp.unlink(missing_ok=True)
+        print(f"   tai loi {path.name}: {e}")
+    return is_valid_image(path)
+
+
+def repair_images(paths: list[str], rounds: int = 3, workers: int = 16) -> set[str]:
+    """Kiem tra anh, tai lai anh hong. Tra ve tap anh van hong sau `rounds` lan."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    todo = sorted({Path(p) for p in paths})
+    print(f"[kiem tra anh] {len(todo)} anh ...")
+    with ThreadPoolExecutor(workers) as ex:
+        bad = [p for p, ok in zip(todo, ex.map(is_valid_image, todo)) if not ok]
+    for k in range(1, rounds + 1):
+        if not bad:
+            break
+        print(f"[kiem tra anh] lan {k}: {len(bad)} anh hong -> tai lai")
+        with ThreadPoolExecutor(8) as ex:
+            bad = [p for p, ok in zip(bad, ex.map(download, bad)) if not ok]
+    print(f"[kiem tra anh] {'tat ca hop le' if not bad else f'{len(bad)} anh van hong -> bo'}")
+    return {str(p) for p in bad}
+
+
 def link_or_copy(src: str, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.exists() or dst.is_symlink():
@@ -78,6 +133,7 @@ def main() -> None:
     ap.add_argument("--test-negatives", type=int, default=500)
     ap.add_argument("--val-ratio", type=float, default=0.1)
     ap.add_argument("--portrait-frac", type=float, default=0.2, help="ti le anh train NGANG duoc them ban cat doc 3:4")
+    ap.add_argument("--repair-rounds", type=int, default=3, help="so lan tai lai anh hong (0 = khong kiem tra)")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
     rng = random.Random(args.seed)
@@ -126,6 +182,13 @@ def main() -> None:
             k += 1
     splits["test"] = list(test.values())
     print(f"[test] {len(splits['test'])} anh tu val2017 ({k} negative)")
+
+    # 2b) Anh hong (FiftyOne tai do dang) -> tai lai; van hong thi bo khoi dataset
+    if args.repair_rounds > 0:
+        broken = repair_images([r["filepath"] for rows in splits.values() for r in rows], args.repair_rounds)
+        if broken:
+            splits = {k: [r for r in rows if r["filepath"] not in broken] for k, rows in splits.items()}
+            print(f"   bo {len(broken)} anh: {sorted(Path(b).name for b in broken)[:10]}")
 
     # 3) Ghi images (symlink) + labels; them ban cat doc cho mot phan anh train ngang
     from PIL import Image

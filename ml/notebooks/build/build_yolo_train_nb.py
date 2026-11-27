@@ -58,6 +58,7 @@ md("""
 ## 1. COCO 2017 → YOLO 9 lớp
 - Lấy ảnh COCO có chứa 9 lớp (tối đa 2.000 ảnh/lớp) cùng 1.500 ảnh nền không có lớp nào, giữ nguyên box gốc. 
 - Bổ sung khoảng 20% bản cắt dọc 3:4 mô phỏng ảnh chụp điện thoại. Tập test lấy từ COCO val2017.
+- Ảnh FiftyOne tải về bị hỏng (file rỗng, không mở được, bị cắt cụt) được kiểm tra và tải lại từ `images.cocodataset.org` trước khi tạo dataset; tải lại 3 lần vẫn hỏng thì bỏ ảnh đó.
 - Tải và nén  thành `coco_yolo9.zip`
 """)
 code("""
