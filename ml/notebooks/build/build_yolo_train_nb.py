@@ -97,6 +97,67 @@ else:
     print('snapget_vn_supplement.zip: KHÔNG TÌM THẤY trong WORK/data/')
 !ls {EXT}
 """)
+code("""
+# 2b. Kiểm tra ảnh COCO, tải lại ảnh hỏng (ảnh tải dở / file rỗng làm lỗi lúc train)
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from PIL import Image
+from tqdm.auto import tqdm
+
+COCO_DIR = Path(f'{YOLO}/coco')
+COCO_SRC = {'train': 'train2017', 'val': 'train2017', 'test': 'val2017'}  # split của dataset -> thư mục gốc trên COCO
+MAX_TRIES = 3
+
+def is_valid_image(p):
+    try:
+        if not p.exists() or p.stat().st_size == 0:
+            return False
+        with Image.open(p) as im:
+            im.verify()
+        with Image.open(p) as im:   # mở lại và load pixel để bắt cả ảnh bị cắt cụt
+            im.load()
+        return True
+    except Exception:
+        return False
+
+def download(url, dst):
+    tmp = dst.with_name(dst.name + '.part')   # tải ra file tạm, hợp lệ mới thay file cũ
+    subprocess.run(['wget', '-q', '--tries=3', '--timeout=30', '-O', str(tmp), url])
+    if is_valid_image(tmp):
+        tmp.replace(dst)
+        return True
+    tmp.unlink(missing_ok=True)
+    return False
+
+imgs = sorted(COCO_DIR.glob('images/*/*.jpg'))
+with ThreadPoolExecutor(8) as ex:
+    ok = list(tqdm(ex.map(is_valid_image, imgs), total=len(imgs), desc='Kiểm tra ảnh COCO'))
+bad = [p for p, good in zip(imgs, ok) if not good]
+print(f'{len(bad)}/{len(imgs)} ảnh hỏng')
+
+fixed, dropped = 0, []
+for p in bad:
+    if p.name.startswith('pc_'):              # bản cắt dọc tự sinh, không có trên COCO -> bỏ
+        dropped.append(p)
+        continue
+    target = p.resolve()                       # symlink -> file gốc của FiftyOne
+    url = f'http://images.cocodataset.org/{COCO_SRC[p.parent.name]}/{p.name}'
+    if any(download(url, target) for _ in range(MAX_TRIES)):
+        fixed += 1
+    else:
+        dropped.append(p)
+for p in dropped:                              # vẫn hỏng -> bỏ cả ảnh lẫn nhãn
+    p.unlink(missing_ok=True)
+    (COCO_DIR / 'labels' / p.parent.name / f'{p.stem}.txt').unlink(missing_ok=True)
+    print('[BỎ]', p.name)
+print(f'Đã tải lại {fixed} ảnh, bỏ {len(dropped)} ảnh')
+
+if fixed or dropped:                           # cập nhật bản zip trên Drive cho phiên sau
+    ZIP = f'{WORK}/data/coco_yolo9.zip'
+    !cd {YOLO} && rm -f /content/coco_tmp.zip && zip -q -r /content/coco_tmp.zip coco && cp /content/coco_tmp.zip {ZIP}
+    print('Đã cập nhật', ZIP)
+""")
 md("""
 ## 3. Gộp dữ liệu, kiểm tra, chia tập
 Gộp COCO với dữ liệu bổ sung thành `data.yaml` và danh sách ảnh cho từng tập:
