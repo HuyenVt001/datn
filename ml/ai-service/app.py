@@ -65,6 +65,11 @@ MODEL_REPO = os.environ.get("MODEL_REPO", "").strip()  # HF Model repo chua mode
 MODEL_FILES = ("model.onnx", "thresholds.json", "model_meta.json")
 # Model phu = thu muc con cua MODEL_DIR (va cua HF repo), moi thu muc 3 file nhu tren. Thieu -> chi log.
 EXTRA_MODELS = [m.strip() for m in os.environ.get("EXTRA_MODELS", "person").split(",") if m.strip()]
+# Ghi de nguong tung lop KHONG can sua thresholds.json tren HF, vd '{"book":0.35}' (JSON, ap cho moi model
+# co lop do). Xoa bien = quay ve nguong goc. Dung de chinh nhanh sau demo (QUEST_AI_PLAN muc 11).
+THRESHOLD_OVERRIDES: dict[str, float] = {
+    k: float(v) for k, v in json.loads(os.environ.get("THRESHOLD_OVERRIDES", "") or "{}").items()
+}
 # Mac dinh TAT: requirements khong cai llama-cpp (Cloud Run 512MB khong du cho Qwen 1.5B).
 # Sinh quest dung Gemini API / template phia server. Bat lai khi chay instance >= 2GB.
 ENABLE_LLM = os.environ.get("ENABLE_LLM", "0") not in ("0", "false", "False")
@@ -221,6 +226,10 @@ class Verifier:
             self.thresholds = {k: float(v) for k, v in json.loads(thr_path.read_text(encoding="utf-8")).items()}
         else:
             log.warning("thresholds.json not found — using default threshold 0.5 for every class")
+        for c, t in THRESHOLD_OVERRIDES.items():
+            if c in self.classes:
+                log.info("Threshold override %s: %s -> %s", c, self.thresholds.get(c, 0.5), t)
+                self.thresholds[c] = t
         log.info("Model %s (%s) san sang (%d lop, input %d)", self.meta.get("modelVersion"), self.arch,
                  len(self.classes), self.input_size)
 

@@ -277,3 +277,15 @@ def test_nth_score_matches_training_code():
                               rng.random((1, 300)) ** 4], axis=0).astype(np.float32)
         for n in (1, 2, 3):
             assert abs(app_module.nth_score(raw, 0, n) - float(nth_score_from_raw(raw, 0, n)[0])) < 1e-6
+
+
+def test_threshold_override_env(client, tmp_path, monkeypatch):
+    """THRESHOLD_OVERRIDES ghi de nguong lop co trong model, bo qua lop khong co."""
+    _, app_module = client
+    import dev_fake_model
+
+    dev_fake_model.build_yolo(tmp_path)
+    cls = app_module.Verifier(tmp_path).classes[0]
+    monkeypatch.setattr(app_module, "THRESHOLD_OVERRIDES", {cls: 0.123, "not-a-class": 0.9})
+    v = app_module.Verifier(tmp_path)
+    assert v.threshold_for(cls) == 0.123 and "not-a-class" not in v.thresholds

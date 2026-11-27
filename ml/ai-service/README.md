@@ -91,6 +91,7 @@ Model giả chấm điểm theo **độ sáng ảnh**: ảnh sáng/trắng → k
 | `ENABLE_LLM` | — | `0` | `1` = bật `/generate` bằng llama-cpp |
 | `LLM_REPO` / `LLM_FILE` / `LLM_THREADS` | — | Qwen2.5-1.5B-Instruct GGUF Q4 / 2 | Chỉ dùng khi `ENABLE_LLM=1` |
 | `EXTRA_MODELS` | — | `person` | Model phụ = thư mục con của HF repo / `MODEL_DIR` (phân tách bằng dấu phẩy) |
+| `THRESHOLD_OVERRIDES` | — | — | JSON ghi đè ngưỡng từng lớp, vd `{"book":0.35}` (đặt bằng `--update-env-vars "^@^THRESHOLD_OVERRIDES={\"book\":0.35}"`). Xoá biến = về ngưỡng của `thresholds.json` |
 | `IMAGE_TIMEOUT_S` / `IMAGE_MAX_BYTES` | — | `2.5` / 8MB | Giới hạn khi tải ảnh từ URL Cloudinary |
 
 ## Contract (khớp `server/src/ai/ai.service.ts`)
