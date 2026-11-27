@@ -331,7 +331,7 @@ describe('QuestsService', () => {
       // Gui URL Cloudinary DA thu nho (canh dai <= 640, giu ti le) cho AI service
       expect(ai.verify).toHaveBeenCalledWith(
         'https://res.cloudinary.com/demo/image/upload/w_640,h_640,c_limit,f_jpg,q_auto/v1/snapget/abc.jpg',
-        'cup',
+        ['cup', 'bottle'], // quest 'cup' gop nhom cup | bottle (2026-11-27)
       );
       expect(result).toEqual({ result: 'MATCHED', score: 0.87, questContent: aiQuest.content });
       expect(repo.completeUserQuest).toHaveBeenCalledWith(today, 'me', 'AI_CHALLENGE', {
@@ -416,7 +416,45 @@ describe('QuestsService', () => {
     it('non-Cloudinary URL -> sent to Space as-is', async () => {
       ai.verify.mockResolvedValue(verdict(false));
       await service.verifyAiQuest('me', { ...photo, mediaUrl: 'https://cdn.example.com/a.jpg' });
-      expect(ai.verify).toHaveBeenCalledWith('https://cdn.example.com/a.jpg', 'cup');
+      expect(ai.verify).toHaveBeenCalledWith('https://cdn.example.com/a.jpg', ['cup', 'bottle']);
+    });
+
+    it('grouped quest matched by another member (bottle) -> MATCHED, logs matchedClass + targetClasses', async () => {
+      ai.verify.mockResolvedValue({ ...verdict(true, 0.81), matchedClass: 'bottle' });
+
+      const result = await service.verifyAiQuest('me', photo);
+      await new Promise((r) => setImmediate(r));
+
+      expect(result?.result).toBe('MATCHED');
+      expect(repo.addAiVerification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetClass: 'cup',
+          targetClasses: ['cup', 'bottle'],
+          matchedClass: 'bottle',
+        }),
+      );
+    });
+
+    it('person quest -> asks the AI service for the "person" class (>= 2 people model)', async () => {
+      repo.getAiQuest.mockResolvedValue({ ...aiQuest, targetClass: 'person' });
+      ai.verify.mockResolvedValue(verdict(false, 0.2));
+
+      await service.verifyAiQuest('me', photo);
+
+      expect(ai.verify).toHaveBeenCalledWith(expect.any(String), ['person']);
+    });
+
+    it('legacy quest doc created before 2026-11-27 (clock) -> still verified as a single class', async () => {
+      repo.getAiQuest.mockResolvedValue({
+        ...aiQuest,
+        targetClass: 'clock' as unknown as DailyQuest['targetClass'],
+      });
+      ai.verify.mockResolvedValue(verdict(true));
+
+      const result = await service.verifyAiQuest('me', photo);
+
+      expect(ai.verify).toHaveBeenCalledWith(expect.any(String), ['clock']);
+      expect(result?.result).toBe('MATCHED');
     });
   });
 

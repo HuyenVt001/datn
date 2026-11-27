@@ -6,6 +6,7 @@ ma khong can Colab.
     pip install onnx numpy
     python dev_fake_model.py              # classifier gia (nhu v0) -> model/model.onnx + thresholds.json + model_meta.json
     python dev_fake_model.py --arch yolo  # YOLO gia (nhu y1): input 1x3x640x640, output 1x16x8400, arch "yolo"
+    python dev_fake_model.py --task person  # model PHU person gia -> model/person/ (quest >= 2 nguoi)
     set API_KEY=dev-key && python -m uvicorn app:app --port 8080     (PowerShell: $env:API_KEY='dev-key')
     # server/.env: AI_SERVICE_URL=http://localhost:8080  AI_SERVICE_API_KEY=dev-key
 
@@ -70,12 +71,58 @@ def build_yolo(out: Path) -> None:
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def build_person(out: Path) -> None:
+    """Model PHU person gia (1,3,640,640) -> (1, 5, 8400), "imageScore": "nth:2" (quest >= 2 nguoi).
+    2 box nguoi TACH ROI (anchor 0 va 1) cung diem sigmoid((mean_pixel - 0.5) * 24): anh SANG -> 2 nguoi
+    diem cao -> MATCHED; anh TOI -> NOT_MATCHED. Cac anchor con lai diem 0."""
+    anchors = 8400
+    out.mkdir(parents=True, exist_ok=True)
+    X = helper.make_tensor_value_info("images", TensorProto.FLOAT, [1, 3, 640, 640])
+    Y = helper.make_tensor_value_info("output0", TensorProto.FLOAT, [1, 5, anchors])
+    W = helper.make_tensor("W", TensorProto.FLOAT, [1, 1, 1], [24.0])
+    half = helper.make_tensor("half", TensorProto.FLOAT, [1], [0.5])
+    axes = helper.make_tensor("axes", TensorProto.INT64, [3], [1, 2, 3])
+    shape = helper.make_tensor("shape", TensorProto.INT64, [3], [1, 1, 1])
+    mask = np.zeros((1, 1, anchors), dtype=np.float32)
+    mask[0, 0, :2] = 1.0
+    MASK = helper.make_tensor("MASK", TensorProto.FLOAT, [1, 1, anchors], mask.flatten().tolist())
+    box = np.tile(np.array([[320.0], [320.0], [100.0], [200.0]], dtype=np.float32), (1, anchors))
+    box[0, 0], box[0, 1] = 160.0, 480.0  # 2 nguoi o 2 ben, khong chong lan -> NMS giu ca 2
+    BOX = helper.make_tensor("BOX", TensorProto.FLOAT, [1, 4, anchors], box[None].flatten().tolist())
+    nodes = [
+        helper.make_node("ReduceMean", ["images", "axes"], ["m"], keepdims=1),
+        helper.make_node("Reshape", ["m", "shape"], ["m3"]),
+        helper.make_node("Sub", ["m3", "half"], ["c"]),
+        helper.make_node("Mul", ["c", "W"], ["z"]),
+        helper.make_node("Sigmoid", ["z"], ["p"]),
+        helper.make_node("Mul", ["p", "MASK"], ["pe"]),
+        helper.make_node("Concat", ["BOX", "pe"], ["output0"], axis=1),
+    ]
+    graph = helper.make_graph(nodes, "snapget-fake-person", [X], [Y], initializer=[W, half, axes, shape, MASK, BOX])
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 18)])
+    model.ir_version = 9
+    onnx.checker.check_model(model)
+    onnx.save(model, out / "model.onnx")
+    (out / "thresholds.json").write_text(json.dumps({"person": 0.5}, indent=2), encoding="utf-8")
+    (out / "model_meta.json").write_text(json.dumps({
+        "modelVersion": "fake-dev-person", "arch": "yolo", "classes": ["person"], "inputSize": 640,
+        "preprocess": "letterbox", "padValue": 114, "scoreActivation": "none", "imageScore": "nth:2", "nmsIou": 0.5,
+        "note": "FAKE PERSON MODEL for local testing — 2 people, score = sigmoid((mean pixel - 0.5) * 24). DO NOT deploy.",
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--arch", choices=["classifier", "yolo"], default="classifier")
+    ap.add_argument("--task", choices=["main", "person"], default="main",
+                    help="person = tao model PHU gia vao model/person/ (quest >= 2 nguoi)")
     args = ap.parse_args()
     out = Path(__file__).parent / "model"
     out.mkdir(exist_ok=True)
+    if args.task == "person":
+        build_person(out / "person")
+        print(f"Da tao model person gia trong {out / 'person'}/ — anh SANG = co 2 nguoi, anh TOI = khong")
+        return
     if args.arch == "yolo":
         build_yolo(out)
         print(f"Da tao model YOLO gia trong {out}/ (model.onnx, thresholds.json, model_meta.json)")

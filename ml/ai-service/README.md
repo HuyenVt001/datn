@@ -5,7 +5,7 @@ Phục vụ 2 việc cho tính năng **AI Daily Quest** (kế hoạch: `Snapget/
 | Route | Auth | Việc |
 |---|---|---|
 | `GET /health` | public | keep-warm + trạng thái model/LLM |
-| `POST /verify` | `X-API-Key` | ONNX 12 lớp (**tự train**) — ảnh có chứa `targetClass` không. Theo `model_meta.json` `"arch"`: **`yolo`** (y1, YOLO11 detection, letterbox 640, điểm = max theo anchor, trả thêm `box`) hoặc `classifier` (v0, MobileNetV3, mặc định khi không có `arch`) |
+| `POST /verify` | `X-API-Key` | ONNX 12 lớp (**tự train**) — ảnh có chứa `targetClass` không. Theo `model_meta.json` `"arch"`: **`yolo`** (y1, YOLO11 detection, letterbox 640, điểm = max theo anchor, trả thêm `box`) hoặc `classifier` (v0, MobileNetV3, mặc định khi không có `arch`). **(2026-11-27)** nhận `targetClasses` (quest gộp nhóm — khớp nếu bất kỳ lớp nào ≥ ngưỡng) + **model phụ** `person/` (YOLO11n COCO, điểm = người thứ 2 sau NMS → quest ≥ 2 người) |
 | `POST /generate` | `X-API-Key` | (tuỳ chọn) Qwen2.5-1.5B GGUF viết câu quest tiếng Việt — mặc định **TẮT**, xem mục "LLM" |
 
 Chỉ server NestJS gọi service này; app Android không bao giờ gọi trực tiếp.
@@ -90,13 +90,16 @@ Model giả chấm điểm theo **độ sáng ảnh**: ảnh sáng/trắng → k
 | `PORT` | — | `8080` | Cloud Run tự inject; HF Space đặt `7860` |
 | `ENABLE_LLM` | — | `0` | `1` = bật `/generate` bằng llama-cpp |
 | `LLM_REPO` / `LLM_FILE` / `LLM_THREADS` | — | Qwen2.5-1.5B-Instruct GGUF Q4 / 2 | Chỉ dùng khi `ENABLE_LLM=1` |
+| `EXTRA_MODELS` | — | `person` | Model phụ = thư mục con của HF repo / `MODEL_DIR` (phân tách bằng dấu phẩy) |
 | `IMAGE_TIMEOUT_S` / `IMAGE_MAX_BYTES` | — | `2.5` / 8MB | Giới hạn khi tải ảnh từ URL Cloudinary |
 
 ## Contract (khớp `server/src/ai/ai.service.ts`)
 
 ```
-GET  /health                 → { status, modelVersion, verifierReady, llm, llmLoading, llmError }
-POST /verify   (X-API-Key)   { imageUrl, targetClass } → { matched, score, threshold, scores{12}, modelVersion, latencyMs }
+GET  /health                 → { status, modelVersion, arch, verifierReady, extraModels{person}, llm, llmLoading, llmError }
+POST /verify   (X-API-Key)   { imageUrl, targetClass, targetClasses? } → { matched, score, threshold, scores, modelVersion, latencyMs, box?, matchedClass? }
 POST /generate (X-API-Key)   { classes[12], avoid[] }  → { targetClass, content }
 ```
+Model phụ (`EXTRA_MODELS`, mặc định `person`): HF repo / `MODEL_DIR` có thư mục con `person/{model.onnx,thresholds.json,model_meta.json}` (upload bằng `ml/scripts/16_export_yolo_onnx.py --task person`); tải lúc khởi động, thiếu thì chỉ log. Test local: `python dev_fake_model.py --task person` (ảnh sáng = có 2 người).
+
 Lỗi: 401 sai key · 400 `targetClass` lạ · 422 không tải/đọc được ảnh · 503 model/LLM chưa sẵn sàng · 502 LLM trả rác. Server coi mọi lỗi/timeout 3s là `SKIPPED` — không bao giờ làm fail đăng bài.

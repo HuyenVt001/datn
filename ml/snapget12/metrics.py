@@ -227,3 +227,27 @@ def select_quest_classes(image_report: dict, confusion: dict, det_per_class: dic
         ranked = sorted((c for c in classes if out[c]["support"] > 0), key=lambda c: out[c]["f1"] or 0, reverse=True)
         selected = [c for c in classes if c in set(ranked[: crit["minClasses"]])]
     return {"perClass": out, "selected": selected, "fallbackUsed": fallback, "criteria": crit}
+
+
+# ---------------------------------------------------------------------------
+# Quest gop nhom (2026-11-27): 1 quest chap nhan nhieu lop, vd "cup" = cup HOAC bottle
+# ---------------------------------------------------------------------------
+def group_scores(y_true: np.ndarray, y_score: np.ndarray, thresholds: dict[str, float],
+                 groups: dict[str, list[str]], classes: list[str] | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Gop diem tung lop thanh diem tung QUEST — dung quyet dinh cua ai-service (pass neu BAT KY lop nao
+    trong nhom vuot nguong rieng cua lop do):
+        diem quest = max_c (score_c / thr_c)   -> pass <=> diem >= 1
+        nhan quest = 1 neu anh co BAT KY lop nao trong nhom
+    Tra (Y (N,G), S (N,G)) theo thu tu `groups` — dua thang vao `evaluate` voi nguong 1.0 moi quest.
+    Lop nhom khong co trong `classes` -> KeyError (bat loi cau hinh som).
+    """
+    classes = classes or CLASSES
+    idx = {c: i for i, c in enumerate(classes)}
+    ys, ss = [], []
+    for members in groups.values():
+        cols = [idx[c] for c in members]
+        thr = np.array([max(thresholds.get(c, 0.5), 1e-6) for c in members], dtype=np.float64)
+        ys.append(y_true[:, cols].max(axis=1))
+        ss.append((y_score[:, cols] / thr).max(axis=1))
+    return np.stack(ys, axis=1).astype(int), np.stack(ss, axis=1)

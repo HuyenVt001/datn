@@ -5,8 +5,9 @@ import { AiQuestClass } from '../../common/constants';
  * xem Snapget/.claude/QUEST_AI_PLAN.md):
  *   - LOGIN: dang nhap vao app (tu hoan thanh khi goi GET /quests/today)
  *   - POST_MOMENT: dang 1 anh/video bat ky (tu hoan thanh khi tao moment)
- *   - AI_CHALLENGE: quest do AI sinh ("Take a photo of a cup") — tu hoan thanh khi
- *     anh user DANG LEN FEED duoc model AI xac minh co chua vat the (`targetClass`).
+ *   - AI_CHALLENGE: quest AI ("Take a photo of a cup or a bottle") — tu hoan thanh khi
+ *     anh user DANG LEN FEED duoc model AI xac minh co chua BAT KY lop nao cua quest
+ *     (`AI_QUEST_GROUPS[targetClass]`, gop nhom tu 2026-11-27; quest `person` = >= 2 nguoi).
  *     Chi ton tai khi server co cau hinh AI (thieu env -> ngay do chi co 2 quest).
  */
 export type QuestType = 'LOGIN' | 'POST_MOMENT' | 'AI_CHALLENGE';
@@ -26,7 +27,7 @@ export const QUEST_CONTENT: Record<FixedQuestType, string> = {
 
 /**
  * Nguon sinh noi dung quest AI. Tu 2026-08-16 THUC TE luon la FALLBACK (user chot bo
- * LLM sinh quest — quest lay tu bo mau 72 cau); giu lai gia tri LLM lam diem cam san.
+ * LLM sinh quest — quest lay tu bo mau 56 cau); giu lai gia tri LLM lam diem cam san.
  */
 export type AiQuestSource = 'LLM' | 'FALLBACK';
 
@@ -38,7 +39,7 @@ export interface DailyQuest {
   content: string;
   /** YYYY-MM-DD (UTC). */
   releaseDate: string;
-  /** CHI quest AI_CHALLENGE: vat the phai co trong anh (1 trong AI_QUEST_CLASSES). */
+  /** CHI quest AI_CHALLENGE: key quest (1 trong AI_QUEST_CLASSES) — lop chap nhan = AI_QUEST_GROUPS[key]. */
   targetClass?: AiQuestClass;
   /** CHI quest AI_CHALLENGE: noi dung do LLM viet hay template. */
   source?: AiQuestSource;
@@ -60,7 +61,7 @@ export interface UserQuest {
   completedAt: string;
   /** CHI quest AI_CHALLENGE: moment nao hoan thanh quest (audit + so lieu bao cao). */
   momentId?: string;
-  /** CHI quest AI_CHALLENGE: diem sigmoid cua targetClass luc khop. */
+  /** CHI quest AI_CHALLENGE: diem cua lop da khop luc xac minh. */
   aiScore?: number;
   /** CHI quest AI_CHALLENGE: phien ban model da xac minh. */
   modelVersion?: string;
@@ -95,7 +96,7 @@ export interface TodayQuestsResult {
  */
 export interface AiQuestResult {
   result: 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
-  /** Diem sigmoid [0,1] cua targetClass (khong co khi SKIPPED). */
+  /** Diem [0,1] cua lop khop / lop gan nguong nhat trong quest (khong co khi SKIPPED). */
   score?: number;
   /** Noi dung quest AI (de app hien toast co ngu canh). */
   questContent?: string;

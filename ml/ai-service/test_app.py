@@ -100,7 +100,8 @@ def test_verify_matched_and_not(client, monkeypatch):
     r = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "motorcycle"}, headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert set(body) == {"matched", "score", "threshold", "scores", "modelVersion", "latencyMs", "box"}
+    assert set(body) == {"matched", "score", "threshold", "scores", "modelVersion", "latencyMs", "box", "matchedClass"}
+    assert body["matchedClass"] == "motorcycle"
     assert len(body["scores"]) == 12
     assert body["threshold"] == 0.9
     assert body["matched"] is True and body["score"] >= 0.9
@@ -195,3 +196,84 @@ def test_unknown_arch_disables_verify(client, tmp_path):
     meta["arch"] = "segformer"
     (tmp_path / "model_meta.json").write_text(json.dumps(meta))
     assert app_module.Verifier(tmp_path).ready is False
+
+
+# ---------------------------------------------------------------------------
+# Quest gop nhom (targetClasses) + model phu person (2026-11-27)
+# ---------------------------------------------------------------------------
+H = {"X-API-Key": "test-key-123"}
+
+
+def _fetch_by_color(app_module, monkeypatch):
+    async def fake_fetch(url: str) -> bytes:
+        return _jpeg((255, 255, 255)) if "white" in url else _jpeg((0, 0, 0))
+
+    monkeypatch.setattr(app_module, "fetch_image", fake_fetch)
+
+
+def test_group_matches_any_member(client, monkeypatch):
+    c, app_module = client
+    _fetch_by_color(app_module, monkeypatch)
+    # anh trang: cup thap, motorcycle cao -> nhom (cup, motorcycle) KHOP nho motorcycle
+    body = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "cup",
+                                   "targetClasses": ["cup", "motorcycle"]}, headers=H).json()
+    assert body["matched"] is True and body["matchedClass"] == "motorcycle" and body["threshold"] == 0.9
+    # anh den: cup cao -> khop nho cup
+    body = c.post("/verify", json={"imageUrl": "https://x/black.jpg", "targetClass": "cup",
+                                   "targetClasses": ["cup", "motorcycle"]}, headers=H).json()
+    assert body["matched"] is True and body["matchedClass"] == "cup"
+    # khong lop nao vuot nguong -> matchedClass None, score/threshold cua lop gan nguong nhat
+    body = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "cup",
+                                   "targetClasses": ["cup", "book"]}, headers=H).json()
+    assert body["matched"] is False and body["matchedClass"] is None
+    assert c.post("/verify", json={"imageUrl": "https://x/w.jpg", "targetClass": "cup",
+                                   "targetClasses": ["cup", "cat"]}, headers=H).status_code == 400
+
+
+@pytest.fixture()
+def person_model(client, tmp_path, monkeypatch):
+    _, app_module = client
+    import dev_fake_model
+
+    dev_fake_model.build_person(tmp_path / "person")
+    v = app_module.Verifier(tmp_path / "person")
+    monkeypatch.setattr(app_module, "extra_verifiers", {"person": v})
+    return v
+
+
+def test_person_model_counts_two_people(client, person_model, monkeypatch):
+    c, app_module = client
+    _fetch_by_color(app_module, monkeypatch)
+    assert person_model.nth == 2 and person_model.classes == ["person"]
+    body = c.post("/verify", json={"imageUrl": "https://x/white.jpg", "targetClass": "person",
+                                   "targetClasses": ["person"]}, headers=H).json()
+    assert body["matched"] is True and body["matchedClass"] == "person"
+    assert body["modelVersion"] == "fake-dev-person" and set(body["scores"]) == {"person"}  # chi chay model phu
+    assert body["box"] is None
+    body = c.post("/verify", json={"imageUrl": "https://x/black.jpg", "targetClass": "person"}, headers=H).json()
+    assert body["matched"] is False
+    assert c.get("/health").json()["extraModels"] == {"person": "fake-dev-person"}
+
+
+def test_person_model_missing_returns_503(client, tmp_path, monkeypatch):
+    c, app_module = client
+    monkeypatch.setattr(app_module, "extra_verifiers", {"person": app_module.Verifier(tmp_path / "none")})
+    r = c.post("/verify", json={"imageUrl": "https://x/a.jpg", "targetClass": "person"}, headers=H)
+    assert r.status_code == 503  # server coi la SKIPPED
+    assert c.get("/health").json()["extraModels"] == {"person": None}
+
+
+def test_nth_score_matches_training_code():
+    """Ban sao trong app.py phai GIONG HET snapget12/yolo.py (dung chon nguong luc danh gia)."""
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import app as app_module
+    from snapget12.yolo import nth_score_from_raw
+
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        raw = np.concatenate([rng.uniform(0, 640, (2, 300)), rng.uniform(5, 200, (2, 300)),
+                              rng.random((1, 300)) ** 4], axis=0).astype(np.float32)
+        for n in (1, 2, 3):
+            assert abs(app_module.nth_score(raw, 0, n) - float(nth_score_from_raw(raw, 0, n)[0])) < 1e-6

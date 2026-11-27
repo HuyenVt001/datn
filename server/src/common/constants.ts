@@ -41,26 +41,37 @@ export const QUEST_DAILY_ASTRITE = 60; // Thuong khi xong 2/2 quest CO DINH tron
 
 export const QUEST_AI_ASTRITE = 30; // Thuong RIENG khi xong quest AI (60 cua 2/2 quest co dinh GIU NGUYEN) — toi da 90/ngay
 /**
- * Lop vat the DUOC RA DE (ten COCO chuan) — 9 lop, chot 2026-08-16 (Claude quyet theo
- * tieu chi user giao: do chinh xac xac minh cao nhat). Model xac minh HOC 12 lop
- * (AI_MODEL_CLASSES) nhung 3 lop `book` / `backpack` / `keyboard` bi loai khoi vong quay:
- * nhan COCO nhieu nhat (book, backpack — AP thap nhat COCO) hoac lan voi lop khac (keyboard
- * luon di cung laptop). Them/bot lop ra de = sua list nay, KHONG can retrain (moi output
- * cua model doc lap). 3 lop bi loai van co so lieu de bao cao "do roi moi loai".
+ * 7 QUEST AI ra de — user chot 2026-11-27 sau khi danh gia model y1 (YOLO11s) tren anh that.
+ * Key quest (luu o `targetClass` cua quest) -> CAC LOP DUOC CHAP NHAN: anh khop neu BAT KY lop
+ * nao vuot nguong rieng cua lop do (gop lop de lan -> tang ti le pass, giam loai nham).
+ *   - `person` = co >= 2 NGUOI trong khung (quest "Snap a photo with your friend"): model PHU
+ *     YOLO11n COCO goc tren AI service (khong phai lop cua y1), KHONG loc nguoi la/kich thuoc.
+ *   - Bo khoi vong quay: clock, backpack, potted plant (van la lop cua model, co so lieu bao cao).
+ * Truoc 2026-11-27: 9 lop don (cup, bottle, chair, potted plant, laptop, clock, umbrella,
+ * bicycle, motorcycle). Them/bot quest hoac lop trong nhom = sua map nay, KHONG retrain.
+ * Quest "nguoi + vat" (vd ban cam o) de sau — se can dieu kien AND, chua lam.
+ * KHOP `QUEST_GROUPS` o ml/snapget12/classes.py (danh gia theo quest — 17_eval_quests.py).
  */
-export const AI_QUEST_CLASSES = [
-  'cup',
-  'bottle',
-  'chair',
-  'potted plant',
-  'laptop',
-  'clock',
-  'umbrella',
-  'bicycle',
-  'motorcycle',
-] as const;
-export type AiQuestClass = (typeof AI_QUEST_CLASSES)[number];
-/** Toan bo lop model biet (thu tu = output model, khop ml/snapget12/classes.py) — AI_QUEST_CLASSES ⊂ list nay. */
+export const AI_QUEST_GROUPS = {
+  bicycle: ['bicycle', 'motorcycle'],
+  laptop: ['laptop', 'keyboard'],
+  umbrella: ['umbrella'],
+  chair: ['chair'],
+  cup: ['cup', 'bottle'],
+  book: ['book'],
+  person: ['person'],
+} as const satisfies Record<string, readonly string[]>;
+export type AiQuestClass = keyof typeof AI_QUEST_GROUPS;
+/** Key cua 7 quest ra de (thu tu = thu tu khai bao o AI_QUEST_GROUPS). */
+export const AI_QUEST_CLASSES = Object.keys(AI_QUEST_GROUPS) as AiQuestClass[];
+/**
+ * Cac lop AI service phai cham cho 1 quest. Key la (doc quest cu trong Firestore truoc
+ * 2026-11-27, vd `clock`, `motorcycle`) -> coi la 1 lop don — van verify duoc.
+ */
+export function aiQuestTargetClasses(key: string): readonly string[] {
+  return (AI_QUEST_GROUPS as Record<string, readonly string[]>)[key] ?? [key];
+}
+/** Toan bo lop model y1 biet (thu tu = output model, khop ml/snapget12/classes.py) — lop trong AI_QUEST_GROUPS ⊂ list nay ∪ AI_EXTRA_CLASSES. */
 export const AI_MODEL_CLASSES = [
   'cup',
   'bottle',
@@ -75,7 +86,9 @@ export const AI_MODEL_CLASSES = [
   'bicycle',
   'motorcycle',
 ] as const;
-export const AI_QUEST_AVOID_RECENT = 3; // Khong lap vat the cua 3 ngay gan nhat
+/** Lop cua MODEL PHU tren AI service (ngoai 12 lop y1) — `person`: diem = nguoi thu 2 sau NMS (>= 2 nguoi). */
+export const AI_EXTRA_CLASSES = ['person'] as const;
+export const AI_QUEST_AVOID_RECENT = 3; // Khong lap quest cua 3 ngay gan nhat (7 quest -> moi quest ~4 lan/thang)
 export const AI_QUEST_CONTENT_MAX = 80; // content quest AI toi da (ky tu) — LLM tra dai hon thi dung fallback
 export const AI_VERIFY_TIMEOUT_MS = 3000; // AI service verify qua 3s -> SKIPPED, khong giu chan response dang bai
 export const AI_GENERATE_TIMEOUT_MS = 90_000; // LLM CPU sinh cham — cron goi offline nen cho duoc lau

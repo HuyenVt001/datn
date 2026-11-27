@@ -5,75 +5,36 @@ import { AI_QUEST_CLASSES, AiQuestClass } from '../../common/constants';
  * nhiem vu XAC MINH ANH, noi dung quest lay tu bo mau nay). Van dong thoi la duong
  * FALLBACK neu sau nay bat lai LLM (`source: 'LLM' | 'FALLBACK'` van giu).
  *
- * 9 lop x 8 cau = 72 cau (9 lop ra de — xem AI_QUEST_CLASSES; AI_QUEST_AVOID_RECENT
- * tranh lap vat the 3 ngay gan nhat => moi lop ~3-5 lan/thang, 8 cau du de gan nhu
- * khong lap cau chu trong 1 thang).
+ * 7 quest x 8 cau = 56 cau (2026-11-27 — 7 quest GOP NHOM, xem AI_QUEST_GROUPS;
+ * AI_QUEST_AVOID_RECENT tranh lap quest 3 ngay gan nhat => moi quest ~4 lan/thang).
+ * Cau cua quest gop nhom NEU DU CAC LOP duoc chap nhan ("a cup or a bottle") de user
+ * biet chup gi cung qua. Quest `person` = anh co >= 2 nguoi (chup cung ban be).
  *
  * Cau chu VIET DE ANH DE NHAN DIEN (don bay do chinh xac that): goi y chup CAN,
  * vat the O GIUA khung hinh, mot vat the la chinh, du sang, o mo (umbrella) — tranh
- * cau kieu "goc hoc tap" (vat the nho, lan nhieu do). Tieng Anh, bat dau
- * bang "Take a photo of", <= AI_QUEST_CONTENT_MAX ky tu.
+ * cau kieu "goc hoc tap" (vat the nho, lan nhieu do). Tieng Anh, bat dau bang
+ * "Take a photo/selfie" hoac "Snap a photo/selfie", <= AI_QUEST_CONTENT_MAX ky tu.
  */
 export const AI_QUEST_TEMPLATES: Record<AiQuestClass, readonly string[]> = {
-  cup: [
-    'Take a photo of a cup up close on the table',
-    'Take a photo of the coffee or tea cup you are drinking',
-    'Take a photo of your favorite cup in the center of the frame',
-    'Take a photo of a cup at your favorite cafe',
-    'Take a photo of the cup you use every morning',
-    'Take a photo of a cup with a handle',
-    'Take a photo of the cup you are holding',
-    'Take a photo of a white cup or ceramic mug',
-  ],
-  bottle: [
-    'Take a photo of a water bottle up close',
-    'Take a photo of the water bottle you brought today',
-    'Take a photo of a water bottle standing on the table',
-    'Take a photo of the water bottle by your bed',
-    'Take a photo of a water bottle in the cafeteria',
-    'Take a photo of the water bottle in your hand',
-    'Take a photo of any beverage bottle, clearly visible',
-    'Take a photo of a sealed water bottle with its cap on',
-  ],
-  chair: [
-    'Take a photo of an empty chair, fully visible',
-    'Take a photo of the chair you usually sit on from the front',
-    'Take a photo of a chair in a cafe',
-    'Take a photo of a chair in the classroom',
-    'Take a photo of a chair wherever you are right now',
-    'Take a photo of the chair next to your study desk',
-    'Take a photo of a wooden or plastic chair',
-    'Take a photo of the nicest chair you see today',
-  ],
-  'potted plant': [
-    'Take a photo of a green potted plant up close',
-    'Take a photo of a potted plant indoors or on the balcony',
-    'Take a photo of a potted plant in the hallway',
-    'Take a photo of your desktop potted plant',
-    'Take a photo of a potted plant you come across today',
-    'Take a photo of a potted plant showing both the pot and leaves',
-    'Take a photo of a potted plant in a cafe',
-    'Take a photo of your favorite potted plant',
+  bicycle: [
+    'Take a photo of a bicycle or motorbike from the side',
+    'Take a photo of your bicycle or motorbike',
+    'Take a photo of a parked bike or motorbike, fully visible',
+    'Take a photo of a bicycle or motorbike in the parking lot',
+    'Take a photo of a bike or motorbike on the street',
+    'Take a photo of the bike or motorbike you ride every day',
+    'Take a photo of a bicycle or motorbike showing both wheels',
+    'Take a photo of the bike or motorbike closest to you',
   ],
   laptop: [
     'Take a photo of an open laptop',
-    'Take a photo of your laptop facing the screen directly',
-    'Take a photo of the entire laptop on the desk',
-    'Take a photo of the laptop you are using today',
+    'Take a photo of the laptop or keyboard you are using today',
+    'Take a photo of a laptop on your desk',
+    'Take a photo of a keyboard up close',
     'Take a photo of a laptop in the library or a cafe',
-    'Take a photo of a laptop with a cup next to it',
-    'Take a photo of a laptop from a top-down view',
-    'Take a photo of a laptop while working on something',
-  ],
-  clock: [
-    'Take a photo of a clock up close',
-    'Take a photo of the wall clock where you are staying',
-    'Take a photo of your desk clock',
-    'Take a photo of a clock showing the current time',
-    'Take a photo of the clock in your classroom',
-    'Take a photo of your alarm clock',
-    'Take a photo of a watch face up close',
-    'Take a photo of a round clock',
+    'Take a photo of your keyboard from a top-down view',
+    'Take a photo of the entire laptop facing the screen',
+    'Take a photo of a laptop or keyboard while working on something',
   ],
   umbrella: [
     'Take a photo of an open umbrella',
@@ -85,25 +46,45 @@ export const AI_QUEST_TEMPLATES: Record<AiQuestClass, readonly string[]> = {
     'Take a photo of an umbrella in a color you like',
     'Take a photo of an open umbrella outdoors or on the street',
   ],
-  bicycle: [
-    'Take a photo of a bicycle from the side',
-    'Take a photo of a bicycle parked in the schoolyard',
-    'Take a photo of a complete bicycle',
-    'Take a photo of a bicycle locked by the street',
-    "Take a photo of your bicycle or a relative's bicycle",
-    'Take a photo of a bicycle you see today',
-    'Take a photo of a bicycle showing both wheels clearly',
-    'Take a photo of a bicycle in the parking lot',
+  chair: [
+    'Take a photo of an empty chair, fully visible',
+    'Take a photo of the chair you usually sit on from the front',
+    'Take a photo of a chair in a cafe',
+    'Take a photo of a chair in the classroom',
+    'Take a photo of a chair wherever you are right now',
+    'Take a photo of the chair next to your study desk',
+    'Take a photo of a wooden or plastic chair',
+    'Take a photo of the nicest chair you see today',
   ],
-  motorcycle: [
-    'Take a photo of a motorcycle from the side',
-    "Take a photo of your motorcycle or a relative's motorcycle",
-    'Take a photo of a parked motorcycle, fully visible',
-    'Take a photo of a motorcycle in the parking lot',
-    'Take a photo of a motorcycle on the street',
-    'Take a photo of the motorcycle you ride every day',
-    'Take a photo of a motorcycle showing both wheels clearly',
-    'Take a photo of the motorcycle closest to you',
+  cup: [
+    'Take a photo of a cup or a bottle up close on the table',
+    'Take a photo of the coffee, tea or water you are drinking',
+    'Take a photo of your favorite cup or water bottle',
+    'Take a photo of a drink at your favorite cafe',
+    'Take a photo of the cup or bottle you use every day',
+    'Take a photo of the cup or bottle you are holding',
+    'Take a photo of a water bottle standing on the table',
+    'Take a photo of a mug, a glass or a bottle',
+  ],
+  book: [
+    'Take a photo of a book up close',
+    'Take a photo of the book you are reading',
+    'Take a photo of an open book on the table',
+    'Take a photo of a notebook or textbook from your bag',
+    'Take a photo of a book in the library',
+    'Take a photo of a book cover in the center of the frame',
+    'Take a photo of a stack of books',
+    'Take a photo of your favorite book',
+  ],
+  person: [
+    'Snap a photo with your friend',
+    'Take a photo of you and a friend together',
+    'Take a selfie with a friend',
+    'Snap a group photo with your classmates',
+    'Take a photo of two or more friends hanging out',
+    'Snap a selfie with someone you met today',
+    'Take a photo with your friends at lunch',
+    'Snap a photo with your study buddy',
   ],
 };
 

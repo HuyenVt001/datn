@@ -129,3 +129,37 @@ def test_find_names_prefers_shallowest_file(tmp_path):
     assert find_names(tmp_path) == ["bottle", "cup"]
     (tmp_path / "data.yaml").write_text("names: {0: chair, 1: cup}")
     assert find_names(tmp_path) == ["chair", "cup"]  # cung do sau: data.yaml uu tien hon classes.txt
+
+
+def test_nth_score_counts_people_after_nms():
+    from snapget12.yolo import nth_score_from_raw
+
+    raw = np.zeros((5, 6), dtype=np.float32)  # 1 lop person, 6 anchor
+    raw[:4, 0] = [100, 100, 50, 100]
+    raw[4, 0] = 0.9
+    raw[:4, 1] = [102, 101, 50, 100]  # trung box 0 -> NMS bo
+    raw[4, 1] = 0.85
+    raw[:4, 2] = [400, 300, 60, 120]  # nguoi thu 2
+    raw[4, 2] = 0.6
+    raw[:4, 3] = [600, 500, 10, 10]
+    raw[4, 3] = 0.02  # duoi conf_floor
+    s = nth_score_from_raw(raw, 0, n=2)
+    assert s.shape == (1,) and abs(s[0] - 0.6) < 1e-6
+    assert abs(nth_score_from_raw(raw, 0, n=1)[0] - 0.9) < 1e-6
+    assert nth_score_from_raw(raw, 0, n=3)[0] == 0  # sau NMS chi con 2 nguoi
+    one = raw.copy()
+    one[4, 2] = 0
+    assert nth_score_from_raw(one, 0, n=2)[0] == 0  # 2 box trung = 1 nguoi -> khong pass
+
+
+def test_group_scores_any_member_passes():
+    from snapget12.metrics import group_scores
+
+    classes = ["cup", "bottle", "book"]
+    y = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]])
+    s = np.array([[0.30, 0.1, 0], [0.1, 0.80, 0], [0.1, 0.1, 0.9], [0.1, 0.5, 0]])
+    thr = {"cup": 0.2, "bottle": 0.7, "book": 0.5}
+    yg, sg = group_scores(y, s, thr, {"cup": ["cup", "bottle"], "book": ["book"]}, classes)
+    assert yg.tolist() == [[1, 0], [1, 0], [0, 1], [0, 0]]
+    assert (sg[:, 0] >= 1).tolist() == [True, True, False, False]  # cup 0.3/0.2, bottle 0.8/0.7; 0.5/0.7 < 1
+    assert (sg[:, 1] >= 1).tolist() == [False, False, True, False]

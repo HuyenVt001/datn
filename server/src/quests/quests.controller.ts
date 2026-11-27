@@ -25,7 +25,7 @@ export class QuestsController {
     summary:
       "Today's quests + completion status: 2 fixed quests (LOGIN, POST_MOMENT) + AI quest (AI_CHALLENGE, only when the server has AI on). Calling this endpoint completes LOGIN.",
     description:
-      'The AI quest also has `targetClass` (1 of the 9 quest object classes — `AI_QUEST_CLASSES`) and `source` (LLM | FALLBACK).' +
+      'The AI quest also has `targetClass` (1 of the 7 quest keys — `AI_QUEST_CLASSES`; a photo matches if it contains ANY class of that quest group, e.g. cup = cup or bottle; person = at least 2 people) and `source` (LLM | FALLBACK).' +
       'Complete the AI quest by posting a photo moment containing the object — the server verifies it during POST /moments.' +
       '`rewardAstrite` is still the reward for completing 2/2 fixed quests (+60); the AI quest rewards a separate +30.',
   })
@@ -48,7 +48,7 @@ export class QuestsController {
   })
   @ApiOperation({
     summary:
-      '[Cron] (optional) Pre-generate AI quests for today + tomorrow from the 72-sentence template set',
+      '[Cron] (optional) Pre-generate AI quests for today + tomorrow from the 56-sentence template set',
     description:
       'Idempotent: a day that already has an AI quest returns it (`created:false`), never overwrites.' +
       'Generates tomorrow ahead so the cron can run at any hour. AI off (missing env) → returns an empty array.' +

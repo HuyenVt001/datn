@@ -11,6 +11,11 @@ Doi cho deploy = doi AI_SERVICE_URL o server, khong sua code.
                                  diem lop = max theo anchor (khong NMS) + box tot nhat cua target
                     "classifier" (v0, mac dinh) MobileNetV3-Small + head: center-crop 224, logits -> sigmoid
                   Rollback = upload lai 3 file cua model cu, khong sua code.
+                  MODEL PHU (2026-11-27): moi thu muc con trong EXTRA_MODELS (mac dinh "person") la 1 model
+                  YOLO rieng cung dinh dang 3 file — vd person/ = YOLO11n COCO goc, "imageScore": "nth:2"
+                  (diem = nguoi thu 2 sau NMS -> quest ">= 2 nguoi"). Request co the hoi NHIEU lop
+                  (`targetClasses`, quest gop nhom) -> matched neu BAT KY lop nao vuot nguong; service chi
+                  chay nhung model can cho cac lop duoc hoi.
   POST /generate  Qwen2.5-1.5B-Instruct GGUF Q4 (llama-cpp) — writes the English quest sentence
   GET  /health    public (cron keep-warm) — modelVersion + trang thai LLM
 
@@ -24,6 +29,7 @@ Artifact model nam trong thu muc model/ — KHONG commit vao monorepo. 2 cach na
   model/thresholds.json   {"cup": 0.35, ...} nguong RIENG tung lop (chon tren anh that real-calib)
   model/model_meta.json   {"modelVersion": "y1", "arch": "yolo", "classes": [...12], "inputSize": 640, ...}
                           (classifier: "arch" vang mat, co "mean"/"std", inputSize 224)
+  model/person/{model.onnx,thresholds.json,model_meta.json}   model phu (tuy chon — thieu thi lop person 503)
 Thieu model -> /verify tra 503 (server coi la SKIPPED), /health van 200 de biet Space song.
 """
 from __future__ import annotations
@@ -57,6 +63,8 @@ API_KEY = os.environ.get("API_KEY", "")  # SECRET — phai trung AI_SERVICE_API_
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "model"))
 MODEL_REPO = os.environ.get("MODEL_REPO", "").strip()  # HF Model repo chua model.onnx + 2 file json
 MODEL_FILES = ("model.onnx", "thresholds.json", "model_meta.json")
+# Model phu = thu muc con cua MODEL_DIR (va cua HF repo), moi thu muc 3 file nhu tren. Thieu -> chi log.
+EXTRA_MODELS = [m.strip() for m in os.environ.get("EXTRA_MODELS", "person").split(",") if m.strip()]
 # Mac dinh TAT: requirements khong cai llama-cpp (Cloud Run 512MB khong du cho Qwen 1.5B).
 # Sinh quest dung Gemini API / template phia server. Bat lai khi chay instance >= 2GB.
 ENABLE_LLM = os.environ.get("ENABLE_LLM", "0") not in ("0", "false", "False")
@@ -115,21 +123,54 @@ def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
 # ---------------------------------------------------------------------------
 # Verifier: ONNX classifier
 # ---------------------------------------------------------------------------
-def download_model(model_dir: Path) -> None:
-    """Tai artifact tu HF Model repo (mien phi) neu chua co san trong image.
-    Loi tai (repo sai / mat mang) chi ghi log — /verify se tra 503, server coi la SKIPPED."""
-    if not MODEL_REPO or (model_dir / "model.onnx").exists():
+def download_model(model_dir: Path, subdir: str = "") -> None:
+    """Tai artifact tu HF Model repo (mien phi) neu chua co san trong image. `subdir` = model phu
+    (vd "person" -> file person/model.onnx tren repo). Loi tai (repo sai / mat mang / repo chua co
+    model phu) chi ghi log — /verify tra 503 cho lop cua model do, server coi la SKIPPED."""
+    target = model_dir / subdir if subdir else model_dir
+    if not MODEL_REPO or (target / "model.onnx").exists():
         return
     try:
         from huggingface_hub import hf_hub_download
 
-        model_dir.mkdir(parents=True, exist_ok=True)
+        target.mkdir(parents=True, exist_ok=True)
         for name in MODEL_FILES:
-            src = hf_hub_download(repo_id=MODEL_REPO, filename=name)
-            shutil.copyfile(src, model_dir / name)
-        log.info("Da tai model tu HF repo %s", MODEL_REPO)
+            src = hf_hub_download(repo_id=MODEL_REPO, filename=f"{subdir}/{name}" if subdir else name)
+            shutil.copyfile(src, target / name)
+        log.info("Da tai model %s tu HF repo %s", subdir or "chinh", MODEL_REPO)
     except Exception as e:
-        log.warning("Failed to download model from %s: %s", MODEL_REPO, e)
+        log.warning("Failed to download model %s from %s: %s", subdir or "main", MODEL_REPO, e)
+
+
+def nms_keep(xywh: np.ndarray, scores: np.ndarray, iou: float = 0.5) -> list[int]:
+    """GIONG HET ml/snapget12/yolo.py `nms_keep` — NMS tham lam 1 lop. Sua o day thi sua ca ben do."""
+    x1, y1 = xywh[:, 0] - xywh[:, 2] / 2, xywh[:, 1] - xywh[:, 3] / 2
+    x2, y2 = xywh[:, 0] + xywh[:, 2] / 2, xywh[:, 1] + xywh[:, 3] / 2
+    area = np.maximum(x2 - x1, 0) * np.maximum(y2 - y1, 0)
+    order = np.argsort(-scores, kind="stable")
+    keep: list[int] = []
+    while order.size:
+        i = int(order[0])
+        keep.append(i)
+        rest = order[1:]
+        iw = np.maximum(np.minimum(x2[i], x2[rest]) - np.maximum(x1[i], x1[rest]), 0)
+        ih = np.maximum(np.minimum(y2[i], y2[rest]) - np.maximum(y1[i], y1[rest]), 0)
+        inter = iw * ih
+        order = rest[inter / np.maximum(area[i] + area[rest] - inter, 1e-9) <= iou]
+    return keep
+
+
+def nth_score(raw: np.ndarray, cls_idx: int, n: int, iou: float = 0.5, conf_floor: float = 0.05,
+              max_candidates: int = 300) -> float:
+    """GIONG HET ml/snapget12/yolo.py `nth_score_from_raw` (1 anh, raw (4+C, A)): do tin cay cua box
+    THU n sau NMS (0 neu < n box) -> quest "co >= n vat the". Sua o day thi sua ca ben do."""
+    s = raw[4 + cls_idx]
+    idx = np.where(s >= conf_floor)[0]
+    if len(idx) < n:
+        return 0.0
+    idx = idx[np.argsort(-s[idx], kind="stable")[:max_candidates]]
+    keep = nms_keep(raw[:4, idx].T, s[idx], iou)
+    return float(s[idx][keep[n - 1]]) if len(keep) >= n else 0.0
 
 
 class Verifier:
@@ -143,6 +184,8 @@ class Verifier:
         self.std = np.array(IMAGENET_STD, dtype=np.float32).reshape(3, 1, 1)
         self.input_name = "input"
         self.arch = "classifier"
+        self.nth = 0  # > 0: diem cap anh = box thu `nth` sau NMS (model phu person, "imageScore": "nth:2")
+        self.nms_iou = 0.5
         self._load(model_dir)
 
     def _load(self, model_dir: Path) -> None:
@@ -169,6 +212,10 @@ class Verifier:
             self.input_size = int(self.meta.get("inputSize", 640 if self.arch == "yolo" else 224))
             self.mean = np.array(self.meta.get("mean", IMAGENET_MEAN), dtype=np.float32).reshape(3, 1, 1)
             self.std = np.array(self.meta.get("std", IMAGENET_STD), dtype=np.float32).reshape(3, 1, 1)
+            m = re.fullmatch(r"nth:(\d+)", str(self.meta.get("imageScore", "")))
+            if m and self.arch == "yolo":
+                self.nth = int(m.group(1))
+                self.nms_iou = float(self.meta.get("nmsIou", 0.5))
         thr_path = model_dir / "thresholds.json"
         if thr_path.exists():
             self.thresholds = {k: float(v) for k, v in json.loads(thr_path.read_text(encoding="utf-8")).items()}
@@ -224,6 +271,9 @@ class Verifier:
             n = len(self.classes)
             if raw.shape[0] != 4 + n:
                 raise ValueError(f"YOLO output has {raw.shape[0]} channels, expected {4 + n}")
+            if self.nth:  # model phu: diem = box thu n sau NMS (vd >= 2 nguoi), khong tra box
+                probs = [nth_score(raw, i, self.nth, self.nms_iou) for i in range(n)]
+                return {cls: float(round(float(p), 4)) for cls, p in zip(self.classes, probs)}, None
             probs = raw[4:, :].max(axis=1)  # diem cap anh = max theo anchor (output da qua sigmoid)
             box = self._best_box(raw, self.classes.index(target), info) if target in self.classes else None
             return {cls: float(round(float(p), 4)) for cls, p in zip(self.classes, probs)}, box
@@ -244,6 +294,24 @@ class Verifier:
 
 download_model(MODEL_DIR)
 verifier = Verifier(MODEL_DIR)
+extra_verifiers: dict[str, Verifier] = {}
+for _name in EXTRA_MODELS:
+    download_model(MODEL_DIR, _name)
+    extra_verifiers[_name] = Verifier(MODEL_DIR / _name)
+
+
+def resolve_verifier(cls: str) -> Verifier | None:
+    """Model chiu trach nhiem lop `cls`: model chinh truoc, roi model phu. Doc bien toan cuc LUC GOI
+    (test monkeypatch `verifier`). Model phu chua upload (chua co meta) -> lop = ten thu muc, route bao 503."""
+    if cls in verifier.classes:
+        return verifier
+    for name, v in extra_verifiers.items():
+        if v.ready and cls in v.classes:
+            return v
+    for name, v in extra_verifiers.items():
+        if not v.ready and cls == name:
+            return v
+    return None
 
 
 async def fetch_image(url: str) -> bytes:
@@ -268,16 +336,21 @@ async def fetch_image(url: str) -> bytes:
 
 class VerifyRequest(BaseModel):
     imageUrl: str = Field(..., description="URL anh — server gui ban Cloudinary w_640,h_640,c_limit (giu ti le, khong cat)")
-    targetClass: str = Field(..., description="1 trong 12 lop")
+    targetClass: str = Field(..., description="1 trong 12 lop (hoac lop cua model phu, vd person)")
+    # (2026-11-27) Quest gop nhom: matched neu BAT KY lop nao vuot nguong. Co thi BO QUA targetClass.
+    # Field MOI, tuy chon — server cu khong gui van chay nhu truoc.
+    targetClasses: list[str] | None = Field(default=None, max_length=12)
 
 
 class VerifyResponse(BaseModel):
     matched: bool
+    # score/threshold cua lop KHOP (hoac lop co score/threshold cao nhat neu khong lop nao khop)
     score: float
     threshold: float
     scores: dict[str, float]
     modelVersion: str
     latencyMs: int
+    matchedClass: str | None = None  # lop da khop (None neu khong khop) — field moi, tuy chon
     # Chi model YOLO: box [x1,y1,x2,y2] chuan hoa [0,1] (tren anh da xoay EXIF) noi target co diem cao nhat.
     # Field MOI, tuy chon — server/app cu bo qua (Gson/TS khong doc) nen khong breaking.
     box: list[float] | None = None
@@ -285,28 +358,47 @@ class VerifyResponse(BaseModel):
 
 @app.post("/verify", response_model=VerifyResponse, dependencies=[Depends(require_api_key)])
 async def verify(req: VerifyRequest) -> VerifyResponse:
-    if not verifier.ready:
-        raise HTTPException(status_code=503, detail="Model has not been uploaded to the Space")
-    target = req.targetClass.strip().lower()
-    if target not in verifier.classes:
-        raise HTTPException(status_code=400, detail=f"Invalid targetClass: {req.targetClass}")
+    raw_targets = req.targetClasses or [req.targetClass]
+    targets = list(dict.fromkeys(t.strip().lower() for t in raw_targets if t.strip()))
+    if not targets:
+        raise HTTPException(status_code=400, detail="targetClass is empty")
+    owners: dict[str, Verifier] = {}
+    for t in targets:
+        v = resolve_verifier(t)
+        if v is None:
+            raise HTTPException(status_code=400, detail=f"Invalid targetClass: {t}")
+        if not v.ready:
+            raise HTTPException(status_code=503, detail=f"Model for '{t}' has not been uploaded")
+        owners[t] = v
     image_bytes = await fetch_image(req.imageUrl)
     t0 = time.perf_counter()
+    scores: dict[str, float] = {}
+    boxes: dict[str, list[float] | None] = {}
+    used: list[Verifier] = []
     try:
-        scores, box = verifier.predict(image_bytes, target)
+        for v in dict.fromkeys(owners.values()):  # moi model chay 1 lan
+            first = next(t for t in targets if owners[t] is v)
+            s, box = v.predict(image_bytes, first)
+            scores.update(s)
+            boxes[first] = box
+            used.append(v)
     except Exception as e:  # anh hong / khong decode duoc
         raise HTTPException(status_code=422, detail=f"Failed to read image: {type(e).__name__}") from e
     latency_ms = int((time.perf_counter() - t0) * 1000)
-    threshold = verifier.threshold_for(target)
-    score = scores[target]
+    # Lop dai dien = lop co score/threshold cao nhat; matched neu ti le do >= 1 (= bat ky lop nao vuot nguong)
+    best = max(targets, key=lambda t: scores[t] / max(owners[t].threshold_for(t), 1e-6))
+    threshold = owners[best].threshold_for(best)
+    score = scores[best]
+    matched = score >= threshold
     return VerifyResponse(
-        matched=score >= threshold,
+        matched=matched,
         score=score,
         threshold=threshold,
         scores=scores,
-        modelVersion=verifier.model_version,
+        modelVersion="+".join(v.model_version for v in used),
         latencyMs=latency_ms,
-        box=box,
+        box=boxes.get(best),
+        matchedClass=best if matched else None,
     )
 
 
@@ -419,6 +511,7 @@ def health() -> dict[str, Any]:
         "modelVersion": verifier.model_version,
         "arch": verifier.arch,
         "verifierReady": verifier.ready,
+        "extraModels": {name: (v.model_version if v.ready else None) for name, v in extra_verifiers.items()},
         "llm": generator.ready,
         "llmLoading": generator.loading,
         "llmError": generator.error,

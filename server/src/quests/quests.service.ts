@@ -4,6 +4,7 @@ import { AstriteService } from '../astrite/astrite.service';
 import {
   AI_QUEST_AVOID_RECENT,
   AI_QUEST_CLASSES,
+  aiQuestTargetClasses,
   AI_QUEST_CONTENT_MAX,
   AiQuestClass,
   dateKey,
@@ -30,10 +31,11 @@ import { QuestsRepository } from './quests.repository';
  * Daily Quest — 3 quest/ngay (nang tu 2 len 3 ngay 2026-08-15, QUEST_AI_PLAN.md):
  * - 2 quest CO DINH (LOGIN + POST_MOMENT), sinh LAZY khi co request dau tien trong
  *   ngay, hoan thanh tu dong. Xong 2/2 -> +60 Astrite (logic GIU NGUYEN tung dong).
- * - 1 quest AI (AI_CHALLENGE): noi dung lay tu BO MAU 72 cau (ai-quest-templates.ts,
- *   chon theo seed ngay, tranh lap vat the 3 ngay gan nhat) — user chot 2026-08-16
+ * - 1 quest AI (AI_CHALLENGE): noi dung lay tu BO MAU 56 cau (ai-quest-templates.ts,
+ *   chon theo seed ngay, tranh lap quest 3 ngay gan nhat) — user chot 2026-08-16
  *   BO LLM sinh quest, AI chi lam nhiem vu XAC MINH ANH. Hoan thanh khi anh user
- *   DANG LEN FEED duoc model AI xac minh co chua `targetClass` -> +30 Astrite RIENG.
+ *   DANG LEN FEED duoc model AI xac minh co chua BAT KY lop nao cua quest
+ *   (`AI_QUEST_GROUPS[targetClass]`, gop nhom tu 2026-11-27) -> +30 Astrite RIENG.
  *   AI hong o bat ky khau nao cung KHONG pha chuc nang dang chay: verify hong thi
  *   SKIPPED, thieu env thi khong verify (quest van hien, chi khong tick duoc).
  *   Duong LLM (`generateAiQuests` + `source:'LLM'`) giu lai lam diem cam san.
@@ -122,9 +124,11 @@ export class QuestsService {
 
     const startedAt = Date.now();
     const imageUrl = AiService.toVerifyImageUrl(moment.mediaUrl);
+    // Quest gop nhom (vd cup -> cup | bottle); doc quest cu (vd 'clock') -> 1 lop don
+    const targetClasses = aiQuestTargetClasses(quest.targetClass);
     let verdict: Awaited<ReturnType<AiService['verify']>>;
     try {
-      verdict = await this.ai.verify(imageUrl, quest.targetClass);
+      verdict = await this.ai.verify(imageUrl, targetClasses);
     } catch (e) {
       const message = (e as Error).message;
       this.logger.warn(`AI verify SKIPPED (moment ${moment.momentId}): ${message}`);
@@ -134,6 +138,7 @@ export class QuestsService {
         mediaUrl: imageUrl,
         date,
         targetClass: quest.targetClass,
+        targetClasses: [...targetClasses],
         outcome: 'SKIPPED',
         roundTripMs: Date.now() - startedAt,
         error: message.slice(0, 200),
@@ -148,6 +153,8 @@ export class QuestsService {
       mediaUrl: imageUrl,
       date,
       targetClass: quest.targetClass,
+      targetClasses: [...targetClasses],
+      matchedClass: verdict.matchedClass ?? undefined,
       outcome,
       score: verdict.score,
       threshold: verdict.threshold,

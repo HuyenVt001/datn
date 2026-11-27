@@ -17,7 +17,7 @@ describe('AiService', () => {
     it('missing URL or API key -> enabled=false, verify throws (no network call)', async () => {
       const service = new AiService(configWith({ AI_SERVICE_URL: '', AI_SERVICE_API_KEY: '' }));
       expect(service.enabled).toBe(false);
-      await expect(service.verify('https://x/y.jpg', 'cup')).rejects.toThrow('is not configured');
+      await expect(service.verify('https://x/y.jpg', ['cup'])).rejects.toThrow('is not configured');
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -35,7 +35,7 @@ describe('AiService', () => {
         configWith({ AI_SERVICE_URL: 'https://x.hf.space', AI_SERVICE_API_KEY: 'secret' }),
       );
 
-    it('POST /verify with X-API-Key + body {imageUrl,targetClass}, returns JSON', async () => {
+    it('POST /verify with X-API-Key + body {imageUrl,targetClass,targetClasses}, returns JSON', async () => {
       const payload = {
         matched: true,
         score: 0.9,
@@ -46,19 +46,24 @@ describe('AiService', () => {
       };
       fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve(payload) });
 
-      const result = await service().verify('https://img/a.jpg', 'cup');
+      const result = await service().verify('https://img/a.jpg', ['cup', 'bottle']);
 
       expect(result).toEqual(payload);
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe('https://x.hf.space/verify');
       expect(init.method).toBe('POST');
       expect(init.headers['X-API-Key']).toBe('secret');
-      expect(JSON.parse(init.body)).toEqual({ imageUrl: 'https://img/a.jpg', targetClass: 'cup' });
+      // targetClass = lop dau (AI service cu chi doc field nay); targetClasses = ca nhom
+      expect(JSON.parse(init.body)).toEqual({
+        imageUrl: 'https://img/a.jpg',
+        targetClass: 'cup',
+        targetClasses: ['cup', 'bottle'],
+      });
     });
 
     it('Space returns non-2xx -> throws with status (does not leak key)', async () => {
       fetchMock.mockResolvedValue({ ok: false, status: 503, json: () => Promise.resolve({}) });
-      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow(
+      await expect(service().verify('https://img/a.jpg', ['cup', 'bottle'])).rejects.toThrow(
         '/verify returned 503',
       );
     });
@@ -66,7 +71,9 @@ describe('AiService', () => {
     it('timeout (AbortError) -> throws "timeout"', async () => {
       const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' });
       fetchMock.mockRejectedValue(abortErr);
-      await expect(service().verify('https://img/a.jpg', 'cup')).rejects.toThrow('timeout');
+      await expect(service().verify('https://img/a.jpg', ['cup', 'bottle'])).rejects.toThrow(
+        'timeout',
+      );
     });
   });
 

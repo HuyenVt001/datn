@@ -4,18 +4,20 @@ import {
   AI_GENERATE_TIMEOUT_MS,
   AI_QUEST_CLASSES,
   AI_VERIFY_TIMEOUT_MS,
-  AiQuestClass,
 } from '../common/constants';
 
 /** Response POST /verify cua AI service (QUEST_AI_PLAN muc 7.1). */
 export interface AiVerifyResponse {
+  /** Quest gop nhom: true neu BAT KY lop nao vuot nguong rieng cua lop do. */
   matched: boolean;
-  /** Diem sigmoid [0,1] cua targetClass. */
+  /** Diem [0,1] cua lop khop (hoac lop co score/threshold cao nhat neu khong khop). */
   score: number;
-  /** Nguong cua targetClass (artifact di kem model). */
+  /** Nguong cua lop do (artifact di kem model). */
   threshold: number;
-  /** Du 12 diem — de log & debug. */
+  /** Diem cac lop cua nhung model da chay (12 lop y1 va/hoac `person`) — de log & debug. */
   scores: Record<string, number>;
+  /** (2026-11-27) Lop da khop — service cu khong tra field nay. */
+  matchedClass?: string | null;
   modelVersion: string;
   /** Thoi gian suy luan tren AI service (ms). */
   latencyMs: number;
@@ -23,7 +25,7 @@ export interface AiVerifyResponse {
 
 /**
  * Response POST /generate — SERVER PHAI VALIDATE LAI (QuestsService lo).
- * ⚠️ 2026-08-16: user chot BO LLM sinh quest (quest lay tu bo mau 72 cau o
+ * ⚠️ 2026-08-16: user chot BO LLM sinh quest (quest lay tu bo mau 56 cau o
  * ai-quest-templates.ts). Duong nay giu lai lam diem cam san: bat lai bang cach
  * deploy AI service co ENABLE_LLM=1 (hoac doi sang LLM API) — khong phai sua kien truc.
  */
@@ -79,12 +81,18 @@ export class AiService {
   }
 
   /**
-   * Xac minh anh co chua `targetClass` khong. Nem loi khi AI service loi/timeout —
-   * caller (QuestsService) bat va coi la SKIPPED, KHONG bao gio lam fail dang bai.
+   * Xac minh anh co chua BAT KY lop nao trong `targetClasses` khong (quest gop nhom, vd
+   * cup | bottle — `aiQuestTargetClasses`). Gui kem `targetClass` = lop dau de AI service doi
+   * cu (chi doc targetClass) van chay. Nem loi khi AI service loi/timeout — caller
+   * (QuestsService) bat va coi la SKIPPED, KHONG bao gio lam fail dang bai.
    * `imageUrl` nen la URL Cloudinary DA thu nho (xem [toVerifyImageUrl]).
    */
-  async verify(imageUrl: string, targetClass: AiQuestClass): Promise<AiVerifyResponse> {
-    return this.post<AiVerifyResponse>('/verify', { imageUrl, targetClass }, AI_VERIFY_TIMEOUT_MS);
+  async verify(imageUrl: string, targetClasses: readonly string[]): Promise<AiVerifyResponse> {
+    return this.post<AiVerifyResponse>(
+      '/verify',
+      { imageUrl, targetClass: targetClasses[0], targetClasses: [...targetClasses] },
+      AI_VERIFY_TIMEOUT_MS,
+    );
   }
 
   /**

@@ -33,6 +33,7 @@ COCO80_INDEX = {
     "keyboard": 66, "backpack": 24, "clock": 74, "umbrella": 25, "bicycle": 1, "motorcycle": 3,
 }
 COCO80_IDS = [COCO80_INDEX[c] for c in CLASSES]
+COCO_PERSON_ID = 0  # model phu quest person (2026-11-27): YOLO11n COCO goc, cat head con lop 0
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +74,49 @@ def image_scores_from_raw(raw: np.ndarray, num_classes: int = len(CLASSES)) -> n
     if raw.shape[1] != 4 + num_classes:
         raise ValueError(f"output YOLO phai co {4 + num_classes} kenh, nhan {raw.shape}")
     return raw[:, 4:, :].max(axis=2)
+
+
+def nms_keep(xywh: np.ndarray, scores: np.ndarray, iou: float = 0.5) -> list[int]:
+    """NMS tham lam 1 lop. xywh (K,4) = cx,cy,w,h; tra chi so box giu lai (diem giam dan)."""
+    x1, y1 = xywh[:, 0] - xywh[:, 2] / 2, xywh[:, 1] - xywh[:, 3] / 2
+    x2, y2 = xywh[:, 0] + xywh[:, 2] / 2, xywh[:, 1] + xywh[:, 3] / 2
+    area = np.maximum(x2 - x1, 0) * np.maximum(y2 - y1, 0)
+    order = np.argsort(-scores, kind="stable")
+    keep: list[int] = []
+    while order.size:
+        i = int(order[0])
+        keep.append(i)
+        rest = order[1:]
+        iw = np.maximum(np.minimum(x2[i], x2[rest]) - np.maximum(x1[i], x1[rest]), 0)
+        ih = np.maximum(np.minimum(y2[i], y2[rest]) - np.maximum(y1[i], y1[rest]), 0)
+        inter = iw * ih
+        ov = inter / np.maximum(area[i] + area[rest] - inter, 1e-9)
+        order = rest[ov <= iou]
+    return keep
+
+
+def nth_score_from_raw(raw: np.ndarray, cls_idx: int = 0, n: int = 2, iou: float = 0.5,
+                       conf_floor: float = 0.05, max_candidates: int = 300) -> np.ndarray:
+    """
+    Diem cap anh cho quest "co >= n vat the lop cls_idx" (quest person: >= 2 nguoi, 2026-11-27):
+    NMS cac box cua lop -> diem = do tin cay cua box THU n (0 neu sau NMS con < n box).
+    Anh pass khi diem >= nguong  <=>  co >= n box vuot nguong => dung lai nguyen AP/F1/chon nguong.
+    (N, 4+C, A) -> (N,); chap nhan (4+C, A). ai-service/app.py co ban sao y het — sua thi sua ca 2.
+    """
+    raw = np.asarray(raw)
+    if raw.ndim == 2:
+        raw = raw[None]
+    out = np.zeros(len(raw), dtype=np.float32)
+    for b, r in enumerate(raw):
+        s = r[4 + cls_idx]
+        idx = np.where(s >= conf_floor)[0]
+        if len(idx) < n:
+            continue
+        idx = idx[np.argsort(-s[idx], kind="stable")[:max_candidates]]
+        keep = nms_keep(r[:4, idx].T, s[idx], iou)
+        if len(keep) >= n:
+            out[b] = float(s[idx][keep[n - 1]])
+    return out
 
 
 def best_box(raw: np.ndarray, cls_idx: int, info: dict) -> list[float]:

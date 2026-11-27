@@ -1,4 +1,11 @@
-import { AI_MODEL_CLASSES, AI_QUEST_CLASSES, AI_QUEST_CONTENT_MAX } from '../../common/constants';
+import {
+  AI_EXTRA_CLASSES,
+  AI_MODEL_CLASSES,
+  AI_QUEST_CLASSES,
+  AI_QUEST_CONTENT_MAX,
+  AI_QUEST_GROUPS,
+  aiQuestTargetClasses,
+} from '../../common/constants';
 import { AI_QUEST_TEMPLATES, pickFallbackQuest, seededIndex } from './ai-quest-templates';
 
 /**
@@ -6,7 +13,7 @@ import { AI_QUEST_TEMPLATES, pickFallbackQuest, seededIndex } from './ai-quest-t
  * de them cau ve sau khong lam vo rang buoc phia server/app.
  */
 describe('AI_QUEST_TEMPLATES', () => {
-  it('each quest class has >= 6 sentences, 72 total, no duplicates within a class', () => {
+  it('each quest has >= 6 sentences, 56 total, no duplicates within a quest', () => {
     let total = 0;
     for (const cls of AI_QUEST_CLASSES) {
       const list = AI_QUEST_TEMPLATES[cls];
@@ -14,28 +21,40 @@ describe('AI_QUEST_TEMPLATES', () => {
       expect(new Set(list).size).toBe(list.length);
       total += list.length;
     }
-    expect(total).toBe(72);
+    expect(total).toBe(56);
   });
 
-  it('every sentence starts with "Take a photo of", <= AI_QUEST_CONTENT_MAX characters, no extra whitespace', () => {
+  it('every sentence starts with "Take/Snap a photo/selfie", <= AI_QUEST_CONTENT_MAX characters, no extra whitespace', () => {
     for (const cls of AI_QUEST_CLASSES) {
       for (const content of AI_QUEST_TEMPLATES[cls]) {
-        expect(content.startsWith('Take a photo of')).toBe(true);
+        expect(content).toMatch(/^(Take|Snap) a (group )?(photo|selfie) /);
         expect(content.length).toBeLessThanOrEqual(AI_QUEST_CONTENT_MAX);
         expect(content.trim()).toBe(content);
       }
     }
   });
 
-  it('quest classes are a subset of the model classes; the 3 excluded classes remain in the model', () => {
+  it('every class in a quest group is known by y1 or an extra model; dropped classes stay in the model', () => {
+    const known: readonly string[] = [...AI_MODEL_CLASSES, ...AI_EXTRA_CLASSES];
+    const used = new Set<string>();
     for (const cls of AI_QUEST_CLASSES) {
-      expect(AI_MODEL_CLASSES).toContain(cls);
+      for (const c of AI_QUEST_GROUPS[cls]) {
+        expect(known).toContain(c);
+        used.add(c);
+      }
     }
-    // 3 lop bi loai khoi vong quay (QUEST_AI_PLAN 2.3) — van co trong output model
-    for (const dropped of ['book', 'backpack', 'keyboard']) {
+    // 2026-11-27: 3 lop khong con ra de — van co trong output model (so lieu bao cao)
+    for (const dropped of ['backpack', 'clock', 'potted plant']) {
       expect(AI_MODEL_CLASSES).toContain(dropped);
-      expect(AI_QUEST_CLASSES as readonly string[]).not.toContain(dropped);
+      expect(used.has(dropped)).toBe(false);
     }
+  });
+
+  it('grouped quests accept every member; legacy quest keys fall back to a single class', () => {
+    expect(aiQuestTargetClasses('cup')).toEqual(['cup', 'bottle']);
+    expect(aiQuestTargetClasses('bicycle')).toEqual(['bicycle', 'motorcycle']);
+    expect(aiQuestTargetClasses('person')).toEqual(['person']);
+    expect(aiQuestTargetClasses('clock')).toEqual(['clock']); // doc quest cu truoc 2026-11-27
   });
 });
 
@@ -68,7 +87,7 @@ describe('pickFallbackQuest', () => {
       recent.push(picked.targetClass);
       seen.add(picked.targetClass);
     }
-    expect(seen.size).toBeGreaterThanOrEqual(7); // 9 lop, avoid 3 — hau het lop deu ra trong 1 thang
+    expect(seen.size).toBeGreaterThanOrEqual(6); // 7 quest, avoid 3 — hau het quest deu ra trong 1 thang
   });
 
   it('seededIndex is always within [0, size)', () => {

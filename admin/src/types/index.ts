@@ -254,14 +254,18 @@ export interface AiVerification {
   mediaUrl?: string;
   /** Ngay quest (YYYY-MM-DD UTC). */
   date: string;
-  /** Vat the quest yeu cau (1 trong 9 lop ra de). */
+  /** Key quest (1 trong 7 quest; log truoc 2026-11-27 la 1 lop don trong 9 lop cu). */
   targetClass: string;
+  /** (2026-11-27) Cac lop duoc chap nhan cua quest gop nhom, vd ['cup','bottle']. */
+  targetClasses?: string[];
+  /** (2026-11-27) Lop da khop (chi khi MATCHED). */
+  matchedClass?: string;
   outcome: AiVerificationOutcome;
-  /** Diem sigmoid [0,1] cua targetClass (khong co khi SKIPPED). */
+  /** Diem [0,1] cua lop khop / lop gan nguong nhat trong quest (khong co khi SKIPPED). */
   score?: number;
-  /** Nguong cua targetClass ma model dang dung. */
+  /** Nguong cua lop do ma model dang dung. */
   threshold?: number;
-  /** Du 12 diem cua model — de debug/calibrate. */
+  /** Diem cac lop cua model da chay (12 lop y1 va/hoac person) — de debug/calibrate. */
   scores?: Record<string, number>;
   modelVersion?: string;
   /** ms suy luan tren AI service. */

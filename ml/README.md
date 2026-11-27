@@ -21,10 +21,11 @@ ml/
 ├─ requirements.txt               ← thư viện train/eval (Colab)
 ├─ yolo_class_map.yaml            ← map tên lớp dataset ngoài (mug, motorbike…) → 12 lớp chuẩn
 ├─ snapget12/                     ← package Python dùng chung
-│   ├─ classes.py                 12 lớp (THỨ TỰ = output model = server AI_MODEL_CLASSES)
+│   ├─ classes.py                 12 lớp (THỨ TỰ = output model = server AI_MODEL_CLASSES) + QUEST_GROUPS (7 quest gộp = server AI_QUEST_GROUPS)
 │   ├─ yolo.py                    y1: letterbox, điểm cấp ảnh = max theo anchor, nhãn YOLO, dHash chống trùng,
-│   │                             class map, clean_stem (tên Roboflow), slice_coco_head (cắt head 80→12 lớp)
-│   ├─ metrics.py                 AP/F1/false-reject, chọn ngưỡng per-class, confusion cấp ảnh, chọn lớp quest
+│   │                             class map, clean_stem (tên Roboflow), slice_coco_head (cắt head 80→12 lớp),
+│   │                             nms_keep + nth_score_from_raw (quest person: điểm người thứ 2 sau NMS)
+│   ├─ metrics.py                 AP/F1/false-reject, chọn ngưỡng per-class, confusion cấp ảnh, chọn lớp quest, group_scores (quest gộp)
 │   ├─ model.py, data.py          v0: MobileNetV3 + head, manifest/augment
 │   └─ tests_metrics.py, tests_yolo.py   pytest (không cần torch)
 ├─ scripts/
@@ -33,10 +34,13 @@ ml/
 │   ├─ 13_train_yolo.py           fine-tune YOLO11 (khởi tạo head COCO đã cắt, KeepHeadTrainer, resume Colab)
 │   ├─ 14_eval_yolo.py            ablation: mAP50/50-95, confusion 13×13, verify cấp ảnh, chọn ngưỡng trên real-calib
 │   ├─ 15_select_classes.py       áp tiêu chí → class_selection.json/.md + AI_QUEST_CLASSES cho server
-│   ├─ 16_export_yolo_onnx.py     ONNX fp32 + model_meta.json (arch "yolo") + so khớp PyTorch + upload HF
+│   ├─ 16_export_yolo_onnx.py     ONNX fp32 + model_meta.json (arch "yolo") + so khớp PyTorch + upload HF;
+│   │                             --task person: model phụ YOLO11n COCO (lớp person, "imageScore": "nth:2") → HF person/
+│   ├─ 17_eval_quests.py          đánh giá THEO QUEST (7 quest gộp, dùng lại scores của 14) + chọn ngưỡng quest person trên quest_test/
 │   └─ 01–08_*.py                 pipeline v0 (giữ làm baseline/ablation)
 ├─ notebooks/                    (sinh từ notebooks/build/*.py — sửa file build, đừng sửa tay .ipynb)
 │   ├─ snapget_yolo_train.ipynb   ← **y1 — Google Colab** (chạy 10→16, ô resume; tự dùng `snapget_vn_supplement.zip`)
+│   ├─ snapget_quest_eval.ipynb   ← 7 quest gộp + model person (17 → 16 --task person; chạy được trên CPU)
 │   └─ legacy_v0/snapget12_train.ipynb  v0 (MobileNetV3) — KHÔNG chạy nữa, chỉ giữ làm baseline
 └─ ai-service/                    FastAPI trên Google Cloud Run — phục vụ CẢ v0 lẫn y1 (theo model_meta.json "arch")
     ├─ app.py                     /health · /verify · /generate (tắt mặc định)
@@ -79,13 +83,15 @@ gcloud run deploy snapget-ai --source . --region asia-southeast1 --allow-unauthe
 ## Contract với server (khớp `server/src/ai/ai.service.ts`)
 
 ```
-GET  /health                 → { status, modelVersion, arch, verifierReady, llm, llmLoading, llmError }
-POST /verify  (X-API-Key)    { imageUrl, targetClass } → { matched, score, threshold, scores{12}, modelVersion, latencyMs, box? }
+GET  /health                 → { status, modelVersion, arch, verifierReady, extraModels{person}, llm, llmLoading, llmError }
+POST /verify  (X-API-Key)    { imageUrl, targetClass, targetClasses? } → { matched, score, threshold, scores, modelVersion, latencyMs, box?, matchedClass? }
 POST /generate (X-API-Key)   { classes, avoid } → { targetClass, content }      (tắt mặc định)
 ```
 - `imageUrl`: server gửi Cloudinary `w_640,h_640,c_limit,f_jpg,q_auto` (giữ tỉ lệ, không cắt).
 - `box`: chỉ model YOLO — `[x1,y1,x2,y2]` chuẩn hoá trên ảnh gốc nơi target có điểm cao nhất; v0 trả `null`. Field mới, server hiện bỏ qua.
 - Lỗi: 401 sai key · 400 targetClass lạ · 422 không tải/đọc được ảnh · 503 model chưa sẵn sàng. Server coi mọi lỗi/timeout 3s là `SKIPPED` — không bao giờ làm fail đăng bài.
-- Model học 12 lớp; lớp **ra đề** = `AI_QUEST_CLASSES` ở server (hiện 9 — cập nhật theo `15_select_classes.py`).
+- `targetClasses` (2026-11-27, quest gộp nhóm): `matched` = **bất kỳ** lớp nào ≥ ngưỡng riêng; `matchedClass` = lớp khớp; `score/threshold` của lớp khớp (hoặc lớp có score/threshold cao nhất). Service chỉ chạy model cần cho các lớp được hỏi.
+- **Model phụ** (`EXTRA_MODELS`, mặc định `person`): thư mục con `person/` của HF repo / `MODEL_DIR`, cùng 3 file. Chưa upload → lớp `person` trả 503 (server SKIPPED).
+- y1 học 12 lớp; **7 quest ra đề** = `AI_QUEST_GROUPS` ở server (bicycle/motorcycle · laptop/keyboard · umbrella · chair · cup/bottle · book · person ≥ 2 người — user chốt 2026-11-27; bảng đánh giá: `17_eval_quests.py`).
 
 > License: Ultralytics YOLO **AGPL-3.0** (chấp nhận cho DATN — mã nguồn dự án đã mở trên GitHub).

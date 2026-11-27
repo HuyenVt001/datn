@@ -38,7 +38,7 @@ const OUTCOME_OPTIONS = (Object.keys(OUTCOME_META) as AiVerificationOutcome[]).m
   label: OUTCOME_META[o].label,
 }));
 
-/** Tên tiếng Việt cho 12 lớp model (9 lớp ra đề + 3 lớp chỉ có trong `scores`). */
+/** Nhãn hiển thị cho 12 lớp model y1 + lớp `person` của model phụ (quest ≥ 2 người, 2026-11-27). */
 const CLASS_VI: Record<string, string> = {
   cup: 'cup',
   bottle: 'bottle',
@@ -52,6 +52,7 @@ const CLASS_VI: Record<string, string> = {
   umbrella: 'umbrella',
   bicycle: 'bicycle',
   motorcycle: 'motorcycle',
+  person: '≥ 2 people',
 };
 
 function classLabel(cls: string) {
@@ -84,8 +85,8 @@ function ScoreCell({ row }: { row: AiVerification }) {
   );
 }
 
-/** Top 3 điểm cao nhất trong 12 lớp — thấy model "nghĩ" ảnh là gì khi trượt. */
-function TopScores({ scores, target }: { scores?: Record<string, number>; target: string }) {
+/** Top 3 điểm cao nhất — thấy model "nghĩ" ảnh là gì khi trượt; in đậm các lớp của quest. */
+function TopScores({ scores, targets }: { scores?: Record<string, number>; targets: string[] }) {
   if (!scores) {
     return <Typography.Text type="secondary">—</Typography.Text>;
   }
@@ -95,7 +96,7 @@ function TopScores({ scores, target }: { scores?: Record<string, number>; target
   return (
     <Space direction="vertical" size={0}>
       {top.map(([cls, s]) => (
-        <Typography.Text key={cls} strong={cls === target} style={{ fontSize: 12 }}>
+        <Typography.Text key={cls} strong={targets.includes(cls)} style={{ fontSize: 12 }}>
           {classLabel(cls)}: {Math.round(s * 100)}%
         </Typography.Text>
       ))}
@@ -185,7 +186,18 @@ export function AiVerificationsPage() {
       width: 150,
       render: (cls: string, row) => (
         <Space direction="vertical" size={0}>
-          <Tag color="blue">{classLabel(cls)}</Tag>
+          <Tag color="blue">{cls}</Tag>
+          {/* Quest gop nhom (2026-11-27): khop neu anh co BAT KY lop nao */}
+          {(row.targetClasses?.length ?? 0) > 1 && (
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              {row.targetClasses!.join(' / ')}
+            </Typography.Text>
+          )}
+          {row.matchedClass && (
+            <Typography.Text type="success" style={{ fontSize: 11 }}>
+              matched: {classLabel(row.matchedClass)}
+            </Typography.Text>
+          )}
           <Typography.Text type="secondary" style={{ fontSize: 11 }}>
             {row.date}
           </Typography.Text>
@@ -211,7 +223,9 @@ export function AiVerificationsPage() {
     {
       title: 'Top 3 classes',
       key: 'top',
-      render: (_, row) => <TopScores scores={row.scores} target={row.targetClass} />,
+      render: (_, row) => (
+        <TopScores scores={row.scores} targets={row.targetClasses ?? [row.targetClass]} />
+      ),
     },
     {
       title: 'Model · ms',

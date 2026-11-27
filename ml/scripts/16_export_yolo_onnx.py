@@ -11,6 +11,12 @@
 - Tu kiem tra: diem cap anh PyTorch vs ONNX tren anh that (--sample) phai lech < 0.01; do latency CPU.
 - model_meta.json co "arch": "yolo" -> ai-service tu chon duong tien xu ly letterbox. Rollback ve v0
   = upload lai 3 file cua v0 (arch mac dinh "classifier").
+
+--task person (2026-11-27, quest "Snap a photo with your friend" = >= 2 nguoi): model PHU, KHONG train —
+YOLO11n COCO goc cat head con lop person -> output (1, 5, 8400); diem cap anh = do tin cay cua nguoi THU 2
+sau NMS ("imageScore": "nth:2"). Upload vao THU MUC CON person/ cua cung HF repo; ai-service tu nap.
+
+    python scripts/16_export_yolo_onnx.py --task person --thresholds artifacts/quest_eval/person/thresholds.json         --out artifacts/person --upload <hf-user>/snapget-ai-model
 """
 from __future__ import annotations
 
@@ -27,14 +33,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np  # noqa: E402
 
 from snapget12 import CLASSES  # noqa: E402
-from snapget12.yolo import PAD_VALUE, YOLO_INPUT_SIZE, image_scores_from_raw, letterbox, load_rgb  # noqa: E402
+from snapget12.yolo import (  # noqa: E402
+    COCO_PERSON_ID,
+    PAD_VALUE,
+    YOLO_INPUT_SIZE,
+    image_scores_from_raw,
+    letterbox,
+    load_rgb,
+    nth_score_from_raw,
+    slice_coco_head,
+)
+
+PERSON_MIN_COUNT = 2  # quest person: >= 2 nguoi trong khung
+PERSON_NMS_IOU = 0.5
+PERSON_DEFAULT_THRESHOLD = 0.4  # chi dung khi chua co thresholds.json tu 17_eval_quests.py
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--weights", required=True, help="best.pt (12 lop, THU TU CLASSES)")
-    ap.add_argument("--thresholds", required=True, help="thresholds.json tu 14_eval_yolo.py (chon tren real-calib)")
-    ap.add_argument("--version", default="y1")
+    ap.add_argument("--task", choices=["main", "person"], default="main",
+                    help="main = y1 12 lop | person = model phu dem nguoi (YOLO11n COCO goc, khong train)")
+    ap.add_argument("--weights", help="main: best.pt (12 lop, THU TU CLASSES) | person: mac dinh yolo11n.pt")
+    ap.add_argument("--thresholds", help="main: thresholds.json tu 14 (BAT BUOC) | person: tu 17_eval_quests.py")
+    ap.add_argument("--version", help="mac dinh y1 (main) / person-y11n (person)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--sample", help="1 anh that de so khop PyTorch vs ONNX (mac dinh: anh mau Ultralytics)")
     ap.add_argument("--upload", help="HF Model repo, vd user/snapget-ai-model (can token write)")
@@ -43,21 +64,42 @@ def main() -> None:
     import torch
     from ultralytics import YOLO
 
+    person = args.task == "person"
+    version = args.version or ("person-y11n" if person else "y1")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    y = YOLO(args.weights)
+    if person:
+        expected = ["person"]
+        weights = args.weights or "yolo11n.pt"
+        y = YOLO(weights)
+        if len(y.model.names) != 80:
+            raise SystemExit(f"!! {weights} khong phai model 80 lop COCO")
+        slice_coco_head(y, ids=[COCO_PERSON_ID], names=expected)
+        weights = str(out / f"{Path(weights).stem}-person.pt")
+        y.save(weights)
+        y = YOLO(weights)
+    else:
+        expected = CLASSES
+        if not args.weights or not args.thresholds:
+            raise SystemExit("!! --task main can --weights va --thresholds")
+        weights = args.weights
+        y = YOLO(weights)
     names = [y.model.names[i] for i in range(len(y.model.names))]
-    if names != CLASSES:
-        raise SystemExit(f"!! thu tu lop {names} khac CLASSES — khong export")
-    thr = json.loads(Path(args.thresholds).read_text(encoding="utf-8"))
-    if set(thr) != set(CLASSES):
-        raise SystemExit(f"!! thresholds.json thieu/thua lop: {set(CLASSES) ^ set(thr)}")
+    if names != expected:
+        raise SystemExit(f"!! thu tu lop {names} khac {expected} — khong export")
+    if args.thresholds:
+        thr = json.loads(Path(args.thresholds).read_text(encoding="utf-8"))
+    else:
+        thr = {"person": PERSON_DEFAULT_THRESHOLD}
+        print(f"!! chua co --thresholds -> tam dung nguong person = {PERSON_DEFAULT_THRESHOLD} (chay 17_eval_quests.py de chon)")
+    if set(thr) != set(expected):
+        raise SystemExit(f"!! thresholds.json thieu/thua lop: {set(expected) ^ set(thr)}")
 
     exported = Path(y.export(format="onnx", imgsz=YOLO_INPUT_SIZE, opset=12, simplify=True, dynamic=False,
                              nms=False, half=False, device="cpu"))
     serve = out / "model.onnx"
     shutil.copyfile(exported, serve)
-    shutil.copyfile(args.thresholds, out / "thresholds.json")
+    (out / "thresholds.json").write_text(json.dumps(thr, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # So khop PyTorch vs ONNX tren anh that
     import onnxruntime as ort
@@ -69,16 +111,21 @@ def main() -> None:
 
         sample = ASSETS / "bus.jpg"
     x, _ = letterbox(load_rgb(sample))
-    model = YOLO(args.weights).model.float().eval()
+    model = YOLO(weights).model.float().eval()
     with torch.no_grad():
         ref = model(torch.from_numpy(x))
     ref = (ref[0] if isinstance(ref, (list, tuple)) else ref).numpy()
     sess = ort.InferenceSession(str(serve), providers=["CPUExecutionProvider"])
     inp = sess.get_inputs()[0]
     got = sess.run(None, {inp.name: x})[0]
-    if got.shape != (1, 4 + len(CLASSES), got.shape[2]):
-        raise SystemExit(f"!! output ONNX {got.shape} khong dung dang (1, {4 + len(CLASSES)}, A) — co dang export kem NMS?")
-    diff = float(np.abs(image_scores_from_raw(ref) - image_scores_from_raw(got)).max())
+    nc = len(expected)
+    if got.shape != (1, 4 + nc, got.shape[2]):
+        raise SystemExit(f"!! output ONNX {got.shape} khong dung dang (1, {4 + nc}, A) — co dang export kem NMS?")
+    diff = float(np.abs(image_scores_from_raw(ref, nc) - image_scores_from_raw(got, nc)).max())
+    if person:
+        nth = [nth_score_from_raw(r, 0, PERSON_MIN_COUNT, PERSON_NMS_IOU)[0] for r in (ref, got)]
+        diff = max(diff, abs(float(nth[0] - nth[1])))
+        print(f"diem '>= {PERSON_MIN_COUNT} nguoi' PyTorch {nth[0]:.4f} / ONNX {nth[1]:.4f}")
     print(f"max |diem cap anh PyTorch - ONNX| = {diff:.5f}  (anh {sample.name})")
     if diff > 0.01:
         raise SystemExit("!! lech > 0.01 — ONNX khong khop PyTorch, KHONG upload")
@@ -99,17 +146,18 @@ def main() -> None:
         print("!! p95 > 1.5s tren may nay — Cloud Run 1 vCPU co the cham hon; can nhac yolo11n (timeout verify 3s)")
 
     meta = {
-        "modelVersion": args.version,
+        "modelVersion": version,
         "arch": "yolo",
         "base": Path(str(y.model.yaml.get("yaml_file", "yolo"))).stem,  # vd yolo11s
-
-        "classes": CLASSES,
+        "classes": expected,
         "inputSize": YOLO_INPUT_SIZE,
         "inputName": inp.name,
         "preprocess": "letterbox",
         "padValue": PAD_VALUE,
         "scoreActivation": "none",  # diem lop trong output YOLO DA qua sigmoid
-        "imageScore": "max over anchors",
+        # main: max theo anchor | person: do tin cay nguoi thu 2 sau NMS (ai-service doc truong nay)
+        "imageScore": f"nth:{PERSON_MIN_COUNT}" if person else "max over anchors",
+        **({"nmsIou": PERSON_NMS_IOU} if person else {}),
         "quantization": "none (fp32)",
         "maxAbsDiffVsPytorch": round(diff, 5),
         "latencyCpuMs": lat,
@@ -124,12 +172,15 @@ def main() -> None:
 
         api = HfApi()
         api.create_repo(repo_id=args.upload, repo_type="model", exist_ok=True)
+        prefix = "person/" if person else ""  # model phu nam o thu muc con, ai-service tu nap
         for f in ("model.onnx", "thresholds.json", "model_meta.json"):
-            api.upload_file(path_or_fileobj=str(out / f), path_in_repo=f, repo_id=args.upload, repo_type="model")
-            print(f"uploaded {f} -> {args.upload}")
+            api.upload_file(path_or_fileobj=str(out / f), path_in_repo=prefix + f, repo_id=args.upload,
+                            repo_type="model")
+            print(f"uploaded {prefix}{f} -> {args.upload}")
         print("\n>> Xong. Restart AI service tren Cloud Run de nap model moi:")
         print("   gcloud run services update snapget-ai --region asia-southeast1 --update-env-vars MODEL_RELOAD=$(date +%s)")
-        print("   kiem tra: GET <Service URL>/health -> modelVersion:\"%s\", verifierReady:true" % args.version)
+        print("   kiem tra: GET <Service URL>/health -> %s" % (
+            f'extraModels.person = "{version}"' if person else f'modelVersion:"{version}", verifierReady:true'))
 
 
 if __name__ == "__main__":

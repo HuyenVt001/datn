@@ -1,6 +1,6 @@
 # QUEST_AI_PLAN.md — AI Daily Quest: xác minh ảnh bằng model tự train
 
-> **Trạng thái (2026-11-23): 🟡 NÂNG CẤP y1 — code XONG, chờ dữ liệu VN + train trên Colab (mục 11).**
+> **Trạng thái (2026-11-27): 🟡 y1-s ĐÃ TRAIN + ĐÁNH GIÁ; chốt 7 quest gộp nhóm + model phụ đếm người — code XONG, chờ ảnh `quest_test/` + deploy (mục 11).**
 > Production hiện chạy **v0** (MobileNetV3 classifier, mAP COCO-test 0.647) trên Cloud Run — vẫn hoạt động, chỉ nhận diện kém. **y1** = YOLO11 detection fine-tune trên COCO + Kaggle + ảnh Google + **tập ảnh Việt Nam tự chụp**; lớp nào được ra đề quest do **số liệu trên ảnh thật** quyết định (AP / confusion matrix / F1).
 > File này được **viết lại toàn bộ** ngày 2026-11-23 theo plan y1. Lịch sử v0 (bug dữ liệu, ngưỡng 0.7, int8 phá MobileNet…) giữ ở mục 2 + Changelog vì là nội dung báo cáo.
 > Liên quan: [`ml/README.md`](../../ml/README.md) (pipeline) · [`ml/DATASET_SPEC.md`](../../ml/DATASET_SPEC.md) (đặc tả dữ liệu VN — **đọc trước khi đi chụp**) · `server/GUIDE.md` (module `ai`, `quests`) · `SECURITY.md` mục 18.
@@ -18,7 +18,8 @@
 | Kiến trúc | App → NestJS (cửa ngõ duy nhất) → AI service FastAPI trên **Google Cloud Run** (free tier, 512Mi) ← model tải từ **HF Model repo** (free) lúc khởi động |
 | **Model y1** (2026-11-23) | **YOLO11 detection** (Ultralytics, pretrained COCO, fine-tune). YOLO11s chính, YOLO11n so sánh. License **AGPL-3.0** — chấp nhận cho DATN |
 | Lớp model học | **Giữ đúng 12 lớp cũ, cùng thứ tự** (`ml/snapget12/classes.py` = `AI_MODEL_CLASSES` ở server) → so sánh trực tiếp v0 ↔ y1, contract không đổi |
-| Lớp ra đề quest | **Theo ngưỡng chất lượng trên ảnh thật** (mục 5.3), không cố định số lượng, tối thiểu ~6. Hiện tại (chưa có số liệu y1) vẫn 9 lớp của v0 |
+| Lớp ra đề quest | **(2026-11-27, user chốt sau khi xem số liệu y1-s)** **7 quest GỘP NHÓM** — ảnh khớp nếu **bất kỳ** lớp nào trong nhóm vượt ngưỡng riêng (tăng tỉ lệ pass, giảm loại nhầm): `bicycle` (bicycle/motorcycle) · `laptop` (laptop/keyboard) · `umbrella` · `chair` · `cup` (cup/bottle) · `book` · `person` (**≥ 2 người**). Bỏ clock, backpack, potted plant. Map ở `AI_QUEST_GROUPS` (server) = `QUEST_GROUPS` (`ml/snapget12/classes.py`). Tiêu chí mục 5.3 vẫn dùng để báo cáo, không còn quyết định danh sách |
+| **Model phụ person** (2026-11-27) | Quest `person` ("Snap a photo with your friend") = có ≥ 2 người, **không lọc người lạ/kích thước** (user chốt — ưu tiên ít loại nhầm). Model riêng **YOLO11n COCO gốc, không train**, cắt head còn lớp person; điểm = độ tin cậy của **người thứ 2 sau NMS** (`"imageScore": "nth:2"`). Không nhét vào y1 vì phải gán thêm box người cho ~3.600 ảnh VN. Quest "người + vật" (vd bạn cầm ô) **để sau** — không cần train lại |
 | Dữ liệu | COCO 2017 + **Kaggle** + **ảnh tự tải từ Google** + **tập VN tự chụp** (train bổ sung + test) — đặc tả chính xác ở `ml/DATASET_SPEC.md` |
 | Nơi train | **Google Colab** (T4 free), notebook `ml/notebooks/snapget_yolo_train.ipynb`, checkpoint lưu Drive, resume khi bị ngắt |
 | Serve | ONNX **fp32** (không int8), onnxruntime CPU, `model_meta.json` `"arch": "yolo"`. Service vẫn chạy được model v0 (`arch` mặc định `classifier`) → **rollback = upload lại 3 file v0** |
@@ -37,7 +38,9 @@ user đầu tiên mở app trong ngày
 user chụp + đăng moment như mọi ngày   (POST /upload → Cloudinary → POST /moments)
    → nếu hôm nay có quest AI & user chưa xong & contentType=PHOTO:
         server gửi AI service:  https://res.cloudinary.com/.../upload/w_640,h_640,c_limit,f_jpg,q_auto/<id>
+        gửi kèm targetClasses = AI_QUEST_GROUPS[quest]  (vd cup → [cup, bottle]; person → [person])
         AI service (y1): letterbox 640 → YOLO11 → điểm lớp = max theo anchor → so ngưỡng của lớp
+        (quest person: model phụ YOLO11n → NMS → điểm người thứ 2)  → khớp nếu BẤT KỲ lớp nào vượt ngưỡng
         khớp   → completeUserQuest(AI_CHALLENGE) atomic + credit 30 Astrite → app toast 🎯
         không  → aiQuest NOT_MATCHED → toast "doesn't match", bài vẫn đăng, thử lại bằng bài khác
         lỗi/timeout 3s → SKIPPED (im lặng)
@@ -107,6 +110,14 @@ Ngưỡng riêng từng lớp trên **real-calib** (ảnh thật): tối đa rec
 ### 5.3 Tiêu chí chọn lớp ra đề (script 15, trên **real-test**)
 Một lớp được ra đề khi đạt **tất cả**: AP cấp ảnh ≥ 0.85 · F1 tại ngưỡng ≥ 0.85 · detection AP50 ≥ 0.75 · false-reject ≤ 15% · không lớp nào khác (hay ảnh negative) bị nhận nhầm là lớp này > 5% · ≥ 20 ảnh test. < 6 lớp đạt → lấy top 6 theo F1 và **ghi rõ trong báo cáo**. Script in bảng markdown cho báo cáo + đoạn `AI_QUEST_CLASSES` cho server; lớp mới vào vòng quay (vd `book`/`backpack`/`keyboard` nếu số liệu tốt) phải viết thêm 8 câu mẫu.
 
+**Kết quả y1-s trên real-test (2026-11-27):** 0 lớp đạt đủ tiêu chí (chủ yếu trượt AP50 box ≥ 0.75 — chỉ laptop/bicycle đạt) → top 6 theo F1: chair, potted plant, laptop, keyboard, umbrella, bicycle. Mạnh: bicycle (AP ảnh .961, từ chối sai 6%), keyboard .944, laptop .939, motorcycle .920 (nhưng ngưỡng 0.744 quá chặt → từ chối sai 32%). Yếu: clock .703, book .737, bottle .788, cup .821 (từ chối sai 27–49%).
+
+### 5.4 Quest gộp nhóm (2026-11-27 — script 17)
+User chốt 7 quest gộp (mục 0) thay cho danh sách của script 15. Đánh giá **theo quest** bằng `ml/scripts/17_eval_quests.py` + notebook `snapget_quest_eval.ipynb`:
+- 6 quest của y1: dùng lại `scores_real_test.npz` của script 14 — điểm quest = `max_c(score_c / thr_c)`, pass khi ≥ 1 (đúng quyết định của AI service); ảnh dương = có bất kỳ lớp nào của nhóm. Bảng có cột "từ chối sai trước gộp" (từng lớp) để thấy lợi ích của việc gộp.
+- Quest person: tập tự chụp `quest_test/{person,other}` (nhãn theo thư mục), calib 40% / test 60%, ngưỡng precision ≥ 0.80 → `person/thresholds.json` cho `16 --task person`.
+- Ra `artifacts/quest_eval/quest_metrics.{json,md}` — bảng 7 quest cho báo cáo.
+
 ---
 
 ## 6. Ablation (chương ML của báo cáo)
@@ -135,12 +146,14 @@ Android app ──► NestJS (Render) ──► Firestore / Cloudinary / FCM
                            └─ tải model.onnx + thresholds.json + model_meta.json từ HF Model repo lúc boot
 ```
 
-**Contract `/verify` không đổi** (server/app/admin không phải sửa):
+**Contract `/verify` chỉ THÊM field** (service cũ/server cũ vẫn chạy):
 ```
-POST /verify (X-API-Key) { imageUrl, targetClass }
-  → { matched, score, threshold, scores{12}, modelVersion, latencyMs, box? }
-GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, llmError }
+POST /verify (X-API-Key) { imageUrl, targetClass, targetClasses? }
+  → { matched, score, threshold, scores{...}, modelVersion, latencyMs, box?, matchedClass? }
+GET /health → { status, modelVersion, arch, verifierReady, extraModels{person}, llm, llmLoading, llmError }
 ```
+- `targetClasses` (**2026-11-27**, quest gộp nhóm): có thì service bỏ qua `targetClass`; `matched` = bất kỳ lớp nào ≥ ngưỡng; `score/threshold` của lớp khớp (hoặc lớp có score/threshold cao nhất); `matchedClass` = lớp khớp. Service chỉ chạy model cần cho các lớp được hỏi (quest person chỉ chạy model phụ, `scores` = `{person}`); `modelVersion` nối bằng `+` nếu chạy nhiều model. Lớp của model phụ chưa upload → 503 (server SKIPPED).
+- **Model phụ**: thư mục con của HF repo / `MODEL_DIR` (`EXTRA_MODELS`, mặc định `person`), cùng 3 file; `model_meta.json` có `"imageScore": "nth:2"`, `"nmsIou": 0.5`. NMS + điểm thứ n có bản sao giống hệt ở `ml/snapget12/yolo.py` (test đối chiếu trong `test_app.py`).
 - `box` (**mới, tuỳ chọn**): `[x1,y1,x2,y2]` chuẩn hoá trên ảnh gốc nơi target có điểm cao nhất — chỉ model YOLO; `null` với v0. Server hiện bỏ qua (có thể dùng để admin vẽ khung sau này).
 - `arch` trong `/health` (**mới**). `model_meta.json` y1: `{modelVersion:"y1", arch:"yolo", classes[12], inputSize:640, preprocess:"letterbox", padValue:114, scoreActivation:"none", ...}`.
 - Server: `AiService.toVerifyImageUrl` → `w_640,h_640,c_limit,f_jpg,q_auto`. Bảo mật (API key, Secret Manager, server không tin AI service): `SECURITY.md` mục 18.
@@ -151,11 +164,11 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 
 | Doc | Ghi chú |
 |---|---|
-| `dailyQuests/{date}_AI_CHALLENGE` | `targetClass`, `source`, `generatedAt` |
+| `dailyQuests/{date}_AI_CHALLENGE` | `targetClass` (từ 2026-11-27 = **key quest**, 1 trong 7), `source`, `generatedAt` |
 | `userQuests/{date}_{uid}_AI_CHALLENGE` | `momentId`, `aiScore`, `modelVersion` |
-| `aiVerifications/{id}` | log MỌI lần verify — `mediaUrl` từ 2026-11-23 là ảnh 640 giữ tỉ lệ (log cũ: 224 cắt vuông) |
+| `aiVerifications/{id}` | log MỌI lần verify — `mediaUrl` từ 2026-11-23 là ảnh 640 giữ tỉ lệ (log cũ: 224 cắt vuông); từ 2026-11-27 thêm `targetClasses[]`, `matchedClass` |
 
-`server/src/common/constants.ts`: `AI_MODEL_CLASSES` (12, thứ tự = output model — không đổi) ⊃ `AI_QUEST_CLASSES` (hiện 9 — **cập nhật theo kết quả script 15**) · `QUEST_AI_ASTRITE=30` · `AI_VERIFY_TIMEOUT_MS=3000` · `AI_QUEST_AVOID_RECENT=3`.
+`server/src/common/constants.ts`: `AI_QUEST_GROUPS` (7 key → lớp chấp nhận) · `AI_QUEST_CLASSES` = 7 key · `aiQuestTargetClasses(key)` (doc quest cũ, vd `clock` → `[clock]`) · `AI_MODEL_CLASSES` (12, thứ tự = output y1 — không đổi) · `AI_EXTRA_CLASSES = ['person']` · `QUEST_AI_ASTRITE=30` · `AI_VERIFY_TIMEOUT_MS=3000` · `AI_QUEST_AVOID_RECENT=3`. Bộ câu mẫu: 7 quest × 8 = **56 câu**, câu quest gộp nêu đủ lớp ("a cup or a bottle").
 
 ---
 
@@ -173,6 +186,9 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 | Latency YOLO trên Cloud Run 1 vCPU vượt timeout 3s | YOLO11s ước ~150–300ms; nếu p95 cao → dùng YOLO11n (script 16 cảnh báo khi p95 > 1.5s) |
 | Cold start dài hơn (tải model 36MB từ HF mỗi lần scale từ 0) | giữ ping `/health` 10'; nếu vẫn chậm: copy sẵn model vào image (cách 2 trong `ml/ai-service/README.md`) |
 | y1 tệ hơn kỳ vọng | không deploy (script 16 chỉ chạy khi y1 > v0 trên real-test); rollback = upload lại 3 file v0 |
+| Quest person: selfie 1 mình ở nơi đông người vẫn qua (người lạ phía sau) | **chấp nhận có chủ đích** (user chốt 2026-11-27) — ưu tiên không loại nhầm ảnh chụp với bạn; ghi là limitation trong báo cáo |
+| Quest person: quyền riêng tư | chỉ **đếm** người (box), không nhận dạng, không lưu ảnh cắt/vector khuôn mặt — `SECURITY.md` mục 18 |
+| Deploy lệch thứ tự (server mới, AI service cũ) | quest `person` → service cũ trả 400 → SKIPPED (không phá đăng bài); quest gộp → service cũ chỉ chấm lớp đầu. Deploy **AI service trước, server sau** |
 
 ---
 
@@ -197,8 +213,9 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 | Y0 | Pipeline y1 (`ml/snapget12/yolo.py`, scripts 10–16, notebook, class map), ai-service `arch:"yolo"`, server URL 640, đặc tả dữ liệu | Claude | ✅ 2026-11-23 |
 | Y0b | Tập train bổ sung dữ liệu bản địa `snapget_vn_supplement.zip` (đã đóng gói; code thu thập đã gỡ) | Claude | ✅ 2026-11-26 |
 | Y1 | Thu thập + gán nhãn **VN-test** và **VN-train**; chọn dataset Kaggle; tải ảnh Google | user | ⬜ |
-| Y2 | Train y1 trên Colab (+ y1-n tuỳ chọn), đánh giá, chọn lớp | user chạy, Claude review | ⬜ |
-| Y3 | Cập nhật `AI_QUEST_CLASSES` (+ câu mẫu lớp mới), deploy model, test end-to-end | Claude + user | ⬜ |
+| Y2 | Train y1 trên Colab, đánh giá, chọn lớp | user chạy, Claude review | ✅ 2026-11-27 (y1-s, AdamW) |
+| Y3a | 7 quest gộp nhóm + model phụ person: script 17, `16 --task person`, ai-service `targetClasses`/model phụ, server `AI_QUEST_GROUPS` + 56 câu, admin, notebook `snapget_quest_eval.ipynb` | Claude | ✅ 2026-11-27 |
+| Y3b | Chụp `quest_test/`, chạy notebook quest eval, deploy model (y1 + person) → AI service → server → admin, test end-to-end | user + Claude | ⬜ |
 | Y4 | Viết chương AI từ `ablation.json`, `class_selection.md`, confusion matrix | user | ⬜ |
 | M7 | Trước bảo vệ 3–5 ngày: Render Starter, xem trước quest ngày demo, kiểm keep-warm | user | ⬜ |
 
@@ -226,6 +243,12 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 13. Claude cập nhật `AI_QUEST_CLASSES` + câu mẫu → deploy server (Render). Test: đăng ảnh có vật thể **lệch góc / ở xa** khi quest là lớp đó → toast 🎯; admin `/ai-verifications` thấy `modelVersion y1`, ảnh 640 đủ khung.
 14. Admin đã sửa 1 dòng mô tả (ảnh 640) — build + deploy admin khi tiện: `cd admin && npm run build && npx firebase-tools deploy --only hosting:admin`.
 
+**E. 7 quest gộp + quest person (2026-11-27)**
+15. Chụp **`quest_test/person/`** ~60 ảnh ≥ 2 người (selfie nhóm, chụp xa/gần, ảnh co-op ghép) và **`quest_test/other/`** ~60 ảnh < 2 người (**selfie một mình**, ảnh 1 người, ảnh không người) → zip thành `snapget-ml/data/quest_test.zip` trên Drive.
+16. Chạy `ml/notebooks/snapget_quest_eval.ipynb` (CPU được): ô 0 → 1 → 2 (bảng 7 quest — **gửi Claude** `artifacts/quest_eval/quest_metrics.md`) → 3 (login HF → upload `person/` lên `Flowerng/snapget-ai-model`). Chưa chụp kịp: ô 3 vẫn chạy với ngưỡng tạm 0.4.
+17. Notebook train ô 7: export + upload y1-s (nếu chưa).
+18. Claude (cần user xác nhận): deploy **AI service trước** (code mới đọc `person/`, restart Cloud Run → `/health` có `extraModels.person`) → **server** (Render) → **admin** (hosting).
+
 **Khi nào cần Claude**: script dừng vì lỗi dữ liệu (gửi nguyên văn log hoặc `merge_report.json`), số liệu bất thường, quyết định lớp ra đề, deploy. Không dán token/API key vào chat.
 
 ---
@@ -234,6 +257,7 @@ GET /health → { status, modelVersion, arch, verifierReady, llm, llmLoading, ll
 
 | Ngày | Nội dung |
 |---|---|
+| 2026-11-27 (2) | **y1-s train lại (AdamW lr 0.0005) + đánh giá xong**: real-test mAP ảnh 0.855 / macro-F1 0.767 (YOLO11s COCO chưa fine-tune: 0.835 / 0.724); coco-test giảm nhẹ (0.866 → 0.827, domain shift có chủ đích). 0 lớp đạt đủ tiêu chí 5.3. **User chốt 7 quest gộp nhóm** (mục 0): bicycle/motorcycle · laptop/keyboard · umbrella · chair · cup/bottle · book · person (≥ 2 người, không lọc người lạ). Đã cân nhắc rồi bỏ: lớp `flower`/`plant` (Kaggle không có data cây nói chung; COCO/VN không có box cây → xung đột nhãn), quest nụ cười (cần model mặt + cười riêng), quest người + vật (để sau, không cần train). Code: `snapget12/yolo.py` `nms_keep` + `nth_score_from_raw`, `metrics.group_scores`, `classes.QUEST_GROUPS`; `16 --task person` (YOLO11n cắt head lớp person, ONNX 10.7MB, p50 ~70ms CPU, khớp PyTorch 0.00000); **`17_eval_quests.py`** + notebook **`snapget_quest_eval.ipynb`**; ai-service model phụ (`EXTRA_MODELS`, thư mục con HF `person/`) + `targetClasses`/`matchedClass`/`extraModels`; server `AI_QUEST_GROUPS` + `aiQuestTargetClasses` + 56 câu mẫu + log `targetClasses`/`matchedClass`; admin hiện nhóm + lớp khớp. Test: ml 15, ai-service 15, server 269 pass; admin build OK |
 | 2026-11-27 | **Train y1-n sụp ở đầu**: `optimizer=auto` chọn MuSGD lr 0.01 (mức train từ đầu) → mAP50 0.44 (epoch 1) → 0.06 (epoch 3, đỉnh warmup), trọng số COCO bị phá, EarlyStopping epoch 13 với best = epoch 1. Sửa `13_train_yolo.py`: AdamW lr0 0.0005, warmup 1 epoch (tham số `--optimizer/--lr0/--warmup-epochs`), thêm `--fresh` để train lại cùng tên. Ô 5 notebook tự tìm checkpoint (kể cả lượt train dở), bỏ qua model chưa có. **Bỏ YOLO11n** (ô 4c) theo user — chỉ so y1-s với v0 (và YOLO11s COCO chưa fine-tune làm mốc). **y1-s train xong 40 epoch** (val mAP50 0.668, mAP50-95 0.473; yếu: book 0.37, backpack 0.47) nhưng Ultralytics lưu vào `y1-s-4` (thư mục `y1-s` sót từ lần hỏng) nên script không copy được `best.pt` → sửa: `exist_ok=True` + lấy `trainer.save_dir` thật. Lượt này chạy bằng code CŨ (`optimizer=auto`). |
 | 2026-11-26 (2) | Notebook train bỏ ô pre-label (dữ liệu train đã có nhãn), đánh số lại 0–8; xoá `scripts/12_prelabel.py` — ảnh tự chụp gán nhãn thẳng trên Roboflow (DATASET_SPEC mục D). Viết lại toàn bộ chữ trong notebook train theo giọng ghi chép để dùng khi báo cáo. |
 | 2026-11-26 | **Gỡ toàn bộ code thu thập dữ liệu** sau khi đã đóng gói `snapget_vn_supplement.zip` (user chốt — không giữ phần cào trong repo): xoá scripts 17/18/19, `snapget12/{crawl,autolabel}.py` + test, `crawl_queries.yaml`, notebook `snapget_crawl_autolabel.ipynb` + file build; notebook train chỉ còn đọc `snapget_vn_supplement.zip` + `vn.zip` (tự chụp); bỏ `ddgs/requests/pandas` khỏi requirements. Các dòng changelog 2026-11-23 (2) → 2026-11-24 (5) bên dưới là lịch sử của phần đã gỡ. |

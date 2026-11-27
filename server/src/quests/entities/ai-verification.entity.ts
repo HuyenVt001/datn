@@ -13,14 +13,19 @@ export interface AiVerification {
   mediaUrl?: string;
   /** Ngay quest (YYYY-MM-DD UTC). */
   date: string;
-  targetClass: AiQuestClass;
+  /** Key quest (log truoc 2026-11-27 la 1 lop don, co the ngoai 7 quest hien tai). */
+  targetClass: AiQuestClass | string;
+  /** (2026-11-27) Cac lop duoc chap nhan cua quest gop nhom (vd ['cup','bottle']). */
+  targetClasses?: string[];
+  /** (2026-11-27) Lop da khop (chi khi MATCHED va AI service moi). */
+  matchedClass?: string;
   /** Ket qua verify: khop / khong khop / AI service loi-timeout. */
   outcome: 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
-  /** Diem sigmoid cua targetClass (khong co khi SKIPPED). */
+  /** Diem cua lop khop / lop gan nguong nhat trong nhom (khong co khi SKIPPED). */
   score?: number;
-  /** Nguong cua targetClass ma model dang dung. */
+  /** Nguong cua lop do ma model dang dung. */
   threshold?: number;
-  /** Du 12 diem — de debug/calibrate (khong co khi SKIPPED). */
+  /** Diem cac lop cua model da chay (12 lop y1 va/hoac person) — de debug/calibrate (khong co khi SKIPPED). */
   scores?: Record<string, number>;
   modelVersion?: string;
   /** Thoi gian suy luan cua model (ms) — AI service bao ve. */
