@@ -7,8 +7,8 @@ cup, bottle, book, chair, laptop, keyboard, umbrella, bicycle, motorcycle. Bo: p
     # 1-2. Loc mot tap VN (snapget_vn_supplement hoac vn.zip da giai nen) con 9 lop
     python scripts/18_prepare_vn_data.py filter --src /content/vnprep/raw/vn --out /content/vnprep/vn_9
 
-    # 3. Anh bo sung tu chup (bosung.zip): tu ve box + gan nhan + chia vao train/test con thieu cua vn
-    python scripts/18_prepare_vn_data.py autolabel --src /content/vnprep/raw/bosung --vn /content/vnprep/vn_9 \
+    # 3. Anh bo sung tu chup (thu muc bosung/ da giai nen, chi doc): tu ve box + gan nhan + chia vao train/test con thieu cua vn
+    python scripts/18_prepare_vn_data.py autolabel --src /content/drive/MyDrive/snapget-ml/data/bosung --vn /content/vnprep/vn_9 \
         --out /content/vnprep/bosung_auto --y1 .../y1-s/best.pt --coco yolo11x.pt
 
     # 4. Gop vn da loc + anh bo sung (uu tien nhan da soat tren Roboflow neu co) -> 1 tap VN
@@ -25,7 +25,7 @@ Quy tac loc (filter):
 
 Gan nhan tu dong (autolabel) — CHI LA NHAN NHAP:
   - 2 detector: y1-s (da hoc anh VN) + YOLO11x COCO. Box cung lop chong nhau duoc gop; diem = conf / nguong.
-  - Lop chinh lay tu TEN THU MUC trong bosung.zip -> nguong thap hon cho lop do (it bo sot).
+  - Lop chinh lay tu TEN THU MUC trong bosung/ -> nguong thap hon cho lop do (it bo sot).
   - Danh dau can soat: khong thay lop chinh, co box nghi van, anh am ma detector thay vat the.
   - Chia train/test: lap phan con thieu cua VN-test (moi nhom quest --test-target anh) truoc, con lai vao train.
     Anh chup lien nhau (cung vat the) duoc giu thanh khoi lien tuc de han che ro ri train <-> test.

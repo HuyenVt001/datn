@@ -26,7 +26,7 @@ Lần train mới chỉ giữ 9 lớp của 6 quest: cup, bottle, book, chair, l
 |---|---|---|
 | 1 | `snapget_vn_supplement.zip` | Lọc còn 9 lớp, **ghi đè** `snapget_vn_supplement.zip` |
 | 2 | `vn.zip` | Lọc còn 9 lớp (giữ trên Colab, gộp ở nhiệm vụ 4) |
-| 3 | `bosung.zip` | Tự vẽ box, gán nhãn, chia vào phần train/test còn thiếu |
+| 3 | thư mục `bosung/` (đã giải nén) | Tự vẽ box, gán nhãn, chia vào phần train/test còn thiếu |
 | 4 | kết quả 2 + 3 | `vnreal.zip` **ghi đè** `vn.zip` |
 
 - File cũ được sao lưu vào `snapget-ml/data/backup/` trước khi ghi đè.
@@ -83,7 +83,7 @@ md("""
 ## 2. Lọc `vn.zip` còn 9 lớp
 - Train: giống nhiệm vụ 1.
 - Test: ảnh mang tên lớp bị bỏ mà không còn box lớp nào khác được giữ làm **ảnh âm** (`self_neg_xxxx`), vì đây vẫn là ảnh thật tốt để kiểm tra nhận nhầm.
-- Cuối ô in số ảnh test của từng nhóm quest và phần còn thiếu so với mục tiêu 85 ảnh/nhóm (khoảng 50 ảnh vào real_test). Đây là số ảnh nên chụp thêm cho `bosung.zip`.
+- Cuối ô in số ảnh test của từng nhóm quest và phần còn thiếu so với mục tiêu 85 ảnh/nhóm (khoảng 50 ảnh vào real_test). Đây là số ảnh nên chụp thêm cho thư mục `bosung/`.
 """)
 
 code("""
@@ -93,10 +93,10 @@ code("""
 """)
 
 md("""
-## 3. Gán nhãn tự động `bosung.zip`
-Ảnh tự chụp xếp theo thư mục, **tên thư mục = lớp chính** (tên tiếng Anh như trên):
+## 3. Gán nhãn tự động ảnh bổ sung
+Ảnh tự chụp đặt sẵn (đã giải nén) trong `snapget-ml/data/bosung/`, xếp theo thư mục, **tên thư mục = lớp chính** (tên tiếng Anh như trên). Script chỉ đọc, không sửa thư mục này.
 ```
-bosung.zip
+snapget-ml/data/
 └─ bosung/
    ├─ umbrella/   *.jpg
    ├─ chair/      *.jpg
@@ -113,10 +113,11 @@ bosung.zip
 """)
 
 code("""
-!rm -rf {PREP}/raw/bosung {PREP}/bosung_auto && mkdir -p {PREP}/raw/bosung
-!unzip -q -o "{DATA}/bosung.zip" -d {PREP}/raw/bosung
+BOSUNG = f'{DATA}/bosung'      # ảnh bổ sung đã giải nén trên Drive
+assert os.path.isdir(BOSUNG), f'Không thấy thư mục {BOSUNG}'
+!rm -rf {PREP}/bosung_auto
 Y1 = f'{WORK}/artifacts/y1-s/best.pt'
-!python scripts/18_prepare_vn_data.py autolabel --src {PREP}/raw/bosung --vn {PREP}/vn9 <BS>
+!python scripts/18_prepare_vn_data.py autolabel --src "{BOSUNG}" --vn {PREP}/vn9 <BS>
     --out {PREP}/bosung_auto/bosung --y1 {Y1} --coco yolo11x.pt --test-target 85
 if os.path.exists(f'{PREP}/bosung_auto/bosung/data.yaml'):
     !cd {PREP}/bosung_auto && rm -f bosung_review.zip && zip -q -r bosung_review.zip bosung
